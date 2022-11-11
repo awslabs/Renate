@@ -3,7 +3,7 @@ name: Run unit tests on push and PR
 
 on:
   push:
-    branches: [ "main", "dev" ]
+    branches: [ "main", "dev", "pytest-workflow" ]
   pull_request:
     branches: [ "main", "dev" ]
 
