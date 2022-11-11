@@ -31,7 +31,7 @@ jobs:
 
       - name: Add test folder to path
         run: |
-          echo "PATH=/home/runner/work/renate/test" >>"${GITHUB_ENV}"
+          echo "PATH=/home/runner/work/renate/renate/test/" >>"${GITHUB_ENV}"
 
       - name: Install dependencies
         run: |
