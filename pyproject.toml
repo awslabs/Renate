@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "Renate"
+description = "Library for Continual Learning for Practitioners"
+requires-python = ">=3.8, <=3.10"
+dynamic = ["version", "readme", "dependencies"]
+
+[project.optional-dependencies]
+dev = ["myst-parser", "pytest>=7.0, <=7.1.2", "pytest-cov <=3.0.0", "pytest-helpers-namespace"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.dynamic]
+version = {attr = "renate.__version__"}
+readme = {file = ["README.md"]}
+dependencies = {file = ["requirements.txt"]}
+
+[tool.black]
+line-length = 100
+target-version = ["py38", "py39", "py310"]
+include = '\.pyi?$'
+
+[tool.pytest.ini_options]
+addopts = "--cov --cov-report html --cov-report term-missing --cov-fail-under 70"
+
+[tool.coverage.run]
+source = ["src"]
