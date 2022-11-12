@@ -29,10 +29,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Add test folder to path
-        run: |
-          echo "PATH=/home/runner/work/renate/renate/test/" >>"${GITHUB_ENV}"
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
