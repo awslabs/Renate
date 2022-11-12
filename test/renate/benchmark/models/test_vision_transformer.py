@@ -15,6 +15,7 @@ def test_renate_vision_transformer_init():
     pytest.helpers.get_renate_module_vision_transformer(sub_class="visiontransformerh14")
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "sub_class,input_dim",
     [
