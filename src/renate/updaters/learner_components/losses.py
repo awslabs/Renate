@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import copy
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -66,6 +66,36 @@ class WeightedLossComponent(Component, ABC):
         intermediate_representation_memory: Optional[List[torch.Tensor]],
     ) -> torch.Tensor:
         pass
+
+
+class WeightedCustomLossComponent(WeightedLossComponent):
+    """Adds a (weighted) user-provided custom loss contribution.
+
+    Args:
+        loss_fn: The loss function to apply.
+        weight: A scaling coefficient which should scale the loss which gets returned.
+        sample_new_memory_batch: Whether a new batch of data should be sampled from the memory buffer when the loss is calculated.
+    """
+
+    def __init__(
+        self,
+        loss_fn: Callable,
+        weight: float,
+        sample_new_memory_batch: bool,
+        **kwargs: Any
+    ) -> None:
+        super().__init__(weight=weight, sample_new_memory_batch=sample_new_memory_batch, **kwargs)
+        self._loss_fn = loss_fn
+
+    def _loss(
+        self,
+        outputs_memory: torch.Tensor,
+        batch_memory: Tuple[DataTuple, DataDict],
+        intermediate_representation_memory: Optional[List[torch.Tensor]],
+    ) -> torch.Tensor:
+        """Mean-squared error between current and previous logits on memory."""
+        (_, y_memory), _ = batch_memory
+        return self.weight * self._loss_fn(outputs_memory, y_memory)
 
 
 class WeightedMeanSquaredErrorLossComponent(WeightedLossComponent):

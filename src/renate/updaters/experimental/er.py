@@ -15,6 +15,7 @@ from renate.updaters.learner import ReplayLearner
 from renate.updaters.learner_components.losses import (
     WeightedCLSLossComponent,
     WeightedCrossEntropyLossComponent,
+    WeightedCustomLossComponent,
     WeightedMeanSquaredErrorLossComponent,
     WeightedPooledOutputDistillationLossComponent,
 )
@@ -184,7 +185,7 @@ class ExperienceReplayLearner(BaseExperienceReplayLearner):
     """
 
     def __init__(self, alpha: float = defaults.ER_ALPHA, **kwargs) -> None:
-        components = self.components(alpha=alpha)
+        components = self.components(model=kwargs["model"], alpha=alpha)
         super().__init__(components=components, **kwargs)
 
     def components(
@@ -192,8 +193,8 @@ class ExperienceReplayLearner(BaseExperienceReplayLearner):
     ) -> nn.ModuleDict:
         return nn.ModuleDict(
             {
-                "ce_loss": WeightedCrossEntropyLossComponent(
-                    weight=alpha, sample_new_memory_batch=True
+                "ce_loss": WeightedCustomLossComponent(
+                    loss_fn=model.loss_fn, weight=alpha, sample_new_memory_batch=True
                 )
             }
         )
@@ -221,7 +222,7 @@ class DarkExperienceReplayLearner(ExperienceReplayLearner):
         self, alpha: float = defaults.DER_ALPHA, beta: float = defaults.DER_BETA, **kwargs
     ) -> None:
         super().__init__(alpha=beta, **kwargs)
-        self._components = self.components(alpha=alpha, beta=beta)
+        self._components = self.components(model=kwargs["model"], alpha=alpha, beta=beta)
 
     def components(
         self,
@@ -229,7 +230,7 @@ class DarkExperienceReplayLearner(ExperienceReplayLearner):
         alpha: float = defaults.DER_ALPHA,
         beta: float = defaults.DER_BETA,
     ) -> nn.ModuleDict:
-        components = super().components(alpha=beta, model=model)
+        components = super().components(model=model, alpha=beta)
         components.update(
             {
                 "mse_loss": WeightedMeanSquaredErrorLossComponent(
