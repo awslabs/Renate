@@ -15,21 +15,12 @@ from renate.benchmark.datasets.vision_datasets import (
     TinyImageNetDataModule,
     TorchVisionDataModule,
 )
-from renate.data.data_module import (
-    CSVDataModule,
-)
-from renate.utils.file import delete_file_from_s3, upload_file_to_s3
+from renate.data.data_module import CSVDataModule
 from renate.utils.pytorch import _proportions_into_sizes
 
 
-@pytest.mark.slow
 def test_csv_data_module(tmpdir):
-    src_bucket = "mnemosyne-team-bucket"
-    src_object_name = os.path.join("dataset", "csv_test")
     target_name = "y"
-
-    def object_name(s):
-        return os.path.join(src_object_name, f"{s}.csv")
 
     # Create toy data
     features = np.random.randint(10, size=(10, 4))
@@ -42,29 +33,17 @@ def test_csv_data_module(tmpdir):
 
     for stage in ["train", "test"]:
         data = train_data if stage == "train" else test_data
-        data_file_tmp = os.path.join(tmpdir, f"{stage}_tmp.csv")
+        data_file_tmp = os.path.join(tmpdir, f"{stage}.csv")
         data.to_csv(data_file_tmp, index=False)
-        upload_file_to_s3(
-            data_file_tmp,
-            src_bucket,
-            object_name(stage),
-        )
 
     val_size = 0.2
     csv_module = CSVDataModule(
-        tmpdir,
-        src_bucket,
-        src_object_name,
-        {"train": "train.csv", "test": "test.csv"},
-        target_name,
+        data_path=tmpdir,
+        filenames={"train": "train.csv", "test": "test.csv"},
+        target_name=target_name,
         val_size=val_size,
     )
-
     csv_module.prepare_data()
-
-    for stage in ["train", "test"]:
-        delete_file_from_s3(src_bucket, object_name(stage))
-
     csv_module.setup()
     train_data = csv_module.train_data()
     val_data = csv_module.val_data()
