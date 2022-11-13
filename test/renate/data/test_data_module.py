@@ -134,7 +134,7 @@ def test_torchvision_data_module_loading(tmpdir, src_bucket, src_object_name, do
     [
         [
             CLEARDataModule,
-            {"dataset_name": "CLEAR10", "val_size": 0.4, "split_id": 1},
+            {"dataset_name": "CLEAR10", "val_size": 0.4, "chunk_id": 1},
             2986,
             500,
             "mnemosyne-team-bucket",
@@ -142,7 +142,7 @@ def test_torchvision_data_module_loading(tmpdir, src_bucket, src_object_name, do
         ],
         [
             CLEARDataModule,
-            {"dataset_name": "CLEAR10", "val_size": 0.2, "split_id": 1},
+            {"dataset_name": "CLEAR10", "val_size": 0.2, "chunk_id": 1},
             2986,
             500,
             None,
@@ -166,7 +166,7 @@ def test_torchvision_data_module_loading(tmpdir, src_bucket, src_object_name, do
         ],
         [
             CLEARDataModule,
-            {"dataset_name": "CLEAR100", "val_size": 0.4, "split_id": 1},
+            {"dataset_name": "CLEAR100", "val_size": 0.4, "chunk_id": 1},
             9945,
             4984,
             "mnemosyne-team-bucket",
@@ -174,7 +174,7 @@ def test_torchvision_data_module_loading(tmpdir, src_bucket, src_object_name, do
         ],
         [
             CLEARDataModule,
-            {"dataset_name": "CLEAR100", "val_size": 0.4, "split_id": 1},
+            {"dataset_name": "CLEAR100", "val_size": 0.4, "chunk_id": 1},
             9945,
             4984,
             None,
@@ -182,7 +182,7 @@ def test_torchvision_data_module_loading(tmpdir, src_bucket, src_object_name, do
         ],
         [
             CORE50DataModule,
-            {"scenario": "ni", "val_size": 0.4, "split_id": 1},
+            {"scenario": "ni", "val_size": 0.4, "chunk_id": 1},
             119894,
             44972,
             "mnemosyne-team-bucket",
@@ -190,7 +190,7 @@ def test_torchvision_data_module_loading(tmpdir, src_bucket, src_object_name, do
         ],
         [
             CORE50DataModule,
-            {"scenario": "nc", "val_size": 0.4, "split_id": 5},
+            {"scenario": "nc", "val_size": 0.4, "chunk_id": 5},
             119894,
             44972,
             "mnemosyne-team-bucket",
@@ -198,7 +198,7 @@ def test_torchvision_data_module_loading(tmpdir, src_bucket, src_object_name, do
         ],
         [
             CORE50DataModule,
-            {"scenario": "ni", "val_size": 0.4, "split_id": 1},
+            {"scenario": "ni", "val_size": 0.4, "chunk_id": 1},
             119894,
             44972,
             None,
@@ -206,7 +206,7 @@ def test_torchvision_data_module_loading(tmpdir, src_bucket, src_object_name, do
         ],
         [
             CORE50DataModule,
-            {"scenario": "nc", "val_size": 0.4, "split_id": 5},
+            {"scenario": "nc", "val_size": 0.4, "chunk_id": 5},
             119894,
             44972,
             None,

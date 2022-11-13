@@ -5,7 +5,9 @@ import pickle
 from pathlib import Path
 from typing import Callable, List, Literal, Optional, Tuple, Union
 
+import torch
 import torchvision
+from torchvision import transforms
 
 from renate import defaults
 from renate.data import ImageDataset
@@ -48,11 +50,11 @@ class TinyImageNetDataModule(RenateDataModule):
             data_path=data_path,
             src_bucket=src_bucket,
             src_object_name=src_object_name,
-            transform=transform,
-            target_transform=target_transform,
             val_size=val_size,
             seed=seed,
         )
+        self._transform = transform
+        self._target_transform = target_transform
         self._dataset_name = "tiny_imagenet"
 
     def prepare_data(self) -> None:
@@ -143,13 +145,17 @@ class TorchVisionDataModule(RenateDataModule):
             data_path,
             src_bucket=src_bucket,
             src_object_name=src_object_name,
-            transform=transform,
-            target_transform=target_transform,
             val_size=val_size,
             seed=seed,
         )
-        self._dataset_name = dataset_name
+        self._transform = transforms.ToTensor()
+        self._target_transform = transforms.Lambda(lambda x: torch.tensor(x, dtype=torch.long))
+        if transform is not None:
+            self._transform = transforms.Compose([self._transform, transform])
+        if target_transform is not None:
+            self._target_transform = transforms.Compose([self._target_transform, target_transform])
         self._download = download
+        self._dataset_name = dataset_name
         self._dataset_dict = {
             "CIFAR10": (torchvision.datasets.CIFAR10, "cifar-10-batches-py"),
             "CIFAR100": (torchvision.datasets.CIFAR100, "cifar-100-python"),
@@ -238,11 +244,11 @@ class CLEARDataModule(RenateDataModule):
             data_path=data_path,
             src_bucket=src_bucket,
             src_object_name=src_object_name,
-            transform=transform,
-            target_transform=target_transform,
             val_size=val_size,
             seed=seed,
         )
+        self._transform = transform
+        self._target_transform = target_transform
         assert dataset_name == "CLEAR10" or dataset_name == "CLEAR100"
         self._dataset_name = dataset_name.lower()
         self._verify_chunk_id(chunk_id)
@@ -371,11 +377,11 @@ class CORE50DataModule(RenateDataModule):
             data_path=data_path,
             src_bucket=src_bucket,
             src_object_name=src_object_name,
-            transform=transform,
-            target_transform=target_transform,
             val_size=val_size,
             seed=seed,
         )
+        self._transform = transform
+        self._target_transform = target_transform
         self._dataset_name = "core50"
         self._image_source = "core50_128x128" if cropped else "core50_350x350"
         self._scenario = scenario

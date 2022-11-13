@@ -3,7 +3,7 @@
 import abc
 import os
 from pathlib import Path
-from typing import Callable, Dict, Literal, Optional, Tuple, Union
+from typing import Dict, Literal, Optional, Tuple, Union
 
 import pandas as pd
 import torch
@@ -24,8 +24,6 @@ class RenateDataModule(abc.ABC):
         data_path: the path to the data to be loaded.
         src_bucket: the name of the s3 bucket.
         src_object_name: the folder path in the s3 bucket.
-        transform: Transformation or augmentation to perform on the sample.
-        target_transform: Transformation or augmentation to perform on the target.
         val_size: If `val_size` is provided split the train data into train and validation according to `val_size`.
         seed: Seed used to fix random number generation.
     """
@@ -35,8 +33,6 @@ class RenateDataModule(abc.ABC):
         data_path: Union[Path, str],
         src_bucket: str,
         src_object_name: str,
-        transform: Optional[Callable] = None,
-        target_transform: Optional[Callable] = None,
         val_size: float = defaults.VALIDATION_SIZE,
         seed: int = defaults.SEED,
     ):
@@ -47,8 +43,6 @@ class RenateDataModule(abc.ABC):
         self._train_data: Optional[Dataset] = None
         self._val_data: Optional[Dataset] = None
         self._test_data: Optional[Dataset] = None
-        self._transform = transform
-        self._target_transform = target_transform
         assert 0.0 <= val_size <= 1.0
         self._val_size = val_size
         self._seed = seed
@@ -124,8 +118,6 @@ class CSVDataModule(RenateDataModule):
             data_path,
             src_bucket=src_bucket,
             src_object_name=src_object_name,
-            transform=None,
-            target_transform=None,
             val_size=val_size,
             seed=seed,
         )
