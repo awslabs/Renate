@@ -35,16 +35,6 @@ def data_module_fn(
         str(data_path),
         dataset_name="CIFAR10",
         download=True,
-        transform=transforms.Compose(
-            [
-                transforms.ToTensor(),
-            ]
-        ),
-        target_transform=transforms.Compose(
-            [
-                transforms.Lambda(lambda x: torch.tensor(x, dtype=torch.long)),
-            ]
-        ),
         val_size=0.2,
         seed=seed,
     )
@@ -70,11 +60,7 @@ def train_transform() -> transforms.Compose:
 
 def test_transform() -> transforms.Compose:
     """Returns a transform function to be used for validation or testing."""
-    return transforms.Compose(
-        [
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2470, 0.2435, 0.2615)),
-        ]
-    )
+    return transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2470, 0.2435, 0.2615))
 
 
 def buffer_transform() -> transforms.Compose:

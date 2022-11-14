@@ -44,11 +44,10 @@ class DummyTorchVisionDataModule(RenateDataModule):
             data_path="",
             src_bucket="",
             src_object_name="",
-            transform=transform,
-            target_transform=None,
             val_size=val_size,
             seed=seed,
         )
+        self._transform = transform
         self.input_shape = (1, 5, 5)
         self.output_shape = (1,)
         self.output_classes = 5

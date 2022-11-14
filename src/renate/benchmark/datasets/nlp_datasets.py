@@ -39,8 +39,6 @@ class TorchTextDataModule(RenateDataModule):
             data_path,
             src_bucket=src_bucket,
             src_object_name=src_object_name,
-            transform=None,
-            target_transform=None,
             val_size=val_size,
             seed=seed,
         )

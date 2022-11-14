@@ -3,7 +3,7 @@
 import abc
 import os
 from pathlib import Path
-from typing import Callable, Dict, Literal, Optional, Tuple, Union
+from typing import Dict, Literal, Optional, Tuple, Union
 
 import pandas as pd
 import torch
@@ -24,8 +24,6 @@ class RenateDataModule(abc.ABC):
         data_path: the path to the data to be loaded.
         src_bucket: the name of the s3 bucket.
         src_object_name: the folder path in the s3 bucket.
-        transform: Transformation or augmentation to perform on the sample.
-        target_transform: Transformation or augmentation to perform on the target.
         val_size: If `val_size` is provided split the train data into train and validation according to `val_size`.
         seed: Seed used to fix random number generation.
     """
@@ -33,10 +31,8 @@ class RenateDataModule(abc.ABC):
     def __init__(
         self,
         data_path: Union[Path, str],
-        src_bucket: str,
-        src_object_name: str,
-        transform: Optional[Callable] = None,
-        target_transform: Optional[Callable] = None,
+        src_bucket: Union[Path, str, None] = None,
+        src_object_name: Union[Path, str, None] = None,
         val_size: float = defaults.VALIDATION_SIZE,
         seed: int = defaults.SEED,
     ):
@@ -47,8 +43,6 @@ class RenateDataModule(abc.ABC):
         self._train_data: Optional[Dataset] = None
         self._val_data: Optional[Dataset] = None
         self._test_data: Optional[Dataset] = None
-        self._transform = transform
-        self._target_transform = target_transform
         assert 0.0 <= val_size <= 1.0
         self._val_size = val_size
         self._seed = seed
@@ -95,16 +89,17 @@ class RenateDataModule(abc.ABC):
 
 
 class CSVDataModule(RenateDataModule):
-    """Dataset with data from a .CSV file.
+    """Dataset with data from CVS files.
 
     train/validation/test splits are stored in different.csv files. Label (target) column name should be specified.
 
     Args:
-        data_path: the path to the folder containing the CSV datasets.
-        src_bucket: the name of the s3 bucket.
-        src_object_name: the folder path in the s3 bucket.
+        data_path: Path to the folder containing the files.
         filenames: Filenames for train/validation/test splits in the folder,
             e.g. {"train": "train_data.csv", "test": "test_data.csv"}
+        src_bucket: Name of an s3 bucket. If specified, the folder given by `src_object_name` will
+            be downloaded from S3.
+        src_object_name: Folder path in the s3 bucket.
         target_name: the header of the column containing the target values.
         val_size: If `val_size` is provided split the train data into train and validation according to `val_size`.
         seed: Seed used to fix random number generation.
@@ -113,10 +108,10 @@ class CSVDataModule(RenateDataModule):
     def __init__(
         self,
         data_path: Union[Path, str],
-        src_bucket: str,
-        src_object_name: str,
         filenames: Dict[str, str],
         target_name: str = "y",
+        src_bucket: Union[Path, str, None] = None,
+        src_object_name: Union[Path, str, None] = None,
         val_size: float = defaults.VALIDATION_SIZE,
         seed: int = defaults.SEED,
     ):
@@ -124,8 +119,6 @@ class CSVDataModule(RenateDataModule):
             data_path,
             src_bucket=src_bucket,
             src_object_name=src_object_name,
-            transform=None,
-            target_transform=None,
             val_size=val_size,
             seed=seed,
         )
@@ -136,9 +129,8 @@ class CSVDataModule(RenateDataModule):
         """Download data folder. We expect a folder with separate csv files for train/val/test.
         If the data is not available in local data_path, it is loaded from s3.
         """
-        if self._src_bucket is None:
-            raise ValueError("Source S3 bucket should be provided.")
-        download_folder_from_s3(self._src_bucket, self._src_object_name, self._data_path)
+        if self._src_bucket is not None:
+            download_folder_from_s3(self._src_bucket, self._src_object_name, self._data_path)
 
     def setup(self, stage: Optional[Literal["train", "val", "test"]] = None) -> None:
         """Make assignments: train/validation/test splits."""
