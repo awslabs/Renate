@@ -134,8 +134,6 @@ class TorchVisionDataModule(RenateDataModule):
         data_path: Union[Path, str],
         src_bucket: Optional[str] = None,
         src_object_name: Optional[str] = None,
-        transform: Optional[Callable] = None,
-        target_transform: Optional[Callable] = None,
         dataset_name: str = "MNIST",
         download: bool = False,
         val_size: float = defaults.VALIDATION_SIZE,
@@ -148,12 +146,6 @@ class TorchVisionDataModule(RenateDataModule):
             val_size=val_size,
             seed=seed,
         )
-        self._transform = transforms.ToTensor()
-        self._target_transform = transforms.Lambda(lambda x: torch.tensor(x, dtype=torch.long))
-        if transform is not None:
-            self._transform = transforms.Compose([self._transform, transform])
-        if target_transform is not None:
-            self._target_transform = transforms.Compose([self._target_transform, target_transform])
         self._download = download
         self._dataset_name = dataset_name
         self._dataset_dict = {
@@ -190,8 +182,8 @@ class TorchVisionDataModule(RenateDataModule):
             train_data = self._dataset_dict[self._dataset_name][0](
                 self._data_path,
                 train=True,
-                transform=self._transform,
-                target_transform=self._target_transform,
+                transform=transforms.ToTensor(),
+                target_transform=transforms.Lambda(lambda x: torch.tensor(x, dtype=torch.long)),
             )
             self._train_data, self._val_data = self._split_train_val_data(train_data)
 
@@ -199,8 +191,8 @@ class TorchVisionDataModule(RenateDataModule):
             self._test_data = self._dataset_dict[self._dataset_name][0](
                 self._data_path,
                 train=False,
-                transform=self._transform,
-                target_transform=self._target_transform,
+                transform=transforms.ToTensor(),
+                target_transform=transforms.Lambda(lambda x: torch.tensor(x, dtype=torch.long)),
             )
 
 
