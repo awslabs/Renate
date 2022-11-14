@@ -9,7 +9,7 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Adding license header."
-./prepend_license.sh
+./.github/scripts/prepend_license.sh
 
 if [ $? -ne 0 ]; then
  echo "Could not add license header."
