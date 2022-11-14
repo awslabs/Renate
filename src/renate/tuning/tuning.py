@@ -62,6 +62,7 @@ def execute_tuning_job(
     metric: str,
     backend: defaults.SUPPORTED_BACKEND_TYPE,
     updater: str = defaults.LEARNER,
+    max_epochs: int = defaults.MAX_EPOCHS,
     task_id: str = defaults.TASK_ID,
     chunk_id: int = defaults.CHUNK_ID,
     state_url: Optional[str] = None,
@@ -96,6 +97,7 @@ def execute_tuning_job(
         metric: Name of metric to optimize.
         backend: Whether to run jobs locally (`local`) or on SageMaker (`sagemaker`).
         updater: Updater used for model update.
+        max_epochs: Maximum number of epochs the model is trained.
         task_id: Unique identifier for the current task.
         chunk_id: Unique identifier for the current data chunk.
         state_url: Path to the Renate model state.
@@ -139,6 +141,7 @@ def execute_tuning_job(
             config_space=config_space,
             metric=metric,
             updater=updater,
+            max_epochs=max_epochs,
             task_id=task_id,
             chunk_id=chunk_id,
             max_time=max_time,
@@ -162,6 +165,7 @@ def execute_tuning_job(
         config_space=config_space,
         metric=metric,
         updater=updater,
+        max_epochs=max_epochs,
         task_id=task_id,
         chunk_id=chunk_id,
         source_dir=source_dir,
@@ -465,6 +469,7 @@ def _execute_tuning_job_locally(
     config_space: Dict[str, Any],
     metric: str,
     updater: str,
+    max_epochs: int,
     task_id: str,
     chunk_id: int,
     max_time: float,
@@ -485,6 +490,7 @@ def _execute_tuning_job_locally(
     """
     tune_hyperparameters = _is_syne_tune_config_space(config_space)
     config_space["updater"] = updater
+    config_space["max_epochs"] = max_epochs
     config_space["model_data_definition"] = model_data_definition
     config_space["prepare_data"] = 0
     config_space["chunk_id"] = chunk_id
@@ -522,7 +528,7 @@ def _execute_tuning_job_locally(
             config_space=config_space,
             metric=metric,
             mode=mode,
-            max_epochs=config_space["max_epochs"],
+            max_epochs=max_epochs,
             seed=seed,
             scheduler_kwargs=scheduler_kwargs,
             state_url=state_url,
@@ -543,9 +549,7 @@ def _execute_tuning_job_locally(
 
     tuner.run()
 
-    _teardown_tuning_job(
-        backend=backend, job_name=tuner.name, state_url=state_url, next_state_url=next_state_url
-    )
+    _teardown_tuning_job(backend=backend, job_name=tuner.name, state_url=state_url, next_state_url=next_state_url)
 
     return tuner
 
@@ -559,6 +563,7 @@ def _execute_tuning_job_remotely(
     config_space: Dict[str, Any],
     metric: str,
     updater: str,
+    max_epochs: int,
     task_id: str,
     chunk_id: int,
     source_dir: str,
@@ -596,6 +601,7 @@ def _execute_tuning_job_remotely(
         config_space=config_space,
         metric=metric,
         updater=updater,
+        max_epochs=max_epochs,
         task_id=task_id,
         chunk_id=chunk_id,
         max_time=max_time,
