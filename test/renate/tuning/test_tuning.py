@@ -32,6 +32,7 @@ def get_model_data_definition(use_val):
     return str(model_data_definition_root_dir / model_data_definition_file)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "num_chunks, use_val, raises, fixed_search_space, scheduler",
     [
