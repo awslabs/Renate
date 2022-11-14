@@ -37,7 +37,7 @@ if __name__ == "__main__":
         instance_count=1,
         instance_type="ml.g4dn.2xlarge",
         max_num_trials_finished=100,
-        scheduler="asha",  # we will run ASHA to optimize our hyerparameters
+        scheduler="asha",  # we will run ASHA to optimize our hyperparameters
         n_workers=4,
         job_name="testjob",
     )
