@@ -1,0 +1,23 @@
+#!/bin/sh
+
+# Run black
+a=$((git ls-files | grep "\.py$" |  xargs black) 2>&1 | grep "formatted")
+git ls-files | grep "\.py$" |  xargs black 2>/dev/null
+
+if [ $? -ne 0 ]; then
+  echo "\033[0;31mBlack failed. Commit aborted.\033[0m"
+  exit 1
+fi
+if [ -n "$a" ]
+then
+  echo "\033[0;31mBlack changed files. Commit aborted.\033[0m"
+  exit 1
+fi
+
+# Add licenses
+./.github/scripts/prepend_license.sh
+
+if [ $? -ne 0 ]; then
+  echo "\033[0;31mNew licenses added. Commit aborted.\033[0m"
+  exit 1
+fi

@@ -1,4 +1,4 @@
 #!/bin/sh
 
-# update location of Git hooks from default (.git/hooks) to the versioned folder git_hooks
-git config core.hooksPath "git_hooks"
+# update location of Git hooks from default (.git/hooks) to the versioned folder .github/hooks
+git config core.hooksPath ".github/hooks"
