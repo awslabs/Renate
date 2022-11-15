@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import copy
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -68,6 +68,32 @@ class WeightedLossComponent(Component, ABC):
         pass
 
 
+class WeightedCustomLossComponent(WeightedLossComponent):
+    """Adds a (weighted) user-provided custom loss contribution.
+
+    Args:
+        loss_fn: The loss function to apply.
+        weight: A scaling coefficient which should scale the loss which gets returned.
+        sample_new_memory_batch: Whether a new batch of data should be sampled from the memory buffer when the loss is calculated.
+    """
+
+    def __init__(
+        self, loss_fn: Callable, weight: float, sample_new_memory_batch: bool, **kwargs: Any
+    ) -> None:
+        super().__init__(weight=weight, sample_new_memory_batch=sample_new_memory_batch, **kwargs)
+        self._loss_fn = loss_fn
+
+    def _loss(
+        self,
+        outputs_memory: torch.Tensor,
+        batch_memory: Tuple[DataTuple, DataDict],
+        intermediate_representation_memory: Optional[List[torch.Tensor]],
+    ) -> torch.Tensor:
+        """Returns user-provided loss evaluated on memory batch."""
+        (_, y_memory), _ = batch_memory
+        return self.weight * self._loss_fn(outputs_memory, y_memory)
+
+
 class WeightedMeanSquaredErrorLossComponent(WeightedLossComponent):
     """Mean squared error between the current and previous logits computed with respect to the memory sample.
 
@@ -87,26 +113,6 @@ class WeightedMeanSquaredErrorLossComponent(WeightedLossComponent):
         (_, _), meta_data = batch_memory
         previous_logits = meta_data["outputs"]
         return self.weight * F.mse_loss(logits, previous_logits, reduction="mean")
-
-
-class WeightedCrossEntropyLossComponent(WeightedLossComponent):
-    """Cross entropy between the current logits computed with respect to the memory labels.
-
-    Args:
-        weight: A scaling coefficient which should scale the loss which gets returned.
-        sample_new_memory_batch: Whether a new batch of data should be sampled from the memory buffer when the loss is calculated.
-    """
-
-    def _loss(
-        self,
-        outputs_memory: torch.Tensor,
-        batch_memory: Tuple[DataTuple, DataDict],
-        intermediate_representation_memory: Optional[List[torch.Tensor]],
-    ) -> torch.Tensor:
-        """Cross entropy computation with respect to logits and labels."""
-        logits = outputs_memory
-        (_, y_memory), _ = batch_memory
-        return self.weight * F.cross_entropy(logits, y_memory, reduction="mean")
 
 
 class WeightedPooledOutputDistillationLossComponent(WeightedLossComponent):
