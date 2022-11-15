@@ -549,7 +549,9 @@ def _execute_tuning_job_locally(
 
     tuner.run()
 
-    _teardown_tuning_job(backend=backend, job_name=tuner.name, state_url=state_url, next_state_url=next_state_url)
+    _teardown_tuning_job(
+        backend=backend, job_name=tuner.name, state_url=state_url, next_state_url=next_state_url
+    )
 
     return tuner
 
