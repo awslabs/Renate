@@ -17,7 +17,6 @@ config_space = {
     "batch_size": choice([32, 64, 128, 256]),
     "memory_batch_size": 32,
     "memory_size": 1000,
-    "max_epochs": 50,
     "loss_normalization": 0,
     "loss_weight": uniform(0.0, 1.0),
 }
@@ -29,6 +28,7 @@ if __name__ == "__main__":
         mode="max",
         metric="val_accuracy",
         updater="ER",  # we train with Experience Replay
+        max_epochs=50,
         chunk_id=0,  # we select the first chunk of our dataset, you will probably not need this in practice
         model_data_definition="./split_cifar10.py",
         requirements_file=str(Path(renate.__path__[0]).resolve().parents[1] / "requirements.txt"),
@@ -37,7 +37,7 @@ if __name__ == "__main__":
         instance_count=1,
         instance_type="ml.g4dn.2xlarge",
         max_num_trials_finished=100,
-        scheduler="asha",  # we will run ASHA to optimize our hyerparameters
+        scheduler="asha",  # we will run ASHA to optimize our hyperparameters
         n_workers=4,
         job_name="testjob",
     )
