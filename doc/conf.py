@@ -52,7 +52,7 @@ def setup(app):
 project = "Renate"
 version = renate.__version__
 release = renate.__version__
-copyright = "{}, Amazon".format(datetime.datetime.now().year)
+copyright = f"{datetime.datetime.now().year}, Amazon"
 
 
 extensions = [
