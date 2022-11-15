@@ -135,9 +135,9 @@ class ModelUpdaterCLI:
         )
         argument_group.add_argument(
             "--early_stopping",
-            type=int,
-            default=defaults.EARLY_STOPPING,
-            choices=[0, 1],
+            type=str,
+            default=str(defaults.EARLY_STOPPING),
+            choices=["True", "False"],
             help=f"Enables the early stopping of the optimization. Default: {defaults.EARLY_STOPPING}.",
         )
 
@@ -195,6 +195,7 @@ class ModelUpdaterCLI:
         additional_args = parse_unknown_args(unknown_args_list)
 
         args = argparse.Namespace(**vars(known_args), **additional_args)
+        args.early_stopping = args.early_stopping == "True"
 
         seed_everything(args.seed)
         self._prepare_data_state_model(args)
