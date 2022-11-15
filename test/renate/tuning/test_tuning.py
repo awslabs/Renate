@@ -63,14 +63,14 @@ def test_execute_tuning_job(tmpdir, num_chunks, use_val, raises, fixed_search_sp
         def execute_job():
             execute_tuning_job(
                 updater="ER",
+                max_epochs=50,
                 model_data_definition=get_model_data_definition(use_val),
                 state_url=state_url,
                 next_state_url=tmpdir,
                 backend="local",
                 mode="max",
                 config_space={
-                    "max_epochs": 50,
-                    "learning_rate": 0.1 if fixed_search_space else loguniform(10e-5, 0.1),
+                    "learning_rate": 0.1 if fixed_search_space else loguniform(10e-5, 0.1)
                 },
                 metric="val_accuracy",
                 max_time=30,

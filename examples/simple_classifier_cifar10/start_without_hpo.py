@@ -16,7 +16,6 @@ config_space = {
     "batch_size": 32,
     "memory_batch_size": 32,
     "memory_size": 300,
-    "max_epochs": 50,
     "loss_normalization": 0,
     "loss_weight": 0.5,
 }
@@ -28,6 +27,7 @@ if __name__ == "__main__":
         mode="max",
         metric="val_accuracy",
         updater="ER",
+        max_epochs=50,
         chunk_id=1,
         model_data_definition="./split_cifar10.py",
         requirements_file=str(Path(renate.__path__[0]).resolve().parents[1] / "requirements.txt"),

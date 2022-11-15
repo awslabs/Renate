@@ -1,9 +1,13 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
 """Sphinx configuration."""
 
 import datetime
 import os
 import shutil
 import sys
+
+import renate
 
 sys.path.insert(0, os.path.abspath("."))
 
@@ -46,9 +50,9 @@ def setup(app):
 
 # Sphinx configuration below.
 project = "Renate"
-version = "0.1"
-release = ""
-copyright = "Amazon".format(datetime.datetime.now().year)
+version = renate.__version__
+release = renate.__version__
+copyright = f"{datetime.datetime.now().year}, Amazon"
 
 
 extensions = [
