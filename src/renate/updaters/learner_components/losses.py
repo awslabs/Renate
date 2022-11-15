@@ -115,26 +115,6 @@ class WeightedMeanSquaredErrorLossComponent(WeightedLossComponent):
         return self.weight * F.mse_loss(logits, previous_logits, reduction="mean")
 
 
-class WeightedCrossEntropyLossComponent(WeightedLossComponent):
-    """Cross entropy between the current logits computed with respect to the memory labels.
-
-    Args:
-        weight: A scaling coefficient which should scale the loss which gets returned.
-        sample_new_memory_batch: Whether a new batch of data should be sampled from the memory buffer when the loss is calculated.
-    """
-
-    def _loss(
-        self,
-        outputs_memory: torch.Tensor,
-        batch_memory: Tuple[DataTuple, DataDict],
-        intermediate_representation_memory: Optional[List[torch.Tensor]],
-    ) -> torch.Tensor:
-        """Cross entropy computation with respect to logits and labels."""
-        logits = outputs_memory
-        (_, y_memory), _ = batch_memory
-        return self.weight * F.cross_entropy(logits, y_memory, reduction="mean")
-
-
 class WeightedPooledOutputDistillationLossComponent(WeightedLossComponent):
     """Pooled output feature distillation with respect to intermediate network features.
 

@@ -180,16 +180,16 @@ def test_er_components_save_and_load(tmpdir, cls, kwargs):
     if isinstance(learner, ExperienceReplayLearner) and not isinstance(
         learner, DarkExperienceReplayLearner
     ):
-        assert learner._components["base_loss"]._weight == kwargs["alpha"]
+        assert learner._components["memory_loss"]._weight == kwargs["alpha"]
     if isinstance(learner, DarkExperienceReplayLearner):
         assert learner._components["mse_loss"]._weight == kwargs["alpha"]
-        assert learner._components["base_loss"]._weight == kwargs["beta"]
+        assert learner._components["memory_loss"]._weight == kwargs["beta"]
     elif isinstance(learner, PooledOutputDistillationExperienceReplayLearner):
         assert learner._components["pod_loss"]._weight == kwargs["alpha"]
         assert learner._components["pod_loss"]._distillation_type == kwargs["distillation_type"]
         assert learner._components["pod_loss"]._normalize == kwargs["normalize"]
     elif isinstance(learner, CLSExperienceReplayLearner):
-        assert learner._components["base_loss"]._weight == kwargs["alpha"]
+        assert learner._components["memory_loss"]._weight == kwargs["alpha"]
         assert learner._components["cls_loss"]._weight == kwargs["beta"]
         assert (
             learner._components["cls_loss"]._stable_model_update_weight
@@ -209,7 +209,7 @@ def test_er_components_save_and_load(tmpdir, cls, kwargs):
         )
     elif isinstance(learner, SuperExperienceReplayLearner):
         assert learner._components["mse_loss"]._weight == kwargs["der_alpha"]
-        assert learner._components["base_loss"]._weight == kwargs["der_beta"]
+        assert learner._components["memory_loss"]._weight == kwargs["der_beta"]
         assert learner._components["shrink_perturb"]._shrink_factor == kwargs["sp_shrink_factor"]
         assert learner._components["shrink_perturb"]._sigma == kwargs["sp_sigma"]
         assert learner._components["cls_loss"]._weight == kwargs["cls_alpha"]

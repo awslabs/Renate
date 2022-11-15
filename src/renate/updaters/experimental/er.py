@@ -14,7 +14,6 @@ from renate.models import RenateModule
 from renate.updaters.learner import ReplayLearner
 from renate.updaters.learner_components.losses import (
     WeightedCLSLossComponent,
-    WeightedCrossEntropyLossComponent,
     WeightedCustomLossComponent,
     WeightedMeanSquaredErrorLossComponent,
     WeightedPooledOutputDistillationLossComponent,
@@ -193,7 +192,7 @@ class ExperienceReplayLearner(BaseExperienceReplayLearner):
     ) -> nn.ModuleDict:
         return nn.ModuleDict(
             {
-                "base_loss": WeightedCustomLossComponent(
+                "memory_loss": WeightedCustomLossComponent(
                     loss_fn=model.loss_fn, weight=alpha, sample_new_memory_batch=True
                 )
             }
@@ -202,7 +201,7 @@ class ExperienceReplayLearner(BaseExperienceReplayLearner):
     def update_hyperparameters(self, args: Dict[str, Any]) -> None:
         super().update_hyperparameters(args)
         if "alpha" in args:
-            self._components["base_loss"].set_weight(args["alpha"])
+            self._components["memory_loss"].set_weight(args["alpha"])
 
 
 class DarkExperienceReplayLearner(ExperienceReplayLearner):
@@ -245,7 +244,7 @@ class DarkExperienceReplayLearner(ExperienceReplayLearner):
         if "alpha" in args:
             self._components["mse_loss"].set_weight(args["alpha"])
         if "beta" in args:
-            self._components["base_loss"].set_weight(args["beta"])
+            self._components["memory_loss"].set_weight(args["beta"])
 
 
 class PooledOutputDistillationExperienceReplayLearner(BaseExperienceReplayLearner):
@@ -353,7 +352,7 @@ class CLSExperienceReplayLearner(BaseExperienceReplayLearner):
     ) -> nn.ModuleDict:
         return nn.ModuleDict(
             {
-                "base_loss": WeightedCustomLossComponent(
+                "memory_loss": WeightedCustomLossComponent(
                     loss_fn=model.loss_fn, weight=alpha, sample_new_memory_batch=True
                 ),
                 "cls_loss": WeightedCLSLossComponent(
@@ -370,9 +369,9 @@ class CLSExperienceReplayLearner(BaseExperienceReplayLearner):
 
     def update_hyperparameters(self, args: Dict[str, Any]) -> None:
         super().update_hyperparameters(args)
-        base_component = self._components["base_loss"]
+        memory_loss_component = self._components["memory_loss"]
         if "alpha" in args:
-            base_component.set_weight(args["alpha"])
+            memory_loss_component.set_weight(args["alpha"])
 
         cls_component = self._components["cls_loss"]
         if "beta" in args:
@@ -474,7 +473,7 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
                 "mse_loss": WeightedMeanSquaredErrorLossComponent(
                     weight=der_alpha, sample_new_memory_batch=True
                 ),
-                "base_loss": WeightedCustomLossComponent(
+                "memory_loss": WeightedCustomLossComponent(
                     loss_fn=model.loss_fn, weight=der_beta, sample_new_memory_batch=True
                 ),
                 "cls_loss": WeightedCLSLossComponent(
@@ -503,7 +502,7 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
         if "der_alpha" in args:
             self._components["mse_loss"].set_weight(args["der_alpha"])
         if "der_beta" in args:
-            self._components["base_loss"].set_weight(args["der_beta"])
+            self._components["memory_loss"].set_weight(args["der_beta"])
         if "sp_mu" in args:
             self._components["shrink_perturb"].set_shrink_factor(args["sp_mu"])
         if "sp_sigma" in args:
