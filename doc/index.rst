@@ -8,6 +8,7 @@
 
    getting_started/install
    getting_started/overview
+   getting_started/output
 
 .. toctree::
    :name: Tutorials

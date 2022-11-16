@@ -9,7 +9,17 @@ requires-python = ">=3.8, <=3.10"
 dynamic = ["version", "readme", "dependencies"]
 
 [project.optional-dependencies]
-dev = ["myst-parser", "pytest>=7.0, <=7.1.2", "pytest-cov <=3.0.0", "pytest-helpers-namespace"]
+dev = [
+    # Sphinx
+    "myst-parser",
+    "mistune",
+    "docutils",
+    "sphinx-copybutton",
+    # pytest
+    "pytest>=7.0, <=7.1.2",
+    "pytest-cov <=3.0.0",
+    "pytest-helpers-namespace",
+    ]
 
 [tool.setuptools.packages.find]
 where = ["src"]
