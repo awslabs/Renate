@@ -9,6 +9,7 @@
    getting_started/install
    getting_started/overview
    getting_started/how_to_renate_config
+   getting_started/output
 
 .. toctree::
    :name: Tutorials
