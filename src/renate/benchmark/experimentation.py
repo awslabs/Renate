@@ -246,10 +246,7 @@ def _execute_experiment_job_locally(
             shutil.rmtree(url)
         Path(url).mkdir(parents=True, exist_ok=True)
 
-    config_module = import_module(
-        "config_module",
-        config_file,
-    )
+    config_module = import_module("config_module", config_file)
     config_space = get_config_space_kwargs(config_module)
     scheduler, scheduler_kwargs = get_scheduler_kwargs(config_module)
     model = get_model(config_module, **get_model_fn_args(config_space))
@@ -311,9 +308,7 @@ def _execute_experiment_job_locally(
         move_to_uri(next_state_url, state_url)
         copy_to_uri(state_url, update_url)
         model = get_model(
-            config_module,
-            model_state_url=model_url,
-            **get_model_fn_args(config_space),
+            config_module, model_state_url=model_url, **get_model_fn_args(config_space)
         )
 
         evaluate_and_record_results(
