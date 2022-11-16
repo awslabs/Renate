@@ -121,8 +121,6 @@ class TorchVisionDataModule(RenateDataModule):
         data_path: the path to the folder containing the dataset files.
         src_bucket: the name of the s3 bucket. If not provided, downloads the data from original source.
         src_object_name: the folder path in the s3 bucket.
-        transform: Transformation or augmentation to perform on the sample.
-        target_transform: Transformation or augmentation to perform on the target.
         dataset_name: Name of the torchvision dataset.
         download: Set True if data is needed to be downloaded.
         val_size: If `val_size` is provided split the train data into train and validation according to `val_size`.

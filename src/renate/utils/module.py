@@ -64,39 +64,37 @@ def evaluate_and_record_results(
     return results
 
 
-def get_model(model_data_definition_module: ModuleType, **kwargs: Any) -> RenateModule:
+def get_model(config_module: ModuleType, **kwargs: Any) -> RenateModule:
     """Creates and returns a model instance."""
-    return getattr(model_data_definition_module, "model_fn")(**kwargs)
+    return getattr(config_module, "model_fn")(**kwargs)
 
 
-def get_data_module(model_data_definition_module: ModuleType, **kwargs: Any) -> RenateDataModule:
+def get_data_module(config_module: ModuleType, **kwargs: Any) -> RenateDataModule:
     """Creates and returns a data module instance."""
-    return getattr(model_data_definition_module, "data_module_fn")(**kwargs)
+    return getattr(config_module, "data_module_fn")(**kwargs)
 
 
-def get_metrics(model_data_definition_module: ModuleType) -> Dict[str, torchmetrics.Metric]:
+def get_metrics(config_module: ModuleType) -> Dict[str, torchmetrics.Metric]:
     """Creates and returns a dictionary of metrics."""
     metrics_fn_name = "metrics_fn"
-    if metrics_fn_name in vars(model_data_definition_module):
-        return getattr(model_data_definition_module, metrics_fn_name)()
+    if metrics_fn_name in vars(config_module):
+        return getattr(config_module, metrics_fn_name)()
 
 
-def get_and_prepare_data_module(
-    model_data_definition_module: ModuleType, **kwargs: Any
-) -> RenateDataModule:
+def get_and_prepare_data_module(config_module: ModuleType, **kwargs: Any) -> RenateDataModule:
     """Prepares data."""
-    data_module = get_data_module(model_data_definition_module, **kwargs)
+    data_module = get_data_module(config_module, **kwargs)
     data_module.prepare_data()
     return data_module
 
 
 def get_and_setup_data_module(
-    model_data_definition_module: ModuleType,
+    config_module: ModuleType,
     prepare_data: int,
     **kwargs: Any,
 ) -> RenateDataModule:
     """Creates data module and possibly calls the prepare_data function needed for setup"""
-    data_module = get_data_module(model_data_definition_module, **kwargs)
+    data_module = get_data_module(config_module, **kwargs)
     if prepare_data:
         data_module.prepare_data()
     data_module.setup()
