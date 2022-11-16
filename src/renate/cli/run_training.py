@@ -56,7 +56,7 @@ class ModelUpdaterCLI:
             help="Select the type of model update strategy.",
         )
         argument_group.add_argument(
-            "--model_data_definition",
+            "--config_file",
             type=str,
             required=True,
             help="Location of python file containing model_fn and data_module_fn.",
@@ -199,12 +199,10 @@ class ModelUpdaterCLI:
 
         seed_everything(args.seed)
         self._prepare_data_state_model(args)
-        model_data_definition_module = import_module(
-            "model_data_definition_module", args.model_data_definition
-        )
+        config_module = import_module("config_module", args.config_file)
 
         data_module = get_and_setup_data_module(
-            model_data_definition_module,
+            config_module,
             data_path=self._data_folder,
             prepare_data=args.prepare_data,
             chunk_id=args.chunk_id,
@@ -213,12 +211,12 @@ class ModelUpdaterCLI:
         )
 
         model = get_model(
-            model_data_definition_module,
+            config_module,
             model_state_url=self._current_model_file,
             **get_model_fn_args(args),
         )
 
-        metrics = get_metrics(model_data_definition_module)
+        metrics = get_metrics(config_module)
 
         model_updater_class, learner_kwargs = get_updater_and_learner_kwargs(args)
 
@@ -234,7 +232,7 @@ class ModelUpdaterCLI:
             devices=args.devices,
             early_stopping_enabled=bool(args.early_stopping),
             **learner_kwargs,
-            **get_transforms_kwargs(model_data_definition_module),
+            **get_transforms_kwargs(config_module),
         )
 
         model_updater.update(

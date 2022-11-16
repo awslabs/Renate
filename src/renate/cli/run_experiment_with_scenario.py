@@ -24,7 +24,7 @@ class ExperimentCLI:
         argument_group = parser.add_argument_group("Required Parameters")
 
         argument_group.add_argument(
-            "--model_data_definition",
+            "--config_file",
             type=str,
             required=True,
             help="File containing the definition of model_fn, data_module_fn, config_space_fn and scheduler_fn.",

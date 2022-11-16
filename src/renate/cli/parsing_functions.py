@@ -451,7 +451,7 @@ def get_data_module_fn_args(args: Union[argparse.Namespace, Dict[str, str]]) -> 
     return _get_args_by_prefix(args, "data_module_fn_")
 
 
-def get_transforms_kwargs(model_data_definition_module: ModuleType) -> Dict[str, Callable]:
+def get_transforms_kwargs(config_module: ModuleType) -> Dict[str, Callable]:
     """Creates and returns data transforms kwargs for updater."""
     transform_fn_names = [
         "train_transform",
@@ -463,28 +463,26 @@ def get_transforms_kwargs(model_data_definition_module: ModuleType) -> Dict[str,
     ]
     transforms = {}
     for transform_fn_name in transform_fn_names:
-        if transform_fn_name in vars(model_data_definition_module):
-            transforms[transform_fn_name] = getattr(
-                model_data_definition_module, transform_fn_name
-            )()
+        if transform_fn_name in vars(config_module):
+            transforms[transform_fn_name] = getattr(config_module, transform_fn_name)()
     return transforms
 
 
-def get_config_space_kwargs(model_data_definition_module: ModuleType) -> Dict[str, Any]:
+def get_config_space_kwargs(config_module: ModuleType) -> Dict[str, Any]:
     """Creates and returns config space kwargs for updater."""
     config_space_fn_name = "config_space_fn"
-    if config_space_fn_name in vars(model_data_definition_module):
-        return getattr(model_data_definition_module, config_space_fn_name)()
+    if config_space_fn_name in vars(config_module):
+        return getattr(config_module, config_space_fn_name)()
     return {}
 
 
 def get_scheduler_kwargs(
-    model_data_definition_module: ModuleType,
+    config_module: ModuleType,
 ) -> Tuple[Optional[Type[TrialScheduler]], Optional[Dict[str, Any]]]:
     """Creates and returns scheduler type and kwargs for the scheduler."""
     scheduler_fn_name = "scheduler_fn"
-    if scheduler_fn_name in vars(model_data_definition_module):
-        return getattr(model_data_definition_module, scheduler_fn_name)()
+    if scheduler_fn_name in vars(config_module):
+        return getattr(config_module, scheduler_fn_name)()
     return None, None
 
 

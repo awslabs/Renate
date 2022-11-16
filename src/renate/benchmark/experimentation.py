@@ -120,7 +120,7 @@ def individual_metrics_summary(
 
 def execute_experiment_job(
     backend: defaults.SUPPORTED_BACKEND_TYPE,
-    model_data_definition: str,
+    config_file: str,
     experiment_outputs_url: str,
     mode: defaults.SUPPORTED_TUNING_MODE_TYPE,
     metric: str,
@@ -145,7 +145,7 @@ def execute_experiment_job(
 
     Args:
         backend: Backend of the experiment job.
-        model_data_definition: Path to the model data definition.
+        config_file: Path to the Renate config file.
         experiment_outputs_url: Path to the experiment outputs.
         mode: Whether to minimize or maximize the metric.
         metric: Metric of the experiment job.
@@ -174,7 +174,7 @@ def execute_experiment_job(
     ), f"Backend {backend} is not in {defaults.SUPPORTED_BACKEND}."
     if backend == "local":
         return _execute_experiment_job_locally(
-            model_data_definition=model_data_definition,
+            config_file=config_file,
             experiment_outputs_url=experiment_outputs_url,
             mode=mode,
             metric=metric,
@@ -191,7 +191,7 @@ def execute_experiment_job(
         )
     _execute_experiment_job_remotely(
         job_name=job_name,
-        model_data_definition=model_data_definition,
+        config_file=config_file,
         experiment_outputs_url=experiment_outputs_url,
         mode=mode,
         metric=metric,
@@ -214,7 +214,7 @@ def execute_experiment_job(
 
 
 def _execute_experiment_job_locally(
-    model_data_definition: str,
+    config_file: str,
     experiment_outputs_url: str,
     num_updates: int,
     mode: defaults.SUPPORTED_TUNING_MODE_TYPE,
@@ -246,15 +246,12 @@ def _execute_experiment_job_locally(
             shutil.rmtree(url)
         Path(url).mkdir(parents=True, exist_ok=True)
 
-    model_data_definition_module = import_module(
-        "model_data_definition_module",
-        model_data_definition,
-    )
-    config_space = get_config_space_kwargs(model_data_definition_module)
-    scheduler, scheduler_kwargs = get_scheduler_kwargs(model_data_definition_module)
-    model = get_model(model_data_definition_module, **get_model_fn_args(config_space))
+    config_module = import_module("config_module", config_file)
+    config_space = get_config_space_kwargs(config_module)
+    scheduler, scheduler_kwargs = get_scheduler_kwargs(config_module)
+    model = get_model(config_module, **get_model_fn_args(config_space))
     data_module = get_and_prepare_data_module(
-        model_data_definition_module,
+        config_module,
         data_path=data_url,
         chunk_id=defaults.CHUNK_ID,
         seed=seed,
@@ -263,8 +260,8 @@ def _execute_experiment_job_locally(
     assert num_updates == len(
         data_module.test_data()
     ), f"The dataset has {len(data_module.test_data())} chunks, expected {num_updates}."
-    transforms = get_transforms_kwargs(model_data_definition_module)
-    metrics = get_metrics(model_data_definition_module)
+    transforms = get_transforms_kwargs(config_module)
+    metrics = get_metrics(config_module)
 
     torch.save(
         model.state_dict(),
@@ -296,7 +293,7 @@ def _execute_experiment_job_locally(
             state_url=state_url,
             next_state_url=next_state_url,
             working_directory=working_directory,
-            model_data_definition=model_data_definition,
+            config_file=config_file,
             max_time=max_time,
             max_num_trials_started=max_num_trials_started,
             max_num_trials_completed=max_num_trials_completed,
@@ -311,9 +308,7 @@ def _execute_experiment_job_locally(
         move_to_uri(next_state_url, state_url)
         copy_to_uri(state_url, update_url)
         model = get_model(
-            model_data_definition_module,
-            model_state_url=model_url,
-            **get_model_fn_args(config_space),
+            config_module, model_state_url=model_url, **get_model_fn_args(config_space)
         )
 
         evaluate_and_record_results(
@@ -349,7 +344,7 @@ def _execute_experiment_job_locally(
 
 
 def _execute_experiment_job_remotely(
-    model_data_definition: str,
+    config_file: str,
     experiment_outputs_url: str,
     mode: str,
     metric: str,
@@ -382,7 +377,7 @@ def _execute_experiment_job_remotely(
     job_name = f"{job_name}-{job_timestamp}"
 
     hyperparameters = {
-        "model_data_definition": os.path.basename(model_data_definition),
+        "config_file": os.path.basename(config_file),
         "working_directory": working_directory,
         "mode": mode,
         "metric": metric,
@@ -399,7 +394,7 @@ def _execute_experiment_job_remotely(
         "devices": devices,
     }
     hyperparameters = {k: v for k, v in hyperparameters.items() if v is not None}
-    dependencies = list(renate.__path__ + [model_data_definition])
+    dependencies = list(renate.__path__ + [config_file])
     if requirements_file is not None:
         dependencies.append(requirements_file)
     PyTorch(

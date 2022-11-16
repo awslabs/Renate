@@ -42,7 +42,7 @@ from renate.utils.syne_tune import config_space_to_dict, redirect_to_tmp
 logger = logging.Logger(__name__)
 
 RENATE_CONFIG_COLUMNS = [
-    "model_data_definition",
+    "config_file",
     "prepare_data",
     "chunk_id",
     "task_id",
@@ -69,7 +69,7 @@ def execute_tuning_job(
     next_state_url: Optional[str] = None,
     working_directory: Optional[str] = defaults.WORKING_DIRECTORY,
     source_dir: Optional[str] = None,
-    model_data_definition: Optional[str] = None,
+    config_file: Optional[str] = None,
     requirements_file: Optional[str] = None,
     role: Optional[str] = None,
     instance_type: str = defaults.INSTANCE_TYPE,
@@ -104,7 +104,7 @@ def execute_tuning_job(
         next_state_url: Path where Renate model state will be stored.
         working_directory: Path to the working directory.
         source_dir: (SageMaker backend only) Root directory which will be moved to SageMaker.
-        model_data_definition: File containing the definition of `model_fn` and `data_module_fn`.
+        config_file: File containing the definition of `model_fn` and `data_module_fn`.
         requirements_file: (SageMaker backend only) Path to requirements.txt containing environment dependencies.
         role: (SageMaker backend only) An AWS IAM role (either name or full ARN).
         instance_type: (SageMaker backend only) Sagemaker instance type for each worker.
@@ -136,7 +136,7 @@ def execute_tuning_job(
             state_url=state_url,
             next_state_url=next_state_url,
             working_directory=working_directory,
-            model_data_definition=model_data_definition,
+            config_file=config_file,
             mode=mode,
             config_space=config_space,
             metric=metric,
@@ -160,7 +160,7 @@ def execute_tuning_job(
         state_url=state_url,
         next_state_url=next_state_url,
         working_directory=working_directory,
-        model_data_definition=model_data_definition,
+        config_file=config_file,
         mode=mode,
         config_space=config_space,
         metric=metric,
@@ -198,7 +198,7 @@ def _prepare_remote_tuning_job(job_name: str, **job_kwargs: Any) -> Tuple[str, D
 
     if "state_url" in job_kwargs and job_kwargs["state_url"] is None:
         del job_kwargs["state_url"]
-    job_kwargs["model_data_definition"] = os.path.basename(job_kwargs["model_data_definition"])
+    job_kwargs["config_file"] = os.path.basename(job_kwargs["config_file"])
     job_kwargs["config_space"] = config_space_to_dict(job_kwargs["config_space"])
 
     # Upload experiment configuration to S3
@@ -371,7 +371,7 @@ def _teardown_tuning_job(
 
 def _verify_validation_set_for_hpo_and_checkpointing(
     config_space: Dict[str, Any],
-    model_data_definition: str,
+    config_file: str,
     tune_hyperparameters: bool,
     metric: str,
     mode: defaults.SUPPORTED_TUNING_MODE_TYPE,
@@ -389,11 +389,9 @@ def _verify_validation_set_for_hpo_and_checkpointing(
     Raises:
         AssertionError: If `tune_hyperparameters` is True but no validation set is provided.
     """
-    model_data_definition_module = import_module(
-        "model_data_definition_module", model_data_definition
-    )
+    config_module = import_module("config_module", config_file)
     data_module = get_and_prepare_data_module(
-        model_data_definition_module,
+        config_module,
         data_path=defaults.data_folder(working_directory),
         chunk_id=chunk_id,
         seed=seed,
@@ -464,7 +462,7 @@ def _execute_tuning_job_locally(
     state_url: Optional[str],
     next_state_url: Optional[str],
     working_directory: Optional[str],
-    model_data_definition: str,
+    config_file: str,
     mode: defaults.SUPPORTED_TUNING_MODE_TYPE,
     config_space: Dict[str, Any],
     metric: str,
@@ -491,7 +489,7 @@ def _execute_tuning_job_locally(
     tune_hyperparameters = _is_syne_tune_config_space(config_space)
     config_space["updater"] = updater
     config_space["max_epochs"] = max_epochs
-    config_space["model_data_definition"] = model_data_definition
+    config_space["config_file"] = config_file
     config_space["prepare_data"] = 0
     config_space["chunk_id"] = chunk_id
     config_space["task_id"] = task_id
@@ -504,7 +502,7 @@ def _execute_tuning_job_locally(
 
     metric, mode = _verify_validation_set_for_hpo_and_checkpointing(
         config_space=config_space,
-        model_data_definition=model_data_definition,
+        config_file=config_file,
         tune_hyperparameters=tune_hyperparameters,
         metric=metric,
         mode=mode,
@@ -560,7 +558,7 @@ def _execute_tuning_job_remotely(
     state_url: Optional[str],
     next_state_url: Optional[str],
     working_directory: Optional[str],
-    model_data_definition: str,
+    config_file: str,
     mode: str,
     config_space: Dict[str, Any],
     metric: str,
@@ -598,7 +596,7 @@ def _execute_tuning_job_remotely(
         state_url=state_url,
         next_state_url=next_state_url,
         working_directory=working_directory,
-        model_data_definition=model_data_definition,
+        config_file=config_file,
         mode=mode,
         config_space=config_space,
         metric=metric,
@@ -619,7 +617,7 @@ def _execute_tuning_job_remotely(
         devices=devices,
     )
     job_name = f"{job_name}-{job_timestamp}"
-    dependencies = list(renate.__path__ + [model_data_definition])
+    dependencies = list(renate.__path__ + [config_file])
     if requirements_file is not None:
         dependencies.append(requirements_file)
     PyTorch(
