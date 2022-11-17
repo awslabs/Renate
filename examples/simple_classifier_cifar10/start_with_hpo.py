@@ -30,7 +30,7 @@ if __name__ == "__main__":
         updater="ER",  # we train with Experience Replay
         max_epochs=50,
         chunk_id=0,  # we select the first chunk of our dataset, you will probably not need this in practice
-        model_data_definition="./split_cifar10.py",
+        config_file="./split_cifar10.py",
         requirements_file=str(Path(renate.__path__[0]).resolve().parents[1] / "requirements.txt"),
         backend="sagemaker",  # we will run this on SageMaker, but you can select "local" to run this locally
         role=get_execution_role(),

@@ -108,6 +108,7 @@ LEARNER_KWARGS = {
     OfflineExperienceReplayLearner: {
         "memory_size": 30,
         "memory_batch_size": 20,
+        "loss_weight_new_data": 0.5,
         "optimizer": "SGD",
         "learning_rate": 2.5,
         "momentum": 1.3,

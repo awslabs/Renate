@@ -102,19 +102,32 @@ def test_model_updater_with_early_stopping(
     )
 
 
-def test_continuation_of_training_with_simple_model_updater(tmpdir):
+@pytest.mark.parametrize("learner_class", LEARNERS_USING_SIMPLE_UPDATER)
+def test_continuation_of_training_with_simple_model_updater(tmpdir, learner_class):
     model, train_dataset, _ = pytest.helpers.get_renate_module_mlp_and_data(
         num_inputs=10,
         num_outputs=10,
         hidden_size=32,
-        num_hidden_layers=3,
+        num_hidden_layers=1,
         train_num_samples=10,
         test_num_samples=5,
     )
     state_url = defaults.current_state_folder(tmpdir)
-    model_updater = pytest.helpers.get_simple_updater(model, next_state_folder=state_url)
+    model_updater = pytest.helpers.get_simple_updater(
+        model,
+        learner_class=learner_class,
+        learner_kwargs=LEARNER_KWARGS[learner_class],
+        next_state_folder=state_url,
+        max_epochs=2
+    )
     model = model_updater.update(train_dataset, task_id=defaults.TASK_ID)
-    model_updater = pytest.helpers.get_simple_updater(model, current_state_folder=state_url)
+    model_updater = pytest.helpers.get_simple_updater(
+        model,
+        learner_class=learner_class,
+        learner_kwargs=LEARNER_KWARGS[learner_class],
+        current_state_folder=state_url,
+        max_epochs=2,
+    )
     model_updater.update(train_dataset, task_id=defaults.TASK_ID)
 
 

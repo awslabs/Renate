@@ -23,13 +23,13 @@ from renate.tuning.tuning import (
 from renate.utils.syne_tune import is_syne_tune_config_space
 
 
-def get_model_data_definition(use_val):
-    model_data_definition_root_dir = Path(__file__).parent.parent / "model_data_definition"
+def get_config_file(use_val):
+    config_file_root_dir = Path(__file__).parent.parent / "renate_config_files"
     if use_val:
-        model_data_definition_file = "with_val_split.py"
+        config_file = "with_val_split.py"
     else:
-        model_data_definition_file = "without_val_split.py"
-    return str(model_data_definition_root_dir / model_data_definition_file)
+        config_file = "without_val_split.py"
+    return str(config_file_root_dir / config_file)
 
 
 @pytest.mark.slow
@@ -64,7 +64,7 @@ def test_execute_tuning_job(tmpdir, num_chunks, use_val, raises, fixed_search_sp
             execute_tuning_job(
                 updater="ER",
                 max_epochs=50,
-                model_data_definition=get_model_data_definition(use_val),
+                config_file=get_config_file(use_val),
                 state_url=state_url,
                 next_state_url=tmpdir,
                 backend="local",
@@ -138,12 +138,12 @@ def test_verify_validation_set_for_hpo_and_checkpointing(tmpdir, use_val, tune_h
     config_space = {}
     expected_metric = "val_accuracy"
     expected_mode: defaults.SUPPORTED_TUNING_MODE_TYPE = "max"
-    model_data_definition = get_model_data_definition(use_val)
+    config_file = get_config_file(use_val)
 
     def verify_validation_set():
         return _verify_validation_set_for_hpo_and_checkpointing(
             config_space=config_space,
-            model_data_definition=model_data_definition,
+            config_file=config_file,
             tune_hyperparameters=tune_hyperparameters,
             metric=expected_metric,
             mode=expected_mode,
