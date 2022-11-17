@@ -10,7 +10,7 @@ from torchvision.transforms.functional import rotate
 
 from datasets import DummyTorchVisionDataModule, DummyTorchVisionDataModuleWithChunks
 from renate.benchmark.datasets.vision_datasets import TorchVisionDataModule
-from renate.benchmark.scenarios.data_module_modification import (
+from renate.benchmark.scenarios import (
     BenchmarkScenario,
     ClassIncrementalScenario,
     ImageRotationScenario,
@@ -79,7 +79,6 @@ def test_image_rotation_scenario():
     for i in range(len(degrees)):
         scenario = ImageRotationScenario(
             data_module=data_module,
-            num_tasks=2,
             degrees=degrees,
             chunk_id=i,
             seed=data_module._seed,
@@ -122,8 +121,8 @@ def test_permutation_scenario():
         scenario = PermutationScenario(
             data_module=data_module,
             num_tasks=3,
-            chunk_id=i,
             input_dim=np.prod(data_module.input_shape),
+            chunk_id=i,
             seed=data_module._seed,
         )
         # Chunk id 0 is a special case
@@ -172,12 +171,9 @@ def test_permutation_scenario():
 def test_benchmark_scenario():
     data_module = DummyTorchVisionDataModuleWithChunks(num_chunks=3, val_size=0.2)
     scenario = BenchmarkScenario(data_module=data_module, num_tasks=3, chunk_id=0)
-
     scenario.prepare_data()
-
     for chunk_id in range(3):
         scenario.setup(chunk_id=chunk_id)
-
         assert scenario.train_data() is not None
         assert scenario.val_data() is not None
         assert len(scenario.test_data()) == 3

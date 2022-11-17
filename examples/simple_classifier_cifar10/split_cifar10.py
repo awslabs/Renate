@@ -4,12 +4,12 @@ from pathlib import Path
 from typing import Optional, Union
 
 import torch
-from torchvision.transforms import transforms
+from torchvision import transforms
 
 import renate.defaults as defaults
 from renate.benchmark.datasets.vision_datasets import TorchVisionDataModule
 from renate.benchmark.models.resnet import ResNet18CIFAR
-from renate.benchmark.scenarios.data_module_modification import ClassIncrementalScenario
+from renate.benchmark.scenarios import ClassIncrementalScenario
 from renate.models import RenateModule
 
 
