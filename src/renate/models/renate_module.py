@@ -12,38 +12,41 @@ from renate.models.layers import ContinualNorm
 class RenateModule(torch.nn.Module, ABC):
     """A class for torch models with some additional functionality for continual learning.
 
-    `RenateModule` derives from `torch.nn.Module` and provides some additional functionality
+    ``RenateModule`` derives from ``torch.nn.Module`` and provides some additional functionality
     relevant to continual learning. In particular, this concerns saving and reloading the model
     when model hyperparameters (which might affect the architecture) change during hyperparameter
     optimization. There is also functionality to retrieve internal-layer representations for use
     in replay-based CL methods.
 
-    When implementing a subclass of `RenateModule`, make sure to call the base class' constructor
+    When implementing a subclass of ``RenateModule``, make sure to call the base class' constructor
     and provide your model hyperparameters and loss function. Besides that, you can define a
-    `RenateModule` just like `torch.nn.Module`.
+    ``RenateModule`` just like ``torch.nn.Module``.
 
-    Example:
-    ```python
-    class MyMNISTMLP(RenateModule):
+    Example::
 
-    def __init__(self, num_hidden: int):
-        super().__init__(
-            hyperparameters={"num_hidden": num_hidden}
-            loss_fn=torch.nn.CrossEntropyLoss()
-        )
-        self._fc1 = torch.nn.Linear(28*28, num_hidden)
-        self._fc2 = torch.nn.Linear(num_hidden, 10)
+        class MyMNISTMLP(RenateModule):
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self._fc1(x)
-        x = torch.nn.functional.relu(x)
-        return self._fc2(x)
-    ```
+        def __init__(self, num_hidden: int):
+            super().__init__(
+                hyperparameters={"num_hidden": num_hidden}
+                loss_fn=torch.nn.CrossEntropyLoss()
+            )
+            self._fc1 = torch.nn.Linear(28*28, num_hidden)
+            self._fc2 = torch.nn.Linear(num_hidden, 10)
 
-    The state of a `RenateModule` can be retrieved via the `RenateModule.state_dict()` method, just
-    as in `torch.nn.Module`. When reloading a `RenateModule` from a stored state dict, use the
-    `RenateModule.from_state_dict` method. It wil automatically recover the hyperparameters and
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            x = self._fc1(x)
+            x = torch.nn.functional.relu(x)
+            return self._fc2(x)
+
+    The state of a ``RenateModule`` can be retrieved via the ``RenateModule.state_dict()`` method,
+    just as in ``torch.nn.Module``. When reloading a ``RenateModule`` from a stored state dict, use
+    ``RenateModule.from_state_dict``. It wil automatically recover the hyperparameters and
     reinstantiate your model accordingly.
+
+    Note: Some methods of ``RenateModule`` accept an optional ``task_id`` argument. This is in
+    anticipation of future methods for continual learning scenarios where task identifiers are
+    provided. It is currently not used.
 
     Args:
         hyperparameters: Hyperparameters needed to instantiate the model.
@@ -82,7 +85,7 @@ class RenateModule(torch.nn.Module, ABC):
         }
 
     def set_extra_state(self, state: Any):
-        """Extract the content of the `_extra_state` and set the related values in the module."""
+        """Extract the content of the ``_extra_state`` and set the related values in the module."""
         self._hyperparameters = state["hyperparameters"]
         self._tasks_params_ids = state["tasks_params_ids"]
         self.loss_fn = state["loss_fn"]
@@ -103,7 +106,7 @@ class RenateModule(torch.nn.Module, ABC):
     def get_params(self, task_id: Optional[str] = None) -> List[torch.nn.Parameter]:
         """User-facing function which returns the list of parameters.
 
-        If a `task_id` is given, this should return only parameters used for the specific task.
+        If a ``task_id`` is given, this should return only parameters used for the specific task.
 
         Args:
             task_id: The task id for which we want to retrieve parameters.
@@ -114,7 +117,7 @@ class RenateModule(torch.nn.Module, ABC):
         """Adds new parameters, associated to a specific task, to the model.
 
         The method should not modify modules created in previous calls, beyond the ones defined
-        in `self._add_task_params()`. The order of the calls is not guaranteed when the model
+        in ``self._add_task_params()``. The order of the calls is not guaranteed when the model
         is loaded after being saved.
 
         Args:
@@ -125,7 +128,7 @@ class RenateModule(torch.nn.Module, ABC):
     def add_task_params(self, task_id: Optional[str] = None) -> None:
         """Adds new parameters, associated to a specific task, to the model.
 
-        This function should not be overwritten; use `_add_task_params` instead.
+        This function should not be overwritten; use ``_add_task_params`` instead.
 
         Args:
             task_id: The task id for which the new parameters are added.
