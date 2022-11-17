@@ -1,10 +1,61 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+import logging
 import os
+import time
 from typing import Any, Dict, Union
 
+from syne_tune.backend.trial_status import Trial
 from syne_tune.config_space import Domain, from_dict, to_dict
 from syne_tune.experiments import ExperimentResult
+from syne_tune.tuner_callback import TunerCallback
+from tabulate import tabulate
+
+logger = logging.getLogger(__name__)
+
+
+class TuningLoggerCallback(TunerCallback):
+    """Syne Tune Logging Callback when running hyperparameter optimization.
+
+    Will report whenever improved results are obtained. If no better configuration is received within the last ten
+    minutes, it will send a message to indicate it is still running."""
+
+    def __init__(self, mode: str, metric: str):
+        self._mode = mode
+        self._metric = metric
+        self._best_score = float("inf") * (1 if self._mode == "min" else -1)
+        self._last_log = time.time()
+
+    def _log(self, message: str) -> None:
+        """Helper function to log a message."""
+        logger.info(message)
+        self._last_log = time.time()
+
+    def on_trial_result(self, trial: Trial, status: str, result: Dict, decision: str) -> None:
+        """Called whenever the tuner receives a new (intermediate) observation."""
+        if self._mode == "min":
+            is_better_config = result[self._metric] < self._best_score
+            self._best_score = min(result[self._metric], self._best_score)
+        else:
+            is_better_config = result[self._metric] > self._best_score
+            self._best_score = max(result[self._metric], self._best_score)
+        if is_better_config:
+            self._log(f"Metric `{self._metric}` improved to {self._best_score}.")
+        if self._last_log < time.time() - 600:
+            self._log("No better configuration found since last update. Continue searching...")
+
+
+class TrainingLoggerCallback(TunerCallback):
+    """Syne Tune Logging Callback when training a single configuration.
+
+    Will report all metrics after each epoch."""
+
+    def on_trial_result(self, trial: Trial, status: str, result: Dict, decision: str) -> None:
+        """Called whenever the tuner receives a new (intermediate) observation."""
+        result_table = tabulate(
+            [[k, v] for k, v in result.items() if k.startswith("train_") or k.startswith("val_")]
+        )
+        logger.info(f"Epoch {result['epoch']}/{trial.config['max_epochs']}\n{result_table}")
 
 
 def redirect_to_tmp(uri: str) -> str:

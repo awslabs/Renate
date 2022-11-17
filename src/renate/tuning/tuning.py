@@ -25,6 +25,7 @@ from syne_tune.optimizer.schedulers.transfer_learning import (
 )
 from syne_tune.stopping_criterion import StoppingCriterion
 from syne_tune.tuner import Tuner
+from syne_tune.tuner_callback import StoreResultsCallback
 from syne_tune.util import experiment_path
 
 import renate
@@ -38,6 +39,8 @@ from renate.utils.file import (
 )
 from renate.utils.module import get_and_prepare_data_module, import_module
 from renate.utils.syne_tune import (
+    TrainingLoggerCallback,
+    TuningLoggerCallback,
     best_hyperparameters,
     is_syne_tune_config_space,
     config_space_to_dict,
@@ -352,9 +355,10 @@ def _teardown_tuning_job(
         experiment = load_experiment(job_name)
         try:
             best_trial_id = experiment.best_config()["trial_id"]
-            logger.info(
-                f"Best hyperparameter settings: {best_hyperparameters(experiment, config_space)}"
-            )
+            if is_syne_tune_config_space(config_space):
+                logger.info(
+                    f"Best hyperparameter settings: {best_hyperparameters(experiment, config_space)}"
+                )
         except AttributeError:
             raise RuntimeError(
                 "Not a single training run finished. This may have two reasons:\n"
@@ -541,7 +545,11 @@ def _execute_tuning_job_locally(
             scheduler_kwargs=scheduler_kwargs,
             state_url=state_url,
         )
-
+    logging_callback = (
+        TuningLoggerCallback(mode=mode, metric=metric)
+        if tune_hyperparameters
+        else TrainingLoggerCallback()
+    )
     tuner = Tuner(
         trial_backend=backend,
         scheduler=scheduler,
@@ -553,6 +561,7 @@ def _execute_tuning_job_locally(
             max_cost=max_cost,
         ),
         n_workers=n_workers,
+        callbacks=[StoreResultsCallback(), logging_callback],
     )
 
     tuner.run()
