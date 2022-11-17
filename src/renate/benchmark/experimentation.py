@@ -43,7 +43,6 @@ from renate.utils.module import (
 )
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 def create_cumulative_metrics(task: defaults.SUPPORTED_TASKS_TYPE) -> List[Tuple[str, Callable]]:
@@ -233,6 +232,7 @@ def _execute_experiment_job_locally(
 
     See renate.benchmark.experimentation.execute_experiment_job for more details.
     """
+    logger.info("Start experiment.")
     seed_everything(seed)
 
     state_url = defaults.current_state_folder(working_directory)
@@ -285,6 +285,7 @@ def _execute_experiment_job_locally(
     )
 
     for update_id in range(num_updates):
+        logger.info(f"Starting Update {update_id + 1}/{num_updates}.")
         update_url = os.path.join(experiment_outputs_url, f"update_{update_id}")
         execute_tuning_job(
             mode=mode,
@@ -346,6 +347,7 @@ def _execute_experiment_job_locally(
     move_to_uri(logs_url, defaults.logs_folder(experiment_outputs_url))
 
     shutil.rmtree(working_directory)
+    logger.info("Experiment completed successfully.")
 
 
 def _execute_experiment_job_remotely(
