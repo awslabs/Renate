@@ -5,16 +5,25 @@ contains the *Renate state*. It will be required for the next update job.
 
 The Renate state folder contains three files:
 
-| File          | Description |
-| ------------- | ----------- |
-| model.ckpt    | This is the checkpoint of the trained model and the only file required for deployment. Use and [load this file](#loading-the-updated-model) to make predictions.       |
-| learner.ckpt  | This contains the state of the Renate updater. Only used by Renate.        |
-| hpo.csv       | A summary of all previous updates. The `update_id` with highest value refers to the last update step. Among other things, it contains information about selected hyperparameters and logged metrics. It might be used in the next update step to accelerate the hyperparameter tuning step. |
+```{list-table}
+:header-rows: 1
 
+* - File
+  - Description
+* - model.ckpt
+  - This is the checkpoint of the trained model and the only file required for deployment.
+    Use and [load this file](#loading-the-updated-model) to make predictions.
+* - learner.ckpt
+  - This contains the state of the Renate updater. Only used by Renate.
+* - hpo.csv
+  - A summary of all previous updates. The `update_id` with highest value refers to the last update step.
+    Among other things, it contains information about selected hyperparameters and logged metrics.
+    It might be used in the next update step to accelerate the hyperparameter tuning step.
+```
 
 ## Loading the Updated Model
 
-In the following, we refer with `model_fn` to the function defined by the user in the Renate config file.
+In the following, we refer with `model_fn` to the function defined by the user in the [Renate config file](./how_to_renate_config.md).
 
 ### Output Saved Locally
 
