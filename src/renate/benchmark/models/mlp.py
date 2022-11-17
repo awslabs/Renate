@@ -33,7 +33,7 @@ class MultiLayerPerceptron(RenateModule):
         batch_normalization: bool = False,
     ) -> None:
         super().__init__(
-            constructor_arguments={
+            hyperparameters={
                 "num_inputs": num_inputs,
                 "num_outputs": num_outputs,
                 "num_hidden_layers": num_hidden_layers,

@@ -7,7 +7,6 @@ from typing import Callable, Dict
 import pytest
 import torch
 from pytorch_lightning.loggers import TensorBoardLogger
-from torch.utils.data import Dataset
 
 from renate.benchmark.models.mlp import MultiLayerPerceptron
 from renate.benchmark.models.resnet import (

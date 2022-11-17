@@ -54,7 +54,7 @@ class VisionTransformer(RenateModule):
     ) -> None:
         RenateModule.__init__(
             self,
-            constructor_arguments={
+            hyperparameters={
                 "image_size": image_size,
                 "patch_size": patch_size,
                 "num_layers": num_layers,
