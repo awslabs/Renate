@@ -1,10 +1,10 @@
 # How to Write a Config File
 
-User input is passed to `renate` via a config file.
+User input is passed to Renate via a config file.
 It contains the definition of the model you want to train, code to load and preprocess the data,
 and (optionally) a set of transforms to be applied to that data.
 These components are provided by implementing functions with a fixed name.
-When accessing your config file, `renate` will inspect it for these functions.
+When accessing your config file, Renate will inspect it for these functions.
 
 ## Model: `model_fn`
 
@@ -109,7 +109,7 @@ Transforms for data preprocessing or augmentation are often applied "inside" of 
 That is, `x, y = dataset[i]` returns a fully-preprocessed and potentially augmented data point,
 ready to be passed to a torch model.
 
-In `renate`, transforms should, to some extent, be handled _outside_ of the dataset object.
+In Renate, transforms should, to some extent, be handled _outside_ of the dataset object.
 This is because many continual learning methods maintain a memory of previously-encountered data
 points.
 Having access to the _raw_, _untransformed_ data points allows us to store this data in a
@@ -117,7 +117,7 @@ memory-efficient way and ensures that data augmentation operations do not cumula
 Explicit access to the preprocessing transforms is also useful when deploying a trained model.
 
 It is on the user to decide which transforms to apply inside the dataset and which to pass to
-`renate` explicitly. As a general rule, `dataset[i]` should return `torch.Tensor`s of fixed size and data
+Renate explicitly. As a general rule, `dataset[i]` should return `torch.Tensor`s of fixed size and data
 type. Randomized data augmentation operations should be passed explicitly.
 
 Transforms are specified in the config file via four functions
@@ -137,7 +137,7 @@ These can be set via two addition transform functions
 - `def buffer_transform() -> Callable`
 - `def buffer_target_transform() -> Callable`
 
-These are optional as well but, if ommitted, `renate` will use `train_transform` and
+These are optional as well but, if ommitted, Renate will use `train_transform` and
 `train_target_transform`, respectively.
 
 **Example**
