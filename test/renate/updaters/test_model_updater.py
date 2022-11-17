@@ -118,7 +118,7 @@ def test_continuation_of_training_with_simple_model_updater(tmpdir, learner_clas
         learner_class=learner_class,
         learner_kwargs=LEARNER_KWARGS[learner_class],
         next_state_folder=state_url,
-        max_epochs=2
+        max_epochs=2,
     )
     model = model_updater.update(train_dataset, task_id=defaults.TASK_ID)
     model_updater = pytest.helpers.get_simple_updater(

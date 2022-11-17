@@ -352,7 +352,6 @@ def _teardown_tuning_job(
         experiment = load_experiment(job_name)
         try:
             best_trial_id = experiment.best_config()["trial_id"]
-            print(best_hyperparameters(experiment, config_space))
             logger.info(
                 f"Best hyperparameter settings: {best_hyperparameters(experiment, config_space)}"
             )
