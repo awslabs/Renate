@@ -33,11 +33,14 @@ Training
 
 The example also contains :code:`start_training_without_hpo.py`,
 which is the one launching the training jobs. In the file we defined a
-fixed configuration (:code:`config_space` dictionary) and pass it to a function launching the training job.
-Since the search space contains a single configuration there will not be
-any optimization of the hyperparameters. To define in which folder the learner state will be saved,
-we provide a local path with :code:`next_state_url`.
-In order to update an existing model, it will be necessary to provide the path
+configuration using the :code:`config_space` dictionary and pass it to
+a function launching the training job.
+The configuration controls a number of aspects of the learning process,
+for example the learning rate and the optimizer. The list depends on the
+learning algorithm used for the training.
+There are also parameters that we pass directly like
+the folder in which the learner state will be saved (via :code:`next_state_url`).
+In order to update an existing model, it will also be necessary to provide the path
 to the previously saved state using :code:`state_url`, as done in our example.
 More details about running training jobs are available in :doc:`../getting_started/hot_to_run_training`.
 
