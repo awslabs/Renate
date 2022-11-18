@@ -30,7 +30,6 @@ if __name__ == "__main__":
         chunk_id=0,  # this selects the first chunk of the dataset
         config_file="renate_config.py",
         next_state_url="./state_dump_first_model/",  # this is where the model will be stored
-        requirements_file=str(Path(renate.__path__[0]).resolve().parents[1] / "requirements.txt"),
         backend="local",  # the training job will run on the local machine
     )
 
@@ -46,6 +45,5 @@ if __name__ == "__main__":
         config_file="renate_config.py",
         state_url="./state_dump_first_model/",  # the output of the first training job is loaded
         next_state_url="./state_dump_second_model/",  # the new model will be stored in this folder
-        requirements_file=str(Path(renate.__path__[0]).resolve().parents[1] / "requirements.txt"),
         backend="local",
     )

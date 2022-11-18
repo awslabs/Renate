@@ -53,13 +53,3 @@ def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule
 def train_transform() -> transforms.Compose:
     """Returns a transform function to be used in the training."""
     return transforms.Lambda(lambda x: torch.flatten(x))
-
-
-def test_transform() -> transforms.Compose:
-    """Returns a transform function to be used for validation or testing."""
-    return train_transform()
-
-
-def buffer_transform() -> transforms.Compose:
-    """Returns a transform function to be used in the Memory Buffer."""
-    return train_transform()

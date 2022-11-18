@@ -33,7 +33,7 @@ Training
 
 The example also contains :code:`start_training_without_hpo.py`,
 which is the one launching the training jobs. In the file we defined a
-fixed configuration (:code:`config_spce` dictionary) and pass it to a function launching the training job.
+fixed configuration (:code:`config_space` dictionary) and pass it to a function launching the training job.
 Since the search space contains a single configuration there will not be
 any optimization of the hyperparameters. To define in which folder the learner state will be saved,
 we provide a local path with :code:`next_state_url`.
