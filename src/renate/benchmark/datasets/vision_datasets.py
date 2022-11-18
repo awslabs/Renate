@@ -1,7 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import os
-import pickle
 from pathlib import Path
 from typing import Callable, List, Literal, Optional, Tuple, Union
 
@@ -12,7 +11,7 @@ from torchvision import transforms
 from renate import defaults
 from renate.data import ImageDataset
 from renate.data.data_module import RenateDataModule
-from renate.utils.file import download_and_unzip_file, download_file, download_folder_from_s3
+from renate.utils.file import download_and_unzip_file, download_folder_from_s3
 
 
 class TinyImageNetDataModule(RenateDataModule):
@@ -250,7 +249,6 @@ class CLEARDataModule(RenateDataModule):
 
     def prepare_data(self) -> None:
         """Download CLEAR dataset with given dataset_name (clear10/clear100)."""
-        # Download train dataset
         for file_name in [
             f"{self._dataset_name}-train-image-only.zip",
             f"{self._dataset_name}-test.zip",
