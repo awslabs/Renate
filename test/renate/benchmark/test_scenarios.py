@@ -122,7 +122,7 @@ def test_permutation_scenario():
             scenario_data = getattr(scenario, f"{stage}_data")()
             orig_data_module_data = getattr(data_module, f"{stage}_data")()
             split_orig_data_module_data = randomly_split_data(
-                orig_data_module_data, [1./3., 1./3., 1./3.], seed=data_module._seed
+                orig_data_module_data, [1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0], seed=data_module._seed
             )[i]
             assert len(scenario_data) == len(split_orig_data_module_data)
             for j in range(len(scenario_data)):
