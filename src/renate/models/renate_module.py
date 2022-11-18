@@ -220,11 +220,18 @@ class RenateModule(torch.nn.Module, ABC):
 
 
 class RenateWrapper(RenateModule):
-    """A simple wrapper around a fixed torch model.
+    """A simple wrapper around a torch model.
 
     If you are using a torch model with fixed hyperparameters, you can use this wrapper to expose
     it as a ``RenateModule``. In this case, do _not_ use the ``from_state_dict`` method but
     reinstantiate the model, wrap it, and call ``load_state_dict``.
+
+    Example::
+
+        my_torch_model = torch.nn.Linear(28*28, 10)  # Instantiate your torch model.
+        model = RenateWrapper(my_torch_model)
+        state_dict = torch.load("my_state_dict.pt")
+        model.load_state_dict(state_dict)
 
     Args:
         model: The torch model to be wrapped.
