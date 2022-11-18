@@ -157,6 +157,9 @@ class RenateModule(torch.nn.Module, ABC):
     def replace_batch_norm_with_continual_norm(self, num_groups: int = 32) -> None:
         """Replaces every occurence of batch normalization with continual normalization.
 
+        Pham, Q., Liu, C., & Hoi, S. (2022). Continual normalization: Rethinking batch
+        normalization for online continual learning. arXiv preprint arXiv:2203.16102.
+
         Args:
             num_groups: Number of groups when considering the group normalization in continual
                 normalizeion
