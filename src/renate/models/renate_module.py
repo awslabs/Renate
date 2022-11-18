@@ -170,8 +170,7 @@ class RenateModule(torch.nn.Module, ABC):
                 if not list(module.children()):
                     _replace(child)
                 if isinstance(
-                    child,
-                    (torch.nn.BatchNorm1d, torch.nn.BatchNorm2d, torch.nn.BatchNorm3d)
+                    child, (torch.nn.BatchNorm1d, torch.nn.BatchNorm2d, torch.nn.BatchNorm3d)
                 ):
                     setattr(
                         module,
