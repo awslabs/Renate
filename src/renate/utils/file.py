@@ -6,11 +6,11 @@ import shutil
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
 from urllib.parse import urlparse
-from urllib.request import urlretrieve
 from zipfile import ZipFile
 
 import boto3
 import pandas as pd
+import requests
 from botocore.exceptions import ClientError
 
 import renate.defaults as defaults
@@ -256,10 +256,8 @@ def download_file(
     if src_bucket is None:
         if not os.path.exists(os.path.join(data_path, dataset_name)):
             os.makedirs(os.path.join(data_path, dataset_name))
-        urlretrieve(
-            os.path.join(url, file_name),
-            filename=os.path.join(data_path, dataset_name, file_name),
-        )
+        response = requests.get(os.path.join(url, file_name), allow_redirects=True)
+        open(os.path.join(data_path, dataset_name, file_name), "wb").write(response.content)
     else:
         download_file_from_s3(
             src_bucket,

@@ -15,12 +15,12 @@ from renate.tuning.tuning import (
     RENATE_CONFIG_COLUMNS,
     _create_scheduler,
     _get_transfer_learning_task_evaluations,
-    _is_syne_tune_config_space,
     _load_tuning_history,
     _merge_tuning_history,
     _verify_validation_set_for_hpo_and_checkpointing,
     execute_tuning_job,
 )
+from renate.utils.syne_tune import is_syne_tune_config_space
 
 
 def get_config_file(use_val):
@@ -169,8 +169,8 @@ def test_verify_validation_set_for_hpo_and_checkpointing(tmpdir, use_val, tune_h
 
 def test_is_syne_tune_config_space():
     """Function should return True if any entry in the `config_space` is a Syne Tune search space."""
-    assert _is_syne_tune_config_space({"a": uniform(0, 1), "b": 1})
-    assert not _is_syne_tune_config_space({"a": 0.5, "b": 1})
+    assert is_syne_tune_config_space({"a": uniform(0, 1), "b": 1})
+    assert not is_syne_tune_config_space({"a": 0.5, "b": 1})
 
 
 def _get_transfer_learning_task_evaluations_input():

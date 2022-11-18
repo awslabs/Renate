@@ -25,6 +25,7 @@ from syne_tune.optimizer.schedulers.transfer_learning import (
 )
 from syne_tune.stopping_criterion import StoppingCriterion
 from syne_tune.tuner import Tuner
+from syne_tune.tuner_callback import StoreResultsCallback
 from syne_tune.util import experiment_path
 
 import renate
@@ -37,9 +38,16 @@ from renate.utils.file import (
     upload_file_to_s3,
 )
 from renate.utils.module import get_and_prepare_data_module, import_module
-from renate.utils.syne_tune import config_space_to_dict, redirect_to_tmp
+from renate.utils.syne_tune import (
+    TrainingLoggerCallback,
+    TuningLoggerCallback,
+    best_hyperparameters,
+    is_syne_tune_config_space,
+    config_space_to_dict,
+    redirect_to_tmp,
+)
 
-logger = logging.Logger(__name__)
+logger = logging.getLogger(__name__)
 
 RENATE_CONFIG_COLUMNS = [
     "config_file",
@@ -336,16 +344,21 @@ def _merge_tuning_history(
 
 def _teardown_tuning_job(
     backend: LocalBackend,
+    config_space: Dict[str, Union[Domain, int, float, str]],
     job_name: str,
     state_url: Optional[str] = None,
     next_state_url: Optional[str] = None,
 ) -> None:
-    """Update lifelong hyperparameter optimization results and clean up disk."""
+    """Update lifelong hyperparameter optimization results, save state and clean up disk."""
     experiment_folder = redirect_to_tmp(str(experiment_path(job_name)))
     if next_state_url is not None:
         experiment = load_experiment(job_name)
         try:
             best_trial_id = experiment.best_config()["trial_id"]
+            if is_syne_tune_config_space(config_space):
+                logger.info(
+                    f"Best hyperparameter settings: {best_hyperparameters(experiment, config_space)}"
+                )
         except AttributeError:
             raise RuntimeError(
                 "Not a single training run finished. This may have two reasons:\n"
@@ -365,6 +378,7 @@ def _teardown_tuning_job(
         tuning_results = _merge_tuning_history(experiment.results, old_tuning_results)
         tuning_results.to_csv(defaults.hpo_file(next_state_folder), index=False)
         move_to_uri(next_state_folder, next_state_url)
+        logger.info(f"Renate state is available at {next_state_url}.")
     shutil.rmtree(experiment_folder, ignore_errors=True)
     shutil.rmtree(experiment_path(job_name), ignore_errors=True)
 
@@ -411,16 +425,6 @@ def _verify_validation_set_for_hpo_and_checkpointing(
     return "train_loss", "min"
 
 
-def _is_syne_tune_config_space(config_space: Dict[str, Any]) -> bool:
-    """Returns `True` if any value in the configuration space defines a Syne Tune search space."""
-    return any(
-        [
-            isinstance(hyperparameter_instance, Domain)
-            for hyperparameter_instance in config_space.values()
-        ]
-    )
-
-
 def _create_scheduler(
     scheduler: Union[str, Type[TrialScheduler]],
     config_space: Dict[str, Any],
@@ -449,6 +453,11 @@ def _create_scheduler(
         scheduler_kwargs["transfer_learning_evaluations"] = _load_tuning_history(
             state_url=state_url, config_space=config_space, metric=metric
         )
+        if scheduler_kwargs["transfer_learning_evaluations"]:
+            logger.info(
+                f"Using information of {len(scheduler_kwargs['transfer_learning_evaluations'])} previous tuning "
+                "jobs to accelerate this job."
+            )
     return scheduler(
         config_space=config_space,
         mode=mode,
@@ -486,7 +495,7 @@ def _execute_tuning_job_locally(
 
     See renate.tuning.execute_tuning_job for a description of arguments.
     """
-    tune_hyperparameters = _is_syne_tune_config_space(config_space)
+    tune_hyperparameters = is_syne_tune_config_space(config_space)
     config_space["updater"] = updater
     config_space["max_epochs"] = max_epochs
     config_space["config_file"] = config_file
@@ -513,6 +522,11 @@ def _execute_tuning_job_locally(
 
     training_script = str(Path(renate.__path__[0]) / "cli" / "run_training.py")
     assert Path(training_script).is_file(), f"Could not find training script {training_script}."
+    logger.info("Start updating the model.")
+    if tune_hyperparameters:
+        logger.info(
+            f"Tuning hyperparameters with respect to {metric} ({mode}) for {max_time} seconds on {n_workers} worker(s)."
+        )
     backend = LocalBackend(entry_point=training_script)
     if scheduler is None or not tune_hyperparameters:
         if scheduler is not None:
@@ -531,7 +545,11 @@ def _execute_tuning_job_locally(
             scheduler_kwargs=scheduler_kwargs,
             state_url=state_url,
         )
-
+    logging_callback = (
+        TuningLoggerCallback(mode=mode, metric=metric)
+        if tune_hyperparameters
+        else TrainingLoggerCallback()
+    )
     tuner = Tuner(
         trial_backend=backend,
         scheduler=scheduler,
@@ -543,13 +561,22 @@ def _execute_tuning_job_locally(
             max_cost=max_cost,
         ),
         n_workers=n_workers,
+        callbacks=[StoreResultsCallback(), logging_callback],
     )
 
     tuner.run()
 
+    logger.info("All training is completed. Saving state...")
+
     _teardown_tuning_job(
-        backend=backend, job_name=tuner.name, state_url=state_url, next_state_url=next_state_url
+        backend=backend,
+        config_space=config_space,
+        job_name=tuner.name,
+        state_url=state_url,
+        next_state_url=next_state_url,
     )
+
+    logger.info("Renate update completed successfully.")
 
     return tuner
 

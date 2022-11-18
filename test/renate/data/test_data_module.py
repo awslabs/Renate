@@ -11,7 +11,6 @@ from torchvision.datasets import FashionMNIST
 from renate.benchmark.datasets.nlp_datasets import TorchTextDataModule
 from renate.benchmark.datasets.vision_datasets import (
     CLEARDataModule,
-    CORE50DataModule,
     TinyImageNetDataModule,
     TorchVisionDataModule,
 )
@@ -156,38 +155,6 @@ def test_torchvision_data_module_loading(tmpdir, src_bucket, src_object_name, do
             {"dataset_name": "CLEAR100", "val_size": 0.4, "chunk_id": 1},
             9945,
             4984,
-            None,
-            None,
-        ],
-        [
-            CORE50DataModule,
-            {"scenario": "ni", "val_size": 0.4, "chunk_id": 1},
-            119894,
-            44972,
-            "mnemosyne-team-bucket",
-            os.path.join("dataset/", "core50"),
-        ],
-        [
-            CORE50DataModule,
-            {"scenario": "nc", "val_size": 0.4, "chunk_id": 5},
-            119894,
-            44972,
-            "mnemosyne-team-bucket",
-            os.path.join("dataset/", "core50"),
-        ],
-        [
-            CORE50DataModule,
-            {"scenario": "ni", "val_size": 0.4, "chunk_id": 1},
-            119894,
-            44972,
-            None,
-            None,
-        ],
-        [
-            CORE50DataModule,
-            {"scenario": "nc", "val_size": 0.4, "chunk_id": 5},
-            119894,
-            44972,
             None,
             None,
         ],

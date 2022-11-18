@@ -1,7 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import os
-import pickle
 from pathlib import Path
 from typing import Callable, List, Literal, Optional, Tuple, Union
 
@@ -12,7 +11,7 @@ from torchvision import transforms
 from renate import defaults
 from renate.data import ImageDataset
 from renate.data.data_module import RenateDataModule
-from renate.utils.file import download_and_unzip_file, download_file, download_folder_from_s3
+from renate.utils.file import download_and_unzip_file, download_folder_from_s3
 
 
 class TinyImageNetDataModule(RenateDataModule):
@@ -250,7 +249,6 @@ class CLEARDataModule(RenateDataModule):
 
     def prepare_data(self) -> None:
         """Download CLEAR dataset with given dataset_name (clear10/clear100)."""
-        # Download train dataset
         for file_name in [
             f"{self._dataset_name}-train-image-only.zip",
             f"{self._dataset_name}-test.zip",
@@ -315,150 +313,3 @@ class CLEARDataModule(RenateDataModule):
                     labels.append(label_encoding[folder])
 
         return data, labels
-
-
-class CORE50DataModule(RenateDataModule):
-    """Datamodule that process the CORe50 dataset.
-
-    It enables to download all the scenarios and with respect to all the runs,
-    set by `scenario` and `chunk_id` respectively.
-
-    Source: https://vlomonaco.github.io/core50/.
-    Adapted from: https://github.com/vlomonaco/core50/blob/master/scripts/python/data_loader.py
-
-    Args:
-        data_path: The path to the folder containing the dataset files.
-        src_bucket: The name of the s3 bucket. If not provided, downloads the data from original source.
-        src_object_name: The folder path in the s3 bucket.
-        transform: Transformation or augmentation to perform on the sample.
-        target_transform: Transformation or augmentation to perform on the target.
-        scenario: One of the six scenarios of the CORe50 benchmark ``ni``, ``nc``, ``nic``, ``nicv2_79``,
-                 ``nicv2_196`` and ``nicv2_391``. The respective scenarios stand for: ``ni``: new instances,
-                 ``nc``: new classes, ``nic``: new instances and classes in the first version of the dataset.
-                 Additionally, the ``nicv2_79``, ``nicv2_196`` and ``nicv2_391`` scenarios correspond to the
-                 NICv2 version of the dataset with 79, 196 and 391 training batches.
-        chunk_id: One of the 10 runs, from 0 to 9, in which the
-                  training batch order is changed as in the official benchmark.
-        cropped: Whether the smaller size (128x128) or the larger size (350x350) of the dataset should be used.
-    """
-
-    md5s = {
-        "core50_128x128.zip": "745f3373fed08d69343f1058ee559e13",
-        "core50_350x350.zip": "e304258739d6cd4b47e19adfa08e7571",
-        "paths.pkl": "b568f86998849184df3ec3465290f1b0",
-        "LUP.pkl": "33afc26faa460aca98739137fdfa606e",
-        "labels.pkl": "281c95774306a2196f4505f22fd60ab1",
-    }
-
-    def __init__(
-        self,
-        data_path: Union[Path, str],
-        src_bucket: Optional[str] = None,
-        src_object_name: Optional[str] = None,
-        transform: Optional[Callable] = None,
-        target_transform: Optional[Callable] = None,
-        scenario: Literal["ni", "nc", "nic", "nicv2_79", "nicv2_196", "nicv2_391"] = "ni",
-        chunk_id: int = 0,
-        cropped: bool = True,
-        val_size: float = defaults.VALIDATION_SIZE,
-        seed: int = defaults.SEED,
-    ) -> None:
-        super(CORE50DataModule, self).__init__(
-            data_path=data_path,
-            src_bucket=src_bucket,
-            src_object_name=src_object_name,
-            val_size=val_size,
-            seed=seed,
-        )
-        self._transform = transform
-        self._target_transform = target_transform
-        self._dataset_name = "core50"
-        self._image_source = "core50_128x128" if cropped else "core50_350x350"
-        self._scenario = scenario
-        self._verify_chunk_id(chunk_id)
-        self._chunk_id = chunk_id
-        end_batch = {
-            "ni": 8,
-            "nc": 9,
-            "nic": 79,
-            "nicv2_79": 79,
-            "nicv2_196": 196,
-            "nicv2_391": 391,
-        }
-        self._end_batch = end_batch[self._scenario]
-        self._complete_data_path = os.path.join(
-            self._data_path, self._dataset_name, self._image_source
-        )
-
-    def _verify_chunk_id(self, chunk_id: int) -> None:
-        assert 0 <= chunk_id <= 9
-
-    def prepare_data(self) -> None:
-        """Download the CORE50 dataset and supporting files and set paths."""
-        if not self._verify_file(f"{self._image_source}.zip"):
-            download_and_unzip_file(
-                self._dataset_name,
-                self._data_path,
-                self._src_bucket,
-                self._src_object_name,
-                "http://bias.csr.unibo.it/maltoni/download/core50/",
-                f"{self._image_source}.zip",
-            )
-        for file_name in [
-            "paths.pkl",
-            "LUP.pkl",
-            "labels.pkl",
-        ]:
-            if not self._verify_file(file_name):
-                download_file(
-                    self._dataset_name,
-                    self._data_path,
-                    self._src_bucket,
-                    self._src_object_name,
-                    "https://vlomonaco.github.io/core50/data/",
-                    file_name,
-                )
-        with open(
-            os.path.join(os.path.join(self._data_path, self._dataset_name), "paths.pkl"), "rb"
-        ) as f:
-            self._paths = pickle.load(f)
-
-        with open(
-            os.path.join(os.path.join(self._data_path, self._dataset_name), "LUP.pkl"), "rb"
-        ) as f:
-            self._LUP = pickle.load(f)
-
-        with open(
-            os.path.join(os.path.join(self._data_path, self._dataset_name), "labels.pkl"), "rb"
-        ) as f:
-            self._labels = pickle.load(f)
-
-    def setup(
-        self,
-        stage: Optional[Literal["start", "val", "test"]] = None,
-        chunk_id: Optional[int] = None,
-    ) -> None:
-        """Make assignments: train/test splits (CORe50 dataset only has train and test splits)."""
-        if chunk_id is None:
-            chunk_id = self._chunk_id
-        self._verify_chunk_id(chunk_id)
-        # Assign train dataset
-        if stage in ["train", "val"] or stage is None:
-            train_idx_list = [
-                self._LUP[self._scenario][chunk_id][i] for i in range(self._end_batch)
-            ]
-            train_idx_list = sum(train_idx_list, [])
-            X = [os.path.join(self._complete_data_path, self._paths[idx]) for idx in train_idx_list]
-            y = [self._labels[self._scenario][chunk_id][i] for i in range(self._end_batch)]
-            y = sum(y, [])
-            train_data = ImageDataset(X, y, self._transform, self._target_transform)
-            self._train_data, self._val_data = self._split_train_val_data(train_data)
-
-        # Assign test dataset
-        if stage == "test" or stage is None:
-            test_idx_list = self._LUP[self._scenario][chunk_id][-1]
-            X = [os.path.join(self._complete_data_path, self._paths[idx]) for idx in test_idx_list]
-            y = self._labels[self._scenario][chunk_id][-1]
-            self._test_data = ImageDataset(
-                X, y, transform=self._transform, target_transform=self._target_transform
-            )
