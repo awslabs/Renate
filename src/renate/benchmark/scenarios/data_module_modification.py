@@ -162,7 +162,6 @@ class ClassIncrementalScenario(Scenario):
 
     Args:
         data_module: The source RenateDataModule for the the user data.
-        num_tasks: The total number of expected tasks for experimentation.
         chunk_id: The data chunk to load in for the training or validation data.
         class_groupings: List of lists, describing the division of the classes for respective tasks.
     """
@@ -170,12 +169,10 @@ class ClassIncrementalScenario(Scenario):
     def __init__(
         self,
         data_module: RenateDataModule,
-        num_tasks: int,
         chunk_id: int,
         class_groupings: List[List[int]],
     ) -> None:
-        super().__init__(data_module, num_tasks, chunk_id)
-        assert len(class_groupings) == num_tasks
+        super().__init__(data_module, len(class_groupings), chunk_id)
         self._class_groupings = class_groupings
 
     def setup(self, stage: Optional[str] = None, chunk_id: Optional[int] = None) -> None:

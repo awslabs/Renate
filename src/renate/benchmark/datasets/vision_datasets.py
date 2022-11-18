@@ -126,6 +126,13 @@ class TorchVisionDataModule(RenateDataModule):
         seed: Seed used to fix random number generation.
     """
 
+    dataset_dict = {
+        "CIFAR10": (torchvision.datasets.CIFAR10, "cifar-10-batches-py"),
+        "CIFAR100": (torchvision.datasets.CIFAR100, "cifar-100-python"),
+        "FashionMNIST": (torchvision.datasets.FashionMNIST, "FashionMNIST"),
+        "MNIST": (torchvision.datasets.MNIST, "MNIST"),
+    }
+
     def __init__(
         self,
         data_path: Union[Path, str],
@@ -145,14 +152,8 @@ class TorchVisionDataModule(RenateDataModule):
         )
         self._download = download
         self._dataset_name = dataset_name
-        self._dataset_dict = {
-            "CIFAR10": (torchvision.datasets.CIFAR10, "cifar-10-batches-py"),
-            "CIFAR100": (torchvision.datasets.CIFAR100, "cifar-100-python"),
-            "FashionMNIST": (torchvision.datasets.FashionMNIST, "FashionMNIST"),
-            "MNIST": (torchvision.datasets.MNIST, "MNIST"),
-        }
         assert (
-            self._dataset_name in self._dataset_dict
+            self._dataset_name in TorchVisionDataModule.dataset_dict
         ), f"Dataset {self._dataset_name} currently not supported."
 
     def prepare_data(self) -> None:
@@ -162,7 +163,7 @@ class TorchVisionDataModule(RenateDataModule):
         """
         if not self._download:
             return
-        cls, dataset_pathname = self._dataset_dict[self._dataset_name]
+        cls, dataset_pathname = TorchVisionDataModule.dataset_dict[self._dataset_name]
         if self._src_bucket is None:
             cls(self._data_path, train=True, download=self._download)
             cls(self._data_path, train=False, download=self._download)
@@ -176,7 +177,7 @@ class TorchVisionDataModule(RenateDataModule):
     def setup(self, stage: Optional[Literal["train", "val", "test"]] = None) -> None:
         """Make assignments: train/valid/test splits (Torchvision datasets only have train and test splits)."""
         if stage in ["train", "val"] or stage is None:
-            train_data = self._dataset_dict[self._dataset_name][0](
+            train_data = TorchVisionDataModule.dataset_dict[self._dataset_name][0](
                 self._data_path,
                 train=True,
                 transform=transforms.ToTensor(),
@@ -185,7 +186,7 @@ class TorchVisionDataModule(RenateDataModule):
             self._train_data, self._val_data = self._split_train_val_data(train_data)
 
         if stage == "test" or stage is None:
-            self._test_data = self._dataset_dict[self._dataset_name][0](
+            self._test_data = TorchVisionDataModule.dataset_dict[self._dataset_name][0](
                 self._data_path,
                 train=False,
                 transform=transforms.ToTensor(),

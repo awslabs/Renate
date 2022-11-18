@@ -26,6 +26,12 @@ class TorchTextDataModule(RenateDataModule):
         seed: Seed used to fix random number generation.
     """
 
+    dataset_dict = {
+        "AG_NEWS": (torchtext.datasets.AG_NEWS, "ag_news_csv"),
+        "AmazonReviewFull": (torchtext.datasets.AmazonReviewFull, "amazon_review_full_csv"),
+        "DBpedia": (torchtext.datasets.DBpedia, "dbpedia_csv"),
+    }
+
     def __init__(
         self,
         data_path: Union[Path, str],
@@ -43,13 +49,8 @@ class TorchTextDataModule(RenateDataModule):
             seed=seed,
         )
         self._dataset_name = dataset_name
-        self._dataset_dict = {
-            "AG_NEWS": (torchtext.datasets.AG_NEWS, "ag_news_csv"),
-            "AmazonReviewFull": (torchtext.datasets.AmazonReviewFull, "amazon_review_full_csv"),
-            "DBpedia": (torchtext.datasets.DBpedia, "dbpedia_csv"),
-        }
         assert (
-            self._dataset_name in self._dataset_dict
+            self._dataset_name in TorchTextDataModule.dataset_dict
         ), f"Dataset {self._dataset_name} currently not supported."
 
     def prepare_data(self) -> None:
@@ -57,7 +58,7 @@ class TorchTextDataModule(RenateDataModule):
         it is downloaded. If s3 bucket is provided, the data is downloaded from s3, otherwise from the
         original source in setup().
         """
-        _, dataset_pathname = self._dataset_dict[self._dataset_name]
+        _, dataset_pathname = TorchTextDataModule.dataset_dict[self._dataset_name]
         if self._src_bucket is not None:
             download_folder_from_s3(
                 src_bucket=self._src_bucket,
@@ -67,7 +68,7 @@ class TorchTextDataModule(RenateDataModule):
 
     def setup(self, stage: Optional[Literal["train", "val", "test"]] = None):
         """Make assignments: train/valid/test splits (Torchtext datasets only have train and test splits)."""
-        cls, dataset_pathname = self._dataset_dict[self._dataset_name]
+        cls, dataset_pathname = TorchTextDataModule.dataset_dict[self._dataset_name]
         if self._src_bucket is None:
             if stage in ["train", "val"] or stage is None:
                 train_data = to_map_style_dataset(cls(root=self._data_path, split="train"))

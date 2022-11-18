@@ -564,7 +564,14 @@ def _execute_tuning_job_locally(
         callbacks=[StoreResultsCallback(), logging_callback],
     )
 
-    tuner.run()
+    try:
+        tuner.run()
+    except ValueError:
+        raise RuntimeError(
+            "Tuning failed."
+            + "\n\nLogs (stdout):\n\n{}".format("".join(backend.stdout(0)))
+            + "\n\nLogs (stderr):\n\n{}".format("".join(backend.stderr(0)))
+        )
 
     logger.info("All training is completed. Saving state...")
 
