@@ -249,17 +249,17 @@ def _execute_experiment_job_locally(
     config_module = import_module("config_module", config_file)
     config_space = get_config_space_kwargs(config_module)
     scheduler, scheduler_kwargs = get_scheduler_kwargs(config_module)
-    logger.info(f"Loading model {get_model_fn_args(config_space).get('model_fn_model_name', '')}")
-    model = get_model(config_module, **get_model_fn_args(config_space))
-    logger.info(
-        f"Prepare dataset {get_model_fn_args(config_space).get('model_fn_dataset_name', '')}"
-    )
+    model_fn_args = get_model_fn_args(config_space)
+    logger.info(f"Loading model {model_fn_args.get('model_fn_model_name', '')}")
+    model = get_model(config_module, **model_fn_args)
+    data_module_fn_args = get_data_module_fn_args(config_space)
+    logger.info(f"Prepare dataset {data_module_fn_args.get('data_module_fn_dataset_name', '')}")
     data_module = get_and_prepare_data_module(
         config_module,
         data_path=data_url,
         chunk_id=defaults.CHUNK_ID,
         seed=seed,
-        **get_data_module_fn_args(config_space),
+        **data_module_fn_args,
     )
     assert num_updates == len(
         data_module.test_data()

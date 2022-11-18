@@ -22,7 +22,7 @@ class Scenario(abc.ABC):
 
     Note that many scenarios implemented here perform randomized operations, e.g., to split a base
     dataset into chunks. The scenario is only reproducible if the _same_ seed is provided in
-    subsequent instantiatons. The seed argument is required for these scenarios.
+    subsequent instantiations. The seed argument is required for these scenarios.
 
     Args:
         data_module: The source RenateDataModule for the the user data.

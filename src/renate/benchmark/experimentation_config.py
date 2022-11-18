@@ -27,7 +27,7 @@ from renate.benchmark.models.vision_transformer import (
     VisionTransformerL16,
     VisionTransformerL32,
 )
-from renate.benchmark.scenarios.data_module_modification import ClassIncrementalScenario, Scenario
+from renate.benchmark.scenarios import BenchmarkScenario, ClassIncrementalScenario, Scenario
 from renate.data.data_module import RenateDataModule
 from renate.models import RenateModule
 
@@ -82,6 +82,7 @@ def get_scenario(
     data_module: RenateDataModule,
     chunk_id: int,
     seed: int,
+    num_tasks: Optional[int] = None,
     class_groupings: Optional[List[List[int]]] = None,
 ) -> Scenario:
     if scenario_name == "class_incremental":
@@ -93,6 +94,11 @@ def get_scenario(
             class_groupings=class_groupings,
             chunk_id=chunk_id,
         )
+    if scenario_name == "benchmark":
+        return BenchmarkScenario(
+            data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed
+        )
+    # TODO:
     raise ValueError(f"Unknown scenario `{scenario_name}`.")
 
 
@@ -126,6 +132,7 @@ def config_space_fn():
         "learning_rate": loguniform(10e-5, 0.1),
         "loss_weight": 0.3,
         "early_stopping": False,
+        "max_epochs": 1,  # TODO:
         "model_fn_model_name": "ResNet18CIFAR",
         "data_module_fn_scenario_name": "class_incremental",
         "data_module_fn_dataset_name": "CIFAR10",
