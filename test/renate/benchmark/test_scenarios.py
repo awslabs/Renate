@@ -136,6 +136,7 @@ def test_permutation_scenario():
             for k in range(len(test_data)):
                 a, _ = torch.sort(data_module.test_data()[k][0].flatten())
                 b, _ = torch.sort(test_data[k][0].flatten())
+                assert torch.equal(a, b)
 
 
 def test_benchmark_scenario():
