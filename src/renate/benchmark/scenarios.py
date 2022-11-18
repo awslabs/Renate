@@ -111,7 +111,7 @@ class ClassIncrementalScenario(Scenario):
     are organised into tuples of exactly 2 tensors i.e. `(x, y)` where `x` is the input and `y` is the class id.
 
     Args:
-        data_module: The source RenateDataModule for the the user data.
+        data_module: The base data module.
         num_tasks: The total number of expected tasks for experimentation.
         chunk_id: The data chunk to load in for the training or validation data.
         class_groupings: List of lists, describing the division of the classes for respective tasks.
@@ -194,8 +194,16 @@ class TransformScenario(Scenario):
         self._verify_chunk_id(chunk_id)
         self._data_module.setup(stage)
         self._split_and_assign_train_and_val_data(stage, chunk_id)
-        self._train_data = _TransformedDataset(self._train_data, transform=self._transforms[chunk_id])
-        self._val_data = _TransformedDataset(self._val_data, transform=self._transforms[chunk_id])
+        if stage == "train" or stage is None:
+            self._train_data = _TransformedDataset(
+                self._train_data,
+                transform=self._transforms[chunk_id]
+            )
+        if (stage == "val" or stage is None) and self._val_data:
+            self._val_data = _TransformedDataset(
+                self._val_data,
+                transform=self._transforms[chunk_id]
+            )
 
     def test_data(self) -> List[Dataset]:
         """Returns the test data for all tasks."""
@@ -211,7 +219,7 @@ class ImageRotationScenario(TransformScenario):
     """A scenario that rotates the images in the dataset by a different angle for each chunk.
 
     Args:
-        data_module: The source RenateDataModule for the the user data.
+        data_module: The base data module.
         degrees: List of degrees corresponding to different tasks.
         chunk_id: The data chunk to load in for the training or validation data.
         seed: Seed used to fix random number generation.
@@ -232,7 +240,7 @@ class PermutationScenario(TransformScenario):
     """A scenario that applies a different random permutation of features for each chunk.
 
     Args:
-        data_module: The source RenateDataModule for the the user data.
+        data_module: The base data module.
         num_tasks: The total number of expected tasks for experimentation.
         input_dim: Dimension of the inputs. Can be a shape tuple or the total number of features.
         chunk_id: The data chunk to load in for the training or validation data.
