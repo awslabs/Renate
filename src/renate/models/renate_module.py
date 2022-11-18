@@ -217,3 +217,30 @@ class RenateModule(torch.nn.Module, ABC):
     def reset_intermediate_representation_cache(self) -> None:
         """Resets the intermediate representation cache."""
         self._intermediate_representation_cache = []
+
+
+class RenateWrapper(RenateModule):
+    """A simple wrapper around a fixed torch model.
+
+    If you are using a torch model with fixed hyperparameters, you can use this wrapper to expose
+    it as a ``RenateModule``. In this case, do _not_ use the ``from_state_dict`` method but
+    reinstantiate the model, wrap it, and call ``load_state_dict``.
+
+    Args:
+        model: The torch model to be wrapped.
+        loss_fn: The loss function to be optimized during the training.
+    """
+
+    def __init__(self, model: torch.nn.Module, loss_fn: torch.nn.Module) -> None:
+        super().__init__(constructor_arguments={}, loss_fn=loss_fn)
+        self._model = model
+
+    def forward(self, x: torch.Tensor, task_id: Optional[str] = None) -> torch.Tensor:
+        return self._model(x)
+
+    @classmethod
+    def from_state_dict(cls, state_dict):
+        raise NotImplementedError(
+            "RenateWrapper does not support `from_state_dict`. Instantiate the object using the "
+            "standard constructor, then call `load_state_dict`."
+        )
