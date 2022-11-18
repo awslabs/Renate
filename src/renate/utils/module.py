@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import torchmetrics
 
 from renate import defaults
-from renate.benchmark.scenarios.data_module_modification import Scenario
+from renate.benchmark.scenarios import Scenario
 from renate.data.data_module import RenateDataModule
 from renate.evaluation.evaluator import evaluate
 from renate.models import RenateModule
