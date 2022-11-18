@@ -47,7 +47,7 @@ class ResNet(RenateModule):
     ) -> None:
         RenateModule.__init__(
             self,
-            hyperparameters={
+            constructor_arguments={
                 "block": block,
                 "layers": layers,
                 "num_outputs": num_outputs,

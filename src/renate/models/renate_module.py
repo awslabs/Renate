@@ -19,7 +19,7 @@ class RenateModule(torch.nn.Module, ABC):
     in replay-based CL methods.
 
     When implementing a subclass of ``RenateModule``, make sure to call the base class' constructor
-    and provide your model hyperparameters and loss function. Besides that, you can define a
+    and provide your model's constructor arguments and loss function. Besides that, you can define a
     ``RenateModule`` just like ``torch.nn.Module``.
 
     Example::
@@ -28,7 +28,7 @@ class RenateModule(torch.nn.Module, ABC):
 
         def __init__(self, num_hidden: int):
             super().__init__(
-                hyperparameters={"num_hidden": num_hidden}
+                constructor_arguments={"num_hidden": num_hidden}
                 loss_fn=torch.nn.CrossEntropyLoss()
             )
             self._fc1 = torch.nn.Linear(28*28, num_hidden)
@@ -49,13 +49,13 @@ class RenateModule(torch.nn.Module, ABC):
     provided. It is currently not used.
 
     Args:
-        hyperparameters: Hyperparameters needed to instantiate the model.
+        constructor_arguments: Arguments needed to instantiate the model.
         loss_fn: The loss function to be optimized during the training.
     """
 
-    def __init__(self, hyperparameters: dict, loss_fn: torch.nn.Module):
+    def __init__(self, constructor_arguments: dict, loss_fn: torch.nn.Module):
         super(RenateModule, self).__init__()
-        self._hyperparameters = copy.deepcopy(hyperparameters)
+        self._constructor_arguments = copy.deepcopy(constructor_arguments)
         self.loss_fn = loss_fn
         self._tasks_params_ids: Set[str] = set()
         self._intermediate_representation_cache: List[torch.Tensor] = []
@@ -69,24 +69,24 @@ class RenateModule(torch.nn.Module, ABC):
             state_dict: The state dict of the model. This method works under the assumption that
                 this has been created by `RenateModule.state_dict()`.
         """
-        hyperparameters = state_dict["_extra_state"]["hyperparameters"]
-        model = cls(**hyperparameters)
+        constructor_arguments = state_dict["_extra_state"]["constructor_arguments"]
+        model = cls(**constructor_arguments)
         for task in state_dict["_extra_state"]["tasks_params_ids"]:
             model.add_task_params(task)
         model.load_state_dict(state_dict)
         return model
 
     def get_extra_state(self) -> Any:
-        """Get the hyperparameters, loss and task ids necessary to reconstruct the model."""
+        """Get the constructor_arguments, loss and task ids necessary to reconstruct the model."""
         return {
-            "hyperparameters": self._hyperparameters,
+            "constructor_arguments": self._constructor_arguments,
             "tasks_params_ids": self._tasks_params_ids,
             "loss_fn": self.loss_fn,
         }
 
     def set_extra_state(self, state: Any):
         """Extract the content of the ``_extra_state`` and set the related values in the module."""
-        self._hyperparameters = state["hyperparameters"]
+        self._constructor_arguments = state["constructor_arguments"]
         self._tasks_params_ids = state["tasks_params_ids"]
         self.loss_fn = state["loss_fn"]
 
