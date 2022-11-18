@@ -89,3 +89,9 @@ html_sidebars = {
         "sourcelink.html",
     ]
 }
+
+rst_prolog = """
+.. role:: python(code)
+    :language: python
+    :class: highlight
+"""

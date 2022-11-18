@@ -10,15 +10,17 @@
    getting_started/install
    getting_started/overview
    getting_started/how_to_renate_config
+   getting_started/hot_to_run_training
    getting_started/output
 
 .. toctree::
-   :name: Tutorials
-   :caption: Tutorials
+   :name: Examples
+   :caption: Examples
    :maxdepth: 1
    :hidden:
 
-   tutorials/first_run
+   examples/train_mlp_locally.rst
+
 
 .. toctree::
    :name: API docs
