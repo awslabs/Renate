@@ -35,7 +35,7 @@ def test_renate_model_save(tmpdir, model):
     state = torch.load(os.path.join(tmpdir, "test_model.pt"))
     os.remove(os.path.join(tmpdir, "test_model.pt"))
 
-    assert "hyperparameters" in state["_extra_state"].keys()
+    assert "constructor_arguments" in state["_extra_state"].keys()
     assert "loss_fn" in state["_extra_state"].keys()
     assert "tasks_params_ids" in state["_extra_state"].keys()
 
