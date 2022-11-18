@@ -74,7 +74,6 @@ def test_image_rotation_scenario():
     degrees = [15, 75]
     data_module.prepare_data()
     data_module.setup()
-    orig_data_module = copy.deepcopy(data_module)
 
     for i in range(len(degrees)):
         scenario = ImageRotationScenario(
@@ -86,9 +85,9 @@ def test_image_rotation_scenario():
         for stage in ["train", "val"]:
             scenario.setup(stage)
             scenario_data = getattr(scenario, f"{stage}_data")()
-            orig_data_module_data = getattr(orig_data_module, f"{stage}_data")()
+            orig_data_module_data = getattr(data_module, f"{stage}_data")()
             split_orig_data_module_data = randomly_split_data(
-                orig_data_module_data, [0.5, 0.5], seed=orig_data_module._seed
+                orig_data_module_data, [0.5, 0.5], seed=data_module._seed
             )[i]
             assert len(scenario_data) == len(split_orig_data_module_data)
             for j in range(len(scenario_data)):
@@ -98,10 +97,10 @@ def test_image_rotation_scenario():
 
         scenario.setup("test")
         for j, test_data in enumerate(scenario.test_data()):
-            assert len(test_data) == len(orig_data_module.test_data())
+            assert len(test_data) == len(data_module.test_data())
             for k in range(len(test_data)):
                 assert torch.equal(
-                    rotate(orig_data_module.test_data()[k][0], degrees[j]), test_data[k][0]
+                    rotate(data_module.test_data()[k][0], degrees[j]), test_data[k][0]
                 )
 
 
@@ -109,15 +108,8 @@ def test_permutation_scenario():
     data_module = DummyTorchVisionDataModule(val_size=0.3)
     data_module.prepare_data()
     data_module.setup()
-    orig_data_module = copy.deepcopy(data_module)
-    permutation_indices = torch.tensor(
-        [
-            list(range(np.prod(data_module.input_shape)))[::-1],
-            list(range(np.prod(data_module.input_shape))),
-        ]
-    )
 
-    for i in range(len(permutation_indices)):
+    for i in range(3):
         scenario = PermutationScenario(
             data_module=data_module,
             num_tasks=3,
@@ -125,47 +117,25 @@ def test_permutation_scenario():
             chunk_id=i,
             seed=data_module._seed,
         )
-        # Chunk id 0 is a special case
-        current_permutation_index = (
-            permutation_indices[i - 1]
-            if i > 0
-            else torch.tensor(list(range(np.prod(data_module.input_shape))))
-        )
-        scenario._indices = permutation_indices
         for stage in ["train", "val"]:
             scenario.setup(stage)
             scenario_data = getattr(scenario, f"{stage}_data")()
-            orig_data_module_data = getattr(orig_data_module, f"{stage}_data")()
+            orig_data_module_data = getattr(data_module, f"{stage}_data")()
             split_orig_data_module_data = randomly_split_data(
-                orig_data_module_data, [1 / 3 for _ in range(3)], seed=orig_data_module._seed
+                orig_data_module_data, [1./3., 1./3., 1./3.], seed=data_module._seed
             )[i]
             assert len(scenario_data) == len(split_orig_data_module_data)
             for j in range(len(scenario_data)):
-                orig_shape = split_orig_data_module_data[j][0].shape
-                assert torch.equal(
-                    split_orig_data_module_data[j][0]
-                    .view(-1)[current_permutation_index]
-                    .reshape(orig_shape),
-                    scenario_data[j][0],
-                )
+                a, _ = torch.sort(split_orig_data_module_data[j][0].flatten())
+                b, _ = torch.sort(scenario_data[j][0].flatten())
+                assert torch.equal(a, b)
 
         scenario.setup("test")
         for j, test_data in enumerate(scenario.test_data()):
-            assert len(test_data) == len(orig_data_module.test_data())
-            # Chunk id 0 is a special case
-            current_permutation_index = (
-                permutation_indices[j - 1]
-                if j > 0
-                else torch.tensor(list(range(np.prod(data_module.input_shape))))
-            )
+            assert len(test_data) == len(data_module.test_data())
             for k in range(len(test_data)):
-                orig_shape = orig_data_module.test_data()[k][0].shape
-                assert torch.equal(
-                    orig_data_module.test_data()[k][0]
-                    .view(-1)[current_permutation_index]
-                    .reshape(orig_shape),
-                    test_data[k][0],
-                )
+                a, _ = torch.sort(data_module.test_data()[k][0].flatten())
+                b, _ = torch.sort(test_data[k][0].flatten())
 
 
 def test_benchmark_scenario():

@@ -20,6 +20,10 @@ class Scenario(abc.ABC):
     This class can be extended to modify the returned training/validation/test sets
     to implement different experimentation settings.
 
+    Note that many scenarios implemented here perform randomized operations, e.g., to split a base
+    dataset into chunks. The scenario is only reproducible if the _same_ seed is provided in
+    subsequent instantiatons. The seed argument is required for these scenarios.
+
     Args:
         data_module: The source RenateDataModule for the the user data.
         num_tasks: The total number of expected tasks for experimentation.
@@ -163,11 +167,14 @@ class ClassIncrementalScenario(Scenario):
 class TransformScenario(Scenario):
     """A scenario that applies a different transformation to each chunk.
 
+    The base ``data_module`` is split into ``len(transforms)`` random chunks. Then ``transforms[i]``
+    is applied to chunk ``i``.
+
     Args:
-        data_module:
+        data_module: The base data module.
         transforms: A list of transformations.
-        chunk_id:
-        seed:
+        chunk_id: The id of the chunk to retrieve.
+        seed: Seed used to fix random number generation.
     """
 
     def __init__(
@@ -215,7 +222,7 @@ class ImageRotationScenario(TransformScenario):
         data_module: RenateDataModule,
         degrees: List[int],
         chunk_id: int,
-        seed: int = defaults.SEED,
+        seed: int,
     ) -> None:
         transforms = [RandomRotation(degrees=(deg, deg)) for deg in degrees]
         super().__init__(data_module, transforms, chunk_id, seed)
@@ -238,7 +245,7 @@ class PermutationScenario(TransformScenario):
         num_tasks: int,
         input_dim: Union[List[int], Tuple[int], int],
         chunk_id: int,
-        seed: int = defaults.SEED,
+        seed: int,
     ) -> None:
         input_dim = np.prod(input_dim)
         rng = get_generator(seed)
