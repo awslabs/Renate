@@ -1,26 +1,28 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import abc
-import copy
 from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
-from PIL import Image
 from torch.utils.data import Dataset, Subset
-from torchvision.transforms import Compose, RandomRotation
-from torchvision.transforms.functional import pil_to_tensor, to_pil_image
+from torchvision.transforms import Lambda, RandomRotation
 
 from renate import defaults
 from renate.data.data_module import RenateDataModule
+from renate.data.datasets import _TransformedDataset
 from renate.utils.pytorch import get_generator, randomly_split_data
 
 
 class Scenario(abc.ABC):
-    """An abstract class modifying a RenateDataModule to provide scenarios for continual learning experiments.
+    """Creates a continual learning scenario from a RenateDataModule.
 
     This class can be extended to modify the returned training/validation/test sets
     to implement different experimentation settings.
+
+    Note that many scenarios implemented here perform randomized operations, e.g., to split a base
+    dataset into chunks. The scenario is only reproducible if the _same_ seed is provided in
+    subsequent instantiatons. The seed argument is required for these scenarios.
 
     Args:
         data_module: The source RenateDataModule for the the user data.
@@ -51,7 +53,7 @@ class Scenario(abc.ABC):
 
     @abc.abstractmethod
     def setup(self, stage: Optional[str] = None, chunk_id: Optional[int] = None) -> None:
-        """Sets up the scenario for training/validation/test and perform the splitting of the data for train and validation."""
+        """Sets up the scenario."""
         pass
 
     def train_data(self) -> Dataset:
@@ -70,15 +72,6 @@ class Scenario(abc.ABC):
             datasets.append(self._data_module.test_data())
         return datasets
 
-    def _insert_data_module_transform(self, transform: Callable, position: int) -> None:
-        """A helper function to insert a datasample transformation at a chosen position with respect to `_transform`."""
-        if self._data_module._transform is None:
-            self._data_module._transform = transform
-        elif isinstance(self._data_module._transform, Compose):
-            self._data_module._transform.transforms.insert(position, transform)
-        else:
-            raise ValueError("Unable to insert the Scenario modification transformation.")
-
     def _verify_chunk_id(self, chunk_id: int) -> None:
         """A helper function to verify that the `chunk_id` is valid."""
         assert 0 <= chunk_id < self._num_tasks
@@ -86,7 +79,7 @@ class Scenario(abc.ABC):
     def _split_and_assign_train_and_val_data(
         self, stage: Optional[str] = None, chunk_id: Optional[int] = None
     ) -> None:
-        """A helper function to split the data into train and validation sets and assign them to the `train_data` and `val_data` attributes."""
+        """Performs train/val split and assigns the `train_data` and `val_data` attributes."""
         if chunk_id is None:
             chunk_id = self._chunk_id
         self._verify_chunk_id(chunk_id)
@@ -108,49 +101,6 @@ class BenchmarkScenario(Scenario):
         self._val_data = self._data_module.val_data()
 
 
-class ImageRotationScenario(Scenario):
-    """A scenario that rotates the images in the dataset.
-
-    This class rotates the entire training/validation/test set with respect to specified degree,
-    depending on the provided `task_index` in the `.setup()` method.
-
-    Args:
-        data_module: The source RenateDataModule for the the user data.
-        num_tasks: The total number of expected tasks for experimentation.
-        chunk_id: The data chunk to load in for the training or validation data.
-        degrees: List of degrees corresponding to different tasks.
-        seed: Seed used to fix random number generation.
-    """
-
-    def __init__(
-        self,
-        data_module: RenateDataModule,
-        num_tasks: int,
-        chunk_id: int,
-        degrees: List[int],
-        seed: int = defaults.SEED,
-    ) -> None:
-        super().__init__(data_module, num_tasks, chunk_id, seed)
-        assert len(degrees) == num_tasks
-        self._degrees = degrees
-
-    def setup(self, stage: Optional[str] = None, chunk_id: Optional[int] = None) -> None:
-        """Make assignments: val/train/test splits.
-
-        Adjusts the transformation in the original RenateDataModule to put the rotation as the first
-        augmentation applied in series. If the transformation is `None` it sets it to rotation.
-        """
-        if chunk_id is None:
-            chunk_id = self._chunk_id
-        self._verify_chunk_id(chunk_id)
-        original_transform = copy.deepcopy(self._data_module._transform)
-        rotation = RandomRotation(degrees=(self._degrees[chunk_id], self._degrees[chunk_id]))
-        self._insert_data_module_transform(transform=rotation, position=0)
-        self._data_module.setup(stage)
-        self._split_and_assign_train_and_val_data(stage, chunk_id)
-        self._data_module._transform = original_transform
-
-
 class ClassIncrementalScenario(Scenario):
     """A scenario that creates data chunks from datasamples with specific classes from a data module.
 
@@ -161,7 +111,7 @@ class ClassIncrementalScenario(Scenario):
     are organised into tuples of exactly 2 tensors i.e. `(x, y)` where `x` is the input and `y` is the class id.
 
     Args:
-        data_module: The source RenateDataModule for the the user data.
+        data_module: The base data module.
         num_tasks: The total number of expected tasks for experimentation.
         chunk_id: The data chunk to load in for the training or validation data.
         class_groupings: List of lists, describing the division of the classes for respective tasks.
@@ -214,57 +164,86 @@ class ClassIncrementalScenario(Scenario):
         return Subset(dataset, indices)
 
 
-class Permutation:
-    """Permute the input with respect to the indices provided.
+class TransformScenario(Scenario):
+    """A scenario that applies a different transformation to each chunk.
 
-    It makes the assumption that the input can be linearized and its entries can be
-    indexed.
-
-    If the input is a PIL image, the return of the call is also a PIL image. If the input is torch tensor,
-    the output is a torch tensor.
+    The base ``data_module`` is split into ``len(transforms)`` random chunks. Then ``transforms[i]``
+    is applied to chunk ``i``.
 
     Args:
-        indices: A one dimensional tensor specifying the indices for permutation.
+        data_module: The base data module.
+        transforms: A list of transformations.
+        chunk_id: The id of the chunk to retrieve.
+        seed: Seed used to fix random number generation.
     """
 
-    def __init__(self, indices: torch.Tensor) -> None:
-        self._indices = indices
+    def __init__(
+        self,
+        data_module: RenateDataModule,
+        transforms: List[Callable],
+        chunk_id: int,
+        seed: int = defaults.SEED,
+    ) -> None:
+        num_tasks = len(transforms)
+        super().__init__(data_module, num_tasks, chunk_id, seed)
+        self._transforms = transforms
 
-    def __call__(
-        self, sample: Union[torch.Tensor, Image.Image]
-    ) -> Union[torch.Tensor, Image.Image]:
-        pil_image = False
-        pil_image_mode = None
-        if isinstance(sample, Image.Image):
-            pil_image_mode = sample.mode
-            sample = pil_to_tensor(sample)
-            pil_image = True
-        original_shape = sample.shape
-        sample = sample.reshape(-1)
-        if len(sample) != len(self._indices):
-            raise ValueError(
-                f"The length of the indices does not match the size of the data: {original_shape}!={len(self._indices)}."
+    def setup(self, stage: Optional[str] = None, chunk_id: Optional[int] = None) -> None:
+        if chunk_id is None:
+            chunk_id = self._chunk_id
+        self._verify_chunk_id(chunk_id)
+        self._data_module.setup(stage)
+        self._split_and_assign_train_and_val_data(stage, chunk_id)
+        if stage == "train" or stage is None:
+            self._train_data = _TransformedDataset(
+                self._train_data,
+                transform=self._transforms[chunk_id]
+            )
+        if (stage == "val" or stage is None) and self._val_data:
+            self._val_data = _TransformedDataset(
+                self._val_data,
+                transform=self._transforms[chunk_id]
             )
 
-        permuted_sample = sample[self._indices]
-        permuted_sample = permuted_sample.reshape(*original_shape)
-        if pil_image:
-            permuted_sample = to_pil_image(permuted_sample, pil_image_mode)
-        return permuted_sample
+    def test_data(self) -> List[Dataset]:
+        """Returns the test data for all tasks."""
+        self._data_module.setup(stage="test")
+        dataset = self._data_module.test_data()
+        datasets = []
+        for chunk_id in range(self._num_tasks):
+            datasets.append(_TransformedDataset(dataset, transform=self._transforms[chunk_id]))
+        return datasets
 
 
-class PermutationScenario(Scenario):
-    """A scenario that creates data chunks from datasamples with specific classes from a data module.
-
-    This class, given the input feature size and a seed, permutes the datasample features.
-    The permutations are precomputed depending on the total number of tasks. The first permutation
-    is the original datasample without modification.
+class ImageRotationScenario(TransformScenario):
+    """A scenario that rotates the images in the dataset by a different angle for each chunk.
 
     Args:
-        data_module: The source RenateDataModule for the the user data.
-        num_tasks: The total number of expected tasks for experimentation.
+        data_module: The base data module.
+        degrees: List of degrees corresponding to different tasks.
         chunk_id: The data chunk to load in for the training or validation data.
-        input_dim: List of input dimensions for the input or the overall input dimensionality as an integer.
+        seed: Seed used to fix random number generation.
+    """
+
+    def __init__(
+        self,
+        data_module: RenateDataModule,
+        degrees: List[int],
+        chunk_id: int,
+        seed: int,
+    ) -> None:
+        transforms = [RandomRotation(degrees=(deg, deg)) for deg in degrees]
+        super().__init__(data_module, transforms, chunk_id, seed)
+
+
+class PermutationScenario(TransformScenario):
+    """A scenario that applies a different random permutation of features for each chunk.
+
+    Args:
+        data_module: The base data module.
+        num_tasks: The total number of expected tasks for experimentation.
+        input_dim: Dimension of the inputs. Can be a shape tuple or the total number of features.
+        chunk_id: The data chunk to load in for the training or validation data.
         seed: A random seed to fix the random number generation for permutations.
     """
 
@@ -272,30 +251,15 @@ class PermutationScenario(Scenario):
         self,
         data_module: RenateDataModule,
         num_tasks: int,
-        chunk_id: int,
         input_dim: Union[List[int], Tuple[int], int],
-        seed: int = defaults.SEED,
+        chunk_id: int,
+        seed: int,
     ) -> None:
-        super().__init__(data_module, num_tasks, chunk_id, seed)
         input_dim = np.prod(input_dim)
         rng = get_generator(seed)
-        self._indices = [
-            torch.randperm(input_dim, generator=rng).long() for _ in range(num_tasks - 1)
-        ]
-
-    def setup(self, stage: Optional[str] = None, chunk_id: Optional[int] = None) -> None:
-        """Make assignments: val/train/test splits.
-
-        Adjusts the transformation in the original RenateDataModule to put the rotation as the first
-        augmentation applied in series. If the transformation is `None` it sets it to rotation.
-        """
-        if chunk_id is None:
-            chunk_id = self._chunk_id
-        self._verify_chunk_id(chunk_id)
-        original_transform = copy.deepcopy(self._data_module._transform)
-        if chunk_id != 0:
-            permutation = Permutation(indices=self._indices[chunk_id - 1])
-            self._insert_data_module_transform(transform=permutation, position=0)
-        self._data_module.setup(stage)
-        self._split_and_assign_train_and_val_data(stage, chunk_id)
-        self._data_module._transform = original_transform
+        transforms = [torch.nn.Identity()]
+        for _ in range(num_tasks - 1):
+            permutation = torch.randperm(input_dim, generator=rng)
+            transform = Lambda(lambda x: x.flatten()[permutation].view(x.size()))
+            transforms.append(transform)
+        super().__init__(data_module, transforms, chunk_id, seed)
