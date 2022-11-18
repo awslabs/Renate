@@ -60,7 +60,7 @@ def extract_logits(
         the output dimension of `model`, i.e., the number of classes.
     """
     logits = []
-    loader = DataLoader(dataset, batch_size, shuffle=False, drop_last=False)
+    loader = DataLoader(dataset, batch_size, shuffle=False, drop_last=False, pin_memory=True)
     for batch in loader:
         if isinstance(dataset, DataBuffer):
             X = batch[0][0].to(next(model.parameters()).device)
@@ -273,7 +273,11 @@ class DeepModelConsolidationLearner(ReplayLearner):
 
         _, val_loader = super().on_model_update_start(train_dataset, val_dataset, task_id)
         train_loader = DataLoader(
-            self._memory_buffer, batch_size=self._batch_size, shuffle=True, generator=self._rng
+            self._memory_buffer,
+            batch_size=self._batch_size,
+            shuffle=True,
+            generator=self._rng,
+            pin_memory=True,
         )
         return train_loader, val_loader
 
