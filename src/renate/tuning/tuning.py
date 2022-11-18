@@ -349,7 +349,7 @@ def _teardown_tuning_job(
     state_url: Optional[str] = None,
     next_state_url: Optional[str] = None,
 ) -> None:
-    """Update lifelong hyperparameter optimization results and clean up disk."""
+    """Update lifelong hyperparameter optimization results, save state and clean up disk."""
     experiment_folder = redirect_to_tmp(str(experiment_path(job_name)))
     if next_state_url is not None:
         experiment = load_experiment(job_name)
@@ -565,6 +565,8 @@ def _execute_tuning_job_locally(
     )
 
     tuner.run()
+
+    logger.info("All training is completed. Saving state...")
 
     _teardown_tuning_job(
         backend=backend,
