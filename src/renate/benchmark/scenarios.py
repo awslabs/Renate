@@ -196,13 +196,11 @@ class TransformScenario(Scenario):
         self._split_and_assign_train_and_val_data(stage, chunk_id)
         if stage == "train" or stage is None:
             self._train_data = _TransformedDataset(
-                self._train_data,
-                transform=self._transforms[chunk_id]
+                self._train_data, transform=self._transforms[chunk_id]
             )
         if (stage == "val" or stage is None) and self._val_data:
             self._val_data = _TransformedDataset(
-                self._val_data,
-                transform=self._transforms[chunk_id]
+                self._val_data, transform=self._transforms[chunk_id]
             )
 
     def test_data(self) -> List[Dataset]:

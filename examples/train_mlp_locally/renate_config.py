@@ -10,7 +10,7 @@ from renate.models import RenateModule
 
 from renate import defaults
 from renate.benchmark.datasets.vision_datasets import TorchVisionDataModule
-from renate.benchmark.scenarios.data_module_modification import ClassIncrementalScenario
+from renate.benchmark.scenarios import ClassIncrementalScenario
 
 
 def data_module_fn(

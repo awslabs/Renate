@@ -308,9 +308,7 @@ def test_renate_multihead_multi_param_update(test_case):
 
 @pytest.mark.parametrize(
     "torch_model",
-    [
-        torch.nn.Sequential(torch.nn.Linear(3, 5), torch.nn.ReLU(), torch.nn.Linear(5, 3))
-    ]
+    [torch.nn.Sequential(torch.nn.Linear(3, 5), torch.nn.ReLU(), torch.nn.Linear(5, 3))],
 )
 @torch.no_grad()
 def test_renate_wrapper_save_and_load(tmpdir, torch_model):
