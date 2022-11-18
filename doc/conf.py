@@ -56,15 +56,16 @@ copyright = f"{datetime.datetime.now().year}, Amazon"
 
 
 extensions = [
+    "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
-    "sphinx.ext.napoleon",
     "sphinx.ext.todo",
     "sphinx.ext.viewcode",
     "sphinx_copybutton",
     "myst_parser",
 ]
+myst_heading_anchors = 2
 
 source_suffix = [".rst", ".md"]
 
