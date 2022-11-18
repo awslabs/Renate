@@ -9,22 +9,21 @@ When accessing your config file, Renate will inspect it for these functions.
 ## Model: `model_fn`
 
 This function takes a path to a model state and returns a model in the form of a `RenateModule`.
-A `RenateModule` is a `torch.nn.Module` with some additional functionality relevant to continual learning;
-for detailed information, see [here](TODO).
-If no path is given (i.e., when we first train a model) the model should be created from scratch,
-otherwise it should be reloaded from the stored state, for which `RenateModule` provides a
-`from_state_dict` method.
-
-**Signature**
-
-`model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule`
-
-**Example**
+Its signature is
 
 ```python
-import torch
+def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule:
+```
 
+A `RenateModule` is a `torch.nn.Module` with some additional functionality relevant to continual learning;
+for detailed information, see [here](TODO).
+If no path is given (i.e., when we first train a model) your `model_fn` should create the model
+from sratch.
+Otherwise it should be reloaded from the stored state, for which `RenateModule` provides a
+`from_state_dict` method, which automatically handles model hyperparameters.
 
+Example:
+```python
 class MyMNISTMLP(RenateModule):
 
     def __init__(self, num_hidden: int):
@@ -52,21 +51,36 @@ def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule
         # In this case, model hyperparameters are restored from the saved state.
         state_dict = torch.load(str(model_state_url))
         model = MyMNISTMLP.from_state_dict(model)
+    return model
+```
+
+If you are using a torch model with **no or fixed hyperparameters**, you can use `RenateWrapper`, see its [documentation](TODO).
+In this case, do not use the `from_state_dict` method, but simply reinstantiate your model and
+call `load_state_dict`.
+
+Example:
+```python
+def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule:
+    my_torch_model = torch.nn.Linear(28*28, 10)  # Instantiate your torch model.
+    model = RenateWrapper(my_torch_model)
+    if model_state_url is not None:
+        state_dict = torch.load(str(model_state_url))
+        model.load_state_dict(state_dict)
+    return model
 ```
 
 
 ## Data: `data_module_fn`
 
 This function takes a path to a data folder and returns data in the form of a `RenateDataModule`.
+Its signature is
+```python
+def data_module_fn(data_path: Union[Path, str], seed: int = defaults.SEED) -> RenateDataModule:
+```
 `RenateDataModule` provides a structured interface to download, set up, and access train/val/test datasets; for detailed information, see [here](TODO).
 The function also accepts a `seed`, which should be used for any randomized operations, such as data subsampling or splitting.
 
-**Signature**
-
-`data_module_fn(data_path: Union[Path, str], seed: int = defaults.SEED) -> RenateDataModule`
-
-**Example**
-
+Example:
 ```python
 class MyMNISTDataModule(RenateDataModule):
 
@@ -140,8 +154,7 @@ These can be set via two addition transform functions
 These are optional as well but, if ommitted, Renate will use `train_transform` and
 `train_target_transform`, respectively.
 
-**Example**
-
+Example:
 ```python
 def train_transform():
     return torchvision.transforms.Compose(
@@ -165,5 +178,3 @@ def buffer_transform():
         ]
     )
 ```
-
-

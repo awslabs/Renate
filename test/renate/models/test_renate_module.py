@@ -10,7 +10,7 @@ from renate.benchmark.models.mlp import MultiLayerPerceptron
 from renate.benchmark.models.resnet import ResNet
 from renate.benchmark.models.vision_transformer import VisionTransformer
 from renate.defaults import TASK_ID
-from renate.models.renate_module import RenateModule
+from renate.models.renate_module import RenateModule, RenateWrapper
 
 
 def test_failing_to_init_abs_class():
@@ -304,3 +304,34 @@ def test_renate_multihead_multi_param_update(test_case):
         if TASK_ID in name:
             continue
         assert not torch.equal(p, second_update_state_dict[name])
+
+
+@pytest.mark.parametrize(
+    "torch_model",
+    [torch.nn.Sequential(torch.nn.Linear(3, 5), torch.nn.ReLU(), torch.nn.Linear(5, 3))],
+)
+@torch.no_grad()
+def test_renate_wrapper_save_and_load(tmpdir, torch_model):
+    renate_module = RenateWrapper(torch_model, loss_fn=torch.nn.CrossEntropyLoss())
+    X = torch.randn(10, 3)
+    output_before = renate_module(X)
+    assert torch.equal(output_before, torch_model(X))
+
+    torch.save(renate_module.state_dict(), os.path.join(tmpdir, "test_model.pt"))
+    del renate_module
+    state = torch.load(os.path.join(tmpdir, "test_model.pt"))
+    os.remove(os.path.join(tmpdir, "test_model.pt"))
+
+    renate_module = RenateWrapper(torch_model, loss_fn=torch.nn.CrossEntropyLoss())
+    renate_module.load_state_dict(state)
+
+    output_after = renate_module(X)
+    assert torch.equal(output_after, output_before)
+
+
+def test_renate_wrapper_forbids_from_state_dict():
+    renate_module = RenateWrapper(torch.nn.Linear(1, 1), loss_fn=torch.nn.CrossEntropyLoss())
+    state_dict = renate_module.state_dict()
+    del renate_module
+    with pytest.raises(NotImplementedError):
+        RenateWrapper.from_state_dict(state_dict)
