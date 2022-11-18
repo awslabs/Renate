@@ -59,7 +59,7 @@ class Evaluator(LightningModule, abc.ABC):
             return_original_tensor=False,
         )
         self._task_id = task_id
-        return DataLoader(test_dataset, batch_size=self._batch_size, shuffle=False)
+        return DataLoader(test_dataset, batch_size=self._batch_size, shuffle=False, pin_memory=True)
 
     def test_step(self, batch: List[torch.Tensor], batch_idx: int) -> None:
         """PyTorch Lightning function to perform the test step."""

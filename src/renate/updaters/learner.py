@@ -234,7 +234,11 @@ class Learner(LightningModule, abc.ABC):
         self._task_id = task_id
         self._model.add_task_params(task_id=task_id)
         train_loader = DataLoader(
-            train_dataset, batch_size=self._batch_size, shuffle=True, generator=self._rng
+            train_dataset,
+            batch_size=self._batch_size,
+            shuffle=True,
+            generator=self._rng,
+            pin_memory=True,
         )
         if val_dataset is not None:
             val_dataset = _TransformedDataset(
@@ -252,6 +256,7 @@ class Learner(LightningModule, abc.ABC):
                 batch_size=self._batch_size,
                 shuffle=False,
                 generator=self._rng,
+                pin_memory=True,
             )
             self._val_enabled = True
 
@@ -484,4 +489,5 @@ class ReplayLearner(Learner, abc.ABC):
                 drop_last=True,
                 shuffle=True,
                 generator=self._rng,
+                pin_memory=True,
             )
