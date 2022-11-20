@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 import pytest
 from torch.utils.data import Dataset, TensorDataset
-from torchvision.datasets import FashionMNIST
 
 from renate.benchmark.datasets.nlp_datasets import TorchTextDataModule
 from renate.benchmark.datasets.vision_datasets import (
@@ -59,65 +58,59 @@ def test_csv_data_module(tmpdir):
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize(
-    "src_bucket, src_object_name, download",
-    [
-        ("mnemosyne-team-bucket", "FashionMNIST", True),
-        (None, None, True),
-        ("mnemosyne-team-bucket", "FashionMNIST", False),
-        (None, None, False),
-    ],
-)
-def test_torchvision_data_module_loading(tmpdir, src_bucket, src_object_name, download):
-    """Uses TorchVisionDataModule to load data from s3 or original source.
-
-    There are four different cases. Cases with `download=True` check whether download from different sources work.
-    These tests are successful if the downloaded data has the expected size.
-    Cases with `download=False` test whether the download flag is respected. In this case the test is successful if the
-    execution of the data preparation raises a RuntimeError.
-    """
-    dataset_name = "FashionMNIST"
+@pytest.mark.parametrize("dataset_name", ["MNIST", "FashionMNIST"])
+def test_mnist_data(tmpdir, dataset_name):
+    """Test downloading of MNIST data."""
     val_size = 0.35
     torchvision_data_module = TorchVisionDataModule(
         tmpdir,
-        src_bucket=src_bucket,
-        src_object_name=src_object_name,
+        src_bucket=None,
+        src_object_name=None,
         dataset_name=dataset_name,
-        download=download,
+        download=True,
         val_size=val_size,
     )
     torchvision_data_module.prepare_data()
-    if not download:
-        with pytest.raises(RuntimeError):
-            torchvision_data_module.setup()
-        return
     torchvision_data_module.setup()
     train_data = torchvision_data_module.train_data()
     val_data = torchvision_data_module.val_data()
     test_data = torchvision_data_module.test_data()
-
     assert len(train_data) == round(60000 * (1 - val_size))
     assert isinstance(train_data, Dataset)
-
     assert len(val_data) == round(60000 * val_size)
     assert isinstance(val_data, Dataset)
-
     assert len(test_data) == 10000
-    assert isinstance(test_data, FashionMNIST)
+    assert isinstance(test_data, Dataset)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("dataset_name", ["CIFAR10", "CIFAR100"])
+def test_cifar_data(tmpdir, dataset_name):
+    """Test downloading of CIFAR data."""
+    val_size = 0.35
+    data_module = TorchVisionDataModule(
+        tmpdir,
+        dataset_name=dataset_name,
+        download=True,
+        val_size=val_size,
+    )
+    data_module.prepare_data()
+    data_module.setup()
+    train_data = data_module.train_data()
+    val_data = data_module.val_data()
+    test_data = data_module.test_data()
+    assert len(train_data) == round(50000 * (1 - val_size))
+    assert isinstance(train_data, Dataset)
+    assert len(val_data) == round(50000 * val_size)
+    assert isinstance(val_data, Dataset)
+    assert len(test_data) == 10000
+    assert isinstance(test_data, Dataset)
 
 
 @pytest.mark.slow
 @pytest.mark.parametrize(
     "data_module_cls,data_module_kwargs,train_len,test_len,src_bucket,src_object_name",
     [
-        [
-            CLEARDataModule,
-            {"dataset_name": "CLEAR10", "val_size": 0.4, "chunk_id": 1},
-            2986,
-            500,
-            "mnemosyne-team-bucket",
-            os.path.join("dataset/", "clear10"),
-        ],
         [
             CLEARDataModule,
             {"dataset_name": "CLEAR10", "val_size": 0.2, "chunk_id": 1},
@@ -131,24 +124,8 @@ def test_torchvision_data_module_loading(tmpdir, src_bucket, src_object_name, do
             {"val_size": 0.2},
             100000,
             10000,
-            "mnemosyne-team-bucket",
-            os.path.join("dataset/", "tiny_imagenet"),
-        ],
-        [
-            TinyImageNetDataModule,
-            {"val_size": 0.2},
-            100000,
-            10000,
             None,
             None,
-        ],
-        [
-            CLEARDataModule,
-            {"dataset_name": "CLEAR100", "val_size": 0.4, "chunk_id": 1},
-            9945,
-            4984,
-            "mnemosyne-team-bucket",
-            os.path.join("dataset/", "clear100"),
         ],
         [
             CLEARDataModule,
@@ -195,14 +172,6 @@ def test_torchvision_data_module_loading(tmpdir, src_bucket, src_object_name, do
             {"dataset_name": "AmazonReviewFull", "val_size": 0.21},
             3000000,
             650000,
-            "mnemosyne-team-bucket",
-            os.path.join("datasets/", "amazon_review_full_csv"),
-        ],
-        [
-            TorchTextDataModule,
-            {"dataset_name": "AmazonReviewFull", "val_size": 0.21},
-            3000000,
-            650000,
             None,
             None,
         ],
@@ -211,24 +180,8 @@ def test_torchvision_data_module_loading(tmpdir, src_bucket, src_object_name, do
             {"dataset_name": "DBpedia", "val_size": 0.21},
             560000,
             70000,
-            "mnemosyne-team-bucket",
-            os.path.join("datasets/", "dbpedia_csv"),
-        ],
-        [
-            TorchTextDataModule,
-            {"dataset_name": "DBpedia", "val_size": 0.21},
-            560000,
-            70000,
             None,
             None,
-        ],
-        [
-            TorchTextDataModule,
-            {"dataset_name": "AG_NEWS", "val_size": 0.21},
-            120000,
-            7600,
-            "mnemosyne-team-bucket",
-            os.path.join("datasets/", "ag_news_csv"),
         ],
         [
             TorchTextDataModule,
