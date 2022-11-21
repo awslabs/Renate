@@ -58,35 +58,17 @@ def test_csv_data_module(tmpdir):
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("dataset_name", ["MNIST", "FashionMNIST"])
-def test_mnist_data(tmpdir, dataset_name):
-    """Test downloading of MNIST data."""
-    val_size = 0.35
-    torchvision_data_module = TorchVisionDataModule(
-        tmpdir,
-        src_bucket=None,
-        src_object_name=None,
-        dataset_name=dataset_name,
-        download=True,
-        val_size=val_size,
-    )
-    torchvision_data_module.prepare_data()
-    torchvision_data_module.setup()
-    train_data = torchvision_data_module.train_data()
-    val_data = torchvision_data_module.val_data()
-    test_data = torchvision_data_module.test_data()
-    assert len(train_data) == round(60000 * (1 - val_size))
-    assert isinstance(train_data, Dataset)
-    assert len(val_data) == round(60000 * val_size)
-    assert isinstance(val_data, Dataset)
-    assert len(test_data) == 10000
-    assert isinstance(test_data, Dataset)
-
-
-@pytest.mark.slow
-@pytest.mark.parametrize("dataset_name", ["CIFAR10", "CIFAR100"])
-def test_cifar_data(tmpdir, dataset_name):
-    """Test downloading of CIFAR data."""
+@pytest.mark.parametrize(
+    "dataset_name,num_tr,num_te,x_shape",
+    [
+        ("MNIST", 60000, 10000, (1, 28, 28)),
+        ("FashionMNIST", 60000, 10000, (1, 28, 28)),
+        ("CIFAR10", 50000, 10000, (3, 32, 32)),
+        ("CIFAR100", 50000, 10000, (3, 32, 32)),
+    ]
+)
+def test_torchvision_data_module(tmpdir, dataset_name, num_tr, num_te, x_shape):
+    """Test downloading of Torchvision data."""
     val_size = 0.35
     data_module = TorchVisionDataModule(
         tmpdir,
@@ -99,12 +81,13 @@ def test_cifar_data(tmpdir, dataset_name):
     train_data = data_module.train_data()
     val_data = data_module.val_data()
     test_data = data_module.test_data()
-    assert len(train_data) == round(50000 * (1 - val_size))
+    assert len(train_data) == round(num_tr * (1 - val_size))
     assert isinstance(train_data, Dataset)
-    assert len(val_data) == round(50000 * val_size)
+    assert len(val_data) == round(num_tr * val_size)
     assert isinstance(val_data, Dataset)
-    assert len(test_data) == 10000
+    assert len(test_data) == num_te
     assert isinstance(test_data, Dataset)
+    assert train_data[0][0].size() == test_data[0][0].size() == x_shape
 
 
 @pytest.mark.slow
@@ -132,38 +115,6 @@ def test_cifar_data(tmpdir, dataset_name):
             {"dataset_name": "CLEAR100", "val_size": 0.4, "chunk_id": 1},
             9945,
             4984,
-            None,
-            None,
-        ],
-        [
-            TorchVisionDataModule,
-            {"dataset_name": "FashionMNIST", "val_size": 0.33, "download": True},
-            60000,
-            10000,
-            None,
-            None,
-        ],
-        [
-            TorchVisionDataModule,
-            {"dataset_name": "CIFAR10", "val_size": 0.33, "download": True},
-            50000,
-            10000,
-            None,
-            None,
-        ],
-        [
-            TorchVisionDataModule,
-            {"dataset_name": "CIFAR100", "val_size": 0.33, "download": True},
-            50000,
-            10000,
-            None,
-            None,
-        ],
-        [
-            TorchVisionDataModule,
-            {"dataset_name": "MNIST", "val_size": 0.33, "download": True},
-            60000,
-            10000,
             None,
             None,
         ],
