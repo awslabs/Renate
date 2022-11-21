@@ -1,11 +1,9 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from pathlib import Path
 
 from syne_tune.backend.sagemaker_backend.sagemaker_utils import get_execution_role
 from syne_tune.config_space import choice, loguniform, uniform
 
-import renate
 from renate.tuning import execute_tuning_job
 
 config_space = {
@@ -23,6 +21,9 @@ config_space = {
 
 if __name__ == "__main__":
 
+    AWSID = "387922178948"
+    AWSREGION = "us-west-2"
+
     execute_tuning_job(
         config_space=config_space,
         mode="max",
@@ -30,11 +31,15 @@ if __name__ == "__main__":
         updater="ER",  # we train with Experience Replay
         max_epochs=50,
         chunk_id=0,  # we select the first chunk of our dataset, you will probably not need this in practice
-        config_file="split_cifar10.py",
-        requirements_file=str(Path(renate.__path__[0]).resolve().parents[1] / "requirements.txt"),
+        config_file="renate_config.py",
+        requirements_file="requirements.txt",
+        # uncomment the line below only if you already created a model with this script
+        # state_url=f"s3://sagemaker-{AWSREGION}-{AWSID}/renate-training-test-cifar10/",
+        # replace the url below with a different one, for example by appending "updated" to the folder name
+        next_state_url=f"s3://sagemaker-{AWSREGION}-{AWSID}/renate-training-test-cifar10/",
         backend="sagemaker",  # we will run this on SageMaker, but you can select "local" to run this locally
         role=get_execution_role(),
-        instance_count=1,
+        instance_count=0,
         instance_type="ml.g4dn.2xlarge",
         max_num_trials_finished=100,
         scheduler="asha",  # we will run ASHA to optimize our hyperparameters
