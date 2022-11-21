@@ -643,7 +643,6 @@ def _execute_tuning_job_remotely(
         accelerator=accelerator,
         devices=devices,
     )
-    job_name = f"{job_name}-{job_timestamp}"
     dependencies = list(renate.__path__ + [config_file])
     if requirements_file is not None:
         dependencies.append(requirements_file)
