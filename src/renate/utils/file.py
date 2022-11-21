@@ -13,8 +13,6 @@ import pandas as pd
 import requests
 from botocore.exceptions import ClientError
 
-import renate.defaults as defaults
-
 logger = logging.getLogger(__name__)
 
 
@@ -27,13 +25,6 @@ def get_bucket() -> str:
     """Returns the default S3 bucket."""
     aws_account = boto3.client("sts").get_caller_identity().get("Account")
     return f"sagemaker-{get_aws_region()}-{aws_account}"
-
-
-def get_s3_job_folder(job_name: str) -> str:
-    """Returns the job folder in S3."""
-    job_bucket = get_bucket()
-    job_folder = os.path.join(defaults.JOB_DIRECTORY, job_name)
-    return f"s3://{job_bucket}/{job_folder}"
 
 
 def is_s3_uri(uri: str) -> bool:
@@ -58,7 +49,7 @@ def _move_locally(
 
     Args:
         source_dir: Source directory.
-        dst_dir: Target directory.
+        destination_dir: Target directory.
         ignore_extensions: List of extensions to ignore.
         copy: If `True`, copy instead of move.
     """
