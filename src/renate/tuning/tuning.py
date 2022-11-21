@@ -5,9 +5,10 @@ import json
 import logging
 import os
 import shutil
+import tempfile
 import warnings
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import numpy as np
 import pandas as pd
@@ -31,19 +32,14 @@ from syne_tune.util import experiment_path
 import renate
 from renate import defaults
 from renate.cli.parsing_functions import get_data_module_fn_args
-from renate.utils.file import (
-    get_bucket,
-    get_s3_job_folder,
-    move_to_uri,
-    upload_file_to_s3,
-)
+from renate.utils.file import move_to_uri
 from renate.utils.module import get_and_prepare_data_module, import_module
 from renate.utils.syne_tune import (
     TrainingLoggerCallback,
     TuningLoggerCallback,
     best_hyperparameters,
-    is_syne_tune_config_space,
     config_space_to_dict,
+    is_syne_tune_config_space,
     redirect_to_tmp,
 )
 
@@ -197,26 +193,28 @@ def execute_tuning_job(
     )
 
 
-def _prepare_remote_tuning_job(job_name: str, **job_kwargs: Any) -> Tuple[str, Dict[str, str]]:
+def _prepare_remote_tuning_job(
+    tmp_dir: str, requirements_file: Optional[str], **job_kwargs: Any
+) -> List[str]:
     """Prepares a SageMaker tuning job."""
-    job_bucket = get_bucket()
-    s3_job_uri = get_s3_job_folder(job_name)
-    job_folder = os.path.join(defaults.JOB_DIRECTORY, job_name)
-    job_kwargs_object_name = os.path.join(job_folder, defaults.JOB_KWARGS_FILE)
+    dependencies = list(renate.__path__ + [job_kwargs["config_file"]])
 
     if "state_url" in job_kwargs and job_kwargs["state_url"] is None:
         del job_kwargs["state_url"]
     job_kwargs["config_file"] = os.path.basename(job_kwargs["config_file"])
     job_kwargs["config_space"] = config_space_to_dict(job_kwargs["config_space"])
 
-    # Upload experiment configuration to S3
-    with open(defaults.JOB_KWARGS_FILE, "w") as f:
+    jobs_kwargs_file = os.path.join(tmp_dir, defaults.JOB_KWARGS_FILE)
+    with open(jobs_kwargs_file, "w") as f:
         json.dump(job_kwargs, f)
-    upload_file_to_s3(defaults.JOB_KWARGS_FILE, job_bucket, job_kwargs_object_name)
-    return s3_job_uri, {
-        "job_kwargs_bucket": job_bucket,
-        "job_kwargs_object_name": job_kwargs_object_name,
-    }
+    dependencies.append(jobs_kwargs_file)
+
+    if requirements_file is None:
+        requirements_file = os.path.join(tmp_dir, "requirements.txt")
+        with open(requirements_file, "w") as f:
+            f.write(f"renate=={renate.__version__}")
+    dependencies.append(requirements_file)
+    return dependencies
 
 
 def _get_transfer_learning_task_evaluations(
@@ -618,8 +616,10 @@ def _execute_tuning_job_remotely(
     tuning_script = str(Path(renate.__path__[0]) / "cli" / "run_training_with_tuning.py")
     job_timestamp = defaults.current_timestamp()
     job_name = f"{job_name}-{job_timestamp}"
-    checkpoint_s3_uri, hyperparameters = _prepare_remote_tuning_job(
-        job_name=job_name,
+    tmp_dir = tempfile.mkdtemp()
+    dependencies = _prepare_remote_tuning_job(
+        tmp_dir=tmp_dir,
+        requirements_file=requirements_file,
         state_url=state_url,
         next_state_url=next_state_url,
         working_directory=working_directory,
@@ -643,13 +643,9 @@ def _execute_tuning_job_remotely(
         accelerator=accelerator,
         devices=devices,
     )
-    dependencies = list(renate.__path__ + [config_file])
-    if requirements_file is not None:
-        dependencies.append(requirements_file)
     PyTorch(
         entry_point=tuning_script,
         source_dir=None if source_dir is None else str(source_dir),
-        checkpoint_s3_uri=checkpoint_s3_uri,
         instance_type=instance_type,
         instance_count=instance_count,
         py_version=defaults.PYTHON_VERSION,
@@ -657,7 +653,7 @@ def _execute_tuning_job_remotely(
         max_run=instance_max_time,
         role=role or get_execution_role(),
         dependencies=dependencies,
-        hyperparameters=hyperparameters,
+        hyperparameters={},
         volume_size=defaults.VOLUME_SIZE,
     ).fit(wait=False, job_name=job_name)
-    os.remove(defaults.JOB_KWARGS_FILE)
+    shutil.rmtree(tmp_dir)

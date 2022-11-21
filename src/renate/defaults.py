@@ -42,7 +42,6 @@ N_WORKERS = 1
 INSTANCE_TYPE = "ml.c5.xlarge"
 PYTHON_VERSION = "py38"
 FRAMEWORK_VERSION = "1.12.0"
-JOB_DIRECTORY = "renate_jobs"
 
 TASK_ID = "default_task"
 SUPPORTED_TASKS_TYPE = Literal["classification", "regression"]
