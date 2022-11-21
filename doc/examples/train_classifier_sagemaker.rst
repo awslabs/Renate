@@ -1,5 +1,5 @@
-Training an Tuning on SageMaker
-*******************************
+Training and Tuning on SageMaker
+********************************
 
 This example is designed to demonstrate how to use Renate on Amazon SageMaker for
 both training the model and tuning the hyperparameters required for that.
@@ -11,9 +11,11 @@ Requirements
 ============
 > TODO: replace requirements.txt content when renate will be available in pypi and eventually update the text below
 
-The example folder contains a :code:`requirements.txt` file with package required by
-the script to work correctly. This is needed only when Renate is not the only dependency
-but we will include it in our example just to demonstrate how to use it in practice.
+The example folder contains a :code:`requirements.txt` file with the list of the packages
+required by the script to work correctly. If Renate is the only dependency, the file is not
+needed since it will be created automatically,
+but we will include it in our example just to demonstrate how to use it in practice
+when there are other dependencies.
 
 Configuration
 =============
@@ -38,7 +40,7 @@ details on how to write a configuration file are available in :doc:`../getting_s
 Training
 ========
 
-The example also contains :code:`start_training_with_hpo.py`,
+The example also contains :code:`start_with_hpo.py`,
 which launches a training job with integrated hyperparamters optimization.
 To this purpose, in the file we define a dictionary containing the
 configuration of the learning algorithm. In some cases instead of a single
@@ -54,18 +56,23 @@ used for storing the output.
 The description of the other arguments and a high level overview of how to run a
 training jobs are available in :doc:`../getting_started/hot_to_run_training`.
 
-.. literalinclude:: ../../examples/simple_classifier_cifar10/start_training_with_hpo.py
+.. literalinclude:: ../../examples/simple_classifier_cifar10/start_with_hpo.py
 
 Once the training job terminates, the output will be available in the S3 bucket indicated
 in :code:`next_state_url`. For more information about how to interpret the output, see
 :doc:`../getting_started/output`.
 
-Once the first training job has been executed, it is possible to re-train the model
+After the first training job has been executed, it is possible to re-train the model
 by modifying the arguments passed to the :code:`execute_tuning_job` function.
-In particular, it is possible to select the second part of the datasets (which we did not
-use in the first training job) by setting :code:`chunk-id = 1` and add the :code:`state_url`
-argument pointing to the same S3 location in which we stored our output in the previous
-training job.
+
+In particular:
+
+1. it is possible to select the second part of the datasets, which
+in this example we did not use in the first training job on purpose, by setting :code:`chunk-id = 1`
+
+2. it is possible to load the model trained in the first training job by adding the :code:`state_url`
+argument pointing to the same S3 location. In this case it will be useful to change the
+url for the :code:`next_state_url` to avoid overwriting the old artefacts.
 
 
 

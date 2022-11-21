@@ -27,14 +27,18 @@ if __name__ == "__main__":
         config_space=config_space,
         mode="max",
         metric="val_accuracy",
-        updater="ER",
+        updater="ER",  # we train with Experience Replay
         max_epochs=50,
-        chunk_id=0,
+        chunk_id=0,  # we select the first chunk of our dataset, you will probably not need this in practice
         config_file="renate_config.py",
         requirements_file="requirements.txt",
-        next_state_url=f"s3://sagemaker-{AWSREGION}-{AWSID}/renate-training-test-cifar10/",
-        backend="sagemaker",
+        # replace the url below with a different one if you already ran it and you want to avoid overwriting
+        next_state_url=f"s3://sagemaker-{AWSREGION}-{AWSID}/renate-training-cifar10-1st-model/",
+        # uncomment the line below only if you already created a model with this script and you want to update it
+        # state_url=f"s3://sagemaker-{AWSREGION}-{AWSID}/renate-training-cifar10-1st-model/",
+        backend="sagemaker",  # we will run this on SageMaker, but you can select "local" to run this locally
         role=get_execution_role(),
+        instance_count=1,
         instance_type="ml.g4dn.2xlarge",
         job_name="testjob",
     )

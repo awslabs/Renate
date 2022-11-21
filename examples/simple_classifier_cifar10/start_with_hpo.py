@@ -33,13 +33,13 @@ if __name__ == "__main__":
         chunk_id=0,  # we select the first chunk of our dataset, you will probably not need this in practice
         config_file="renate_config.py",
         requirements_file="requirements.txt",
-        # uncomment the line below only if you already created a model with this script
-        # state_url=f"s3://sagemaker-{AWSREGION}-{AWSID}/renate-training-test-cifar10/",
-        # replace the url below with a different one, for example by appending "updated" to the folder name
-        next_state_url=f"s3://sagemaker-{AWSREGION}-{AWSID}/renate-training-test-cifar10/",
+        # replace the url below with a different one if you already ran it and you want to avoid overwriting
+        next_state_url=f"s3://sagemaker-{AWSREGION}-{AWSID}/renate-training-cifar10-1st-model/",
+        # uncomment the line below only if you already created a model with this script and you want to update it
+        # state_url=f"s3://sagemaker-{AWSREGION}-{AWSID}/renate-training-cifar10-1st-model/",
         backend="sagemaker",  # we will run this on SageMaker, but you can select "local" to run this locally
         role=get_execution_role(),
-        instance_count=0,
+        instance_count=1,
         instance_type="ml.g4dn.2xlarge",
         max_num_trials_finished=100,
         scheduler="asha",  # we will run ASHA to optimize our hyperparameters
