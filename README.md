@@ -1,8 +1,8 @@
 # Renate - Automatic Neural Networks retraining and Continual Learning in Python
 
 Renate is a Python package for automatic neural networks models retraining using
-continual learning and lifelong learning algorithms. The package is based on [PyTorch](https://pytorch.org), 
-and [PyTorch Lightning](https://www.pytorchlightning.ai/). 
+continual learning and lifelong learning algorithms. The package is based on [PyTorch](https://pytorch.org),
+and [PyTorch Lightning](https://www.pytorchlightning.ai/).
 It also leverages [SyneTune](https://github.com/awslabs/syne-tune) for hyperparameters optimization (HPO) and neural architecture search (NAS).
 
 
@@ -35,12 +35,12 @@ pip install renate
 ## A Simple Example
 
 In this example we will update a ResNet model trained on the first five classes of CIFAR10 using the
-remaining ones. For this purpose we will split the dataset in two chunks, grouping the first five 
+remaining ones. For this purpose we will split the dataset in two chunks, grouping the first five
 classes in the first and the remaining in the second. This will not be necessarily in real-world
-scenarios since in most cases the training will happen on all the data available in different points 
+scenarios since in most cases the training will happen on all the data available in different points
 in time, but you can simplify the example code following the comments.
 
-Crete a file defining your model and dataset. 
+Crete a file defining your model and dataset.
 For this example we created one for you called `split_cifar10.py` in the folder `examples/simple_classifier_cifar10/`.
 
 The main blocks are:
@@ -58,7 +58,7 @@ def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule
     return model
 ```
 
-2. The **data module function**. This function is loading the data and creating the dataset. For this example we will 
+2. The **data module function**. This function is loading the data and creating the dataset. For this example we will
 use CIFAR10 from torchvision, but you can load any dataset you like. We also add the `ClassIncrementalScenario` to
 split the dataset in to chunks using the class id, but this is only for demonstrational purposes and can be removed.
 ```py
@@ -74,16 +74,6 @@ def data_module_fn(
         str(data_path),
         dataset_name="CIFAR10",
         download=True,
-        transform=transforms.Compose(
-            [
-                transforms.ToTensor(),
-            ]
-        ),
-        target_transform=transforms.Compose(
-            [
-                transforms.Lambda(lambda x: torch.tensor(x, dtype=torch.long)),
-            ]
-        ),
         val_size=0.2,
         seed=seed,
     )
@@ -118,11 +108,6 @@ def test_transform() -> transforms.Compose:
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2470, 0.2435, 0.2615)),
         ]
     )
-
-
-def buffer_transform() -> transforms.Compose:
-    """Returns a transform function to be used in the Memory Buffer."""
-    return train_transform()
 ```
 
 We also created a script to launch our training job. You can see some examples in the folder `examples/simple_classifier_cifar10/`.
@@ -146,7 +131,7 @@ config_space = {
     "loss_weight": uniform(0.0, 1.0),
 }
 ```
-If HPO is not required, the config space can be specified using exact values instead of range. For example, 
+If HPO is not required, the config space can be specified using exact values instead of range. For example,
 `"momentum: 0.25"` instead of `"momentum": uniform(0.1, 0.9)`.
 
 While the main function can be similar to the following one:
