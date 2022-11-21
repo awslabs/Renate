@@ -451,7 +451,14 @@ def get_data_module_fn_args(args: Union[argparse.Namespace, Dict[str, str]]) -> 
     return _get_args_by_prefix(args, "data_module_fn_")
 
 
-def get_transforms_kwargs(config_module: ModuleType) -> Dict[str, Callable]:
+def get_transform_args(args: Union[argparse.Namespace, Dict[str, str]]) -> Dict[str, str]:
+    """Returns all arguments from `args` who should be passed to each `transform` function."""
+    return _get_args_by_prefix(args, "transform_")
+
+
+def get_transforms_kwargs(
+    config_module: ModuleType, args: Union[argparse.Namespace, Dict[str, str]]
+) -> Dict[str, Callable]:
     """Creates and returns data transforms kwargs for updater."""
     transform_fn_names = [
         "train_transform",
@@ -464,7 +471,9 @@ def get_transforms_kwargs(config_module: ModuleType) -> Dict[str, Callable]:
     transforms = {}
     for transform_fn_name in transform_fn_names:
         if transform_fn_name in vars(config_module):
-            transforms[transform_fn_name] = getattr(config_module, transform_fn_name)()
+            transforms[transform_fn_name] = getattr(config_module, transform_fn_name)(
+                **get_transform_args(args)
+            )
     return transforms
 
 

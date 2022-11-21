@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 import torchmetrics
-from syne_tune.config_space import loguniform
+from torchvision.transforms import transforms
 
 from renate.benchmark.datasets.nlp_datasets import TorchTextDataModule
 from renate.benchmark.datasets.vision_datasets import CLEARDataModule, TorchVisionDataModule
@@ -186,18 +186,60 @@ def data_module_fn(
     )
 
 
+def _get_normalize_transform(dataset_name):
+    if dataset_name in TorchVisionDataModule.dataset_stats:
+        return transforms.Normalize(
+            TorchVisionDataModule.dataset_stats[dataset_name]["mean"],
+            TorchVisionDataModule.dataset_stats[dataset_name]["std"],
+        )
+
+
+def train_transform(transform_dataset_name: str) -> transforms.Compose:
+    """Returns a transform function to be used in the training."""
+    if transform_dataset_name in ["MNIST", "FashionMNIST"]:
+        return None
+    elif transform_dataset_name in ["CIFAR10", "CIFAR100"]:
+        return transforms.Compose(
+            [
+                transforms.RandomCrop(32, padding=4),
+                transforms.RandomHorizontalFlip(),
+                _get_normalize_transform(transform_dataset_name),
+            ]
+        )
+    raise ValueError(f"Unknown dataset `{transform_dataset_name}`.")
+
+
+def test_transform(transform_dataset_name: str) -> transforms.Compose:
+    """Returns a transform function to be used for validation or testing."""
+    if transform_dataset_name in ["MNIST", "FashionMNIST"]:
+        return None
+    elif transform_dataset_name in ["CIFAR10", "CIFAR100"]:
+        return _get_normalize_transform(transform_dataset_name)
+    raise ValueError(f"Unknown dataset `{transform_dataset_name}`.")
+
+
 def config_space_fn():
+    dataset_name = "CIFAR10"
     return {
-        "updater": "ER",
-        "learning_rate": 0.1,
-        "loss_weight": 0.5,
-        "early_stopping": False,
-        "max_epochs": 20,
+        "updater": "DER",
+        "optimizer": "SGD",
+        "momentum": 0.0,
+        "weight_decay": 0.0,
+        "learning_rate": 0.03,
+        "alpha": 0.2,
+        "beta": 0.5,
+        "batch_size": 32,
+        "memory_batch_size": 32,
+        "memory_size": 500,
+        "max_epochs": 50,
+        "loss_normalization": 0,
+        "loss_weight": 1.0,
         "model_fn_model_name": "ResNet18CIFAR",
         "data_module_fn_scenario_name": "class_incremental",
-        "data_module_fn_dataset_name": "CIFAR10",
+        "data_module_fn_dataset_name": dataset_name,
         "data_module_fn_val_size": 0,
         "data_module_fn_class_groupings": "[[0,1],[2,3],[4,5],[6,7],[8,9]]",
+        "transform_dataset_name": dataset_name,
     }
 
 

@@ -132,6 +132,18 @@ class TorchVisionDataModule(RenateDataModule):
         "FashionMNIST": (torchvision.datasets.FashionMNIST, "FashionMNIST"),
         "MNIST": (torchvision.datasets.MNIST, "MNIST"),
     }
+    dataset_stats = {
+        "CIFAR10": {
+            "mean": (0.49139967861519607, 0.48215840839460783, 0.44653091444546567),
+            "std": (0.24703223246174102, 0.24348512800151828, 0.26158784172803257),
+        },
+        "CIFAR100": {
+            "mean": (0.5070751592371323, 0.48654887331495095, 0.4409178433670343),
+            "std": (0.26733428587941854, 0.25643846292120615, 0.2761504713263903),
+        },
+        "FashionMNIST": {"mean": 0.2860405969887955, "std": 0.3530242445149223},
+        "MNIST": {"mean": 0.1306604762738429, "std": 0.30810780385646264},
+    }
 
     def __init__(
         self,

@@ -264,7 +264,7 @@ def _execute_experiment_job_locally(
     assert num_updates == len(
         data_module.test_data()
     ), f"The dataset has {len(data_module.test_data())} chunks, expected {num_updates}."
-    transforms = get_transforms_kwargs(config_module)
+    transforms = get_transforms_kwargs(config_module, config_space)
     metrics = get_metrics(config_module)
 
     torch.save(
