@@ -94,6 +94,12 @@ class ExperimentCLI:
 
         argument_group = parser.add_argument_group("Optional Parameters")
         argument_group.add_argument(
+            "--max_epochs",
+            type=int,
+            default=defaults.MAX_EPOCHS,
+            help=f"Number of epochs trained at most. Default: {defaults.MAX_EPOCHS}",
+        )
+        argument_group.add_argument(
             "--seed",
             type=int,
             default=defaults.SEED,
