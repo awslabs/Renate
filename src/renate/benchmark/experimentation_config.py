@@ -169,29 +169,35 @@ def data_module_fn(
         val_size=float(data_module_fn_val_size),
         seed=seed,
     )
+    if data_module_fn_class_groupings is not None:
+        data_module_fn_class_groupings = ast.literal_eval(data_module_fn_class_groupings)
+    if data_module_fn_degrees is not None:
+        data_module_fn_degrees = ast.literal_eval(data_module_fn_degrees)
+    if data_module_fn_input_dim is not None:
+        data_module_fn_input_dim = ast.literal_eval(data_module_fn_input_dim)
     return get_scenario(
         scenario_name=data_module_fn_scenario_name,
         data_module=data_module,
         chunk_id=chunk_id,
         seed=seed,
-        class_groupings=ast.literal_eval(data_module_fn_class_groupings),
-        degrees=ast.literal_eval(data_module_fn_degrees),
-        input_dim=ast.literal_eval(data_module_fn_input_dim),
+        class_groupings=data_module_fn_class_groupings,
+        degrees=data_module_fn_degrees,
+        input_dim=data_module_fn_input_dim,
     )
 
 
 def config_space_fn():
     return {
         "updater": "ER",
-        "learning_rate": loguniform(10e-5, 0.1),
-        "loss_weight": 0.3,
+        "learning_rate": 0.1,
+        "loss_weight": 0.5,
         "early_stopping": False,
-        "max_epochs": 1,  # TODO:
+        "max_epochs": 20,
         "model_fn_model_name": "ResNet18CIFAR",
         "data_module_fn_scenario_name": "class_incremental",
         "data_module_fn_dataset_name": "CIFAR10",
-        "data_module_fn_val_size": 0.995,
-        "data_module_fn_class_groupings": "[[0,1]]",
+        "data_module_fn_val_size": 0,
+        "data_module_fn_class_groupings": "[[0,1],[2,3],[4,5],[6,7],[8,9]]",
     }
 
 
