@@ -20,8 +20,8 @@ config_space = {
 
 if __name__ == "__main__":
 
-    AWSID = "387922178948"
-    AWSREGION = "us-west-2"
+    AWS_ID = "0123456789"  # use your AWS account id here
+    AWS_REGION = "us-west-2"  # use your AWS preferred region here
 
     execute_tuning_job(
         config_space=config_space,
@@ -33,12 +33,12 @@ if __name__ == "__main__":
         config_file="renate_config.py",
         requirements_file="requirements.txt",
         # replace the url below with a different one if you already ran it and you want to avoid overwriting
-        next_state_url=f"s3://sagemaker-{AWSREGION}-{AWSID}/renate-training-cifar10-1st-model/",
+        next_state_url=f"s3://sagemaker-{AWS_REGION}-{AWS_ID}/renate-training-cifar10-1st-model/",
         # uncomment the line below only if you already created a model with this script and you want to update it
-        # state_url=f"s3://sagemaker-{AWSREGION}-{AWSID}/renate-training-cifar10-1st-model/",
+        # state_url=f"s3://sagemaker-{AWS_REGION}-{AWS_ID}/renate-training-cifar10-1st-model/",
         backend="sagemaker",  # we will run this on SageMaker, but you can select "local" to run this locally
         role=get_execution_role(),
         instance_count=1,
-        instance_type="ml.g4dn.2xlarge",
+        instance_type="ml.g4dn.xlarge",
         job_name="testjob",
     )

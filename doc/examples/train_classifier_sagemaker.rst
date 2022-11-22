@@ -62,15 +62,17 @@ Once the training job terminates, the output will be available in the S3 bucket 
 in :code:`next_state_url`. For more information about how to interpret the output, see
 :doc:`../getting_started/output`.
 
-After the first training job has been executed, it is possible to re-train the model
-by modifying the arguments passed to the :code:`execute_tuning_job` function.
+To simulate an application where data are made available incrementally over time,
+after the first training job has been executed, it is possible to re-train the model
+on the second chunk of the dataset that we left intentionally untouched during
+the first training process.
 
+To do this, it is sufficient to modifying the arguments passed to the :code:`execute_tuning_job` function.
 In particular:
 
-1. it is possible to select the second part of the datasets, which
-in this example we did not use in the first training job on purpose, by setting :code:`chunk-id = 1`
+1. select the second part of the datasets by setting :code:`chunk-id = 1`.
 
-2. it is possible to load the model trained in the first training job by adding the :code:`state_url`
+2. load the model trained in the first training job by adding the :code:`state_url`
 argument pointing to the same S3 location. In this case it will be useful to change the
 url for the :code:`next_state_url` to avoid overwriting the old artefacts.
 
