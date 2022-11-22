@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 from syne_tune.optimizer.scheduler import TrialScheduler
 
 from renate import defaults
-from renate.updaters.experimental.dmc import DeepModelConsolidationModelUpdater
+from renate.updaters.experimental.repeated_distill import RepeatedDistillationModelUpdater
 from renate.updaters.experimental.er import (
     CLSExperienceReplayModelUpdater,
     DarkExperienceReplayModelUpdater,
@@ -83,9 +83,9 @@ def get_updater_and_learner_kwargs(
     elif args.updater == "OfflineER":
         learner_args = learner_args + ["loss_weight_new_data", "memory_size", "memory_batch_size"]
         updater_class = OfflineExperienceReplayModelUpdater
-    elif args.updater == "DMC":
+    elif args.updater == "RD":
         learner_args = learner_args + ["memory_size"]
-        updater_class = DeepModelConsolidationModelUpdater
+        updater_class = RepeatedDistillationModelUpdater
     elif args.updater == "GDumb":
         learner_args = learner_args + ["memory_size"]
         updater_class = GDumbModelUpdater
@@ -422,8 +422,8 @@ def parse_super_experience_replay_arguments(parser: argparse.Namespace) -> None:
     _parse_base_experience_replay_arguments(parser)
 
 
-def parse_dmc_learner_arguments(parser: argparse.Namespace) -> None:
-    """A helper function that adds DMC Learner arguments."""
+def parse_rd_learner_arguments(parser: argparse.Namespace) -> None:
+    """A helper function that adds Repeated Distill Learner arguments."""
     parser.add_argument(
         "--memory_size",
         type=int,
@@ -494,6 +494,6 @@ parse_by_updater = {
     "Super-ER": parse_super_experience_replay_arguments,
     "GDumb": parse_gdumb_arguments,
     "Joint": parse_joint_arguments,
-    "DMC": parse_dmc_learner_arguments,
+    "RD": parse_rd_learner_arguments,
     "OfflineER": parse_replay_learner_arguments,
 }

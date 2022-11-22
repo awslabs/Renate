@@ -70,16 +70,14 @@ def extract_logits(
     return torch.cat(logits, dim=0)
 
 
-class DeepModelConsolidationModelUpdater(ModelUpdater):
-    """An adapted version of Deep Model Consolidation (DMC).
-
-    Deep Model Consolidation (DMC) was proposed in
+class RepeatedDistillationModelUpdater(ModelUpdater):
+    """Repeated Distillation (RD) is inspired by Deep Model Consolidation (DMC), which was proposed in
 
         TODO: Fix citation once we agreed on a format.
         Zhang, Junting, et al. "Class-incremental learning via deep model consolidation."
         Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision. 2020.
 
-    The idea underlying DMC is the following: Given a new task/batch, a new model copy is trained
+    The idea underlying RD is the following: Given a new task/batch, a new model copy is trained
     from scratch on that data. Subsequently, this expert model is consolidated with the previous
     model state via knowledge distillation. The resulting consolidated model state is maintained,
     whereas the expert model is discarded.
@@ -136,7 +134,7 @@ class DeepModelConsolidationModelUpdater(ModelUpdater):
         }
         super().__init__(
             model=model,
-            learner_class=DeepModelConsolidationLearner,
+            learner_class=RepeatedDistillationLearner,
             learner_kwargs=learner_kwargs,
             current_state_folder=current_state_folder,
             next_state_folder=next_state_folder,
@@ -212,8 +210,8 @@ class DeepModelConsolidationModelUpdater(ModelUpdater):
         return self._learner.on_model_update_end(train_dataset, val_dataset, task_id)
 
 
-class DeepModelConsolidationLearner(ReplayLearner):
-    """A learner performing model consolidation."""
+class RepeatedDistillationLearner(ReplayLearner):
+    """A learner performing distillation."""
 
     def __init__(
         self,

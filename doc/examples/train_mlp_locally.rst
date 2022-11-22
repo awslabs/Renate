@@ -55,5 +55,8 @@ still above 90% after processing the second one.
 After the execution is completed, it will be possible to inspect the two
 different folders containing the learner states.
 
+Another example using Repeated Distillation and HPO is available in the file called
+:code:`start_training_with_hpo.py`.
+
 
 
