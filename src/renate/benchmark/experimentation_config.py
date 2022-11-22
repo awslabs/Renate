@@ -9,16 +9,14 @@ from torchvision.transforms import transforms
 
 from renate.benchmark.datasets.nlp_datasets import TorchTextDataModule
 from renate.benchmark.datasets.vision_datasets import CLEARDataModule, TorchVisionDataModule
-from renate.benchmark.models.mlp import MultiLayerPerceptron
-from renate.benchmark.models.resnet import (
+from renate.benchmark.models import (
+    MultiLayerPerceptron,
     ResNet18,
     ResNet18CIFAR,
     ResNet34,
     ResNet34CIFAR,
     ResNet50,
     ResNet50CIFAR,
-)
-from renate.benchmark.models.vision_transformer import (
     VisionTransformerB16,
     VisionTransformerB32,
     VisionTransformerCIFAR,
@@ -37,6 +35,23 @@ from renate.data.data_module import RenateDataModule
 from renate.models import RenateModule
 
 
+models = {
+    "MultiLayerPerceptron": MultiLayerPerceptron,
+    "ResNet18CIFAR": ResNet18CIFAR,
+    "ResNet34CIFAR": ResNet34CIFAR,
+    "ResNet50CIFAR": ResNet50CIFAR,
+    "ResNet18": ResNet18,
+    "ResNet34": ResNet34,
+    "ResNet50": ResNet50,
+    "VisionTransformerCIFAR": VisionTransformerCIFAR,
+    "VisionTransformerB16": VisionTransformerB16,
+    "VisionTransformerB32": VisionTransformerB32,
+    "VisionTransformerB16": VisionTransformerL16,
+    "VisionTransformerB32": VisionTransformerL32,
+    "VisionTransformerH14": VisionTransformerH14,
+}
+
+
 def model_fn(
     model_state_url: Optional[Union[Path, str]] = None,
     model_fn_model_name: Optional[str] = None,
@@ -46,22 +61,8 @@ def model_fn(
     model_fn_hidden_size: Optional[str] = None,
 ) -> RenateModule:
     """Returns a model instance."""
-    models = {
-        "MultiLayerPerceptron": MultiLayerPerceptron,
-        "ResNet18CIFAR": ResNet18CIFAR,
-        "ResNet34CIFAR": ResNet34CIFAR,
-        "ResNet50CIFAR": ResNet50CIFAR,
-        "ResNet18": ResNet18,
-        "ResNet34": ResNet34,
-        "ResNet50": ResNet50,
-        "VisionTransformerCIFAR": VisionTransformerCIFAR,
-        "VisionTransformerB16": VisionTransformerB16,
-        "VisionTransformerB32": VisionTransformerB32,
-        "VisionTransformerB16": VisionTransformerL16,
-        "VisionTransformerB32": VisionTransformerL32,
-        "VisionTransformerH14": VisionTransformerH14,
-    }
-    assert model_fn_model_name in models, f"Unknown model: {model_fn_model_name}"
+    if model_fn_model_name not in models:
+        raise ValueError(f"Unknown model `{model_fn_model_name}`")
     model_class = models[model_fn_model_name]
     model_kwargs = {}
     if model_fn_model_name == "MultiLayerPerceptron":
@@ -153,11 +154,12 @@ def get_scenario(
 
 def data_module_fn(
     data_path: Union[Path, str],
-    chunk_id: Optional[int] = None,
-    seed: int = 0,
-    data_module_fn_scenario_name: Optional[str] = None,
-    data_module_fn_dataset_name: Optional[str] = None,
+    chunk_id: int,
+    seed: int,
+    data_module_fn_scenario_name: str,
+    data_module_fn_dataset_name: str,
     data_module_fn_val_size: str = "0.0",
+    data_module_fn_num_tasks: Optional[str] = None,
     data_module_fn_class_groupings: Optional[str] = None,
     data_module_fn_degrees: Optional[str] = None,
     data_module_fn_input_dim: Optional[str] = None,
@@ -168,6 +170,8 @@ def data_module_fn(
         val_size=float(data_module_fn_val_size),
         seed=seed,
     )
+    if data_module_fn_num_tasks is not None:
+        data_module_fn_num_tasks = int(data_module_fn_num_tasks)
     if data_module_fn_class_groupings is not None:
         data_module_fn_class_groupings = ast.literal_eval(data_module_fn_class_groupings)
     if data_module_fn_degrees is not None:
@@ -179,6 +183,7 @@ def data_module_fn(
         data_module=data_module,
         chunk_id=chunk_id,
         seed=seed,
+        num_tasks=data_module_fn_num_tasks,
         class_groupings=data_module_fn_class_groupings,
         degrees=data_module_fn_degrees,
         input_dim=data_module_fn_input_dim,

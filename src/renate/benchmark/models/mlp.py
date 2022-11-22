@@ -16,10 +16,11 @@ class MultiLayerPerceptron(RenateModule):
         num_inputs: Number of input nodes.
         num_outputs: Number of output nodes.
         num_hidden_layers: Number of hidden layers.
-        hidden_sizes: Uniform hidden size or the list or tuple of hidden sizes for individual hidden layers.
+        hidden_size: Uniform hidden size or the list or tuple of hidden sizes for individual hidden layers.
         loss: Loss function to be used for training.
         activation: Activation name, matching activation name in `torch.nn` to be used between the hidden layers.
-        batch_normalization: Whether to use Batch Normalization after the activation. By default the Batch Normalization tracks the running statistics.
+        batch_normalization: Whether to use Batch Normalization after the activation. By default the Batch Normalization
+            tracks the running statistics.
     """
 
     def __init__(

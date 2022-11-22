@@ -251,8 +251,8 @@ class CLEARDataModule(RenateDataModule):
         )
         self._transform = transform
         self._target_transform = target_transform
-        assert dataset_name == "CLEAR10" or dataset_name == "CLEAR100"
         self._dataset_name = dataset_name.lower()
+        assert self._dataset_name in ["clear10", "clear100"]
         self._verify_chunk_id(chunk_id)
         self._chunk_id = chunk_id
 
