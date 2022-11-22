@@ -294,6 +294,7 @@ def _execute_experiment_job_locally(
             metric=metric,
             backend="local",
             updater=config_space["updater"],
+            max_epochs=config_space["max_epochs"],
             chunk_id=update_id,
             state_url=state_url,
             next_state_url=next_state_url,
