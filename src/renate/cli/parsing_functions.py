@@ -442,17 +442,17 @@ def _get_args_by_prefix(
 
 
 def get_model_fn_args(args: Union[argparse.Namespace, Dict[str, str]]) -> Dict[str, str]:
-    """Returns all arguments from `args` who should be passed to `model_fn`."""
+    """Returns all arguments from `args` which should be passed to `model_fn`."""
     return _get_args_by_prefix(args, "model_fn_")
 
 
 def get_data_module_fn_args(args: Union[argparse.Namespace, Dict[str, str]]) -> Dict[str, str]:
-    """Returns all arguments from `args` who should be passed to `data_module_fn`."""
+    """Returns all arguments from `args` which should be passed to `data_module_fn`."""
     return _get_args_by_prefix(args, "data_module_fn_")
 
 
 def get_transform_args(args: Union[argparse.Namespace, Dict[str, str]]) -> Dict[str, str]:
-    """Returns all arguments from `args` who should be passed to each `transform` function."""
+    """Returns all arguments from `args` which should be passed to each `transform` function."""
     return _get_args_by_prefix(args, "transform_")
 
 

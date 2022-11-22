@@ -613,7 +613,6 @@ def submit_remote_job(
         max_run=instance_max_time,
         role=role or get_execution_role(),
         dependencies=dependencies,
-        hyperparameters={},
         volume_size=defaults.VOLUME_SIZE,
     ).fit(wait=False, job_name=job_name)
     shutil.rmtree(tmp_dir)
