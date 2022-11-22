@@ -1,6 +1,3 @@
-from pathlib import Path
-
-import renate
 from renate.tuning import execute_tuning_job
 
 

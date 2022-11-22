@@ -8,7 +8,7 @@ from torchvision.transforms import Lambda
 
 from conftest import LEARNERS_USING_SIMPLE_UPDATER, LEARNER_KWARGS, check_learner_transforms
 from renate import defaults
-from renate.updaters.experimental.dmc import DeepModelConsolidationModelUpdater
+from renate.updaters.experimental.repeated_distill import RepeatedDistillationModelUpdater
 from renate.updaters.learner import ReplayLearner
 
 
@@ -52,7 +52,7 @@ def test_model_updater_with_early_stopping(
     max_epochs = 10
     with warnings.catch_warnings(record=True) as warning_init:
         if updater_type == "DMC":
-            model_updater = DeepModelConsolidationModelUpdater(
+            model_updater = RepeatedDistillationModelUpdater(
                 model=model,
                 memory_size=50,
                 max_epochs=max_epochs,

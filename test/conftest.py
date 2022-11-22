@@ -26,7 +26,7 @@ from renate.benchmark.models.vision_transformer import (
     VisionTransformerL32,
 )
 from renate.models.renate_module import RenateModule
-from renate.updaters.experimental.dmc import DeepModelConsolidationLearner
+from renate.updaters.experimental.repeated_distill import RepeatedDistillationLearner
 from renate.updaters.experimental.er import ExperienceReplayLearner
 from renate.updaters.experimental.gdumb import GDumbLearner
 from renate.updaters.experimental.joint import JointLearner
@@ -95,7 +95,7 @@ LEARNER_KWARGS = {
         "batch_size": 10,
         "seed": 3,
     },
-    DeepModelConsolidationLearner: {
+    RepeatedDistillationLearner: {
         "optimizer": "SGD",
         "learning_rate": 1.23,
         "momentum": 0.9,
@@ -144,7 +144,7 @@ LEARNER_HYPERPARAMETER_UPDATES = {
         "weight_decay": 0.01,
         "batch_size": 128,
     },
-    DeepModelConsolidationLearner: {
+    RepeatedDistillationLearner: {
         "optimizer": "Adam",
         "learning_rate": 2.0,
         "weight_decay": 0.01,
