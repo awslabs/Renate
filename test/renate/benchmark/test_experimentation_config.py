@@ -73,7 +73,14 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         (
             "class_incremental",
             "CIFAR10",
-            {"data_module_fn_class_groupings": "[[0,1],[2,3,4]]"},
+            {"data_module_fn_class_groupings": "[[0,1],[2,3,4],[5,6]"},
+            ClassIncrementalScenario,
+            3,
+        ),
+        (
+            "class_incremental",
+            "AG_NEWS",
+            {"data_module_fn_class_groupings": "[[1,2],[3,4]]"},
             ClassIncrementalScenario,
             2,
         ),
