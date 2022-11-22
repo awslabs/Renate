@@ -94,7 +94,13 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             3,
         ),
     ),
-    ids=["class_incremental", "rotation", "benchmark", "permutation"],
+    ids=[
+        "class_incremental_image",
+        "class_incremental_text",
+        "rotation",
+        "benchmark",
+        "permutation",
+    ],
 )
 @pytest.mark.parametrize("val_size", (0, 0.5))
 def test_data_module_fn(
