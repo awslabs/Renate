@@ -73,7 +73,7 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         (
             "class_incremental",
             "CIFAR10",
-            {"data_module_fn_class_groupings": "[[0,1],[2,3,4],[5,6]"},
+            {"data_module_fn_class_groupings": "[[0,1],[2,3,4],[5,6]]"},
             ClassIncrementalScenario,
             3,
         ),
@@ -102,7 +102,7 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         "permutation",
     ],
 )
-@pytest.mark.parametrize("val_size", (0, 0.5))
+@pytest.mark.parametrize("val_size", (0, 0.5), ids=["no_val", "val"])
 def test_data_module_fn(
     tmpdir,
     scenario_name,
