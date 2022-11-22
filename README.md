@@ -145,7 +145,7 @@ if __name__ == "__main__":
         updater="ER",  # we train with Experience Replay
         chunk_id=0,  # we select the first chunk of our dataset, you will probably not need this in practice
         source_dir="../../cli/",
-        model_data_definition="./split_cifar10.py",
+        model_data_definition="./renate_config.py",
         requirements_file="../../../../requirements.txt",
         backend="sagemaker",  # we will run this on SageMaker, but you can select "local" to run this locally
         role="arn:aws:iam::MYAWSID:role/service-role/AmazonSageMakerServiceCatalogProductsUseRole",
