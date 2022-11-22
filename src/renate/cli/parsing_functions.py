@@ -477,14 +477,6 @@ def get_transforms_kwargs(
     return transforms
 
 
-def get_config_space_kwargs(config_module: ModuleType) -> Dict[str, Any]:
-    """Creates and returns config space kwargs for updater."""
-    config_space_fn_name = "config_space_fn"
-    if config_space_fn_name in vars(config_module):
-        return getattr(config_module, config_space_fn_name)()
-    return {}
-
-
 def get_scheduler_kwargs(
     config_module: ModuleType,
 ) -> Tuple[Optional[Type[TrialScheduler]], Optional[Dict[str, Any]]]:

@@ -65,7 +65,7 @@ def test_csv_data_module(tmpdir):
         ("FashionMNIST", 60000, 10000, (1, 28, 28)),
         ("CIFAR10", 50000, 10000, (3, 32, 32)),
         ("CIFAR100", 50000, 10000, (3, 32, 32)),
-    ]
+    ],
 )
 def test_torchvision_data_module(tmpdir, dataset_name, num_tr, num_te, x_shape):
     """Test downloading of Torchvision data."""
