@@ -169,6 +169,7 @@ class DataBuffer(Dataset, ABC):
     def state_dict(self) -> Dict[str, Any]:
         """Returns the state of the buffer as a dictionary."""
         return {
+            "buffer_class_name": self.__class__.__name__,
             "max_size": self._max_size,
             "storage_mode": self._storage_mode,
             "seed": self._seed,
@@ -180,6 +181,11 @@ class DataBuffer(Dataset, ABC):
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         """Assigns the values from `state_dict` into their respective attributes."""
+        if self.__class__.__name__ != state_dict["buffer_class_name"]:
+            raise RuntimeError(
+                f"Buffer of class {self.__class__} was used to load a state dict created by class "
+                f"{state_dict['buffer_class_name']}."
+            )
         self._max_size = state_dict["max_size"]
         self._storage_mode = state_dict["storage_mode"]
         self._seed = state_dict["seed"]
