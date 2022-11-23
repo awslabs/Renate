@@ -215,6 +215,9 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
     def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
         """PyTorch Lightning function to perform after the training step."""
         super().training_step_end(step_output)
+        return self._update_memory_buffer(step_output)
+
+    def _update_memory_buffer(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
         outputs = step_output["outputs"]
         metadata = {"outputs": outputs.detach().cpu()}
         for i, intermediate_representation in enumerate(step_output["intermediate_representation"]):
