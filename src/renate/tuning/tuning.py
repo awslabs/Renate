@@ -56,7 +56,7 @@ RENATE_CONFIG_COLUMNS = [
     "devices",
     "metric",
     "mode",
-    "state_url",
+    "input_state_url",
 ]
 
 
@@ -162,7 +162,7 @@ def execute_tuning_job(
         )
     submit_remote_job(
         state_url=input_state_url,
-        next_state_url=output_state_url,
+        output_state_url=output_state_url,
         working_directory=working_directory,
         config_file=config_file,
         mode=mode,
@@ -199,8 +199,8 @@ def _prepare_remote_job(
     """Prepares a SageMaker tuning job."""
     dependencies = list(renate.__path__ + [job_kwargs["config_file"]])
 
-    if "state_url" in job_kwargs and job_kwargs["state_url"] is None:
-        del job_kwargs["state_url"]
+    if "input_state_url" in job_kwargs and job_kwargs["input_state_url"] is None:
+        del job_kwargs["input_state_url"]
     job_kwargs["config_file"] = os.path.basename(job_kwargs["config_file"])
     job_kwargs["config_space"] = config_space_to_dict(job_kwargs["config_space"])
 
@@ -505,7 +505,7 @@ def _execute_tuning_job_locally(
     config_space["accelerator"] = accelerator
     config_space["devices"] = devices
     if input_state_url is not None:
-        config_space["state_url"] = input_state_url
+        config_space["input_state_url"] = input_state_url
 
     metric, mode = _verify_validation_set_for_hpo_and_checkpointing(
         config_space=config_space,
