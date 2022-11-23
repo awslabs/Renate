@@ -37,6 +37,22 @@ For example, to use a ResNet-18 model, you use
 
     config_space["model_fn_model_name"] = "ResNet18"
 
+The full list of models and model names including a short description is provided in the following table.
+
+.. list-table:: Renate Model Overview
+   :widths: 25 25 50
+   :header-rows: 1
+
+   * - Model Name
+     - Heading row 1, column 2
+     - Heading row 1, column 3
+   * - MultiLayerPerceptron
+     - Neural network consisting of a sequence of dense layers.
+     - :py:class:`renate.benchmark.models.mlp.MultiLayerPerceptron`
+   * - Row 2, column 1
+     - Row 2, column 2
+     - Row 2, column 3
+
 .. _benchmarking-standard-benchmarks-datasets:
 
 Datasets
