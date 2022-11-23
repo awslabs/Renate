@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 from syne_tune.optimizer.scheduler import TrialScheduler
 
 from renate import defaults
-from renate.updaters.experimental.dmc import DeepModelConsolidationModelUpdater
+from renate.updaters.experimental.repeated_distill import RepeatedDistillationModelUpdater
 from renate.updaters.experimental.er import (
     CLSExperienceReplayModelUpdater,
     DarkExperienceReplayModelUpdater,
@@ -83,9 +83,9 @@ def get_updater_and_learner_kwargs(
     elif args.updater == "OfflineER":
         learner_args = learner_args + ["loss_weight_new_data", "memory_size", "memory_batch_size"]
         updater_class = OfflineExperienceReplayModelUpdater
-    elif args.updater == "DMC":
+    elif args.updater == "RD":
         learner_args = learner_args + ["memory_size"]
-        updater_class = DeepModelConsolidationModelUpdater
+        updater_class = RepeatedDistillationModelUpdater
     elif args.updater == "GDumb":
         learner_args = learner_args + ["memory_size"]
         updater_class = GDumbModelUpdater
@@ -422,8 +422,8 @@ def parse_super_experience_replay_arguments(parser: argparse.Namespace) -> None:
     _parse_base_experience_replay_arguments(parser)
 
 
-def parse_dmc_learner_arguments(parser: argparse.Namespace) -> None:
-    """A helper function that adds DMC Learner arguments."""
+def parse_rd_learner_arguments(parser: argparse.Namespace) -> None:
+    """A helper function that adds Repeated Distill Learner arguments."""
     parser.add_argument(
         "--memory_size",
         type=int,
@@ -442,16 +442,23 @@ def _get_args_by_prefix(
 
 
 def get_model_fn_args(args: Union[argparse.Namespace, Dict[str, str]]) -> Dict[str, str]:
-    """Returns all arguments from `args` who should be passed to `model_fn`."""
+    """Returns all arguments from `args` which should be passed to `model_fn`."""
     return _get_args_by_prefix(args, "model_fn_")
 
 
 def get_data_module_fn_args(args: Union[argparse.Namespace, Dict[str, str]]) -> Dict[str, str]:
-    """Returns all arguments from `args` who should be passed to `data_module_fn`."""
+    """Returns all arguments from `args` which should be passed to `data_module_fn`."""
     return _get_args_by_prefix(args, "data_module_fn_")
 
 
-def get_transforms_kwargs(config_module: ModuleType) -> Dict[str, Callable]:
+def get_transform_args(args: Union[argparse.Namespace, Dict[str, str]]) -> Dict[str, str]:
+    """Returns all arguments from `args` which should be passed to each `transform` function."""
+    return _get_args_by_prefix(args, "transform_")
+
+
+def get_transforms_kwargs(
+    config_module: ModuleType, args: Union[argparse.Namespace, Dict[str, str]]
+) -> Dict[str, Callable]:
     """Creates and returns data transforms kwargs for updater."""
     transform_fn_names = [
         "train_transform",
@@ -464,16 +471,10 @@ def get_transforms_kwargs(config_module: ModuleType) -> Dict[str, Callable]:
     transforms = {}
     for transform_fn_name in transform_fn_names:
         if transform_fn_name in vars(config_module):
-            transforms[transform_fn_name] = getattr(config_module, transform_fn_name)()
+            transforms[transform_fn_name] = getattr(config_module, transform_fn_name)(
+                **get_transform_args(args)
+            )
     return transforms
-
-
-def get_config_space_kwargs(config_module: ModuleType) -> Dict[str, Any]:
-    """Creates and returns config space kwargs for updater."""
-    config_space_fn_name = "config_space_fn"
-    if config_space_fn_name in vars(config_module):
-        return getattr(config_module, config_space_fn_name)()
-    return {}
 
 
 def get_scheduler_kwargs(
@@ -494,6 +495,6 @@ parse_by_updater = {
     "Super-ER": parse_super_experience_replay_arguments,
     "GDumb": parse_gdumb_arguments,
     "Joint": parse_joint_arguments,
-    "DMC": parse_dmc_learner_arguments,
+    "RD": parse_rd_learner_arguments,
     "OfflineER": parse_replay_learner_arguments,
 }

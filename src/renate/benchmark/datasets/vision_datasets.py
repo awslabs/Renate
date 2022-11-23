@@ -126,6 +126,25 @@ class TorchVisionDataModule(RenateDataModule):
         seed: Seed used to fix random number generation.
     """
 
+    dataset_dict = {
+        "CIFAR10": (torchvision.datasets.CIFAR10, "cifar-10-batches-py"),
+        "CIFAR100": (torchvision.datasets.CIFAR100, "cifar-100-python"),
+        "FashionMNIST": (torchvision.datasets.FashionMNIST, "FashionMNIST"),
+        "MNIST": (torchvision.datasets.MNIST, "MNIST"),
+    }
+    dataset_stats = {
+        "CIFAR10": {
+            "mean": (0.49139967861519607, 0.48215840839460783, 0.44653091444546567),
+            "std": (0.24703223246174102, 0.24348512800151828, 0.26158784172803257),
+        },
+        "CIFAR100": {
+            "mean": (0.5070751592371323, 0.48654887331495095, 0.4409178433670343),
+            "std": (0.26733428587941854, 0.25643846292120615, 0.2761504713263903),
+        },
+        "FashionMNIST": {"mean": 0.2860405969887955, "std": 0.3530242445149223},
+        "MNIST": {"mean": 0.1306604762738429, "std": 0.30810780385646264},
+    }
+
     def __init__(
         self,
         data_path: Union[Path, str],
@@ -145,14 +164,8 @@ class TorchVisionDataModule(RenateDataModule):
         )
         self._download = download
         self._dataset_name = dataset_name
-        self._dataset_dict = {
-            "CIFAR10": (torchvision.datasets.CIFAR10, "cifar-10-batches-py"),
-            "CIFAR100": (torchvision.datasets.CIFAR100, "cifar-100-python"),
-            "FashionMNIST": (torchvision.datasets.FashionMNIST, "FashionMNIST"),
-            "MNIST": (torchvision.datasets.MNIST, "MNIST"),
-        }
         assert (
-            self._dataset_name in self._dataset_dict
+            self._dataset_name in TorchVisionDataModule.dataset_dict
         ), f"Dataset {self._dataset_name} currently not supported."
 
     def prepare_data(self) -> None:
@@ -162,7 +175,7 @@ class TorchVisionDataModule(RenateDataModule):
         """
         if not self._download:
             return
-        cls, dataset_pathname = self._dataset_dict[self._dataset_name]
+        cls, dataset_pathname = TorchVisionDataModule.dataset_dict[self._dataset_name]
         if self._src_bucket is None:
             cls(self._data_path, train=True, download=self._download)
             cls(self._data_path, train=False, download=self._download)
@@ -176,7 +189,7 @@ class TorchVisionDataModule(RenateDataModule):
     def setup(self, stage: Optional[Literal["train", "val", "test"]] = None) -> None:
         """Make assignments: train/valid/test splits (Torchvision datasets only have train and test splits)."""
         if stage in ["train", "val"] or stage is None:
-            train_data = self._dataset_dict[self._dataset_name][0](
+            train_data = TorchVisionDataModule.dataset_dict[self._dataset_name][0](
                 self._data_path,
                 train=True,
                 transform=transforms.ToTensor(),
@@ -185,7 +198,7 @@ class TorchVisionDataModule(RenateDataModule):
             self._train_data, self._val_data = self._split_train_val_data(train_data)
 
         if stage == "test" or stage is None:
-            self._test_data = self._dataset_dict[self._dataset_name][0](
+            self._test_data = TorchVisionDataModule.dataset_dict[self._dataset_name][0](
                 self._data_path,
                 train=False,
                 transform=transforms.ToTensor(),
@@ -238,8 +251,8 @@ class CLEARDataModule(RenateDataModule):
         )
         self._transform = transform
         self._target_transform = target_transform
-        assert dataset_name == "CLEAR10" or dataset_name == "CLEAR100"
         self._dataset_name = dataset_name.lower()
+        assert self._dataset_name in ["clear10", "clear100"]
         self._verify_chunk_id(chunk_id)
         self._chunk_id = chunk_id
 

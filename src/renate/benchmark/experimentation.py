@@ -4,18 +4,14 @@ import logging
 import os
 import shutil
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import pandas as pd
 import torch
 from pytorch_lightning import seed_everything
-from sagemaker import get_execution_role
-from sagemaker.pytorch import PyTorch
 
-import renate
 import renate.defaults as defaults
 from renate.cli.parsing_functions import (
-    get_config_space_kwargs,
     get_data_module_fn_args,
     get_model_fn_args,
     get_scheduler_kwargs,
@@ -28,6 +24,7 @@ from renate.evaluation.metrics.classification import (
     forward_transfer,
 )
 from renate.tuning import execute_tuning_job
+from renate.tuning.tuning import submit_remote_job
 from renate.utils.file import (
     copy_to_uri,
     is_s3_uri,
@@ -120,6 +117,7 @@ def individual_metrics_summary(
 def execute_experiment_job(
     backend: defaults.SUPPORTED_BACKEND_TYPE,
     config_file: str,
+    config_space: Dict[str, Any],
     experiment_outputs_url: str,
     mode: defaults.SUPPORTED_TUNING_MODE_TYPE,
     metric: str,
@@ -145,6 +143,8 @@ def execute_experiment_job(
     Args:
         backend: Backend of the experiment job.
         config_file: Path to the Renate config file.
+        config_space: Details for defining your own search space is provided in the
+            `Syne Tune Documentation <https://github.com/awslabs/syne-tune/blob/main/docs/search_space.md>`_.
         experiment_outputs_url: Path to the experiment outputs.
         mode: Whether to minimize or maximize the metric.
         metric: Metric of the experiment job.
@@ -176,6 +176,7 @@ def execute_experiment_job(
             config_file=config_file,
             experiment_outputs_url=experiment_outputs_url,
             mode=mode,
+            config_space=config_space,
             metric=metric,
             working_directory=working_directory,
             num_updates=num_updates,
@@ -196,6 +197,7 @@ def execute_experiment_job(
         metric=metric,
         num_updates=num_updates,
         working_directory=working_directory,
+        config_space=config_space,
         max_time=max_time,
         max_num_trials_started=max_num_trials_started,
         max_num_trials_completed=max_num_trials_completed,
@@ -217,6 +219,7 @@ def _execute_experiment_job_locally(
     experiment_outputs_url: str,
     num_updates: int,
     mode: defaults.SUPPORTED_TUNING_MODE_TYPE,
+    config_space: Dict[str, Any],
     metric: str,
     working_directory: str,
     seed: int,
@@ -247,20 +250,23 @@ def _execute_experiment_job_locally(
         Path(url).mkdir(parents=True, exist_ok=True)
 
     config_module = import_module("config_module", config_file)
-    config_space = get_config_space_kwargs(config_module)
     scheduler, scheduler_kwargs = get_scheduler_kwargs(config_module)
-    model = get_model(config_module, **get_model_fn_args(config_space))
+    model_fn_args = get_model_fn_args(config_space)
+    logger.info(f"Loading model {model_fn_args.get('model_fn_model_name', '')}")
+    model = get_model(config_module, **model_fn_args)
+    data_module_fn_args = get_data_module_fn_args(config_space)
+    logger.info(f"Prepare dataset {data_module_fn_args.get('data_module_fn_dataset_name', '')}")
     data_module = get_and_prepare_data_module(
         config_module,
         data_path=data_url,
         chunk_id=defaults.CHUNK_ID,
         seed=seed,
-        **get_data_module_fn_args(config_space),
+        **data_module_fn_args,
     )
     assert num_updates == len(
         data_module.test_data()
     ), f"The dataset has {len(data_module.test_data())} chunks, expected {num_updates}."
-    transforms = get_transforms_kwargs(config_module)
+    transforms = get_transforms_kwargs(config_module, config_space)
     metrics = get_metrics(config_module)
 
     torch.save(
@@ -346,28 +352,7 @@ def _execute_experiment_job_locally(
     logger.info("Experiment completed successfully.")
 
 
-def _execute_experiment_job_remotely(
-    config_file: str,
-    experiment_outputs_url: str,
-    mode: str,
-    metric: str,
-    num_updates: int,
-    working_directory: str,
-    requirements_file: str,
-    role: str,
-    instance_type: str,
-    instance_count: int,
-    instance_max_time: float,
-    max_time: float,
-    max_num_trials_started: int,
-    max_num_trials_completed: int,
-    max_num_trials_finished: int,
-    n_workers: int,
-    seed: int,
-    accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE,
-    devices: int,
-    job_name: str,
-) -> str:
+def _execute_experiment_job_remotely(experiment_outputs_url: str, **job_kwargs: Any) -> str:
     """Executes the experiment job on SageMaker.
 
     See renate.benchmark.experimentation.execute_experiment_job for more details.
@@ -375,42 +360,6 @@ def _execute_experiment_job_remotely(
     assert is_s3_uri(
         experiment_outputs_url
     ), f"experiment_outputs_url {experiment_outputs_url} is not on S3."
-    experiment_script = str(Path(renate.__path__[0]) / "cli" / "run_experiment_with_scenario.py")
-    job_timestamp = defaults.current_timestamp()
-    job_name = f"{job_name}-{job_timestamp}"
-
-    hyperparameters = {
-        "config_file": os.path.basename(config_file),
-        "working_directory": working_directory,
-        "mode": mode,
-        "metric": metric,
-        "num_updates": num_updates,
-        "max_time": max_time,
-        "max_num_trials_started": max_num_trials_started,
-        "max_num_trials_completed": max_num_trials_completed,
-        "max_num_trials_finished": max_num_trials_finished,
-        "n_workers": n_workers,
-        "seed": seed,
-        "experiment_outputs_url": experiment_outputs_url,
-        "backend": "local",
-        "accelerator": accelerator,
-        "devices": devices,
-    }
-    hyperparameters = {k: v for k, v in hyperparameters.items() if v is not None}
-    dependencies = list(renate.__path__ + [config_file])
-    if requirements_file is not None:
-        dependencies.append(requirements_file)
-    PyTorch(
-        entry_point=experiment_script,
-        checkpoint_s3_uri=experiment_outputs_url,
-        instance_type=instance_type,
-        instance_count=instance_count,
-        py_version=defaults.PYTHON_VERSION,
-        framework_version=defaults.FRAMEWORK_VERSION,
-        max_run=instance_max_time,
-        role=role or get_execution_role(),
-        dependencies=dependencies,
-        hyperparameters=hyperparameters,
-        volume_size=defaults.VOLUME_SIZE,
-    ).fit(wait=False, job_name=job_name)
-    return job_name
+    return submit_remote_job(
+        source_dir=None, experiment_outputs_url=experiment_outputs_url, **job_kwargs
+    )

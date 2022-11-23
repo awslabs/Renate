@@ -22,7 +22,7 @@ class Scenario(abc.ABC):
 
     Note that many scenarios implemented here perform randomized operations, e.g., to split a base
     dataset into chunks. The scenario is only reproducible if the _same_ seed is provided in
-    subsequent instantiatons. The seed argument is required for these scenarios.
+    subsequent instantiations. The seed argument is required for these scenarios.
 
     Args:
         data_module: The source RenateDataModule for the the user data.
@@ -111,8 +111,7 @@ class ClassIncrementalScenario(Scenario):
     are organised into tuples of exactly 2 tensors i.e. `(x, y)` where `x` is the input and `y` is the class id.
 
     Args:
-        data_module: The base data module.
-        num_tasks: The total number of expected tasks for experimentation.
+        data_module: The source RenateDataModule for the the user data.
         chunk_id: The data chunk to load in for the training or validation data.
         class_groupings: List of lists, describing the division of the classes for respective tasks.
     """
@@ -120,12 +119,10 @@ class ClassIncrementalScenario(Scenario):
     def __init__(
         self,
         data_module: RenateDataModule,
-        num_tasks: int,
         chunk_id: int,
         class_groupings: List[List[int]],
     ) -> None:
-        super().__init__(data_module, num_tasks, chunk_id)
-        assert len(class_groupings) == num_tasks
+        super().__init__(data_module, len(class_groupings), chunk_id)
         self._class_groupings = class_groupings
 
     def setup(self, stage: Optional[str] = None, chunk_id: Optional[int] = None) -> None:

@@ -5,8 +5,8 @@ import torch
 from torch.utils.data import ConcatDataset, TensorDataset
 
 from renate import defaults
-from renate.updaters.experimental.dmc import (
-    DeepModelConsolidationModelUpdater,
+from renate.updaters.experimental.repeated_distill import (
+    RepeatedDistillationModelUpdater,
     double_distillation_loss,
 )
 
@@ -29,7 +29,7 @@ def test_dmc_runs_end_to_end():
 
     val = ConcatDataset(data)
 
-    updater = DeepModelConsolidationModelUpdater(
+    updater = RepeatedDistillationModelUpdater(
         model=mlp,
         memory_size=300,
         batch_size=20,
@@ -46,7 +46,7 @@ def test_dmc_memory_size_after_update(memory_size, dataset_size):
     model = pytest.helpers.get_renate_module_mlp(
         num_inputs=10, num_outputs=3, hidden_size=20, num_hidden_layers=1
     )
-    model_updater = DeepModelConsolidationModelUpdater(
+    model_updater = RepeatedDistillationModelUpdater(
         model=model,
         memory_size=memory_size,
         max_epochs=1,
@@ -75,7 +75,7 @@ def test_dmc_model_updater(tmpdir, provide_folder):
         train_num_samples=10,
         test_num_samples=5,
     )
-    model_updater = DeepModelConsolidationModelUpdater(
+    model_updater = RepeatedDistillationModelUpdater(
         model,
         memory_size=50,
         max_epochs=1,
@@ -98,11 +98,11 @@ def test_continuation_of_training_with_dmc_model_updater(tmpdir):
         test_num_samples=5,
     )
     state_url = defaults.current_state_folder(tmpdir)
-    model_updater = DeepModelConsolidationModelUpdater(
+    model_updater = RepeatedDistillationModelUpdater(
         model, memory_size=50, max_epochs=1, next_state_folder=state_url
     )
     model = model_updater.update(train_dataset, task_id=defaults.TASK_ID)
-    model_updater = DeepModelConsolidationModelUpdater(
+    model_updater = RepeatedDistillationModelUpdater(
         model, memory_size=50, max_epochs=1, current_state_folder=state_url
     )
     model_updater.update(train_dataset, task_id=defaults.TASK_ID)

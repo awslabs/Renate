@@ -1,0 +1,13 @@
+numpy>=1.16.0
+torch>=1.9.0
+pandas~=1.4.2
+boto3
+requests
+sagemaker>=2.112.0
+syne-tune[extra]>=0.3.2
+pytorch-lightning~=1.8.0
+Pillow>=9.0
+torchmetrics~=0.10.0
+torchdata>=0.4.0
+torchtext>=0.13.0
+torchvision>=0.13

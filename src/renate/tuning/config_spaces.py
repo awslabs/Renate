@@ -57,6 +57,16 @@ _super_er_config_space = {
     },
 }
 
+_repeated_distill_config_space = {
+    "optimizer": choice(["SGD", "Adam"]),
+    "momentum": loguniform(1e-6, 1e-1),
+    "weight_decay": loguniform(1e-6, 1e-2),
+    "learning_rate": loguniform(0.001, 0.5),
+    "batch_size": choice([32, 64, 128]),
+    "max_epochs": 50,
+    "memory_size": 1000,
+}
+
 
 def config_space(updater: str) -> Dict[str, Union[Domain, str, int, float]]:
     """Returns the default configuration space for the updater."""
@@ -64,5 +74,6 @@ def config_space(updater: str) -> Dict[str, Union[Domain, str, int, float]]:
         "ER": _er_config_space,
         "DER": _der_config_space,
         "SUPER-ER": _super_er_config_space,
+        "RD": _repeated_distill_config_space,
     }
     return config_spaces[updater.upper()]

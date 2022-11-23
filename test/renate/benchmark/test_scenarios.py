@@ -54,7 +54,7 @@ def test_class_incremental_scenario():
     test_data_class_counts = Counter({0: 20, 1: 20, 2: 20, 3: 20, 4: 20})
     for i in range(len(class_groupings)):
         scenario = ClassIncrementalScenario(
-            data_module=data_module, num_tasks=3, class_groupings=class_groupings, chunk_id=i
+            data_module=data_module, class_groupings=class_groupings, chunk_id=i
         )
         scenario.prepare_data()
         for stage, class_counts in zip(
