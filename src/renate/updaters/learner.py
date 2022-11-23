@@ -9,12 +9,12 @@ import torchmetrics
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch import Tensor
-from torch.utils.data import DataLoader, Dataset, TensorDataset
+from torch.utils.data import DataLoader, Dataset
 
 from renate import defaults
 from renate.data.datasets import _TransformedDataset
 from renate.evaluation.metrics.utils import create_metrics
-from renate.memory.buffer import DataBuffer, DataDict, DataTuple, InfiniteBuffer, ReservoirBuffer
+from renate.memory.buffer import DataBuffer, InfiniteBuffer, ReservoirBuffer
 from renate.models import RenateModule
 from renate.utils.optimizer import create_optimizer, create_scheduler
 from renate.utils.pytorch import get_generator
@@ -93,7 +93,6 @@ class Learner(LightningModule, abc.ABC):
 
     def _post_init(self) -> None:
         self._rng = get_generator(self._seed)
-        self._return_original_tensor = False
         self._val_enabled = False
 
     def _create_metrics_collections(
@@ -229,7 +228,6 @@ class Learner(LightningModule, abc.ABC):
             train_dataset,
             transform=self._train_transform,
             target_transform=self._train_target_transform,
-            return_original_tensor=self._return_original_tensor,
         )
         self._task_id = task_id
         self._model.add_task_params(task_id=task_id)
@@ -245,7 +243,6 @@ class Learner(LightningModule, abc.ABC):
                 val_dataset,
                 transform=self._test_transform,
                 target_transform=self._test_target_transform,
-                return_original_tensor=False,
             )
             self._val_memory_buffer.update(val_dataset)
 
@@ -286,7 +283,6 @@ class Learner(LightningModule, abc.ABC):
         self._loss_collections["train_losses"]["base_loss"](loss)
         return {
             "loss": loss,
-            "batch": batch,
             "outputs": outputs,
             "intermediate_representation": intermediate_representation,
         }
@@ -308,7 +304,6 @@ class Learner(LightningModule, abc.ABC):
         (x, y), _ = batch
         outputs = self(x)
         loss = self._model.loss_fn(outputs, y)
-
         self._update_metrics(outputs, y, "val")
         self._loss_collections["val_losses"]["loss"](loss)
 
@@ -406,7 +401,6 @@ class ReplayLearner(Learner, abc.ABC):
     def _post_init(self) -> None:
         super()._post_init()
         self._memory_loader: Optional[DataLoader] = None
-        self._return_original_tensor = True
 
     def state_dict(self, **kwargs) -> Dict[str, Any]:
         """Returns the state of the learner."""
@@ -443,42 +437,6 @@ class ReplayLearner(Learner, abc.ABC):
             test_target_transform=test_target_transform,
         )
         self._memory_buffer.set_transforms(buffer_transform, buffer_target_transform)
-
-    def on_model_update_start(
-        self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
-    ) -> Tuple[DataLoader, DataLoader]:
-        """Called before a model update starts."""
-        self._set_memory_loader()
-        return super().on_model_update_start(train_dataset, val_dataset, task_id)
-
-    def _sample_from_buffer(self, device: torch.device) -> Optional[Tuple[DataTuple, DataDict]]:
-        """Function to sample from the buffer, if buffer is populated."""
-        if self._memory_loader is not None and len(self._memory_buffer) >= self._memory_batch_size:
-            memory_batch = next(
-                iter(self._memory_loader)
-            )  # FIXME: Use PTL syntax and/or functionality for better compatibility with PTL
-            (x_memory, y_memory), metadata = memory_batch
-            x_memory, y_memory = x_memory.to(device), y_memory.to(device)
-            for key, value in metadata.items():
-                if isinstance(value, torch.Tensor):
-                    metadata[key] = value.to(device)
-            return (x_memory, y_memory), metadata
-        else:
-            return None
-
-    def _update_memory_buffer(self, step_output: Union[torch.Tensor, Dict[str, Any]]) -> None:
-        """Function to update the memory buffer and provide TensorDataset wrapping."""
-        # TODO: Add more unittests
-        x, y = step_output["original"]
-        outputs = step_output["outputs"]
-        meta_data = {"outputs": outputs.detach().cpu()}
-        for i, intermediate_representation in enumerate(step_output["intermediate_representation"]):
-            meta_data[
-                f"intermediate_representation_{i}"
-            ] = intermediate_representation.detach().cpu()
-        dataset = TensorDataset(x.detach().cpu(), y.detach().cpu())
-        self._memory_buffer.update(dataset, meta_data)
-        self._set_memory_loader()
 
     def _set_memory_loader(self) -> None:
         """Create a memory loader from a memory buffer."""

@@ -8,7 +8,7 @@ import torchvision.transforms as transforms
 from PIL import Image
 from torch.utils.data import TensorDataset
 
-from renate.data.datasets import ImageDataset, _TransformedDataset
+from renate.data.datasets import ImageDataset, _EnumeratedDataset, _TransformedDataset
 
 
 class MulTransform:
@@ -19,37 +19,25 @@ class MulTransform:
         return x * self.factor
 
 
-def test_transformed_dataset_returns_original_and_transformed():
-    dataset = TensorDataset(torch.ones(10, 2), torch.ones(10, 2))
-    transformed_dataset = _TransformedDataset(
-        dataset,
-        transform=MulTransform(factor=2),
-        target_transform=MulTransform(factor=3),
-        return_original_tensor=True,
-    )
+def test_transformed_dataset():
+    X = torch.arange(10)
+    y = torch.arange(10)
+    ds = TensorDataset(X, y)
+    transform = lambda x: x + 1
+    target_transform = lambda y: y**2
+    ds_transformed = _TransformedDataset(ds, transform, target_transform)
+    X_transformed = torch.stack([ds_transformed[i][0] for i in range(len(ds_transformed))], dim=0)
+    y_transformed = torch.stack([ds_transformed[i][1] for i in range(len(ds_transformed))], dim=0)
+    assert torch.equal(X_transformed, transform(X))
+    assert torch.equal(y_transformed, target_transform(y))
+
+
+def test_enumerated_dataset():
+    ds = TensorDataset(torch.arange(10)**2)
+    ds_enumerated = _EnumeratedDataset(ds)
     for i in range(10):
-        data = transformed_dataset[i]
-        original = data["original"]
-        transformed = data["transformed"]
-        assert torch.equal(original[0], torch.ones(2))
-        assert torch.equal(transformed[0], torch.ones(2) * 2)
-
-        assert torch.equal(original[1], torch.ones(2))
-        assert torch.equal(transformed[1], torch.ones(2) * 3)
-
-
-def test_transformed_dataset_returns_only_transformed():
-    dataset = TensorDataset(torch.ones(10, 2), torch.ones(10, 2))
-    transformed_dataset = _TransformedDataset(
-        dataset,
-        transform=MulTransform(factor=4),
-        target_transform=MulTransform(factor=5),
-        return_original_tensor=False,
-    )
-    for i in range(10):
-        data = transformed_dataset[i]
-        assert torch.equal(data[0], torch.ones(2) * 4)
-        assert torch.equal(data[1], torch.ones(2) * 5)
+        idx, batch = ds_enumerated[i]
+        assert batch[0] == idx ** 2
 
 
 def test_image_dataset(tmpdir):

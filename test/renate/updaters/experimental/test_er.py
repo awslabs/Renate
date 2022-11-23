@@ -4,9 +4,10 @@ import os
 
 import pytest
 import torch
+from torch.utils.data import TensorDataset
 
 from renate import defaults
-from renate.data.datasets import _TransformedDataset
+from renate.data.datasets import _EnumeratedDataset, _TransformedDataset
 from renate.updaters.experimental.er import (
     CLSExperienceReplayLearner,
     DarkExperienceReplayLearner,
@@ -49,42 +50,6 @@ def test_er_overall_memory_size_after_update(batch_size, memory_size, memory_bat
     x, y = memory
     assert x.shape[0] == memory_batch_size and y.shape[0] == memory_batch_size
     assert len(model_updater._learner._memory_buffer) == memory_size
-
-
-@pytest.mark.parametrize(
-    "batch_size,memory_size,memory_batch_size,gradual_memory_size",
-    [
-        [10, 10, 10, [10, 10, 10, 10, 10, 10, 10, 10, 10, 10]],
-        [20, 10, 10, [10, 10, 10, 10, 10]],
-        [10, 100, 10, [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]],
-        [10, 30, 1, [10, 20, 30, 30, 30, 30, 30, 30, 30, 30]],
-        [50, 3, 3, [3, 3]],
-    ],
-)
-def test_er_incremental_memory_size_after_update(
-    batch_size, memory_size, memory_batch_size, gradual_memory_size
-):
-    model, dataset = get_model_and_dataset()
-    learner = ExperienceReplayLearner(
-        model=model,
-        memory_size=memory_size,
-        memory_batch_size=memory_batch_size,
-        batch_size=batch_size,
-    )
-    dataset = _TransformedDataset(
-        torch.utils.data.TensorDataset(
-            torch.rand((100, 10)),
-            torch.randint(10, (100,)),
-        ),
-        return_original_tensor=True,
-    )
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size)
-    for batch_idx, batch in enumerate(dataloader):
-        step_output = learner.training_step(batch=batch, batch_idx=batch_idx)
-        x_memory, y_memory = step_output["original"]
-        learner.training_step_end(step_output=step_output)
-        assert x_memory.shape[0] == batch_size and y_memory.shape[0] == batch_size
-        assert gradual_memory_size[batch_idx] == len(learner._memory_buffer)
 
 
 def test_er_validation_buffer(tmpdir):

@@ -87,7 +87,7 @@ class OfflineExperienceReplayLearner(ReplayLearner):
             )
         else:
             alpha = self._loss_weight_new_data
-        x, y = batch["current_task"]["transformed"]
+        x, y = batch["current_task"]
         outputs = self(x)
         loss = self._model.loss_fn(outputs, y)
         self._loss_collections["train_losses"]["base_loss"](loss)
