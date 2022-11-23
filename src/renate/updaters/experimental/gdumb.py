@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader, Dataset
 from renate import defaults
 from renate.memory import GreedyClassBalancingBuffer
 from renate.models.renate_module import RenateModule
-from renate.updaters.learner import ReplayLearner
+from renate.updaters.learner import Learner, ReplayLearner
 from renate.updaters.model_updater import SimpleModelUpdater
 from renate.utils.pytorch import reinitialize_model_parameters
 
@@ -52,6 +52,13 @@ class GDumbLearner(ReplayLearner):
             transform=buffer_transform,
             target_transform=buffer_target_transform,
         )
+
+    def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
+        """Restores the state of the learner."""
+        Learner.load_state_dict(self, model, state_dict, **kwargs)
+        self._memory_batch_size = state_dict["memory_batch_size"]
+        self._memory_buffer = GreedyClassBalancingBuffer()
+        self._memory_buffer.load_state_dict(state_dict["memory_buffer"])
 
     def on_model_update_start(
         self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
