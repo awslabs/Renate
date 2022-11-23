@@ -20,6 +20,7 @@
    :hidden:
 
    examples/train_mlp_locally.rst
+   examples/train_classifier_sagemaker.rst
 
 
 .. toctree::
