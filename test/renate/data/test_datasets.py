@@ -20,30 +20,19 @@ class MulTransform:
         return x * self.factor
 
 
-@pytest.mark.parametrize("transform", [lambda x: x+1, torch.sqrt])
-@pytest.mark.parametrize("target_transform", [lambda x: x*2, lambda x: x**2])
+@pytest.mark.parametrize("transform", [lambda x: x+1, torch.sqrt, None])
+@pytest.mark.parametrize("target_transform", [lambda x: x*2, lambda x: x**2, None])
 def test_transformed_dataset(transform, target_transform):
     X = torch.arange(10)
     y = torch.arange(10)
     ds = TensorDataset(X, y)
-    transform = lambda x: x + 1
-    target_transform = lambda y: y**2
     ds_transformed = _TransformedDataset(ds, transform, target_transform)
     X_transformed = torch.stack([ds_transformed[i][0] for i in range(len(ds_transformed))], dim=0)
     y_transformed = torch.stack([ds_transformed[i][1] for i in range(len(ds_transformed))], dim=0)
-    assert torch.equal(X_transformed, transform(X))
-    assert torch.equal(y_transformed, target_transform(y))
-
-
-def test_transformed_dataset_without_transforms_is_noop():
-    X = torch.arange(10)
-    y = torch.arange(10)
-    ds = TensorDataset(X, y)
-    ds_transformed = _TransformedDataset(ds)
-    X_transformed = torch.stack([ds_transformed[i][0] for i in range(len(ds_transformed))], dim=0)
-    y_transformed = torch.stack([ds_transformed[i][1] for i in range(len(ds_transformed))], dim=0)
-    assert torch.equal(X_transformed, X)
-    assert torch.equal(y_transformed, y)
+    X_transformed_exp = X if transform is None else transform(X)
+    y_transformed_exp = y if target_transform is None else target_transform(y)
+    assert torch.equal(X_transformed, X_transformed_exp)
+    assert torch.equal(y_transformed, y_transformed_exp)
 
 
 def test_enumerated_dataset():

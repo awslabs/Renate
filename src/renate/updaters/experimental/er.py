@@ -78,42 +78,16 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
         self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
     ) -> Tuple[DataLoader, DataLoader]:
         """Called before a model update starts."""
+        self._set_memory_loader()
         self._current_train_dataset = train_dataset
-        self._task_id = task_id
-        self._model.add_task_params(task_id=task_id)
-        train_dataset = _EnumeratedDataset(
-            _TransformedDataset(
-                train_dataset,
-                transform=self._train_transform,
-                target_transform=self._train_target_transform,
-            )
-        )
+        train_loader, val_loader = super().on_model_update_start(train_dataset, val_dataset, task_id)
         train_loader = DataLoader(
-            train_dataset,
+            _EnumeratedDataset(train_loader.dataset),
             batch_size=self._batch_size,
             shuffle=True,
             generator=self._rng,
             pin_memory=True,
         )
-        if val_dataset is not None:
-            val_dataset = _TransformedDataset(
-                val_dataset,
-                transform=self._test_transform,
-                target_transform=self._test_target_transform,
-            )
-            self._val_memory_buffer.update(val_dataset)
-
-        val_loader = None
-        if len(self._val_memory_buffer):
-            val_loader = DataLoader(
-                self._val_memory_buffer,
-                batch_size=self._batch_size,
-                shuffle=False,
-                generator=self._rng,
-                pin_memory=True,
-            )
-            self._val_enabled = True
-
         return train_loader, val_loader
 
     def on_train_start(self) -> None:
@@ -219,9 +193,10 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
     def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
         """PyTorch Lightning function to perform after the training step."""
         super().training_step_end(step_output)
-        return self._update_memory_buffer(step_output)
+        self._update_memory_buffer(step_output)
+        return step_output
 
-    def _update_memory_buffer(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
+    def _update_memory_buffer(self, step_output: STEP_OUTPUT) -> None:
         outputs = step_output["outputs"]
         metadata = {"outputs": outputs.detach().cpu()}
         for i, intermediate_representation in enumerate(step_output["intermediate_representation"]):
@@ -231,7 +206,6 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
         dataset = Subset(self._current_train_dataset, step_output["train_data_idx"])
         self._memory_buffer.update(dataset, metadata)
         self._set_memory_loader()
-        return step_output
 
     def _set_memory_loader(self) -> None:
         """Create a memory loader from a memory buffer."""
