@@ -12,7 +12,7 @@ if __name__ == "__main__":
         max_epochs=50,
         chunk_id=0,  # this selects the first chunk of the dataset
         config_file="renate_config.py",
-        next_state_url="./state_dump_first_model_rd/",  # this is where the model will be stored
+        output_state_url="./state_dump_first_model_rd/",  # this is where the model will be stored
         backend="local",  # the training job will run on the local machine
         scheduler="asha",
         # using only 5 trials will not give great performance but this is just an example
@@ -29,8 +29,8 @@ if __name__ == "__main__":
         max_epochs=50,
         chunk_id=1,  # this time we use the second chunk of the dataset
         config_file="renate_config.py",
-        state_url="./state_dump_first_model_rd/",  # the output of the first training job is loaded
-        next_state_url="./state_dump_second_model_rd/",  # the new model will be stored in this folder
+        input_state_url="./state_dump_first_model_rd/",  # the output of the first training job is loaded
+        output_state_url="./state_dump_second_model_rd/",  # the new model will be stored in this folder
         backend="local",
         scheduler="asha",
         max_num_trials_finished=5,

@@ -34,12 +34,11 @@ if __name__ == "__main__":
         config_file="renate_config.py",
         requirements_file="requirements.txt",
         # replace the url below with a different one if you already ran it and you want to avoid overwriting
-        next_state_url=f"s3://sagemaker-{AWS_REGION}-{AWS_ID}/renate-training-cifar10-1st-model/",
+        output_state_url=f"s3://sagemaker-{AWS_REGION}-{AWS_ID}/renate-training-cifar10-1st-model/",
         # uncomment the line below only if you already created a model with this script and you want to update it
         # state_url=f"s3://sagemaker-{AWS_REGION}-{AWS_ID}/renate-training-cifar10-1st-model/",
         backend="sagemaker",  # we will run this on SageMaker, but you can select "local" to run this locally
         role=get_execution_role(),
-        instance_count=1,
         instance_type="ml.g4dn.xlarge",
         max_num_trials_finished=100,
         scheduler="asha",  # we will run ASHA to optimize our hyperparameters

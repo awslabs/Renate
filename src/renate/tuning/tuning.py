@@ -69,8 +69,8 @@ def execute_tuning_job(
     max_epochs: int = defaults.MAX_EPOCHS,
     task_id: str = defaults.TASK_ID,
     chunk_id: int = defaults.CHUNK_ID,
-    state_url: Optional[str] = None,
-    next_state_url: Optional[str] = None,
+    input_state_url: Optional[str] = None,
+    output_state_url: Optional[str] = None,
     working_directory: Optional[str] = defaults.WORKING_DIRECTORY,
     source_dir: Optional[str] = None,
     config_file: Optional[str] = None,
@@ -104,8 +104,8 @@ def execute_tuning_job(
         max_epochs: Maximum number of epochs the model is trained.
         task_id: Unique identifier for the current task.
         chunk_id: Unique identifier for the current data chunk.
-        state_url: Path to the Renate model state.
-        next_state_url: Path where Renate model state will be stored.
+        input_state_url: Path to the Renate model state.
+        output_state_url: Path where Renate model state will be stored.
         working_directory: Path to the working directory.
         source_dir: (SageMaker backend only) Root directory which will be moved to SageMaker.
         config_file: File containing the definition of `model_fn` and `data_module_fn`.
@@ -137,8 +137,8 @@ def execute_tuning_job(
     ), f"Backend {backend} is not in {defaults.SUPPORTED_BACKEND}."
     if backend == "local":
         return _execute_tuning_job_locally(
-            state_url=state_url,
-            next_state_url=next_state_url,
+            input_state_url=input_state_url,
+            output_state_url=output_state_url,
             working_directory=working_directory,
             config_file=config_file,
             mode=mode,
@@ -161,8 +161,8 @@ def execute_tuning_job(
             devices=devices,
         )
     submit_remote_job(
-        state_url=state_url,
-        next_state_url=next_state_url,
+        state_url=input_state_url,
+        next_state_url=output_state_url,
         working_directory=working_directory,
         config_file=config_file,
         mode=mode,
@@ -344,12 +344,12 @@ def _teardown_tuning_job(
     backend: LocalBackend,
     config_space: Dict[str, Union[Domain, int, float, str]],
     job_name: str,
-    state_url: Optional[str] = None,
-    next_state_url: Optional[str] = None,
+    input_state_url: Optional[str] = None,
+    output_state_url: Optional[str] = None,
 ) -> None:
     """Update lifelong hyperparameter optimization results, save state and clean up disk."""
     experiment_folder = redirect_to_tmp(str(experiment_path(job_name)))
-    if next_state_url is not None:
+    if output_state_url is not None:
         experiment = load_experiment(job_name)
         try:
             best_trial_id = experiment.best_config()["trial_id"]
@@ -369,14 +369,14 @@ def _teardown_tuning_job(
             f"{experiment_folder}/{best_trial_id}/checkpoints"
         )
         old_tuning_results = (
-            pd.read_csv(defaults.hpo_file(state_url))
-            if state_url is not None and os.path.exists(defaults.hpo_file(state_url))
+            pd.read_csv(defaults.hpo_file(input_state_url))
+            if input_state_url is not None and os.path.exists(defaults.hpo_file(input_state_url))
             else None
         )
         tuning_results = _merge_tuning_history(experiment.results, old_tuning_results)
         tuning_results.to_csv(defaults.hpo_file(next_state_folder), index=False)
-        move_to_uri(next_state_folder, next_state_url)
-        logger.info(f"Renate state is available at {next_state_url}.")
+        move_to_uri(next_state_folder, output_state_url)
+        logger.info(f"Renate state is available at {output_state_url}.")
     shutil.rmtree(experiment_folder, ignore_errors=True)
     shutil.rmtree(experiment_path(job_name), ignore_errors=True)
 
@@ -466,8 +466,8 @@ def _create_scheduler(
 
 
 def _execute_tuning_job_locally(
-    state_url: Optional[str],
-    next_state_url: Optional[str],
+    input_state_url: Optional[str],
+    output_state_url: Optional[str],
     working_directory: Optional[str],
     config_file: str,
     mode: defaults.SUPPORTED_TUNING_MODE_TYPE,
@@ -504,8 +504,8 @@ def _execute_tuning_job_locally(
     config_space["seed"] = seed
     config_space["accelerator"] = accelerator
     config_space["devices"] = devices
-    if state_url is not None:
-        config_space["state_url"] = state_url
+    if input_state_url is not None:
+        config_space["state_url"] = input_state_url
 
     metric, mode = _verify_validation_set_for_hpo_and_checkpointing(
         config_space=config_space,
@@ -541,7 +541,7 @@ def _execute_tuning_job_locally(
             max_epochs=max_epochs,
             seed=seed,
             scheduler_kwargs=scheduler_kwargs,
-            state_url=state_url,
+            state_url=input_state_url,
         )
     logging_callback = (
         TuningLoggerCallback(mode=mode, metric=metric)
@@ -577,8 +577,8 @@ def _execute_tuning_job_locally(
         backend=backend,
         config_space=config_space,
         job_name=tuner.name,
-        state_url=state_url,
-        next_state_url=next_state_url,
+        input_state_url=input_state_url,
+        output_state_url=output_state_url,
     )
 
     logger.info("Renate update completed successfully.")

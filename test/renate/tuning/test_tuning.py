@@ -65,8 +65,8 @@ def test_execute_tuning_job(tmpdir, num_chunks, use_val, raises, fixed_search_sp
                 updater="ER",
                 max_epochs=50,
                 config_file=get_config_file(use_val),
-                state_url=state_url,
-                next_state_url=tmpdir,
+                input_state_url=state_url,
+                output_state_url=tmpdir,
                 backend="local",
                 mode="max",
                 config_space={
