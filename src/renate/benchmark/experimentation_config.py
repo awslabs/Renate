@@ -46,8 +46,8 @@ models = {
     "VisionTransformerCIFAR": VisionTransformerCIFAR,
     "VisionTransformerB16": VisionTransformerB16,
     "VisionTransformerB32": VisionTransformerB32,
-    "VisionTransformerB16": VisionTransformerL16,
-    "VisionTransformerB32": VisionTransformerL32,
+    "VisionTransformerL16": VisionTransformerL16,
+    "VisionTransformerL32": VisionTransformerL32,
     "VisionTransformerH14": VisionTransformerH14,
 }
 

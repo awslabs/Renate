@@ -6,5 +6,5 @@ import renate
 from renate.benchmark.experimentation import execute_experiment_job
 
 
-def experimentation_config():
+def experimentation_config_file():
     return str(Path(renate.__path__[0]) / "benchmark" / "experiment_config.py")

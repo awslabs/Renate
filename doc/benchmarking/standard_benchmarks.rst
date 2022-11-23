@@ -13,11 +13,11 @@ The benchmark will be configured by :code:`config_space`.
 
 .. code-block:: python
 
-    from renate.benchmark import execute_experiment_job, experimentation_config
+    from renate.benchmark import execute_experiment_job, experimentation_config_file
 
     execute_experiment_job(
         backend="local",
-        config_file=experimentation_config(),
+        config_file=experimentation_config_file(),
         config_space=config_space,
         experiment_outputs_url="results/",
         mode="max",
@@ -40,18 +40,51 @@ For example, to use a ResNet-18 model, you use
 The full list of models and model names including a short description is provided in the following table.
 
 .. list-table:: Renate Model Overview
-   :widths: 25 25 50
-   :header-rows: 1
+    :header-rows: 1
 
-   * - Model Name
-     - Heading row 1, column 2
-     - Heading row 1, column 3
-   * - MultiLayerPerceptron
-     - Neural network consisting of a sequence of dense layers.
-     - :py:class:`renate.benchmark.models.mlp.MultiLayerPerceptron`
-   * - Row 2, column 1
-     - Row 2, column 2
-     - Row 2, column 3
+    * - Model Name
+      - Description
+      - API Reference
+    * - MultiLayerPerceptron
+      - Neural network consisting of a sequence of dense layers.
+      - :py:class:`renate.benchmark.models.mlp.MultiLayerPerceptron`
+    * - ResNet18
+      - 18 layer `ResNet <https://arxiv.org/pdf/1512.03385.pdf>`_ CNN architecture
+      - :py:class:`renate.benchmark.models.resnet.ResNet18`
+    * - ResNet34
+      - 34 layer `ResNet <https://arxiv.org/pdf/1512.03385.pdf>`_ CNN architecture
+      - :py:class:`renate.benchmark.models.resnet.ResNet34`
+    * - ResNet50
+      - 50 layer `ResNet <https://arxiv.org/pdf/1512.03385.pdf>`_ CNN architecture
+      - :py:class:`renate.benchmark.models.resnet.ResNet50`
+    * - ResNet18CIFAR
+      - 18 layer `ResNet <https://arxiv.org/pdf/1512.03385.pdf>`_ CNN architecture for small image sizes (approx 32x32)
+      - :py:class:`renate.benchmark.models.resnet.ResNet18CIFAR`
+    * - ResNet34CIFAR
+      - 34 layer `ResNet <https://arxiv.org/pdf/1512.03385.pdf>`_ CNN architecture for small image sizes (approx 32x32)
+      - :py:class:`renate.benchmark.models.resnet.ResNet34CIFAR`
+    * - ResNet50CIFAR
+      - 50 layer `ResNet <https://arxiv.org/pdf/1512.03385.pdf>`_ CNN architecture for small image sizes (approx 32x32)
+      - :py:class:`renate.benchmark.models.resnet.ResNet50CIFAR`
+    * - VisionTransformerCIFAR
+      - Base `Vision Transformer <https://arxiv.org/pdf/2010.11929.pdf>`_ architecture for images of size 32x32 with patch size 4.
+      - :py:class:`renate.benchmark.models.vision_transformer.VisionTransformerCIFAR`
+    * - VisionTransformerB16
+      - Base `Vision Transformer <https://arxiv.org/pdf/2010.11929.pdf>`_ architecture for images of size 224x224 with patch size 16.
+      - :py:class:`renate.benchmark.models.vision_transformer.VisionTransformerB16`
+    * - VisionTransformerB32
+      - Base `Vision Transformer <https://arxiv.org/pdf/2010.11929.pdf>`_ architecture for images of size 224x224 with patch size 32.
+      - :py:class:`renate.benchmark.models.vision_transformer.VisionTransformerB32`
+    * - VisionTransformerL16
+      - Large `Vision Transformer <https://arxiv.org/pdf/2010.11929.pdf>`_ architecture for images of size 224x224 with patch size 16.
+      - :py:class:`renate.benchmark.models.vision_transformer.VisionTransformerL16`
+    * - VisionTransformerL32
+      - Large `Vision Transformer <https://arxiv.org/pdf/2010.11929.pdf>`_ architecture for images of size 224x224 with patch size 32.
+      - :py:class:`renate.benchmark.models.vision_transformer.VisionTransformerL32`
+    * - VisionTransformerH14
+      - Huge `Vision Transformer <https://arxiv.org/pdf/2010.11929.pdf>`_ architecture for images of size 224x224 with patch size 14.
+      - :py:class:`renate.benchmark.models.vision_transformer.VisionTransformerH14`
+
 
 .. _benchmarking-standard-benchmarks-datasets:
 
