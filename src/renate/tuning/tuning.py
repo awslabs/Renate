@@ -62,7 +62,7 @@ RENATE_CONFIG_COLUMNS = [
 
 def execute_tuning_job(
     mode: defaults.SUPPORTED_TUNING_MODE_TYPE,
-    config_space: Dict,
+    config_space: Dict[str, Any],
     metric: str,
     backend: defaults.SUPPORTED_BACKEND_TYPE,
     updater: str = defaults.LEARNER,
@@ -160,7 +160,7 @@ def execute_tuning_job(
             accelerator=accelerator,
             devices=devices,
         )
-    _execute_tuning_job_remotely(
+    submit_remote_job(
         state_url=state_url,
         next_state_url=next_state_url,
         working_directory=working_directory,
@@ -193,7 +193,7 @@ def execute_tuning_job(
     )
 
 
-def _prepare_remote_tuning_job(
+def _prepare_remote_job(
     tmp_dir: str, requirements_file: Optional[str], **job_kwargs: Any
 ) -> List[str]:
     """Prepares a SageMaker tuning job."""
@@ -562,7 +562,14 @@ def _execute_tuning_job_locally(
         callbacks=[StoreResultsCallback(), logging_callback],
     )
 
-    tuner.run()
+    try:
+        tuner.run()
+    except ValueError:
+        raise RuntimeError(
+            "Tuning failed."
+            + "\n\nLogs (stdout):\n\n{}".format("".join(backend.stdout(0)))
+            + "\n\nLogs (stderr):\n\n{}".format("".join(backend.stderr(0)))
+        )
 
     logger.info("All training is completed. Saving state...")
 
@@ -579,70 +586,23 @@ def _execute_tuning_job_locally(
     return tuner
 
 
-def _execute_tuning_job_remotely(
-    state_url: Optional[str],
-    next_state_url: Optional[str],
-    working_directory: Optional[str],
-    config_file: str,
-    mode: str,
-    config_space: Dict[str, Any],
-    metric: str,
-    updater: str,
-    max_epochs: int,
-    task_id: str,
-    chunk_id: int,
+def submit_remote_job(
     source_dir: str,
-    requirements_file: str,
     role: str,
     instance_type: str,
     instance_count: int,
     instance_max_time: float,
-    max_time: float,
-    max_num_trials_started: int,
-    max_num_trials_completed: int,
-    max_num_trials_finished: int,
-    max_cost: float,
-    n_workers: int,
-    scheduler: Union[str, Type[TrialScheduler]],
-    scheduler_kwargs: Dict[str, Any],
-    seed: int,
-    accelerator: str,
-    devices: int,
     job_name: str,
-) -> None:
+    **job_kwargs: Any,
+) -> str:
     """Executes the tuning job on SageMaker.
 
     See renate.tuning.execute_tuning_job for a description of arguments."""
-    tuning_script = str(Path(renate.__path__[0]) / "cli" / "run_training_with_tuning.py")
+    tuning_script = str(Path(renate.__path__[0]) / "cli" / "run_remote_job.py")
     job_timestamp = defaults.current_timestamp()
     job_name = f"{job_name}-{job_timestamp}"
     tmp_dir = tempfile.mkdtemp()
-    dependencies = _prepare_remote_tuning_job(
-        tmp_dir=tmp_dir,
-        requirements_file=requirements_file,
-        state_url=state_url,
-        next_state_url=next_state_url,
-        working_directory=working_directory,
-        config_file=config_file,
-        mode=mode,
-        config_space=config_space,
-        metric=metric,
-        updater=updater,
-        max_epochs=max_epochs,
-        task_id=task_id,
-        chunk_id=chunk_id,
-        max_time=max_time,
-        max_num_trials_started=max_num_trials_started,
-        max_num_trials_completed=max_num_trials_completed,
-        max_num_trials_finished=max_num_trials_finished,
-        max_cost=max_cost,
-        n_workers=n_workers,
-        scheduler=scheduler,
-        scheduler_kwargs=scheduler_kwargs,
-        seed=seed,
-        accelerator=accelerator,
-        devices=devices,
-    )
+    dependencies = _prepare_remote_job(tmp_dir=tmp_dir, **job_kwargs)
     PyTorch(
         entry_point=tuning_script,
         source_dir=None if source_dir is None else str(source_dir),
@@ -653,7 +613,7 @@ def _execute_tuning_job_remotely(
         max_run=instance_max_time,
         role=role or get_execution_role(),
         dependencies=dependencies,
-        hyperparameters={},
         volume_size=defaults.VOLUME_SIZE,
     ).fit(wait=False, job_name=job_name)
     shutil.rmtree(tmp_dir)
+    return job_name

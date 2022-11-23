@@ -442,16 +442,23 @@ def _get_args_by_prefix(
 
 
 def get_model_fn_args(args: Union[argparse.Namespace, Dict[str, str]]) -> Dict[str, str]:
-    """Returns all arguments from `args` who should be passed to `model_fn`."""
+    """Returns all arguments from `args` which should be passed to `model_fn`."""
     return _get_args_by_prefix(args, "model_fn_")
 
 
 def get_data_module_fn_args(args: Union[argparse.Namespace, Dict[str, str]]) -> Dict[str, str]:
-    """Returns all arguments from `args` who should be passed to `data_module_fn`."""
+    """Returns all arguments from `args` which should be passed to `data_module_fn`."""
     return _get_args_by_prefix(args, "data_module_fn_")
 
 
-def get_transforms_kwargs(config_module: ModuleType) -> Dict[str, Callable]:
+def get_transform_args(args: Union[argparse.Namespace, Dict[str, str]]) -> Dict[str, str]:
+    """Returns all arguments from `args` which should be passed to each `transform` function."""
+    return _get_args_by_prefix(args, "transform_")
+
+
+def get_transforms_kwargs(
+    config_module: ModuleType, args: Union[argparse.Namespace, Dict[str, str]]
+) -> Dict[str, Callable]:
     """Creates and returns data transforms kwargs for updater."""
     transform_fn_names = [
         "train_transform",
@@ -464,16 +471,10 @@ def get_transforms_kwargs(config_module: ModuleType) -> Dict[str, Callable]:
     transforms = {}
     for transform_fn_name in transform_fn_names:
         if transform_fn_name in vars(config_module):
-            transforms[transform_fn_name] = getattr(config_module, transform_fn_name)()
+            transforms[transform_fn_name] = getattr(config_module, transform_fn_name)(
+                **get_transform_args(args)
+            )
     return transforms
-
-
-def get_config_space_kwargs(config_module: ModuleType) -> Dict[str, Any]:
-    """Creates and returns config space kwargs for updater."""
-    config_space_fn_name = "config_space_fn"
-    if config_space_fn_name in vars(config_module):
-        return getattr(config_module, config_space_fn_name)()
-    return {}
 
 
 def get_scheduler_kwargs(
