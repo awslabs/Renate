@@ -59,6 +59,10 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
         self._ema_memory_update_gamma = ema_memory_update_gamma
         self._use_loss_normalization = bool(loss_normalization)
 
+    def _post_init(self) -> None:
+        super()._post_init()
+        self._memory_loader: Optional[DataLoader] = None
+
     def _create_metrics_collections(
         self, logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None
     ) -> None:
@@ -228,6 +232,18 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
         self._memory_buffer.update(dataset, metadata)
         self._set_memory_loader()
         return step_output
+
+    def _set_memory_loader(self) -> None:
+        """Create a memory loader from a memory buffer."""
+        if self._memory_loader is None and len(self._memory_buffer) >= self._memory_batch_size:
+            self._memory_loader = DataLoader(
+                dataset=self._memory_buffer,
+                batch_size=self._memory_batch_size,
+                drop_last=True,
+                shuffle=True,
+                generator=self._rng,
+                pin_memory=True,
+            )
 
     def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int) -> None:
         """PyTorch Lightning function to perform after the training and optimizer step."""

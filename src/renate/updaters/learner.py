@@ -404,10 +404,6 @@ class ReplayLearner(Learner, abc.ABC):
             target_transform=buffer_target_transform,
         )
 
-    def _post_init(self) -> None:
-        super()._post_init()
-        self._memory_loader: Optional[DataLoader] = None
-
     def state_dict(self, **kwargs) -> Dict[str, Any]:
         """Returns the state of the learner."""
         state_dict = super().state_dict(**kwargs)
@@ -443,15 +439,3 @@ class ReplayLearner(Learner, abc.ABC):
             test_target_transform=test_target_transform,
         )
         self._memory_buffer.set_transforms(buffer_transform, buffer_target_transform)
-
-    def _set_memory_loader(self) -> None:
-        """Create a memory loader from a memory buffer."""
-        if self._memory_loader is None and len(self._memory_buffer) >= self._memory_batch_size:
-            self._memory_loader = DataLoader(
-                dataset=self._memory_buffer,
-                batch_size=self._memory_batch_size,
-                drop_last=True,
-                shuffle=True,
-                generator=self._rng,
-                pin_memory=True,
-            )

@@ -66,8 +66,15 @@ class OfflineExperienceReplayLearner(ReplayLearner):
             train_dataset, val_dataset, task_id
         )
         loaders = {"current_task": train_loader}
-        if self._memory_loader is not None:
-            loaders["memory"] = self._memory_loader
+        if len(self._memory_buffer) > self._memory_batch_size:
+            loaders["memory"] = DataLoader(
+                dataset=self._memory_buffer,
+                batch_size=self._memory_batch_size,
+                drop_last=True,
+                shuffle=True,
+                generator=self._rng,
+                pin_memory=True,
+            )
         return CombinedLoader(loaders, mode="max_size_cycle"), val_loader
 
     def on_model_update_end(
