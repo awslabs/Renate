@@ -232,7 +232,7 @@ class ModelUpdaterCLI:
             devices=args.devices,
             early_stopping_enabled=bool(args.early_stopping),
             **learner_kwargs,
-            **get_transforms_kwargs(config_module),
+            **get_transforms_kwargs(config_module, args),
         )
 
         model_updater.update(
