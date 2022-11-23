@@ -3,10 +3,11 @@
 import os
 
 import numpy as np
-import torch
-import torchvision.transforms as transforms
 from PIL import Image
+import pytest
+import torch
 from torch.utils.data import TensorDataset
+import torchvision.transforms as transforms
 
 from renate.data.datasets import ImageDataset, _EnumeratedDataset, _TransformedDataset
 
@@ -19,7 +20,9 @@ class MulTransform:
         return x * self.factor
 
 
-def test_transformed_dataset():
+@pytest.mark.parametrize("transform", [lambda x: x+1, torch.sqrt])
+@pytest.mark.parametrize("target_transform", [lambda x: x*2, lambda x: x**2])
+def test_transformed_dataset(transform, target_transform):
     X = torch.arange(10)
     y = torch.arange(10)
     ds = TensorDataset(X, y)
@@ -32,11 +35,23 @@ def test_transformed_dataset():
     assert torch.equal(y_transformed, target_transform(y))
 
 
+def test_transformed_dataset_without_transforms_is_noop():
+    X = torch.arange(10)
+    y = torch.arange(10)
+    ds = TensorDataset(X, y)
+    ds_transformed = _TransformedDataset(ds)
+    X_transformed = torch.stack([ds_transformed[i][0] for i in range(len(ds_transformed))], dim=0)
+    y_transformed = torch.stack([ds_transformed[i][1] for i in range(len(ds_transformed))], dim=0)
+    assert torch.equal(X_transformed, X)
+    assert torch.equal(y_transformed, y)
+
+
 def test_enumerated_dataset():
     ds = TensorDataset(torch.arange(10)**2)
     ds_enumerated = _EnumeratedDataset(ds)
     for i in range(10):
         idx, batch = ds_enumerated[i]
+        assert i == idx
         assert batch[0] == idx ** 2
 
 
