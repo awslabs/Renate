@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 
 def experimentation_config_file():
-    return str(Path(renate.__path__[0]) / "benchmark" / "experiment_config.py")
+    return str(Path(renate.__path__[0]) / "benchmark" / "experimentation_config.py")
 
 
 def create_cumulative_metrics(task: defaults.SUPPORTED_TASKS_TYPE) -> List[Tuple[str, Callable]]:
