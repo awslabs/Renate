@@ -159,6 +159,7 @@ def test_buffer_load_state_dict(buffer_type):
     buffer = buffer_type(max_size=100)
 
     state_dict = {
+        "buffer_class_name": buffer_type.__name__,
         "max_size": 100,
         "seed": 1,
         "count": 100,

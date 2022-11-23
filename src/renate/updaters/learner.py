@@ -128,6 +128,7 @@ class Learner(LightningModule, abc.ABC):
     def state_dict(self, **kwargs) -> Dict[str, Any]:
         """Returns the state of the learner."""
         return {
+            "learner_class_name": self.__class__.__name__,
             "optimizer": self._optimizer,
             "learning_rate": self._learning_rate,
             "learning_rate_scheduler": self._learning_rate_scheduler,
@@ -150,6 +151,11 @@ class Learner(LightningModule, abc.ABC):
             model: The model to be trained.
             state_dict: Dictionary containing the state.
         """
+        if self.__class__.__name__ != state_dict["learner_class_name"]:
+            raise RuntimeError(
+                f"Learner of class {self.__class__} was used to load a state dict created by class "
+                f"{state_dict['learner_class_name']}."
+            )
         super().__init__()
         self._model = model
         self._optimizer = state_dict["optimizer"]
