@@ -16,11 +16,8 @@ just fine-tuning the old model creates problems like "catastrophic forgetting".
 The algorithms in Renate help mitigating the negative impact of forgetting and increase the 
 model performance overall. 
 
-<div style="text-align: center;">
-<img src="https://github.com/awslabs/Renate/raw/mw-readme-figs/doc/_images/improvement_renate.png" alt="Renate vs Model Fine-Tuning" style="width:80%;" />
-<em>Renate's update mechanisms improve over naive fine-tuning approaches.</em>
-</div>
-
+![Renate vs Model Fine-Tuning](doc/_images/improvement_renate.svg)
+*Renate's update mechanisms improve over naive fine-tuning approaches.*
 
 Renate also offers hyperparameters optimization (HPO), a functionality that can heavily impact
 the performance of the model over several retrainings. To do so Renate employs
@@ -28,7 +25,7 @@ the performance of the model over several retrainings. To do so Renate employs
 advanced HPO methods such multi-fidelity algorithms (ASHA) and transfer learning algorithms
 (useful for speeding up the retuning).
 
-![Impact of HPO on Renate's Updating Algorithms](_images/improvement_tuning.svg)
+![Impact of HPO on Renate's Updating Algorithms](doc/_images/improvement_tuning.svg)
 *Renate will benefit from hyperparameter tuning compared to Renate with default settings.*
 
 
