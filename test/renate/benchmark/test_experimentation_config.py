@@ -136,7 +136,7 @@ def test_data_module_fn(
 )
 def test_transforms(dataset_name, use_transforms):
     train_preprocessing = train_transform(dataset_name)
-    test_preprocessing = experimentation_config.test_transform(dataset_name)
+    test_preprocessing = experiment_config.test_transform(dataset_name)
     if use_transforms:
         assert isinstance(train_preprocessing, Compose)
         assert isinstance(test_preprocessing, Normalize)
@@ -147,6 +147,6 @@ def test_transforms(dataset_name, use_transforms):
 
 def test_transforms_fails_for_unknown_dataset():
     unknown_dataset_set = "UNKNOWN_DATASET_NAME"
-    for transform_function in [train_transform, experimentation_config.test_transform]:
+    for transform_function in [train_transform, experiment_config.test_transform]:
         with pytest.raises(ValueError, match=f"Unknown dataset `{unknown_dataset_set}`"):
             transform_function(unknown_dataset_set)
