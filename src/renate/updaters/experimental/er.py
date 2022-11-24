@@ -1,15 +1,18 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import abc
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader, Dataset, Subset
 import torchmetrics
 from pytorch_lightning.loggers.logger import Logger
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 from renate import defaults
+from renate.data.datasets import _TransformedDataset, _EnumeratedDataset
+from renate.memory.buffer import DataTuple, DataDict
 from renate.models import RenateModule
 from renate.updaters.learner import ReplayLearner
 from renate.updaters.learner_components.losses import (
@@ -56,6 +59,10 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
         self._ema_memory_update_gamma = ema_memory_update_gamma
         self._use_loss_normalization = bool(loss_normalization)
 
+    def _post_init(self) -> None:
+        super()._post_init()
+        self._memory_loader: Optional[DataLoader] = None
+
     def _create_metrics_collections(
         self, logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None
     ) -> None:
@@ -66,6 +73,24 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
                     f"Component name {name} is already used as a loss name. Please pick a different name."
                 )
             self._loss_collections["train_losses"].update({name: torchmetrics.MeanMetric()})
+
+    def on_model_update_start(
+        self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
+    ) -> Tuple[DataLoader, DataLoader]:
+        """Called before a model update starts."""
+        self._set_memory_loader()
+        self._current_train_dataset = train_dataset
+        train_loader, val_loader = super().on_model_update_start(
+            train_dataset, val_dataset, task_id
+        )
+        train_loader = DataLoader(
+            _EnumeratedDataset(train_loader.dataset),
+            batch_size=self._batch_size,
+            shuffle=True,
+            generator=self._rng,
+            pin_memory=True,
+        )
+        return train_loader, val_loader
 
     def on_train_start(self) -> None:
         """PyTorch Lightning function to be run at the start of the training."""
@@ -107,11 +132,14 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
         if "loss_normalization" in args:
             self._use_loss_normalization = args["loss_normalization"]
 
-    def training_step(self, batch: Dict[str, List[torch.Tensor]], batch_idx: int) -> STEP_OUTPUT:
+    def training_step(
+        self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor], batch_idx: int
+    ) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
-        step_output = super().training_step(batch=batch["transformed"], batch_idx=batch_idx)
+        idx, (X, y) = batch
+        step_output = super().training_step(batch=(X, y), batch_idx=batch_idx)
+        step_output["train_data_idx"] = idx
         step_output["loss"] *= self._loss_weight
-        step_output["original"] = batch["original"]
 
         batch_memory: Optional[torch.Tensor] = None
         metadata_memory: Optional[torch.Tensor] = None
@@ -153,11 +181,47 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
 
         return step_output
 
+    def _sample_from_buffer(self, device: torch.device) -> Optional[Tuple[DataTuple, DataDict]]:
+        """Function to sample from the buffer, if buffer is populated."""
+        if self._memory_loader is not None and len(self._memory_buffer) >= self._memory_batch_size:
+            memory_batch = next(iter(self._memory_loader))
+            (x_memory, y_memory), metadata = memory_batch
+            x_memory, y_memory = x_memory.to(device), y_memory.to(device)
+            for key, value in metadata.items():
+                if isinstance(value, torch.Tensor):
+                    metadata[key] = value.to(device)
+            return (x_memory, y_memory), metadata
+        else:
+            return None
+
     def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
         """PyTorch Lightning function to perform after the training step."""
         super().training_step_end(step_output)
         self._update_memory_buffer(step_output)
         return step_output
+
+    def _update_memory_buffer(self, step_output: STEP_OUTPUT) -> None:
+        outputs = step_output["outputs"]
+        metadata = {"outputs": outputs.detach().cpu()}
+        for i, intermediate_representation in enumerate(step_output["intermediate_representation"]):
+            metadata[
+                f"intermediate_representation_{i}"
+            ] = intermediate_representation.detach().cpu()
+        dataset = Subset(self._current_train_dataset, step_output["train_data_idx"])
+        self._memory_buffer.update(dataset, metadata)
+        self._set_memory_loader()
+
+    def _set_memory_loader(self) -> None:
+        """Create a memory loader from a memory buffer."""
+        if self._memory_loader is None and len(self._memory_buffer) >= self._memory_batch_size:
+            self._memory_loader = DataLoader(
+                dataset=self._memory_buffer,
+                batch_size=self._memory_batch_size,
+                drop_last=True,
+                shuffle=True,
+                generator=self._rng,
+                pin_memory=True,
+            )
 
     def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int) -> None:
         """PyTorch Lightning function to perform after the training and optimizer step."""

@@ -1,4 +1,4 @@
-# Renate Output
+# Renate's output
 
 The result of a Renate update job is written to the folder specified via the `next_state_url` attribute. This folder
 contains the *Renate state*. It will be required for the next update job.
