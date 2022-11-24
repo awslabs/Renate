@@ -1,6 +1,5 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-import os
 from pathlib import Path
 
 import pandas as pd
@@ -34,19 +33,22 @@ def test_execute_experiment_job(tmpdir, experiment_job_kwargs):
         "Forward Transfer",
         "Backward Transfer",
     ]
+    expected_num_updates = experiment_job_kwargs["num_updates"]
     expected_results.columns = expected_columns
     execute_experiment_job(experiment_outputs_url=tmpdir, **experiment_job_kwargs)
     results_df = pd.read_csv(str(Path(tmpdir) / "logs" / "metrics_summary.csv"))
     assert all(results_df.columns == expected_columns)
     assert_frame_equal(results_df, expected_results)
-    for update_id in range(experiment_job_kwargs["num_updates"]):
+    for update_id in range(expected_num_updates):
         assert (Path(tmpdir) / f"update_{update_id}" / "learner.ckpt").is_file()
         assert (Path(tmpdir) / f"update_{update_id}" / "model.ckpt").is_file()
     assert (
         len(
-            pd.read_csv(str(Path(tmpdir) / f"update_{update_id}" / "hpo.csv"))["update_id"].unique()
+            pd.read_csv(str(Path(tmpdir) / f"update_{expected_num_updates-1}" / "hpo.csv"))[
+                "update_id"
+            ].unique()
         )
-        == experiment_job_kwargs["num_updates"]
+        == expected_num_updates
     )
 
 
