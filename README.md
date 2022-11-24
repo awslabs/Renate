@@ -16,7 +16,7 @@ just fine-tuning the old model creates problems like "catastrophic forgetting".
 The algorithms in Renate help mitigating the negative impact of forgetting and increase the 
 model performance overall. 
 
-<div style="text-align: center;"
+<div style="text-align: center;">
 <img src="doc/_images/improvement_renate.svg" alt="Renate vs Model Fine-Tuning" onerror="this.onerror=null;this.src='_images/improvement_renate.svg';" style="width:80%;" />
 *Renate's update mechanisms improve over naive fine-tuning approaches.*
 </div>
