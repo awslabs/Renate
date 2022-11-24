@@ -12,7 +12,7 @@ def _get_range(start, end, step):
 
 _learner_config_space = {
     "optimizer": "SGD",
-    "momentum": 0.0,
+    "momentum": choice([0.0, 0.9, 0.99]),
     "weight_decay": loguniform(1e-6, 1e-2),
     "learning_rate": loguniform(0.001, 0.5),
     "batch_size": 32,
@@ -22,7 +22,7 @@ _replay_config_space = {
     **_learner_config_space,
     **{
         "memory_batch_size": 32,
-        "memory_size": 500,
+        "memory_size": 1000,
     },
 }
 _er_config_space = {
@@ -56,15 +56,12 @@ _super_er_config_space = {
         "ema_memory_update_gamma": uniform(0.95, 1.0),
     },
 }
-
-_repeated_distill_config_space = {
-    "optimizer": choice(["SGD", "Adam"]),
-    "momentum": loguniform(1e-6, 1e-1),
-    "weight_decay": loguniform(1e-6, 1e-2),
-    "learning_rate": loguniform(0.001, 0.5),
-    "batch_size": choice([32, 64, 128]),
-    "max_epochs": 50,
-    "memory_size": 1000,
+_repeated_distill_config_space = _replay_config_space
+_offline_er_config_space = {
+    **_replay_config_space,
+    **{
+        "loss_weight_new_data": choice([None, 0.5])
+    }
 }
 
 
@@ -75,5 +72,6 @@ def config_space(updater: str) -> Dict[str, Union[Domain, str, int, float]]:
         "DER": _der_config_space,
         "SUPER-ER": _super_er_config_space,
         "RD": _repeated_distill_config_space,
+        "OfflineER": _offline_er_config_space,
     }
     return config_spaces[updater.upper()]
