@@ -1,6 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Callable, Optional, Tuple
+from typing import Any, Callable, Optional, Tuple
 from typing import Dict, List, Union
 
 import torch
@@ -55,18 +55,14 @@ class ImageDataset(Dataset):
 
 
 class _TransformedDataset(Dataset):
-    """A dataset that applies a given transformation to a given dataset.
+    """A dataset wrapper that applies transformations.
 
-    The class is used to apply additional transformations on a given dataset.
-    :class:`renate.updaters.learner.ReplayLearner` uses `return_original_tensor` to get access to the original data
-    points.
-    Use of any transformations to data points or targets is optional.
+    This wrapper assumes that the the passed `dataset` returns a pair `(x, y)`.
 
     Args:
         dataset: The dataset to wrap.
-        transform: Transformation to perform on the sample.
-        target_transform: Transformation to perform on the target.
-        return_original_tensor: If True, `__getitem__` a dict containing the original as well as the transformed tensor.
+        transform: Transformation to perform on the covariates `x`.
+        target_transform: Transformation to perform on the target `y`.
     """
 
     def __init__(
@@ -74,32 +70,40 @@ class _TransformedDataset(Dataset):
         dataset: Dataset,
         transform: Optional[Callable] = None,
         target_transform: Optional[Callable] = None,
-        return_original_tensor: bool = False,
     ) -> None:
         super(Dataset, self).__init__()
         self._dataset = dataset
         self._transform = transform
         self._target_transform = target_transform
-        self._return_original_tensor = return_original_tensor
 
-    def __getitem__(
-        self, idx: int
-    ) -> Union[Tuple[Tensor, Tensor], Dict[str, Tuple[Tensor, Tensor]]]:
-        """Returns a dictionary containing the non-augmented and augmented samples."""
+    def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor]:
+        """Returns the transformed data point."""
         data, target = self._dataset[idx]
-        transformed_data, transformed_target = data, target
-
         if self._transform is not None:
-            transformed_data = self._transform(data)
-
+            data = self._transform(data)
         if self._target_transform is not None:
-            transformed_target = self._target_transform(target)
-        if self._return_original_tensor:
-            return {
-                "original": (data, target),
-                "transformed": (transformed_data, transformed_target),
-            }
-        return transformed_data, transformed_target
+            target = self._target_transform(target)
+        return data, target
+
+    def __len__(self) -> int:
+        """Returns the number of data points in the dataset."""
+        return len(self._dataset)
+
+
+class _EnumeratedDataset(Dataset):
+    """A dataset wrapper that enumerates data points.
+
+    Args:
+        dataset: The dataset to wrap.
+    """
+
+    def __init__(self, dataset: Dataset) -> None:
+        super().__init__()
+        self._dataset = dataset
+
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, Any]:
+        """Returns index and data point."""
+        return torch.tensor(idx, dtype=torch.long), self._dataset[idx]
 
     def __len__(self) -> int:
         """Returns the number of data points in the dataset."""

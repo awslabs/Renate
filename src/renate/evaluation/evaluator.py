@@ -56,7 +56,6 @@ class Evaluator(LightningModule, abc.ABC):
             test_dataset,
             transform=self._transform,
             target_transform=self._target_transform,
-            return_original_tensor=False,
         )
         self._task_id = task_id
         return DataLoader(test_dataset, batch_size=self._batch_size, shuffle=False, pin_memory=True)
