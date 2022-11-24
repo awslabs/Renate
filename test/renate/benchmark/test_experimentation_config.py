@@ -3,9 +3,9 @@
 import pytest
 from torchvision.transforms import Compose, Normalize
 
-from renate.benchmark import experimentation_config
+from renate.benchmark import experiment_config
 from renate.benchmark.datasets.vision_datasets import CLEARDataModule, TorchVisionDataModule
-from renate.benchmark.experimentation_config import (
+from renate.benchmark.experiment_config import (
     data_module_fn,
     get_data_module,
     get_scenario,

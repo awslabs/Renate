@@ -13,11 +13,11 @@ The benchmark will be configured by :code:`config_space`.
 
 .. code-block:: python
 
-    from renate.benchmark.experimentation import execute_experiment_job, experimentation_config_file
+    from renate.benchmark.experimentation import execute_experiment_job, experiment_config_file
 
     execute_experiment_job(
         backend="local",
-        config_file=experimentation_config_file(),
+        config_file=experiment_config_file(),
         config_space=config_space,
         experiment_outputs_url="results/",
         mode="max",

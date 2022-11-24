@@ -1,4 +1,4 @@
-from renate.benchmark.experimentation import execute_experiment_job, experimentation_config_file
+from renate.benchmark.experimentation import execute_experiment_job, experiment_config_file
 
 
 def to_dense_str(value):
@@ -30,7 +30,7 @@ config_space = {
 
 execute_experiment_job(
     backend="local",
-    config_file=experimentation_config_file(),
+    config_file=experiment_config_file(),
     config_space=config_space,
     experiment_outputs_url="results/",
     mode="max",
