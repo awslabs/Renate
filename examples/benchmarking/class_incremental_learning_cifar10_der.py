@@ -28,13 +28,14 @@ config_space = {
     "transform_dataset_name": dataset_name,
 }
 
-execute_experiment_job(
-    backend="local",
-    config_file=experiment_config_file(),
-    config_space=config_space,
-    experiment_outputs_url="results/",
-    mode="max",
-    metric="val_accuracy",
-    num_updates=5,
-    seed=0,
-)
+for seed in range(10):
+    execute_experiment_job(
+        backend="local",
+        config_file=experiment_config_file(),
+        config_space=config_space,
+        experiment_outputs_url=f"results/{seed}/",
+        mode="max",
+        metric="val_accuracy",
+        num_updates=5,
+        seed=seed,
+    )

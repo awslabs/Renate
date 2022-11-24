@@ -23,7 +23,6 @@ The benchmark will be configured by :code:`config_space`.
         mode="max",
         metric="val_accuracy",
         num_updates=5,
-        seed=0,
     )
 
 .. _benchmarking-renate-benchmarks-models:
@@ -65,29 +64,29 @@ The full list of models and model names including a short description is provide
     * - MultiLayerPerceptron
       - Neural network consisting of a sequence of dense layers.
     * - ResNet18
-      - 18 layer `ResNet <https://arxiv.org/pdf/1512.03385.pdf>`_ CNN architecture
+      - 18 layer `ResNet <https://arxiv.org/abs/1512.03385>`_ CNN architecture
     * - ResNet34
-      - 34 layer `ResNet <https://arxiv.org/pdf/1512.03385.pdf>`_ CNN architecture
+      - 34 layer `ResNet <https://arxiv.org/abs/1512.03385>`_ CNN architecture
     * - ResNet50
-      - 50 layer `ResNet <https://arxiv.org/pdf/1512.03385.pdf>`_ CNN architecture
+      - 50 layer `ResNet <https://arxiv.org/abs/1512.03385>`_ CNN architecture
     * - ResNet18CIFAR
-      - 18 layer `ResNet <https://arxiv.org/pdf/1512.03385.pdf>`_ CNN architecture for small image sizes (approx 32x32)
+      - 18 layer `ResNet <https://arxiv.org/abs/1512.03385>`_ CNN architecture for small image sizes (approx 32x32)
     * - ResNet34CIFAR
-      - 34 layer `ResNet <https://arxiv.org/pdf/1512.03385.pdf>`_ CNN architecture for small image sizes (approx 32x32)
+      - 34 layer `ResNet <https://arxiv.org/abs/1512.03385>`_ CNN architecture for small image sizes (approx 32x32)
     * - ResNet50CIFAR
-      - 50 layer `ResNet <https://arxiv.org/pdf/1512.03385.pdf>`_ CNN architecture for small image sizes (approx 32x32)
+      - 50 layer `ResNet <https://arxiv.org/abs/1512.03385>`_ CNN architecture for small image sizes (approx 32x32)
     * - VisionTransformerCIFAR
-      - Base `Vision Transformer <https://arxiv.org/pdf/2010.11929.pdf>`_ architecture for images of size 32x32 with patch size 4.
+      - Base `Vision Transformer <https://arxiv.org/abs/2010.11929>`_ architecture for images of size 32x32 with patch size 4.
     * - VisionTransformerB16
-      - Base `Vision Transformer <https://arxiv.org/pdf/2010.11929.pdf>`_ architecture for images of size 224x224 with patch size 16.
+      - Base `Vision Transformer <https://arxiv.org/abs/2010.11929>`_ architecture for images of size 224x224 with patch size 16.
     * - VisionTransformerB32
-      - Base `Vision Transformer <https://arxiv.org/pdf/2010.11929.pdf>`_ architecture for images of size 224x224 with patch size 32.
+      - Base `Vision Transformer <https://arxiv.org/abs/2010.11929>`_ architecture for images of size 224x224 with patch size 32.
     * - VisionTransformerL16
-      - Large `Vision Transformer <https://arxiv.org/pdf/2010.11929.pdf>`_ architecture for images of size 224x224 with patch size 16.
+      - Large `Vision Transformer <https://arxiv.org/abs/2010.11929>`_ architecture for images of size 224x224 with patch size 16.
     * - VisionTransformerL32
-      - Large `Vision Transformer <https://arxiv.org/pdf/2010.11929.pdf>`_ architecture for images of size 224x224 with patch size 32.
+      - Large `Vision Transformer <https://arxiv.org/abs/2010.11929>`_ architecture for images of size 224x224 with patch size 32.
     * - VisionTransformerH14
-      - Huge `Vision Transformer <https://arxiv.org/pdf/2010.11929.pdf>`_ architecture for images of size 224x224 with patch size 14.
+      - Huge `Vision Transformer <https://arxiv.org/abs/2010.11929>`_ architecture for images of size 224x224 with patch size 14.
 
 
 .. _benchmarking-renate-benchmarks-datasets:
@@ -179,10 +178,11 @@ Example: Class-incremental Learning on CIFAR-10
 ===============================================
 
 The following example reproduces the results shown in
-`Dark Experience for General Continual Learning: a Strong, Simple Baseline <https://arxiv.org/pdf/2004.07211.pdf>`_
+`Dark Experience for General Continual Learning: a Strong, Simple Baseline <https://arxiv.org/abs/2004.07211>`_
 Table 2, Buffer 500, S-CIFAR-10, Class-IL, DER++.
 These settings use a class-incremental scenario in which the CIFAR-10 dataset is partitioned into 5 parts, each
 containing two unique classes.
-Dark Experience Replay++ is used as the updating method with a memory buffer size of 500.
+Dark Experience Replay++ is used as the updating method with a memory buffer size of 500
+and the experiment is repeated 10 times.
 
 .. literalinclude:: ../../examples/benchmarking/class_incremental_learning_cifar10_der.py
