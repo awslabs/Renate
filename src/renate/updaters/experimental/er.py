@@ -11,7 +11,7 @@ from pytorch_lightning.loggers.logger import Logger
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 from renate import defaults
-from renate.data.datasets import _TransformedDataset, _EnumeratedDataset
+from renate.data.datasets import _EnumeratedDataset
 from renate.memory.buffer import DataTuple, DataDict
 from renate.models import RenateModule
 from renate.updaters.learner import ReplayLearner
