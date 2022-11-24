@@ -40,7 +40,6 @@ def data_module_fn(
     )
     class_incremental_scenario = ClassIncrementalScenario(
         data_module=data_module,
-        num_tasks=2,
         class_groupings=[[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]],
         chunk_id=chunk_id,
     )
