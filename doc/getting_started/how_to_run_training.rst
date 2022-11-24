@@ -75,7 +75,7 @@ Running a job on SageMaker is very similar to run the training job locally, but 
 to the arguments passed to :code:`execute_tuning_job`:
 
 * :code:`backend`: the backend will have to be set to :code:`sagemaker`.
-* :code:`role`: an execution role will need to be passed. If uncertain about what to pass just import :code:`get_execution_role()` from Syne Tune.
+* :code:`role`: an execution role will need to be passed. If uncertain about what to pass just import :code:`get_execution_role()` from Syne Tune as in the example below.
 * :code:`instance_type`: the type of machine to be used for the training. The list training instances is available `here <https://aws.amazon.com/sagemaker/pricing/>`_.
 * :code:`job_name`: (optional) a prefix used to name the training job to make it recognizable in the SageMaker jobs list.
 
