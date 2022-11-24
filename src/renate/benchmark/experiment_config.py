@@ -114,9 +114,9 @@ def get_scenario(
         chunk_id: The data chunk to load in for the training or validation data.
         seed: A random seed to fix the created scenario.
         num_tasks: The total number of expected tasks for experimentation.
-        class_groupings: Used for scenario `class_incremental`. Partitions classes into different chunks
-        degrees: Used for scenario `rotation`. Rotations applied for each chunk.
-        input_dim: Used for scenario `permutation`. Input dimensionality.
+        class_groupings: Used for scenario `ClassIncrementalScenario`. Partitions classes into different chunks
+        degrees: Used for scenario `ImageRotationScenario`. Rotations applied for each chunk.
+        input_dim: Used for scenario `PermutationScenario`. Input dimensionality.
 
     Returns:
         An instance of the requested scenario.
@@ -124,7 +124,7 @@ def get_scenario(
     Raises:
         ValueError: If scenario name is unknown.
     """
-    if scenario_name == "class_incremental":
+    if scenario_name == "ClassIncrementalScenario":
         assert (
             class_groupings is not None
         ), "Provide `class_groupings` for the class-incremental scenario."
@@ -133,15 +133,15 @@ def get_scenario(
             class_groupings=class_groupings,
             chunk_id=chunk_id,
         )
-    if scenario_name == "benchmark":
+    if scenario_name == "BenchmarkScenario":
         return BenchmarkScenario(
             data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed
         )
-    if scenario_name == "rotation":
+    if scenario_name == "ImageRotationScenario":
         return ImageRotationScenario(
             data_module=data_module, degrees=degrees, chunk_id=chunk_id, seed=seed
         )
-    if scenario_name == "permutation":
+    if scenario_name == "PermutationScenario":
         return PermutationScenario(
             data_module=data_module,
             num_tasks=num_tasks,

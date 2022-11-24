@@ -92,7 +92,6 @@ class TinyImageNetDataModule(RenateDataModule):
             data_path = os.path.join(self._data_path, self._dataset_name, "tiny-imagenet-200")
         else:
             data_path = os.path.join(self._data_path, self._dataset_name, "tiny-imagenet-200")
-        label_encoding = {}
         with open(os.path.join(data_path, "wnids.txt"), "r") as f:
             label_encoding = {line.strip(): i for i, line in enumerate(f.readlines())}
         X = []

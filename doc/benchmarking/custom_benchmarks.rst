@@ -1,6 +1,6 @@
 .. _benchmarking-custom-benchmarks:
 
-Custom Benchmarks
-*******************
+Create Custom Benchmarks
+*******************************
 
 todo

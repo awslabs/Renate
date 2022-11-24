@@ -21,7 +21,7 @@ config_space = {
     "loss_normalization": 0,
     "loss_weight": 1.0,
     "model_fn_model_name": "ResNet18CIFAR",
-    "data_module_fn_scenario_name": "class_incremental",
+    "data_module_fn_scenario_name": "ClassIncrementalScenario",
     "data_module_fn_dataset_name": dataset_name,
     "data_module_fn_val_size": 0,
     "data_module_fn_class_groupings": to_dense_str([[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]]),

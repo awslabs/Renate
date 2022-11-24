@@ -19,7 +19,7 @@
     :maxdepth: 1
 
     benchmarking/introduction
-    benchmarking/standard_benchmarks
+    benchmarking/renate_benchmarks
     benchmarking/custom_benchmarks
 
 .. toctree::
