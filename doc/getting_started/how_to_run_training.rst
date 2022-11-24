@@ -13,7 +13,7 @@ Setup
 The first step that needs to be completed before running a training job is to define which model needs
 to be trained and on which data. This is explained in :doc:`how_to_renate_config`.
 
-Once completed the first step, a simple way to run a training job is to use the :py:func:~renate.tuning.tuning.execute_tuning_job,
+Once completed the first step, a simple way to run a training job is to use the :py:func:`renate.tuning.tuning.execute_tuning_job`,
 this can work for most training needs: it can launch trainings with and without HPO,
 either locally or on Amazon SageMaker.
 
