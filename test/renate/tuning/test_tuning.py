@@ -32,7 +32,6 @@ def get_config_file(use_val):
     return str(config_file_root_dir / config_file)
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize(
     "num_chunks, use_val, raises, fixed_search_space, scheduler",
     [
