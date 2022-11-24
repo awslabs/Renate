@@ -14,10 +14,10 @@ configuration = {
 if __name__ == "__main__":
 
     execute_tuning_job(
-        config_space=configuration,  # getting the default search space
+        config_space=configuration,
         mode="max",
         metric="val_accuracy",
-        updater="ER",  # use the RepeatedDistillationModelUpdater
+        updater="ER",
         max_epochs=50,
         chunk_id=0,
         config_file="renate_config.py",

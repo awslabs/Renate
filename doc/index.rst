@@ -9,7 +9,7 @@
 
    getting_started/install
    getting_started/how_to_renate_config
-   getting_started/hot_to_run_training
+   getting_started/how_to_run_training
    getting_started/output
    getting_started/supported_algorithms
 
