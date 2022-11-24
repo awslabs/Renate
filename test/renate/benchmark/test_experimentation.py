@@ -1,32 +1,19 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-import ast
 from pathlib import Path
-from typing import Optional, Union
 
-import torch
-
-from datasets import DummyTorchVisionDataModule
-from renate.benchmark.models import MultiLayerPerceptron
-from renate.benchmark.scenarios import ClassIncrementalScenario
-from renate.models import RenateModule
+from renate.benchmark.experimentation import execute_experiment_job
 
 
-def model_fn(
-    model_state_url: Optional[Union[Path, str]] = None,
-) -> RenateModule:
-    if model_state_url is None:
-        return MultiLayerPerceptron(5 * 5, 10, 0, 64)
-    state_dict = torch.load(str(model_state_url))
-    return MultiLayerPerceptron.from_state_dict(state_dict)
-
-
-def data_module_fn(
-    data_path: Union[Path, str],
-    chunk_id: int,
-    seed: int,
-):
-    data_module = DummyTorchVisionDataModule(transform=None, val_size=0.9, seed=seed)
-    return ClassIncrementalScenario(
-        data_module=data_module, chunk_id=chunk_id, seed=seed, class_groupings=[[0, 1], [2, 3, 4]]
+def test_execute_experiment_job(tmpdir):
+    execute_experiment_job(
+        backend="local",
+        config_file=str(Path(__file__).parent.parent / "renate_config_files" / "config.py"),
+        config_space={"updater": "ER", "data_module_fn_use_scenario": "True", "max_epochs": 5},
+        experiment_outputs_url=tmpdir,
+        mode="max",
+        metric="val_accuracy",
+        num_updates=2,
+        max_time=15,
+        seed=0,
     )
