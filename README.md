@@ -16,12 +16,10 @@ just fine-tuning the old model creates problems like "catastrophic forgetting".
 The algorithms in Renate help mitigating the negative impact of forgetting and increase the 
 model performance overall. 
 
-<figure>
-<img src="IMAGE" alt="Experience Replay vs model fine-tuning" style="width:100%">
-<figcaption align = "center">
-Image caption
-</figcaption>
-</figure>
+<div style="text-align: center;">
+<img src="https://raw.githubusercontent.com/awslabs/Renate/c62f55046bf1e2d72ef17b3b9fd9df6508ef1f07/doc/_images/improvement_renate.svg" alt="Renate vs Model Fine-Tuning" style="width:80%;" />
+<p>Renate's update mechanisms improve over naive fine-tuning approaches.<sup><a href="#footnote-exp1">[1]</a></sup></p>
+</div>
 
 Renate also offers hyperparameters optimization (HPO), a functionality that can heavily impact
 the performance of the model over several retrainings. To do so Renate employs
@@ -29,12 +27,11 @@ the performance of the model over several retrainings. To do so Renate employs
 advanced HPO methods such multi-fidelity algorithms (ASHA) and transfer learning algorithms
 (useful for speeding up the retuning).
 
-<figure>
-<img src="IMAGE" alt="The impact of HPO on Experience Replay" style="width:100%">
-<figcaption align = "center">
-Image caption
-</figcaption>
-</figure>
+<div style="text-align: center;">
+<img src="https://raw.githubusercontent.com/awslabs/Renate/c62f55046bf1e2d72ef17b3b9fd9df6508ef1f07/doc/_images/improvement_tuning.svg" alt="Impact of HPO on Renate's Updating Algorithms" style="width:80%;" />
+<p>Renate will benefit from hyperparameter tuning compared to Renate with default settings.<sup><a href="#footnote-exp2">[2]</a></sup></p>
+</div>
+
 
 ## Key features
 * Easy to scale and run in the cloud
@@ -60,3 +57,22 @@ If you wish to contribute to the project, please refer to our
 [contribution guidelines](https://github.com/awslabs/renate/tree/master/CONTRIBUTING.md).
 * **You did not find what you were looking for?**\
 Open an [issue](https://github.com/awslabs/Renate/issues/new) and we will do our best to improve the documentation.
+
+
+<hr class="footnotes docutils" />
+<div style="font-size: 0.75em">
+<p id="footnote-exp1">
+[1] To create this plot, we simulated class-incremental learning with CIFAR-10.
+The training data was divided into 5 partitions, and we trained sequentially on them.
+Fine-tuning refers to the strategy to learn on the first partition from scratch, and
+train on each of the subsequent partitions for few epochs only.
+We compare to Experience Replay with a memory size of 500.
+For both methods we use the same number of epochs and choose the best checkpoint
+using a validation set.
+Results reported are on the test set.
+</p>
+<p id="footnote-exp2">
+[2] The setup is the same as in the last experiment. However, this time we compare
+Experience Replay against a version in which its hyperparameters were tuned.
+</p>
+</div>
