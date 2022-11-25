@@ -3,18 +3,18 @@ Supported Algorithms
 
 Renate provides implementations of various continual learning methods. The following table provides
 an overview with links to the documentation, and a short description. When initiating model updates
-using Renate (see :doc:`how_to_run_training`), a method may be selected using the shorthand
-provided below.
+using Renate (e.g., using :py:func:`renate.tuning.tuning.execute_tuning_job`; see
+:doc:`how_to_run_training`), a method may be selected using the shorthand provided below.
 
 .. list-table:: Title
    :header-rows: 1
 
    * - Shorthand
-     - Method
+     - Implementation
      - Description
    * - ``"ER"``
      - :py:class:`ExperienceReplayLearner <renate.updaters.experimental.er.ExperienceReplayLearner>`
-     - The most basic replay-based method. The model is finetuned using minibatches combining new data and points sampled from a rehearsal memory. The memory is updated after each minibatch.
+     - A simple replay-based method, where the model is finetuned using minibatches combining new data and points sampled from a rehearsal memory. The memory is updated after each minibatch. [`Paper<https://arxiv.org/abs/1902.10486>`]
    * - ``"DER"``
      - :py:class:`DarkExperienceReplayLearner <renate.updaters.experimental.er.DarkExperienceReplayLearner>`
      - A version of experience replay which augments the loss by a distillation term using logits produced by previous model states.

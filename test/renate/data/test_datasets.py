@@ -20,8 +20,8 @@ class MulTransform:
         return x * self.factor
 
 
-@pytest.mark.parametrize("transform", [lambda x: x+1, torch.sqrt, None])
-@pytest.mark.parametrize("target_transform", [lambda x: x*2, lambda x: x**2, None])
+@pytest.mark.parametrize("transform", [lambda x: x + 1, torch.sqrt, None])
+@pytest.mark.parametrize("target_transform", [lambda x: x * 2, lambda x: x**2, None])
 def test_transformed_dataset(transform, target_transform):
     X = torch.arange(10)
     y = torch.arange(10)
@@ -36,12 +36,12 @@ def test_transformed_dataset(transform, target_transform):
 
 
 def test_enumerated_dataset():
-    ds = TensorDataset(torch.arange(10)**2)
+    ds = TensorDataset(torch.arange(10) ** 2)
     ds_enumerated = _EnumeratedDataset(ds)
     for i in range(10):
         idx, batch = ds_enumerated[i]
         assert i == idx
-        assert batch[0] == idx ** 2
+        assert batch[0] == idx**2
 
 
 def test_image_dataset(tmpdir):

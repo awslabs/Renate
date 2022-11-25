@@ -80,7 +80,9 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
         """Called before a model update starts."""
         self._set_memory_loader()
         self._current_train_dataset = train_dataset
-        train_loader, val_loader = super().on_model_update_start(train_dataset, val_dataset, task_id)
+        train_loader, val_loader = super().on_model_update_start(
+            train_dataset, val_dataset, task_id
+        )
         train_loader = DataLoader(
             _EnumeratedDataset(train_loader.dataset),
             batch_size=self._batch_size,
@@ -130,7 +132,9 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
         if "loss_normalization" in args:
             self._use_loss_normalization = args["loss_normalization"]
 
-    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor], batch_idx: int) -> STEP_OUTPUT:
+    def training_step(
+        self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor], batch_idx: int
+    ) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
         idx, (X, y) = batch
         step_output = super().training_step(batch=(X, y), batch_idx=batch_idx)
