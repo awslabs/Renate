@@ -18,8 +18,10 @@ model performance overall.
 
 <div style="text-align: center;">
 <img src="https://raw.githubusercontent.com/awslabs/Renate/c62f55046bf1e2d72ef17b3b9fd9df6508ef1f07/doc/_images/improvement_renate.svg" alt="Renate vs Model Fine-Tuning" style="width:80%;" />
-<p>Renate's update mechanisms improve over naive fine-tuning approaches.</p>
 </div>
+Renate's update mechanisms improve over naive fine-tuning approaches.[^1]
+
+[^1]: test
 
 
 Renate also offers hyperparameters optimization (HPO), a functionality that can heavily impact
