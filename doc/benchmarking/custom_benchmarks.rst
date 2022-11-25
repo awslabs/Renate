@@ -9,7 +9,7 @@ Creating a benchmark config file is very similar to creating the
 It is not required to build it from scratch but can be build on top of
 :py:mod:`~renate.benchmark.experiment_config` in case you want to reuse parts of the
 Renate benchmarks.
-The main difference is that the object returned by the :code:`model_fn` which needs to
+The main difference is that the object returned by the :code:`model_fn` needs to
 follow a slightly different interface.
 
 
@@ -60,5 +60,5 @@ such that it assigns the right subset of your data to :code:`self._train_data` a
 By default, your model will be evaluated on the entire test data after each update step.
 If you want to change that, please override :py:meth:`~renate.benchmark.scenarios.Scenario.test_data()`
 as well.
-Please check the implementation of :py:class:`~renate.benchmark.scenarios.ClassIncrementalScenario`
+Please check the implementation of :py:class:`~renate.benchmark.scenarios.TransformScenario`
 for an example.

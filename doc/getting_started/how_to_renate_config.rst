@@ -18,7 +18,7 @@ Its signature is
 
     def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule:
 
-A :py:class:`~renate.models.renate_module.RenateModule` is a `torch.nn.Module` with some
+A :py:class:`~renate.models.renate_module.RenateModule` is a :code:`torch.nn.Module` with some
 additional functionality relevant to continual learning.
 If no path is given (i.e., when we first train a model) your :code:`model_fn` should create
 the model from scratch.
