@@ -23,7 +23,7 @@ The Renate state folder contains three files:
 
 ## Loading the Updated Model
 
-In the following, we refer with `model_fn` to the function defined by the user in the [Renate config file](./how_to_renate_config.md).
+In the following, we refer with `model_fn` to the function defined by the user in the [Renate config file](./how_to_renate_config.rst).
 
 ### Output Saved Locally
 

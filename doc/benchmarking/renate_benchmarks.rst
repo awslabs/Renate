@@ -1,5 +1,3 @@
-.. _benchmarking-renate-benchmarks:
-
 Renate Benchmarks
 *****************
 
