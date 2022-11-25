@@ -42,7 +42,7 @@ There are also parameters that we pass directly like
 the folder in which the learner state will be saved (via :code:`next_state_url`).
 In order to update an existing model, it will also be necessary to provide the path
 to the previously saved state using :code:`state_url`, as done in our example.
-More details about running training jobs are available in :doc:`../getting_started/hot_to_run_training`.
+More details about running training jobs are available in :doc:`../getting_started/how_to_run_training`.
 
 .. literalinclude:: ../../examples/train_mlp_locally/start_training_without_hpo.py
 

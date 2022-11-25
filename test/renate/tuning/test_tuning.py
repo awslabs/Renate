@@ -22,23 +22,16 @@ from renate.tuning.tuning import (
 )
 from renate.utils.syne_tune import is_syne_tune_config_space
 
-
-def get_config_file(use_val):
-    config_file_root_dir = Path(__file__).parent.parent / "renate_config_files"
-    if use_val:
-        config_file = "with_val_split.py"
-    else:
-        config_file = "without_val_split.py"
-    return str(config_file_root_dir / config_file)
+config_file = str(Path(__file__).parent.parent / "renate_config_files" / "config.py")
 
 
 @pytest.mark.parametrize(
-    "num_chunks, use_val, raises, fixed_search_space, scheduler",
+    "num_chunks, val_size, raises, fixed_search_space, scheduler",
     [
-        (2, True, False, False, "rush"),
-        (1, False, True, False, "rush"),
-        (1, True, False, True, None),
-        (1, False, False, True, None),
+        (2, 0.9, False, False, "rush"),
+        (1, 0.0, True, False, "rush"),
+        (1, 0.9, False, True, None),
+        (1, 0.0, False, True, None),
     ],
     ids=[
         "transfer-hpo-with-val",
@@ -47,7 +40,7 @@ def get_config_file(use_val):
         "training-single-config-without-val",
     ],
 )
-def test_execute_tuning_job(tmpdir, num_chunks, use_val, raises, fixed_search_space, scheduler):
+def test_execute_tuning_job(tmpdir, num_chunks, val_size, raises, fixed_search_space, scheduler):
     """Simply running tuning job to check if anything fails.
 
     Case 1: Standard HPO setup with transfer learning in second step.
@@ -62,17 +55,18 @@ def test_execute_tuning_job(tmpdir, num_chunks, use_val, raises, fixed_search_sp
         def execute_job():
             execute_tuning_job(
                 updater="ER",
-                max_epochs=50,
-                config_file=get_config_file(use_val),
+                max_epochs=5,
+                config_file=config_file,
                 state_url=state_url,
                 next_state_url=tmpdir,
                 backend="local",
                 mode="max",
                 config_space={
-                    "learning_rate": 0.1 if fixed_search_space else loguniform(10e-5, 0.1)
+                    "learning_rate": 0.1 if fixed_search_space else loguniform(10e-5, 0.1),
+                    "data_module_fn_val_size": val_size,
                 },
                 metric="val_accuracy",
-                max_time=30,
+                max_time=15,
                 scheduler=scheduler,
             )
 
@@ -125,19 +119,18 @@ def test_merge_tuning_history(
         )
 
 
-@pytest.mark.parametrize("use_val", [True, False])
+@pytest.mark.parametrize("val_size", [0.9, 0.0])
 @pytest.mark.parametrize("tune_hyperparameters", [True, False])
-def test_verify_validation_set_for_hpo_and_checkpointing(tmpdir, use_val, tune_hyperparameters):
+def test_verify_validation_set_for_hpo_and_checkpointing(tmpdir, val_size, tune_hyperparameters):
     """Check if misconfigurations are spotted and config_space is updated correctly.
 
     If tune_hyperparameters is `True` (hyperparameter optimization is enabled), a validation set must exist.
     If a validation set exists, the `config_space` must be changed such that the right metric and mode for checkpointing
     and hyperparameter optimization is used.
     """
-    config_space = {}
+    config_space = {"data_module_fn_val_size": val_size}
     expected_metric = "val_accuracy"
     expected_mode: defaults.SUPPORTED_TUNING_MODE_TYPE = "max"
-    config_file = get_config_file(use_val)
 
     def verify_validation_set():
         return _verify_validation_set_for_hpo_and_checkpointing(
@@ -151,12 +144,12 @@ def test_verify_validation_set_for_hpo_and_checkpointing(tmpdir, use_val, tune_h
             seed=0,
         )
 
-    if tune_hyperparameters and not use_val:
+    if tune_hyperparameters and val_size == 0:
         with pytest.raises(AssertionError):
             verify_validation_set()
     else:
         metric, mode = verify_validation_set()
-        if use_val:
+        if val_size > 0:
             assert config_space.get("metric") == expected_metric
             assert config_space.get("mode") == expected_mode
             assert metric == expected_metric

@@ -41,7 +41,7 @@ Training
 ========
 
 The example also contains :code:`start_with_hpo.py`,
-which launches a training job with integrated hyperparamters optimization.
+which launches a training job with integrated hyperparameters optimization.
 To this purpose, in the file we define a dictionary containing the
 configuration of the learning algorithm. In some cases instead of a single
 value we define a range (e.g., :code:`uniform(0.0, 1.0)`) in which the
@@ -54,7 +54,7 @@ in :code:`next_state_url`, to simplify the example in this case we provide two v
 that can be used to set AWS Account ID and AWS region used, but any accessible S3 bucket can be
 used for storing the output.
 The description of the other arguments and a high level overview of how to run a
-training jobs are available in :doc:`../getting_started/hot_to_run_training`.
+training jobs are available in :doc:`../getting_started/how_to_run_training`.
 
 .. literalinclude:: ../../examples/simple_classifier_cifar10/start_with_hpo.py
 
