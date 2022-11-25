@@ -60,18 +60,16 @@ Open an [issue](https://github.com/awslabs/Renate/issues/new) and we will do our
 
 
 <hr class="footnotes docutils" />
+<div style="font-size: 0.75em">
 <p id="footnote-exp1">
-<small>
 [1] To create this plot, we simulated class-incremental learning with CIFAR-10.
 The training data was divided into 5 partitions, and we trained sequentially on them.
 Fine-tuning refers to the strategy to learn on the first partition from scratch, and
 train on each of the subsequent partitions for few epochs only.
 We compare to Experience Replay with a memory size of 500.
-</small>
 </p>
 <p id="footnote-exp2">
-<small>
 [2] The setup is the same as in the last experiment. However, this time we compare
 Experience Replay against a version in which its hyperparameters were tuned.
-</small>
 </p>
+</div>
