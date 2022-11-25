@@ -59,9 +59,7 @@ _super_er_config_space = {
 _repeated_distill_config_space = _replay_config_space
 _offline_er_config_space = {
     **_replay_config_space,
-    **{
-        "loss_weight_new_data": choice([None, 0.5])
-    }
+    **{"loss_weight_new_data": choice([None, 0.25, 0.5, 0.75])},
 }
 
 
