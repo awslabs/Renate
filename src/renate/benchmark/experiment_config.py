@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
 import torch
+from syne_tune.optimizer.schedulers import HyperbandScheduler
 from torchvision.transforms import transforms
 
 from renate.benchmark.datasets.nlp_datasets import TorchTextDataModule
@@ -220,3 +221,13 @@ def test_transform(transform_dataset_name: str) -> Optional[transforms.Normalize
     elif transform_dataset_name in ["CIFAR10", "CIFAR100"]:
         return _get_normalize_transform(transform_dataset_name)
     raise ValueError(f"Unknown dataset `{transform_dataset_name}`.")
+
+
+def scheduler_fn():
+    scheduler = HyperbandScheduler
+    scheduler_kwargs = {
+        "searcher": "hypertune",
+        "type": "stopping",
+        "search_options": {"model": "gp_independent"},
+    }
+    return scheduler, scheduler_kwargs

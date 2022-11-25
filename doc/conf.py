@@ -56,16 +56,23 @@ copyright = f"{datetime.datetime.now().year}, Amazon"
 
 
 extensions = [
+    "sphinx.ext.autosectionlabel",
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
     "sphinx.ext.viewcode",
+    "hoverxref.extension",  # show reference preview
     "sphinx_copybutton",
     "myst_parser",
 ]
 myst_heading_anchors = 2
+
+# Make sure the target is unique
+autosectionlabel_prefix_document = True
+
+hoverxref_auto_ref = True  # Enable preview for all refs
 
 source_suffix = [".rst", ".md"]
 

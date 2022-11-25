@@ -11,5 +11,5 @@ For the reader familiar with the function :py:func:`~renate.tuning.tuning.execut
 intuitive.
 
 In the following chapters, we will discuss how this interface can be used to experiment on
-:ref:`Renate benchmarks <benchmarking-renate-benchmarks>` as well as
-:ref:`custom benchmarks <benchmarking-custom-benchmarks>`.
+:doc:`Renate benchmarks <renate_benchmarks>` as well as
+:doc:`custom benchmarks <custom_benchmarks>`.
