@@ -67,6 +67,9 @@ The training data was divided into 5 partitions, and we trained sequentially on 
 Fine-tuning refers to the strategy to learn on the first partition from scratch, and
 train on each of the subsequent partitions for few epochs only.
 We compare to Experience Replay with a memory size of 500.
+For both methods we use the same number of epochs and choose the best checkpoint
+using a validation set.
+Results reported are on the test set.
 </p>
 <p id="footnote-exp2">
 [2] The setup is the same as in the last experiment. However, this time we compare
