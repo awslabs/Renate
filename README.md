@@ -16,12 +16,9 @@ just fine-tuning the old model creates problems like "catastrophic forgetting".
 The algorithms in Renate help mitigating the negative impact of forgetting and increase the 
 model performance overall. 
 
-<div style="text-align: center;">
-<img src="https://raw.githubusercontent.com/awslabs/Renate/c62f55046bf1e2d72ef17b3b9fd9df6508ef1f07/doc/_images/improvement_renate.svg" alt="Renate vs Model Fine-Tuning" style="width:80%;" />
-</div>
-Renate's update mechanisms improve over naive fine-tuning approaches.[^1]
+<img src="https://raw.githubusercontent.com/awslabs/Renate/c62f55046bf1e2d72ef17b3b9fd9df6508ef1f07/doc/_images/improvement_renate.svg" alt="Renate vs Model Fine-Tuning" style="text-align:center;width:80%;" />
 
-[^1]: test
+*Renate's update mechanisms improve over naive fine-tuning approaches.[^exp1]*
 
 
 Renate also offers hyperparameters optimization (HPO), a functionality that can heavily impact
@@ -34,6 +31,8 @@ advanced HPO methods such multi-fidelity algorithms (ASHA) and transfer learning
 <img src="https://raw.githubusercontent.com/awslabs/Renate/c62f55046bf1e2d72ef17b3b9fd9df6508ef1f07/doc/_images/improvement_tuning.svg" alt="Impact of HPO on Renate's Updating Algorithms" style="width:80%;" />
 <p>Renate will benefit from hyperparameter tuning compared to Renate with default settings.</p>
 </div>
+
+[^exp2]
 
 
 ## Key features
@@ -60,3 +59,15 @@ If you wish to contribute to the project, please refer to our
 [contribution guidelines](https://github.com/awslabs/renate/tree/master/CONTRIBUTING.md).
 * **You did not find what you were looking for?**\
 Open an [issue](https://github.com/awslabs/Renate/issues/new) and we will do our best to improve the documentation.
+
+- This is a manually-numbered footnote reference.[^exp3]
+
+
+[^exp3]: This is a manually-numbered footnote definition.
+[^exp1]: To create this plot, we used a class-incremental learning with CIFAR-10.
+The training data was divided into 5 partitions, and we trained sequentially on them.
+Fine-tuning refers to the strategy to learn on the first partition from scratch, and
+train on each of the subsequent partitions for few epochs only.
+We compare to Experience Replay with a memory size of 500.
+[^exp2]: The setup is the same as in the last experiment. However, this time we compare
+Experience Replay against a version in which its hyperparameters were tuned.
