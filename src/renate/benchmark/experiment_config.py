@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
 import torch
-from syne_tune.optimizer.schedulers import HyperbandScheduler
 from torchvision.transforms import transforms
 
 from renate.benchmark.datasets.nlp_datasets import TorchTextDataModule
@@ -34,7 +33,6 @@ from renate.benchmark.scenarios import (
 )
 from renate.data.data_module import RenateDataModule
 from renate.models import RenateModule
-
 
 models = {
     "MultiLayerPerceptron": MultiLayerPerceptron,
