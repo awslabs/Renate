@@ -102,12 +102,12 @@ class BenchmarkScenario(Scenario):
 
 
 class ClassIncrementalScenario(Scenario):
-    """A scenario that creates data chunks from datasamples with specific classes from a data module.
+    """A scenario that creates data chunks from data samples with specific classes from a data module.
 
     This class, upon giving a list describing the separation of the dataset separates the dataset
     with respect to classification labels.
 
-    Note that, in order to apply this scenario, the scenario assumes that the datapoints in the data module
+    Note that, in order to apply this scenario, the scenario assumes that the data points in the data module
     are organised into tuples of exactly 2 tensors i.e. `(x, y)` where `x` is the input and `y` is the class id.
 
     Args:

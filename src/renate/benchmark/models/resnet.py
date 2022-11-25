@@ -19,7 +19,7 @@ class ResNet(RenateModule):
     Deep Residual Learning for Image Recognition. CVPR 2016: 770-778
 
     Args:
-        blocks: The type of the block to use as the core building block.
+        block: The type of the block to use as the core building block.
         layers: The number of blocks in the respective parts of ResNet.
         num_outputs: The number of output units.
         zero_init_residual: Whether to set the initial weights of the residual blocks
