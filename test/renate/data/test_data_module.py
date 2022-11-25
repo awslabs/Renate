@@ -14,7 +14,6 @@ from renate.benchmark.datasets.vision_datasets import (
     TorchVisionDataModule,
 )
 from renate.data.data_module import CSVDataModule
-from renate.utils.pytorch import _proportions_into_sizes
 
 
 def test_csv_data_module(tmpdir):
@@ -37,7 +36,8 @@ def test_csv_data_module(tmpdir):
     val_size = 0.2
     csv_module = CSVDataModule(
         data_path=tmpdir,
-        filenames={"train": "train.csv", "test": "test.csv"},
+        train_filename="train.csv",
+        test_filename="test.csv",
         target_name=target_name,
         val_size=val_size,
     )
@@ -68,14 +68,9 @@ def test_csv_data_module(tmpdir):
     ],
 )
 def test_torchvision_data_module(tmpdir, dataset_name, num_tr, num_te, x_shape):
-    """Test downloading of Torchvision data."""
+    """Test loading of torchvision data."""
     val_size = 0.35
-    data_module = TorchVisionDataModule(
-        tmpdir,
-        dataset_name=dataset_name,
-        download=True,
-        val_size=val_size,
-    )
+    data_module = TorchVisionDataModule(tmpdir, dataset_name=dataset_name, val_size=val_size)
     data_module.prepare_data()
     data_module.setup()
     train_data = data_module.train_data()
@@ -92,78 +87,72 @@ def test_torchvision_data_module(tmpdir, dataset_name, num_tr, num_te, x_shape):
 
 @pytest.mark.slow
 @pytest.mark.parametrize(
-    "data_module_cls,data_module_kwargs,train_len,test_len,src_bucket,src_object_name",
+    "dataset_name,num_tr,num_te",
     [
-        [
-            CLEARDataModule,
-            {"dataset_name": "CLEAR10", "val_size": 0.2, "chunk_id": 1},
-            2986,
-            500,
-            None,
-            None,
-        ],
-        [
-            TinyImageNetDataModule,
-            {"val_size": 0.2},
-            100000,
-            10000,
-            None,
-            None,
-        ],
-        [
-            CLEARDataModule,
-            {"dataset_name": "CLEAR100", "val_size": 0.4, "chunk_id": 1},
-            9945,
-            4984,
-            None,
-            None,
-        ],
-        [
-            TorchTextDataModule,
-            {"dataset_name": "AmazonReviewFull", "val_size": 0.21},
-            3000000,
-            650000,
-            None,
-            None,
-        ],
-        [
-            TorchTextDataModule,
-            {"dataset_name": "DBpedia", "val_size": 0.21},
-            560000,
-            70000,
-            None,
-            None,
-        ],
-        [
-            TorchTextDataModule,
-            {"dataset_name": "AG_NEWS", "val_size": 0.21},
-            120000,
-            7600,
-            None,
-            None,
-        ],
+        ("AG_NEWS", 120000, 7600),
+        ("AmazonReviewFull", 3000000, 650000),
+        ("DBpedia", 560000, 70000),
     ],
 )
-def test_custom_data_module(
-    tmpdir, data_module_cls, data_module_kwargs, train_len, test_len, src_bucket, src_object_name
-):
-    val_size = data_module_kwargs["val_size"]
-    data_module = data_module_cls(
-        tmpdir,
-        src_bucket,
-        src_object_name,
-        **data_module_kwargs,
+def test_torchtext_data_module(tmpdir, dataset_name, num_tr, num_te):
+    """Test loading of torchtext data."""
+    val_size = 0.2
+    data_module = TorchTextDataModule(tmpdir, dataset_name=dataset_name, val_size=val_size)
+    data_module.prepare_data()
+    data_module.setup()
+    train_data = data_module.train_data()
+    val_data = data_module.val_data()
+    test_data = data_module.test_data()
+    assert len(train_data) == round(num_tr * (1 - val_size))
+    assert isinstance(train_data, Dataset)
+    assert len(val_data) == round(num_tr * val_size)
+    assert isinstance(val_data, Dataset)
+    assert len(test_data) == num_te
+    assert isinstance(test_data, Dataset)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "dataset_name,chunk_id,num_tr,num_te",
+    [
+        ("CLEAR10", 0, 2986, 500),
+        ("CLEAR100", 0, 9945, 4984),
+    ],
+)
+def test_clear_datamodule(tmpdir, dataset_name, chunk_id, num_tr, num_te):
+    """Test loading of CLEAR data."""
+    val_size = 0.2
+    data_module = CLEARDataModule(
+        tmpdir, dataset_name=dataset_name, chunk_id=chunk_id, val_size=val_size
     )
     data_module.prepare_data()
     data_module.setup()
     train_data = data_module.train_data()
     val_data = data_module.val_data()
     test_data = data_module.test_data()
-
+    assert len(train_data) == round(num_tr * (1 - val_size))
     assert isinstance(train_data, Dataset)
+    assert len(val_data) == round(num_tr * val_size)
     assert isinstance(val_data, Dataset)
+    assert len(test_data) == num_te
     assert isinstance(test_data, Dataset)
-    _train_len, _val_len = _proportions_into_sizes([1 - val_size, val_size], train_len)
-    assert len(train_data) == _train_len
-    assert len(val_data) == _val_len
-    assert len(test_data) == test_len
+
+
+@pytest.mark.slow
+def test_tiny_imagenet_datamodule(tmpdir):
+    num_tr = 100000
+    num_te = 10000
+    val_size = 0.2
+    data_module = TinyImageNetDataModule(tmpdir, val_size=val_size)
+    data_module.prepare_data()
+    data_module.setup()
+    train_data = data_module.train_data()
+    val_data = data_module.val_data()
+    test_data = data_module.test_data()
+    assert len(train_data) == round(num_tr * (1 - val_size))
+    assert isinstance(train_data, Dataset)
+    assert len(val_data) == round(num_tr * val_size)
+    assert isinstance(val_data, Dataset)
+    assert len(test_data) == num_te
+    assert isinstance(test_data, Dataset)
+    assert train_data[0][0].size() == test_data[0][0].size() == (3, 64, 64)

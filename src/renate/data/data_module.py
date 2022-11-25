@@ -3,7 +3,7 @@
 import abc
 import os
 from pathlib import Path
-from typing import Dict, Literal, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 
 import pandas as pd
 import torch
@@ -16,15 +16,27 @@ from renate.utils.pytorch import randomly_split_data
 
 
 class RenateDataModule(abc.ABC):
-    """The abstract class implementing RenateDatamodule class for loading Datasets with ease.
+    """Data modules bundle code for data loading and preparation.
 
-    This class can be extended to use different data formats, e.g. CSV data, image data, text data, etc.
+    A data module implements two methods for data preparation:
+    - `prepare_data()` downloads the data to the local machine and unpacks it.
+    - `setup()` creates pytorch dataset objects that return training, test and (possibly) validation
+      data.
+    These two steps are separated to streamline the process when launching multiple training jobs
+    simultaneously, e.g., for hyperparameter optimization. In this case, `prepare_data()` is only
+    called once per machine.
+
+    After these two methods have been called, the data can be accessed using
+    - `train_data()`
+    - `test_data()`
+    - `val_data()`,
+    which return torch datasets (`torch.utils.data.Dataset`).
 
     Args:
         data_path: the path to the data to be loaded.
         src_bucket: the name of the s3 bucket.
         src_object_name: the folder path in the s3 bucket.
-        val_size: If `val_size` is provided split the train data into train and validation according to `val_size`.
+        val_size: If `val_size` is provided, the training data will be split. Needs to be in [0, 1].
         seed: Seed used to fix random number generation.
     """
 
@@ -55,8 +67,8 @@ class RenateDataModule(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def setup(self, stage: Optional[Literal["train", "val", "test"]] = None) -> None:
-        """Make assignments: val/train/test splits."""
+    def setup(self) -> None:
+        """Set up train, test and val datasets."""
         pass
 
     def train_data(self) -> Dataset:
@@ -89,26 +101,25 @@ class RenateDataModule(abc.ABC):
 
 
 class CSVDataModule(RenateDataModule):
-    """Dataset with data from CVS files.
-
-    train/validation/test splits are stored in different.csv files. Label (target) column name should be specified.
+    """A data module loading data from CSV files.
 
     Args:
         data_path: Path to the folder containing the files.
-        filenames: Filenames for train/validation/test splits in the folder,
-            e.g. {"train": "train_data.csv", "test": "test_data.csv"}
+        train_filename: Name of the CSV file containing the training data.
+        train_filename: Name of the CSV file containing the training data.
         src_bucket: Name of an s3 bucket. If specified, the folder given by `src_object_name` will
-            be downloaded from S3.
+            be downloaded from S3 to `data_path`.
         src_object_name: Folder path in the s3 bucket.
         target_name: the header of the column containing the target values.
-        val_size: If `val_size` is provided split the train data into train and validation according to `val_size`.
+        val_size: If `val_size` is provided, the training data will be split. Needs to be in [0, 1].
         seed: Seed used to fix random number generation.
     """
 
     def __init__(
         self,
         data_path: Union[Path, str],
-        filenames: Dict[str, str],
+        train_filename: Union[Path, str] = "train.csv",
+        test_filename: Union[Path, str] = "test.csv",
         target_name: str = "y",
         src_bucket: Union[Path, str, None] = None,
         src_object_name: Union[Path, str, None] = None,
@@ -122,36 +133,29 @@ class CSVDataModule(RenateDataModule):
             val_size=val_size,
             seed=seed,
         )
-        self._filenames = filenames
+        self._train_filename = train_filename
+        self._test_filename = test_filename
         self._target_name = target_name
 
     def prepare_data(self) -> None:
-        """Download data folder. We expect a folder with separate csv files for train/val/test.
-        If the data is not available in local data_path, it is loaded from s3.
-        """
+        """Downloads data folder from S3 if applicable."""
         if self._src_bucket is not None:
             download_folder_from_s3(self._src_bucket, self._src_object_name, self._data_path)
 
-    def setup(self, stage: Optional[Literal["train", "val", "test"]] = None) -> None:
-        """Make assignments: train/validation/test splits."""
-        # Assign train dataset
-        if stage in ["train", "val"] or stage is None:
-            X, y = self._process_csv_data(str(self._filenames["train"]))
-            train_data = TensorDataset(X, y)
-            self._train_data, self._val_data = self._split_train_val_data(train_data)
-
-        # Assign test dataset
-        if stage == "test" or stage is None:
-            X, y = self._process_csv_data(str(self._filenames["test"]))
-            self._test_data = TensorDataset(X, y)
+    def setup(self) -> None:
+        """Set up train, test and val datasets."""
+        X, y = self._process_csv_data(str(self._train_filename))
+        train_data = TensorDataset(X, y)
+        self._train_data, self._val_data = self._split_train_val_data(train_data)
+        X, y = self._process_csv_data(str(self._test_filename))
+        self._test_data = TensorDataset(X, y)
 
     def _process_csv_data(self, filename: str) -> Tuple[torch.Tensor, torch.Tensor]:
-        """CSV data specific function to read the data from a file and return features and the labels."""
+        """Reads data from a CSV file and returns features and labels."""
         data_path = os.path.join(self._data_path, filename)
         data = pd.read_csv(data_path)
         if self._target_name not in data.columns:
             raise KeyError(f"{self._target_name} is not a valid target name.")
-
         y = torch.from_numpy(data[self._target_name].to_numpy())
         data = data.loc[:, data.columns != self._target_name]
         X = torch.from_numpy(data.to_numpy()).float()

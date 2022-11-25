@@ -409,7 +409,7 @@ def _verify_validation_set_for_hpo_and_checkpointing(
         seed=seed,
         **get_data_module_fn_args(config_space),
     )
-    data_module.setup("val")
+    data_module.setup()
     val_exists = data_module.val_data() is not None
     assert (
         val_exists or not tune_hyperparameters
