@@ -10,6 +10,7 @@ import pandas as pd
 import torch
 from pytorch_lightning import seed_everything
 
+import renate
 import renate.defaults as defaults
 from renate.cli.parsing_functions import (
     get_data_module_fn_args,
@@ -40,6 +41,10 @@ from renate.utils.module import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def experiment_config_file():
+    return str(Path(renate.__path__[0]) / "benchmark" / "experiment_config.py")
 
 
 def create_cumulative_metrics(task: defaults.SUPPORTED_TASKS_TYPE) -> List[Tuple[str, Callable]]:

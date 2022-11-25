@@ -3,9 +3,9 @@
 import pytest
 from torchvision.transforms import Compose, Normalize
 
-from renate.benchmark import experimentation_config
+from renate.benchmark import experiment_config
 from renate.benchmark.datasets.vision_datasets import CLEARDataModule, TorchVisionDataModule
-from renate.benchmark.experimentation_config import (
+from renate.benchmark.experiment_config import (
     data_module_fn,
     get_data_module,
     get_scenario,
@@ -71,23 +71,29 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
     "scenario_name,dataset_name,scenario_kwargs,expected_scenario_class,expected_num_tasks",
     (
         (
-            "class_incremental",
+            "ClassIncrementalScenario",
             "CIFAR10",
             {"data_module_fn_class_groupings": "[[0,1],[2,3,4],[5,6]]"},
             ClassIncrementalScenario,
             3,
         ),
         (
-            "class_incremental",
+            "ClassIncrementalScenario",
             "AG_NEWS",
             {"data_module_fn_class_groupings": "[[1,2],[3,4]]"},
             ClassIncrementalScenario,
             2,
         ),
-        ("rotation", "MNIST", {"data_module_fn_degrees": "[0,90,180]"}, ImageRotationScenario, 3),
-        ("benchmark", "CLEAR10", {"data_module_fn_num_tasks": "5"}, BenchmarkScenario, 5),
         (
-            "permutation",
+            "ImageRotationScenario",
+            "MNIST",
+            {"data_module_fn_degrees": "[0,90,180]"},
+            ImageRotationScenario,
+            3,
+        ),
+        ("BenchmarkScenario", "CLEAR10", {"data_module_fn_num_tasks": "5"}, BenchmarkScenario, 5),
+        (
+            "PermutationScenario",
             "MNIST",
             {"data_module_fn_num_tasks": "3", "data_module_fn_input_dim": "(1,28,28)"},
             PermutationScenario,
@@ -136,7 +142,7 @@ def test_data_module_fn(
 )
 def test_transforms(dataset_name, use_transforms):
     train_preprocessing = train_transform(dataset_name)
-    test_preprocessing = experimentation_config.test_transform(dataset_name)
+    test_preprocessing = experiment_config.test_transform(dataset_name)
     if use_transforms:
         assert isinstance(train_preprocessing, Compose)
         assert isinstance(test_preprocessing, Normalize)
@@ -147,6 +153,6 @@ def test_transforms(dataset_name, use_transforms):
 
 def test_transforms_fails_for_unknown_dataset():
     unknown_dataset_set = "UNKNOWN_DATASET_NAME"
-    for transform_function in [train_transform, experimentation_config.test_transform]:
+    for transform_function in [train_transform, experiment_config.test_transform]:
         with pytest.raises(ValueError, match=f"Unknown dataset `{unknown_dataset_set}`"):
             transform_function(unknown_dataset_set)
