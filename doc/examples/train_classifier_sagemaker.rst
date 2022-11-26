@@ -4,18 +4,8 @@ Training and Tuning on SageMaker
 This example is designed to demonstrate how to use Renate on Amazon SageMaker for
 both training the model and tuning the hyperparameters required for that.
 To this purpose we will train a ResNet model on CIFAR10 and tune some hyperparameters
-using ASHA, an advanced optimizer able to quickly terminate suboptimal hyperparamter
+using ASHA, an advanced optimizer able to quickly terminate suboptimal hyperparameter
 configurations.
-
-Requirements
-============
-> TODO: replace requirements.txt content when renate will be available in pypi and eventually update the text below
-
-The example folder contains a :code:`requirements.txt` file with the list of the packages
-required by the script to work correctly. If Renate is the only dependency, the file is not
-needed since it will be created automatically,
-but we will include it in our example just to demonstrate how to use it in practice
-when there are other dependencies.
 
 Configuration
 =============

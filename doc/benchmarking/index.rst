@@ -1,3 +1,7 @@
+============
+Benchmarking
+============
+
 Introduction
 ************
 
@@ -13,3 +17,9 @@ intuitive.
 In the following chapters, we will discuss how this interface can be used to experiment on
 :doc:`Renate benchmarks <renate_benchmarks>` as well as
 :doc:`custom benchmarks <custom_benchmarks>`.
+
+.. toctree::
+    :maxdepth: 2
+
+    renate_benchmarks
+    custom_benchmarks

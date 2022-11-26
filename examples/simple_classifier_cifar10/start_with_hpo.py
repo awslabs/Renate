@@ -45,5 +45,5 @@ if __name__ == "__main__":
         scheduler="asha",  # we will run ASHA to optimize our hyperparameters
         # if you use a big instance with multiple GPUs you can multiple workers evaluating configuration in parallel
         # n_workers=4,
-        job_name="testjob",
+        job_name="job_name",
     )

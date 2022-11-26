@@ -138,4 +138,4 @@ Running experiments
 -------------------
 
 If you want to run a large number of training jobs, for example for experimentation, it will
-be useful to take a look at the :doc:`../benchmarking/introduction`.
+be useful to take a look at the :doc:`../benchmarking/index`.

@@ -63,11 +63,13 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
     "sphinx.ext.viewcode",
+    "sphinx.ext.coverage",
     "hoverxref.extension",  # show reference preview
     "sphinx_copybutton",
     "myst_parser",
+    "sphinxext.opengraph",
 ]
-myst_heading_anchors = 2
+coverage_show_missing_items = True
 
 # Make sure the target is unique
 autosectionlabel_prefix_document = True
@@ -82,20 +84,33 @@ autoclass_content = "class"
 autodoc_member_order = "bysource"
 default_role = "py:obj"
 
-html_theme = "nature"
+html_theme = "pydata_sphinx_theme"
+html_sidebars = {"**": ["sidebar-nav-bs"]}
+html_theme_options = {
+    "primary_sidebar_end": [],
+    "footer_items": ["copyright"],
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/awslabs/Renate",  # required
+            "icon": "fa-brands fa-square-github",
+            "type": "fontawesome",
+        }
+    ],
+    "use_edit_page_button": True,
+    "announcement": "<p>Renate 0.1.0 is released. See you at NeurIPS!</p>",
+}
+html_context = {
+    "github_user": "awslabs",
+    "github_repo": "Renate",
+    "github_version": "dev",
+    "doc_path": "doc",
+    "default_mode": "light",
+}
+
 htmlhelp_basename = "{}doc".format(project)
 
 napoleon_use_rtype = False
-
-html_sidebars = {
-    "**": [
-        "searchbox.html",
-        "localtoc.html",
-        "globaltoc.html",
-        "relations.html",
-        "sourcelink.html",
-    ]
-}
 
 rst_prolog = """
 .. role:: python(code)

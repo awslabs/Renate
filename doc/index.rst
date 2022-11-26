@@ -1,35 +1,30 @@
+********************
+Renate documentation
+********************
+
 .. include:: ../README.md
     :parser: myst_parser.sphinx_
 
 .. toctree::
-    :name: Getting Started
-    :caption: Getting Started
-    :maxdepth: 1
+    :maxdepth: 3
     :hidden:
+    :titlesonly:
 
-    getting_started/install
-    getting_started/how_to_renate_config
-    getting_started/how_to_run_training
-    getting_started/output
-    getting_started/supported_algorithms
+    getting_started/index
 
 .. toctree::
-    :name: Benchmarking
-    :caption: Benchmarking
-    :maxdepth: 1
+    :maxdepth: 3
+    :hidden:
+    :titlesonly:
 
-    benchmarking/introduction
-    benchmarking/renate_benchmarks
-    benchmarking/custom_benchmarks
+    benchmarking/index
 
 .. toctree::
-    :name: Examples
-    :caption: Examples
-    :maxdepth: 1
+    :maxdepth: 3
     :hidden:
+    :titlesonly:
 
-    examples/train_mlp_locally.rst
-    examples/train_classifier_sagemaker.rst
+    examples/index
 
 
 .. toctree::

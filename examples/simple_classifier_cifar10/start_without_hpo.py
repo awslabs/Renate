@@ -40,5 +40,5 @@ if __name__ == "__main__":
         role=get_execution_role(),
         instance_count=1,
         instance_type="ml.g4dn.xlarge",
-        job_name="testjob",
+        job_name="job_name",
     )
