@@ -52,22 +52,23 @@ Key features
 What are you looking for?
 =========================
 
-* **Installation instructions**\
-    `pip install renate` :) or look at the [installation instructions]().
-* **Examples how to use Renate**\
-    We provide examples to train your model :doc:`locally <../examples/train_mlp_locally>`
-    or :doc:`using Amazon SageMaker <examples/train_classifier_sagemaker>`.
-* **Supported algorithms**\
-    A list of the supported algorithms is available [here]().
-* **Experimenting with Renate**\
-    A tutorial on how to run experiments with Renate is available [here]().
-* **Documentation**\
-    All the documentation you may need is available on [here]().
-* **Guidelines for contributors**\
-    If you wish to contribute to the project, please refer to our
-    [contribution guidelines](https://github.com/awslabs/renate/tree/master/CONTRIBUTING.md).
-* **You did not find what you were looking for?**\
-    Open an [issue](https://github.com/awslabs/Renate/issues/new) and we will do our best to improve the documentation.
+* `Installation Instructions <https://renate.readthedocs.io/en/latest/getting_started/install.html>`_
+
+    .. code-block:: bash
+
+      pip install renate
+
+* Examples
+    We provide examples to train your model
+    `locally <https://renate.readthedocs.io/en/latest/examples/train_mlp_locally.html>`_
+    or `using Amazon SageMaker <https://renate.readthedocs.io/en/latest/examples/train_classifier_sagemaker.html>`_.
+* `Documentation <https://renate.readthedocs.io>`_
+* `Supported Algorithms <https://renate.readthedocs.io/en/latest/getting_started/supported_algorithms.html>`_
+* `Experimenting with Renate <https://renate.readthedocs.io/en/latest/benchmarking/index.html>`_
+* `Guidelines for Contributors <https://github.com/awslabs/renate/tree/master/CONTRIBUTING.md>`_
+* You did not find what you were looking for?
+    Open an `issue <https://github.com/awslabs/Renate/issues/new>`_ and we will do our best
+    to improve the documentation.
 
 
 .. [#] To create this plot, we simulated class-incremental learning with CIFAR-10.

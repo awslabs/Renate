@@ -16,4 +16,4 @@ it is possible to clone the git repository
 
 We also recommend using a virtual environment to avoid conflicts in the 
 versions of the packages installed. For example, following
-[these instructions](https://docs.python.org/3/library/venv.html) to use :code:`venv`.
+`these instructions <https://docs.python.org/3/library/venv.html>`_ to use :code:`venv`.
