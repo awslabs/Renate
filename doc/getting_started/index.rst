@@ -1,9 +1,9 @@
-===============
+***************
 Getting Started
-===============
+***************
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
 
     install
     how_to_renate_config

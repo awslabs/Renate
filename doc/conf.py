@@ -66,7 +66,6 @@ extensions = [
     "sphinx.ext.coverage",
     "hoverxref.extension",  # show reference preview
     "sphinx_copybutton",
-    "myst_parser",
     "sphinxext.opengraph",
 ]
 coverage_show_missing_items = True
@@ -75,6 +74,7 @@ coverage_show_missing_items = True
 autosectionlabel_prefix_document = True
 
 hoverxref_auto_ref = True  # Enable preview for all refs
+hoverxref_role_types = {"ref": "tooltip"}
 
 source_suffix = [".rst", ".md"]
 
@@ -99,6 +99,7 @@ html_theme_options = {
     ],
     "use_edit_page_button": True,
     "announcement": "<p>Renate 0.1.0 is released. See you at NeurIPS!</p>",
+    "collapse_navigation": True,
 }
 html_context = {
     "github_user": "awslabs",
