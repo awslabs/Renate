@@ -5,6 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "Renate"
 description = "Library for Continual Learning for Practitioners"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+]
 requires-python = ">=3.8, <=3.10"
 dynamic = ["version", "readme", "dependencies"]
 
