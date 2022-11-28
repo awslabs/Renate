@@ -36,7 +36,7 @@ class RenateDataModule(abc.ABC):
         data_path: the path to the data to be loaded.
         src_bucket: the name of the s3 bucket.
         src_object_name: the folder path in the s3 bucket.
-        val_size: If `val_size` is provided, the training data will be split. Needs to be in [0, 1].
+        val_size: Fraction of the training data to be used for validation.
         seed: Seed used to fix random number generation.
     """
 
@@ -106,12 +106,12 @@ class CSVDataModule(RenateDataModule):
     Args:
         data_path: Path to the folder containing the files.
         train_filename: Name of the CSV file containing the training data.
-        train_filename: Name of the CSV file containing the training data.
+        test_filename: Name of the CSV file containing the test data.
         src_bucket: Name of an s3 bucket. If specified, the folder given by `src_object_name` will
             be downloaded from S3 to `data_path`.
         src_object_name: Folder path in the s3 bucket.
         target_name: the header of the column containing the target values.
-        val_size: If `val_size` is provided, the training data will be split. Needs to be in [0, 1].
+        val_size: Fraction of the training data to be used for validation.
         seed: Seed used to fix random number generation.
     """
 

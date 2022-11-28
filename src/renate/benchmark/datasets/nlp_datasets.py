@@ -22,7 +22,7 @@ class TorchTextDataModule(RenateDataModule):
         src_bucket: the name of the s3 bucket. If not provided, downloads the data from original source.
         src_object_name: the folder path in the s3 bucket.
         dataset_name: Name of the torchvision dataset.
-        val_size: If `val_size` is provided split the train data into train and validation according to `val_size`.
+        val_size: Fraction of the training data to be used for validation.
         seed: Seed used to fix random number generation.
     """
 

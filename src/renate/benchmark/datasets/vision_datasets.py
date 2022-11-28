@@ -28,9 +28,7 @@ class TinyImageNetDataModule(RenateDataModule):
         data_path: Path to the directory where the dataset should be stored.
         src_bucket: Name of the bucket where the dataset is stored.
         src_object_name: Name of the object in the bucket where the dataset is stored.
-        transform: Transform to be applied to the dataset.
-        target_transform: Transform to be applied to the target.
-        val_size: If `val_size` is provided, the training data will be split. Needs to be in [0, 1].
+        val_size: Fraction of the training data to be used for validation.
         seed: Seed to be used for splitting the dataset.
     """
 
@@ -107,7 +105,7 @@ class TorchVisionDataModule(RenateDataModule):
         src_bucket: the name of the s3 bucket. If not provided, downloads the data from original source.
         src_object_name: the folder path in the s3 bucket.
         dataset_name: Name of the torchvision dataset.
-        val_size: If `val_size` is provided, the training data will be split. Needs to be in [0, 1].
+        val_size: Fraction of the training data to be used for validation.
         seed: Seed used to fix random number generation.
     """
 
@@ -197,7 +195,7 @@ class CLEARDataModule(RenateDataModule):
         target_transform: Transformation or augmentation to perform on the target.
         dataset_name: CLEAR dataset name, options are clear10 and clear100.
         chunk_id: Used to define the CLEAR dataset splits. There are 10 splits in total with ids from 0 to 9.
-        val_size: If `val_size` is provided split the train data into train and validation according to `val_size`.
+        val_size: Fraction of the training data to be used for validation.
         seed: Seed used to fix random number generation.
     """
 

@@ -40,10 +40,7 @@ from renate.utils.pytorch import randomly_split_data
 def test_failing_to_init(tmpdir, scenario_cls, kwargs):
     dataset_name = "FashionMNIST"
     data_module = TorchVisionDataModule(
-        tmpdir,
-        src_bucket=None,
-        src_object_name=None,
-        dataset_name=dataset_name,
+        tmpdir, src_bucket=None, src_object_name=None, dataset_name=dataset_name
     )
     with pytest.raises(Exception):
         scenario_cls(data_module=data_module, **kwargs)

@@ -119,7 +119,7 @@ def test_torchtext_data_module(tmpdir, dataset_name, num_tr, num_te):
         ("CLEAR100", 0, 9945, 4984),
     ],
 )
-def test_clear_datamodule(tmpdir, dataset_name, chunk_id, num_tr, num_te):
+def test_clear_data_module(tmpdir, dataset_name, chunk_id, num_tr, num_te):
     """Test loading of CLEAR data."""
     val_size = 0.2
     data_module = CLEARDataModule(
@@ -139,7 +139,7 @@ def test_clear_datamodule(tmpdir, dataset_name, chunk_id, num_tr, num_te):
 
 
 @pytest.mark.slow
-def test_tiny_imagenet_datamodule(tmpdir):
+def test_tiny_imagenet_data_module(tmpdir):
     num_tr = 100000
     num_te = 10000
     val_size = 0.2
