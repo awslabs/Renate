@@ -2,7 +2,7 @@
     :target: https://github.com/awslabs/Renate/blob/main/LICENSE
     :alt: License
 .. image:: https://readthedocs.org/projects/renate/badge/?version=latest
-    :target: https://renate.readthedocs.io/en/latest/?badge=latest
+    :target: https://renate.readthedocs.io
     :alt: Documentation Status
 
 Renate - Automatic Neural Networks Retraining and Continual Learning in Python
