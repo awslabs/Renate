@@ -268,6 +268,7 @@ def _execute_experiment_job_locally(
         seed=seed,
         **data_module_fn_args,
     )
+    data_module.setup()
     assert num_updates == len(
         data_module.test_data()
     ), f"The dataset has {len(data_module.test_data())} chunks, expected {num_updates}."

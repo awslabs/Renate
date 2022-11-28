@@ -40,7 +40,7 @@ from renate.utils.pytorch import randomly_split_data
 def test_failing_to_init(tmpdir, scenario_cls, kwargs):
     dataset_name = "FashionMNIST"
     data_module = TorchVisionDataModule(
-        tmpdir, src_bucket=None, src_object_name=None, dataset_name=dataset_name, download=True
+        tmpdir, src_bucket=None, src_object_name=None, dataset_name=dataset_name
     )
     with pytest.raises(Exception):
         scenario_cls(data_module=data_module, **kwargs)
@@ -57,14 +57,11 @@ def test_class_incremental_scenario():
             data_module=data_module, class_groupings=class_groupings, chunk_id=i
         )
         scenario.prepare_data()
-        for stage, class_counts in zip(
-            ["train", "val"], [train_data_class_counts, val_data_class_counts]
-        ):
-            scenario.setup(stage)
-            data = getattr(scenario, f"{stage}_data")()
-            assert len(data) == sum([class_counts[c] for c in class_groupings[i]])
-
-        scenario.setup("test")
+        scenario.setup()
+        train_data = scenario.train_data()
+        val_data = scenario.val_data()
+        assert len(train_data) == sum([train_data_class_counts[c] for c in class_groupings[i]])
+        assert len(val_data) == sum([val_data_class_counts[c] for c in class_groupings[i]])
         for j, test_data in enumerate(scenario.test_data()):
             assert len(test_data) == sum([test_data_class_counts[c] for c in class_groupings[j]])
 
@@ -72,9 +69,6 @@ def test_class_incremental_scenario():
 def test_image_rotation_scenario():
     data_module = DummyTorchVisionDataModule(val_size=0.3)
     degrees = [15, 75]
-    data_module.prepare_data()
-    data_module.setup()
-
     for i in range(len(degrees)):
         scenario = ImageRotationScenario(
             data_module=data_module,
@@ -82,8 +76,9 @@ def test_image_rotation_scenario():
             chunk_id=i,
             seed=data_module._seed,
         )
+        scenario.prepare_data()
+        scenario.setup()
         for stage in ["train", "val"]:
-            scenario.setup(stage)
             scenario_data = getattr(scenario, f"{stage}_data")()
             orig_data_module_data = getattr(data_module, f"{stage}_data")()
             split_orig_data_module_data = randomly_split_data(
@@ -94,8 +89,6 @@ def test_image_rotation_scenario():
                 assert torch.equal(
                     rotate(split_orig_data_module_data[j][0], degrees[i]), scenario_data[j][0]
                 )
-
-        scenario.setup("test")
         for j, test_data in enumerate(scenario.test_data()):
             assert len(test_data) == len(data_module.test_data())
             for k in range(len(test_data)):
@@ -106,9 +99,6 @@ def test_image_rotation_scenario():
 
 def test_permutation_scenario():
     data_module = DummyTorchVisionDataModule(val_size=0.3)
-    data_module.prepare_data()
-    data_module.setup()
-
     for i in range(3):
         scenario = PermutationScenario(
             data_module=data_module,
@@ -117,8 +107,9 @@ def test_permutation_scenario():
             chunk_id=i,
             seed=data_module._seed,
         )
+        scenario.prepare_data()
+        scenario.setup()
         for stage in ["train", "val"]:
-            scenario.setup(stage)
             scenario_data = getattr(scenario, f"{stage}_data")()
             orig_data_module_data = getattr(data_module, f"{stage}_data")()
             split_orig_data_module_data = randomly_split_data(
@@ -129,8 +120,6 @@ def test_permutation_scenario():
                 a, _ = torch.sort(split_orig_data_module_data[j][0].flatten())
                 b, _ = torch.sort(scenario_data[j][0].flatten())
                 assert torch.equal(a, b)
-
-        scenario.setup("test")
         for j, test_data in enumerate(scenario.test_data()):
             assert len(test_data) == len(data_module.test_data())
             for k in range(len(test_data)):
@@ -141,10 +130,10 @@ def test_permutation_scenario():
 
 def test_benchmark_scenario():
     data_module = DummyTorchVisionDataModuleWithChunks(num_chunks=3, val_size=0.2)
-    scenario = BenchmarkScenario(data_module=data_module, num_tasks=3, chunk_id=0)
-    scenario.prepare_data()
     for chunk_id in range(3):
-        scenario.setup(chunk_id=chunk_id)
+        scenario = BenchmarkScenario(data_module=data_module, num_tasks=3, chunk_id=chunk_id)
+        scenario.prepare_data()
+        scenario.setup()
         assert scenario.train_data() is not None
         assert scenario.val_data() is not None
         assert len(scenario.test_data()) == 3

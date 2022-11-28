@@ -44,7 +44,7 @@ def evaluate_and_record_results(
                  it will assume devices to be "auto" and fetch the `auto_device_count` from the `accelerator`.
     """
 
-    data_module.setup(stage="test")
+    data_module.setup()
 
     update_results = evaluate(
         model=model,

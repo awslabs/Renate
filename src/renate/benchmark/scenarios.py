@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import abc
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, List, Tuple, Union
 
 import numpy as np
 import torch
@@ -46,13 +46,14 @@ class Scenario(abc.ABC):
         self._seed = seed
         self._train_data: Dataset = None
         self._val_data: Dataset = None
+        self._test_data: List[Dataset] = None
 
     def prepare_data(self) -> None:
         """Downloads datasets."""
         self._data_module.prepare_data()
 
     @abc.abstractmethod
-    def setup(self, stage: Optional[str] = None, chunk_id: Optional[int] = None) -> None:
+    def setup(self) -> None:
         """Sets up the scenario."""
         pass
 
@@ -66,39 +67,30 @@ class Scenario(abc.ABC):
 
     def test_data(self) -> List[Dataset]:
         """Returns the test data with respect to all tasks in `num_tasks`."""
-        datasets = []
-        for chunk_id in range(self._num_tasks):
-            self.setup(stage="test", chunk_id=chunk_id)
-            datasets.append(self._data_module.test_data())
-        return datasets
+        return self._test_data
 
     def _verify_chunk_id(self, chunk_id: int) -> None:
         """A helper function to verify that the `chunk_id` is valid."""
         assert 0 <= chunk_id < self._num_tasks
 
-    def _split_and_assign_train_and_val_data(
-        self, stage: Optional[str] = None, chunk_id: Optional[int] = None
-    ) -> None:
+    def _split_and_assign_train_and_val_data(self) -> None:
         """Performs train/val split and assigns the `train_data` and `val_data` attributes."""
-        if chunk_id is None:
-            chunk_id = self._chunk_id
-        self._verify_chunk_id(chunk_id)
         proportions = [1 / self._num_tasks for _ in range(self._num_tasks)]
-        if stage == "train" or stage is None:
-            train_data = self._data_module.train_data()
-            self._train_data = randomly_split_data(train_data, proportions, self._seed)[chunk_id]
-        if (stage == "val" or stage is None) and self._data_module.val_data():
+        train_data = self._data_module.train_data()
+        self._train_data = randomly_split_data(train_data, proportions, self._seed)[self._chunk_id]
+        if self._data_module.val_data():
             val_data = self._data_module.val_data()
-            self._val_data = randomly_split_data(val_data, proportions, self._seed)[chunk_id]
+            self._val_data = randomly_split_data(val_data, proportions, self._seed)[self._chunk_id]
 
 
 class BenchmarkScenario(Scenario):
     """This is a scenario to concatenate test data of a data module, which by definition has different chunks."""
 
-    def setup(self, stage: Optional[str] = None, chunk_id: Optional[int] = None) -> None:
-        self._data_module.setup(stage=stage, chunk_id=chunk_id)
+    def setup(self) -> None:
+        self._data_module.setup()
         self._train_data = self._data_module.train_data()
         self._val_data = self._data_module.val_data()
+        self._test_data = self._data_module._test_data
 
 
 class ClassIncrementalScenario(Scenario):
@@ -125,34 +117,22 @@ class ClassIncrementalScenario(Scenario):
         super().__init__(data_module, len(class_groupings), chunk_id)
         self._class_groupings = class_groupings
 
-    def setup(self, stage: Optional[str] = None, chunk_id: Optional[int] = None) -> None:
+    def setup(self) -> None:
         """Make assignments: val/train/test splits."""
-        self._data_module.setup(stage)
-        if chunk_id is None:
-            chunk_id = self._chunk_id
-
-        self._verify_chunk_id(chunk_id)
-
-        if stage == "train" or stage is None:
-            self._train_data = self._get_task_subset(
-                self._data_module.train_data(), chunk_id=chunk_id
+        self._data_module.setup()
+        self._train_data = self._get_task_subset(
+            self._data_module.train_data(), chunk_id=self._chunk_id
+        )
+        if self._data_module.val_data():
+            self._val_data = self._get_task_subset(
+                self._data_module.val_data(), chunk_id=self._chunk_id
             )
-
-        if (stage == "val" or stage is None) and self._data_module.val_data():
-            self._val_data = self._get_task_subset(self._data_module.val_data(), chunk_id=chunk_id)
-
-    def test_data(self) -> List[Dataset]:
-        """Returns the test data with respect to all tasks with respect to `num_tasks`."""
-        self._data_module.setup(stage="test")
-        datasets = []
-        dataset = self._data_module.test_data()
-        for chunk_id in range(self._num_tasks):
-            datasets.append(self._get_task_subset(dataset, chunk_id))
-        return datasets
+        self._test_data = [
+            self._get_task_subset(self._data_module.test_data(), i) for i in range(self._num_tasks)
+        ]
 
     def _get_task_subset(self, dataset: Dataset, chunk_id: int) -> Dataset:
         """A helper function identifying indices corresponding to given classes."""
-        self._verify_chunk_id(chunk_id)
         class_group = self._class_groupings[chunk_id]
         indices = torch.tensor(
             [i for i in range(len(dataset)) if dataset[i][1] in class_group],
@@ -181,33 +161,24 @@ class TransformScenario(Scenario):
         chunk_id: int,
         seed: int = defaults.SEED,
     ) -> None:
-        num_tasks = len(transforms)
-        super().__init__(data_module, num_tasks, chunk_id, seed)
+        super().__init__(data_module, len(transforms), chunk_id, seed)
         self._transforms = transforms
 
-    def setup(self, stage: Optional[str] = None, chunk_id: Optional[int] = None) -> None:
-        if chunk_id is None:
-            chunk_id = self._chunk_id
-        self._verify_chunk_id(chunk_id)
-        self._data_module.setup(stage)
-        self._split_and_assign_train_and_val_data(stage, chunk_id)
-        if stage == "train" or stage is None:
-            self._train_data = _TransformedDataset(
-                self._train_data, transform=self._transforms[chunk_id]
-            )
-        if (stage == "val" or stage is None) and self._val_data:
+    def setup(self) -> None:
+        self._data_module.setup()
+        self._split_and_assign_train_and_val_data()
+        self._train_data = _TransformedDataset(
+            self._train_data, transform=self._transforms[self._chunk_id]
+        )
+        if self._val_data:
             self._val_data = _TransformedDataset(
-                self._val_data, transform=self._transforms[chunk_id]
+                self._val_data, transform=self._transforms[self._chunk_id]
             )
-
-    def test_data(self) -> List[Dataset]:
-        """Returns the test data for all tasks."""
-        self._data_module.setup(stage="test")
-        dataset = self._data_module.test_data()
-        datasets = []
-        for chunk_id in range(self._num_tasks):
-            datasets.append(_TransformedDataset(dataset, transform=self._transforms[chunk_id]))
-        return datasets
+        self._test_data = []
+        for i in range(self._num_tasks):
+            self._test_data.append(
+                _TransformedDataset(self._data_module.test_data(), transform=self._transforms[i])
+            )
 
 
 class ImageRotationScenario(TransformScenario):

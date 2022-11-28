@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import os
 from pathlib import Path
-from typing import Literal, Optional, Union
+from typing import Optional, Union
 
 import torchtext
 from torchtext.data import to_map_style_dataset
@@ -22,7 +22,7 @@ class TorchTextDataModule(RenateDataModule):
         src_bucket: the name of the s3 bucket. If not provided, downloads the data from original source.
         src_object_name: the folder path in the s3 bucket.
         dataset_name: Name of the torchvision dataset.
-        val_size: If `val_size` is provided split the train data into train and validation according to `val_size`.
+        val_size: Fraction of the training data to be used for validation.
         seed: Seed used to fix random number generation.
     """
 
@@ -48,39 +48,30 @@ class TorchTextDataModule(RenateDataModule):
             val_size=val_size,
             seed=seed,
         )
+        if dataset_name not in TorchTextDataModule.dataset_dict:
+            raise ValueError(f"Dataset {self._dataset_name} currently not supported.")
         self._dataset_name = dataset_name
-        assert (
-            self._dataset_name in TorchTextDataModule.dataset_dict
-        ), f"Dataset {self._dataset_name} currently not supported."
 
     def prepare_data(self) -> None:
-        """Download torchtext dataset with given dataset_name. If the data is not available in local data_path,
-        it is downloaded. If s3 bucket is provided, the data is downloaded from s3, otherwise from the
-        original source in setup().
+        """Download data.
+
+        If s3 bucket is given, the data is downloaded from s3, otherwise from the original source.
         """
-        _, dataset_pathname = TorchTextDataModule.dataset_dict[self._dataset_name]
+        cls, dataset_pathname = TorchTextDataModule.dataset_dict[self._dataset_name]
         if self._src_bucket is not None:
             download_folder_from_s3(
                 src_bucket=self._src_bucket,
                 src_object_name=self._src_object_name,
                 dst_dir=os.path.join(self._data_path, dataset_pathname),
             )
-
-    def setup(self, stage: Optional[Literal["train", "val", "test"]] = None):
-        """Make assignments: train/valid/test splits (Torchtext datasets only have train and test splits)."""
-        cls, dataset_pathname = TorchTextDataModule.dataset_dict[self._dataset_name]
-        if self._src_bucket is None:
-            if stage in ["train", "val"] or stage is None:
-                train_data = to_map_style_dataset(cls(root=self._data_path, split="train"))
-                self._train_data, self._val_data = self._split_train_val_data(train_data)
-            if stage == "test" or stage is None:
-                self._test_data = to_map_style_dataset(cls(root=self._data_path, split="test"))
         else:
-            if stage in ["train", "val"] or stage is None:
-                with open(os.path.join(self._data_path, dataset_pathname, "train.csv"), "r") as f:
-                    train_data = to_map_style_dataset(f)
-                    self._train_data, self._val_data = self._split_train_val_data(train_data)
+            # Use torchtext to download.
+            cls(root=self._data_path, split="train")
+            cls(root=self._data_path, split="test")
 
-            if stage == "test" or stage is None:
-                with open(os.path.join(self._data_path, dataset_pathname, "test.csv"), "r") as f:
-                    self._test_data = to_map_style_dataset(f)
+    def setup(self) -> None:
+        """Set up train, test and val datasets."""
+        cls, _ = TorchTextDataModule.dataset_dict[self._dataset_name]
+        train_data = to_map_style_dataset(cls(root=self._data_path, split="train"))
+        self._train_data, self._val_data = self._split_train_val_data(train_data)
+        self._test_data = to_map_style_dataset(cls(root=self._data_path, split="test"))

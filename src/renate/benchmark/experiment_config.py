@@ -85,7 +85,7 @@ def get_data_module(
 ) -> RenateDataModule:
     if dataset_name in TorchVisionDataModule.dataset_dict:
         return TorchVisionDataModule(
-            data_path, dataset_name=dataset_name, download=True, val_size=val_size, seed=seed
+            data_path, dataset_name=dataset_name, val_size=val_size, seed=seed
         )
     if dataset_name in ["CLEAR10", "CLEAR100"]:
         return CLEARDataModule(data_path, dataset_name=dataset_name, val_size=val_size, seed=seed)

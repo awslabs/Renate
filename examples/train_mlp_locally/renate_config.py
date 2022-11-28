@@ -10,12 +10,12 @@ from renate.models import RenateModule
 
 from renate import defaults
 from renate.benchmark.datasets.vision_datasets import TorchVisionDataModule
-from renate.benchmark.scenarios import ClassIncrementalScenario
+from renate.benchmark.scenarios import ClassIncrementalScenario, Scenario
 
 
 def data_module_fn(
     data_path: Union[Path, str], chunk_id: int, seed: int = defaults.SEED
-) -> ClassIncrementalScenario:
+) -> Scenario:
     """Returns a class-incremental scenario instance.
 
     The transformations passed to prepare the input data are required to convert the data to
@@ -24,7 +24,6 @@ def data_module_fn(
     data_module = TorchVisionDataModule(
         str(data_path),
         dataset_name="MNIST",
-        download=True,
         val_size=0.1,
         seed=seed,
     )
