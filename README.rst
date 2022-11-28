@@ -1,4 +1,4 @@
-.. image:: https://img.shields.io/badge/License-Apache%202.0-blue.svg
+.. image:: https://img.shields.io/github/license/awslabs/Renate
     :target: https://github.com/awslabs/Renate/blob/main/LICENSE
     :alt: License
 .. image:: https://readthedocs.org/projects/renate/badge/?version=latest
