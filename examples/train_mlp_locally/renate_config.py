@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Union, Optional
+from typing import Callable, Optional, Union
 
 import torch
 from torchvision.transforms import transforms
@@ -48,6 +48,6 @@ def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule
     return model
 
 
-def train_transform() -> transforms.Compose:
+def train_transform() -> Callable:
     """Returns a transform function to be used in the training."""
     return transforms.Lambda(lambda x: torch.flatten(x))

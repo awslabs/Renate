@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 from pathlib import Path
-from typing import Optional, Union
+from typing import Callable, Optional, Union
 
 import torch
 from torchvision import transforms
@@ -45,7 +45,7 @@ def data_module_fn(
     return class_incremental_scenario
 
 
-def train_transform() -> transforms.Compose:
+def train_transform() -> Callable:
     """Returns a transform function to be used in the training."""
     return transforms.Compose(
         [
@@ -56,11 +56,11 @@ def train_transform() -> transforms.Compose:
     )
 
 
-def test_transform() -> transforms.Compose:
+def test_transform() -> Callable:
     """Returns a transform function to be used for validation or testing."""
     return transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2470, 0.2435, 0.2615))
 
 
-def buffer_transform() -> transforms.Compose:
+def buffer_transform() -> Callable:
     """Returns a transform function to be used in the Memory Buffer."""
     return train_transform()
