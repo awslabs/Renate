@@ -14,7 +14,7 @@ The Renate state folder contains three files:
       - Description
     * - model.ckpt
       - This is the checkpoint of the trained model and the only file required for deployment.
-        Use and [load this file](#loading-the-updated-model) to make predictions.
+        Use and `load this file <loading the updated model_>`_ to make predictions.
     * - learner.ckpt
       - This contains the state of the Renate updater. Only used by Renate.
     * - hpo.csv
@@ -25,7 +25,8 @@ The Renate state folder contains three files:
 Loading the Updated Model
 =========================
 
-In the following, we refer with :code:`model_fn` to the function defined by the user in the [Renate config file](./how_to_renate_config.rst).
+In the following, we refer with :code:`model_fn` to the function defined by the user in the
+:doc:`Renate config file <how_to_renate_config>`.
 
 Output Saved Locally
 ~~~~~~~~~~~~~~~~~~~~
