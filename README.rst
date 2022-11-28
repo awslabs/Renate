@@ -1,3 +1,9 @@
+.. image:: https://img.shields.io/pypi/status/Renate
+    :alt: PyPI - Status
+.. image:: https://img.shields.io/github/v/release/awslabs/Renate
+    :alt: Latest Release
+.. image:: https://img.shields.io/pypi/dm/Renate
+   :alt: PyPI - Downloads
 .. image:: https://img.shields.io/github/license/awslabs/Renate
     :target: https://github.com/awslabs/Renate/blob/main/LICENSE
     :alt: License
