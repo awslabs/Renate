@@ -18,7 +18,7 @@ repository.
     using the ClassIncrementalScenario.
     The splitting operation is not necessary in real-world applications, but
     it can be useful to run experiments when testing the library and
-    it was useful for us to create a simple example using a single dataset :)
+    it was useful for us to create a simple example using a single dataset.
 
 In the :code:`renate_config.py` file we also create a simple transformation flattening
 the input images (matrices 28x28) into vectors. Transformations do not provide

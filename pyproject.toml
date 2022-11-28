@@ -10,15 +10,11 @@ dynamic = ["version", "readme", "dependencies"]
 
 [project.optional-dependencies]
 dev = [
-    # Sphinx
-    "myst-parser",
-    "mistune",
-    "docutils",
-    "sphinx-copybutton",
+    "black",
+    # PyTest Dependencies
     "pytest>=7.0, <=7.1.2",
     "pytest-cov <=3.0.0",
     "pytest-helpers-namespace",
-    "sphinx-hoverxref",
     ]
 
 [tool.setuptools.packages.find]
@@ -26,7 +22,7 @@ where = ["src"]
 
 [tool.setuptools.dynamic]
 version = {attr = "renate.__version__"}
-readme = {file = ["README.md"]}
+readme = {file = ["README.rst"]}
 dependencies = {file = ["requirements.txt"]}
 
 [tool.black]
