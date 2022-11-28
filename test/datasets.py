@@ -63,15 +63,12 @@ class DummyTorchVisionDataModule(RenateDataModule):
             y[i * 20 : (i + 1) * 20] = i
         return X, y
 
-    def setup(self, stage=None):
-        if stage in ["train", "val"] or stage is None:
-            self.X_train, self.y_train = self._get_random_data()
-            train_data = DummyDataset(self.X_train, self.y_train, self._transform)
-            self._train_data, self._val_data = self._split_train_val_data(train_data)
-
-        if stage == "test" or stage is None:
-            self.X_test, self.y_test = self._get_random_data()
-            self._test_data = DummyDataset(self.X_test, self.y_test, self._transform)
+    def setup(self):
+        self.X_train, self.y_train = self._get_random_data()
+        train_data = DummyDataset(self.X_train, self.y_train, self._transform)
+        self._train_data, self._val_data = self._split_train_val_data(train_data)
+        self.X_test, self.y_test = self._get_random_data()
+        self._test_data = DummyDataset(self.X_test, self.y_test, self._transform)
 
 
 class DummyTorchVisionDataModuleWithChunks(DummyTorchVisionDataModule):
@@ -89,21 +86,25 @@ class DummyTorchVisionDataModuleWithChunks(DummyTorchVisionDataModule):
         self.chunk_id = chunk_id
         self.num_chunks = num_chunks
 
-    def setup(self, stage=None, chunk_id=None):
-        super().setup(stage)
-        if chunk_id is not None:
-            chunk_id = self.chunk_id
-        if stage in ["train", "val"] or stage is None:
-            train_data = DummyDataset(
-                torch.split(self.X_train, 100 // self.num_chunks)[chunk_id],
-                torch.split(self.y_train, 100 // self.num_chunks)[chunk_id],
-                self._transform,
+    def setup(self):
+        super().setup()
+        train_data = DummyDataset(
+            torch.split(self.X_train, 100 // self.num_chunks)[self.chunk_id],
+            torch.split(self.y_train, 100 // self.num_chunks)[self.chunk_id],
+            self._transform,
+        )
+        self._train_data, self._val_data = self._split_train_val_data(train_data)
+        self._test_data = []
+        for i in range(self.num_chunks):
+            self._test_data.append(
+                DummyDataset(
+                    torch.split(self.X_test, 100 // self.num_chunks)[i],
+                    torch.split(self.y_test, 100 // self.num_chunks)[i],
+                    self._transform,
+                )
             )
-            self._train_data, self._val_data = self._split_train_val_data(train_data)
 
-        if stage == "test" or stage is None:
-            self._test_data = DummyDataset(
-                torch.split(self.X_test, 100 // self.num_chunks)[chunk_id],
-                torch.split(self.y_test, 100 // self.num_chunks)[chunk_id],
-                self._transform,
-            )
+    # TODO: This is a work-around to make CLEAR available as a data module (single test dataset)
+    # as well as a scenario (all test datasets) via BenchmarkScenario. Clean up!
+    def test_data(self) -> Dataset:
+        return self._test_data[self.chunk_id]

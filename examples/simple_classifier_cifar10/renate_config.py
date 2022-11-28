@@ -9,7 +9,7 @@ from torchvision import transforms
 import renate.defaults as defaults
 from renate.benchmark.datasets.vision_datasets import TorchVisionDataModule
 from renate.benchmark.models.resnet import ResNet18CIFAR
-from renate.benchmark.scenarios import ClassIncrementalScenario
+from renate.benchmark.scenarios import ClassIncrementalScenario, Scenario
 from renate.models import RenateModule
 
 
@@ -25,7 +25,7 @@ def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule
 
 def data_module_fn(
     data_path: Union[Path, str], chunk_id: int, seed: int = defaults.SEED
-) -> ClassIncrementalScenario:
+) -> Scenario:
     """Returns a class-incremental scenario instance.
 
     The transformations passed to prepare the input data are required to convert the data to
@@ -34,7 +34,6 @@ def data_module_fn(
     data_module = TorchVisionDataModule(
         str(data_path),
         dataset_name="CIFAR10",
-        download=True,
         val_size=0.2,
         seed=seed,
     )
