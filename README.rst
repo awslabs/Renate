@@ -69,7 +69,7 @@ What are you looking for?
 
     .. code-block:: bash
 
-      pip install renate
+      pip install git+https://github.com/awslabs/Renate@main
 
 * Examples
     We provide examples to train your model
