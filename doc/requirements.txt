@@ -1,3 +1,4 @@
+src/
 docutils
 sphinx-copybutton
 sphinx-hoverxref
