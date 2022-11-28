@@ -7,9 +7,9 @@ import os
 import shutil
 import sys
 
-import renate
-
 sys.path.insert(0, os.path.abspath("../src/"))
+
+import renate
 
 
 def run_apidoc(app):
