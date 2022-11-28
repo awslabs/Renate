@@ -1,3 +1,10 @@
+.. image:: https://img.shields.io/badge/License-Apache%202.0-blue.svg
+    :target: https://github.com/awslabs/Renate/blob/main/LICENSE
+    :alt: License
+.. image:: https://readthedocs.org/projects/renate/badge/?version=latest
+    :target: https://renate.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
+
 Renate - Automatic Neural Networks Retraining and Continual Learning in Python
 ******************************************************************************
 
