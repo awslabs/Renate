@@ -36,7 +36,6 @@ The algorithms in Renate help mitigating the negative impact of forgetting and i
 model performance overall. 
 
 .. figure:: https://raw.githubusercontent.com/awslabs/Renate/main/doc/_images/improvement_renate.svg
-    :scale: 80%
     :align: center
     :alt: Renate vs Model Fine-Tuning.
 
@@ -49,7 +48,6 @@ advanced HPO methods such multi-fidelity algorithms (ASHA) and transfer learning
 (useful for speeding up the retuning).
 
 .. figure:: https://raw.githubusercontent.com/awslabs/Renate/main/doc/_images/improvement_tuning.svg
-    :scale: 80%
     :align: center
     :alt: Impact of HPO on Renate's Updating Algorithms.
 
