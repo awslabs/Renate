@@ -3,5 +3,3 @@ sphinx-copybutton
 sphinx-hoverxref
 sphinxext-opengraph
 pydata-sphinx-theme
-
--r ../requirements.txt
