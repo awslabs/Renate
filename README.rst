@@ -25,7 +25,7 @@ and `Lightning <https://www.pytorchlightning.ai>`_ for deep learning, and
 
 Quick links
 ===========
-* `Installation Instructions <https://renate.readthedocs.io/en/latest/getting_started/install.html>`_
+* Install renate with `pip install renate` or look at `these instructions <https://renate.readthedocs.io/en/latest/getting_started/install.html>`_
 * Examples for `local training <https://renate.readthedocs.io/en/latest/examples/train_mlp_locally.html>`_ and `training on Amazon SageMaker <https://renate.readthedocs.io/en/latest/examples/train_classifier_sagemaker.html>`_.
 * `Documentation <https://renate.readthedocs.io>`_
 * `Supported Algorithms <https://renate.readthedocs.io/en/latest/getting_started/supported_algorithms.html>`_
@@ -85,7 +85,7 @@ What are you looking for?
     * `Train a ResNet on SageMaker <https://renate.readthedocs.io/en/latest/examples/train_classifier_sagemaker.html>`_
 * `Documentation website with API doc and examples <https://renate.readthedocs.io>`_
 * `List of the supported algorithms <https://renate.readthedocs.io/en/latest/getting_started/supported_algorithms.html>`_
-* `How to run continula learning experiments using Renate <https://renate.readthedocs.io/en/latest/benchmarking/index.html>`_
+* `How to run continual learning experiments using Renate <https://renate.readthedocs.io/en/latest/benchmarking/index.html>`_
 * `Guidelines for Contributors <https://github.com/awslabs/renate/tree/master/CONTRIBUTING.md>`_
 
 If you did not find what you were looking for, open an `issue <https://github.com/awslabs/Renate/issues/new>`_ and
