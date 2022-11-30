@@ -9,7 +9,7 @@ from torchvision.models.vision_transformer import ConvStemConfig, WeightsEnum
 from torchvision.models.vision_transformer import VisionTransformer as _VisionTransformer
 
 from renate.defaults import TASK_ID
-from renate.models.renate_module import RenateModule
+from renate.models import RenateModule
 
 
 class VisionTransformer(RenateModule):

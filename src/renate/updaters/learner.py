@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader, Dataset
 from renate import defaults
 from renate.data.datasets import _TransformedDataset
 from renate.evaluation.metrics.utils import create_metrics
-from renate.memory.buffer import DataBuffer, InfiniteBuffer, ReservoirBuffer
+from renate.memory import DataBuffer, InfiniteBuffer, ReservoirBuffer
 from renate.models import RenateModule
 from renate.utils.optimizer import create_optimizer, create_scheduler
 from renate.utils.pytorch import get_generator

@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader, Dataset
 from renate import defaults
 from renate.data.datasets import _TransformedDataset
 from renate.evaluation.metrics.utils import create_metrics
-from renate.models.renate_module import RenateModule
+from renate.models import RenateModule
 
 
 class Evaluator(LightningModule, abc.ABC):

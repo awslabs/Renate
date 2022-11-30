@@ -13,7 +13,7 @@ from renate.benchmark.datasets.vision_datasets import (
     TinyImageNetDataModule,
     TorchVisionDataModule,
 )
-from renate.data.data_module import CSVDataModule
+from renate.data import CSVDataModule
 
 
 def test_csv_data_module(tmpdir):

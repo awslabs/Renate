@@ -9,7 +9,6 @@
     Examples <examples/index>
     API Reference <_apidoc/modules>
 
-
 Indices and tables
 __________________
 

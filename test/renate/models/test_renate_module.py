@@ -10,7 +10,8 @@ from renate.benchmark.models.mlp import MultiLayerPerceptron
 from renate.benchmark.models.resnet import ResNet
 from renate.benchmark.models.vision_transformer import VisionTransformer
 from renate.defaults import TASK_ID
-from renate.models.renate_module import RenateModule, RenateWrapper
+from renate.models import RenateModule
+from renate.models.renate_module import RenateWrapper
 
 
 def test_failing_to_init_abs_class():

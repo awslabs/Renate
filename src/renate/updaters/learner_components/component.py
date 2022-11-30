@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 
 from renate.memory.buffer import DataDict, DataTuple
-from renate.models.renate_module import RenateModule
+from renate.models import RenateModule
 
 
 class Component(nn.Module, abc.ABC):

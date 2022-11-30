@@ -3,13 +3,14 @@
 import os
 
 import numpy as np
-from PIL import Image
 import pytest
 import torch
-from torch.utils.data import TensorDataset
 import torchvision.transforms as transforms
+from PIL import Image
+from torch.utils.data import TensorDataset
 
-from renate.data.datasets import ImageDataset, _EnumeratedDataset, _TransformedDataset
+from renate.data import ImageDataset
+from renate.data.datasets import _EnumeratedDataset, _TransformedDataset
 
 
 class MulTransform:
