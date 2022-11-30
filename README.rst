@@ -14,7 +14,7 @@
     :target: https://renate.readthedocs.io
     :alt: Documentation Status
 
-Renate - Automatic Neural Networks Retraining and Continual Learning in Python
+Renate: Automatic Neural Networks Retraining and Continual Learning in Python
 ******************************************************************************
 
 Renate is a Python package for automatic retraining of neural networks models.
@@ -22,6 +22,13 @@ It uses advanced Continual Learning and Lifelong Learning algorithms to achieve 
 The implementation is based on `PyTorch <https://pytorch.org>`_
 and `Lightning <https://www.pytorchlightning.ai>`_ for deep learning, and
 `Syne Tune <https://github.com/awslabs/syne-tune>`_ for hyperparameter optimization.
+
+Quick links
+===========
+* Install renate with `pip install renate` or look at `these instructions <https://renate.readthedocs.io/en/latest/getting_started/install.html>`_
+* Examples for `local training <https://renate.readthedocs.io/en/latest/examples/train_mlp_locally.html>`_ and `training on Amazon SageMaker <https://renate.readthedocs.io/en/latest/examples/train_classifier_sagemaker.html>`_.
+* `Documentation <https://renate.readthedocs.io>`_
+* `Supported Algorithms <https://renate.readthedocs.io/en/latest/getting_started/supported_algorithms.html>`_
 
 
 Who needs Renate?
@@ -69,22 +76,20 @@ What are you looking for?
 =========================
 
 * `Installation Instructions <https://renate.readthedocs.io/en/latest/getting_started/install.html>`_
-
     .. code-block:: bash
 
       pip install renate
 
-* Examples
-    We provide examples to train your model
-    `locally <https://renate.readthedocs.io/en/latest/examples/train_mlp_locally.html>`_
-    or `using Amazon SageMaker <https://renate.readthedocs.io/en/latest/examples/train_classifier_sagemaker.html>`_.
-* `Documentation <https://renate.readthedocs.io>`_
-* `Supported Algorithms <https://renate.readthedocs.io/en/latest/getting_started/supported_algorithms.html>`_
-* `Experimenting with Renate <https://renate.readthedocs.io/en/latest/benchmarking/index.html>`_
+* Examples:
+    * `Train an MLP locally on MNIST <https://renate.readthedocs.io/en/latest/examples/train_mlp_locally.html>`_
+    * `Train a ResNet on SageMaker <https://renate.readthedocs.io/en/latest/examples/train_classifier_sagemaker.html>`_
+* `Documentation website with API doc and examples <https://renate.readthedocs.io>`_
+* `List of the supported algorithms <https://renate.readthedocs.io/en/latest/getting_started/supported_algorithms.html>`_
+* `How to run continual learning experiments using Renate <https://renate.readthedocs.io/en/latest/benchmarking/index.html>`_
 * `Guidelines for Contributors <https://github.com/awslabs/renate/tree/master/CONTRIBUTING.md>`_
-* You did not find what you were looking for?
-    Open an `issue <https://github.com/awslabs/Renate/issues/new>`_ and we will do our best
-    to improve the documentation.
+
+If you did not find what you were looking for, open an `issue <https://github.com/awslabs/Renate/issues/new>`_ and
+we will do our best to improve the documentation.
 
 
 .. [#] To create this plot, we simulated class-incremental learning with CIFAR-10.
@@ -95,5 +100,6 @@ What are you looking for?
     For both methods we use the same number of epochs and choose the best checkpoint
     using a validation set.
     Results reported are on the test set.
+
 .. [#] The setup is the same as in the last experiment. However, this time we compare
     Experience Replay against a version in which its hyperparameters were tuned.
