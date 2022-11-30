@@ -8,7 +8,7 @@ import torch
 import torch.nn.functional as F
 
 from renate.memory.buffer import DataDict, DataTuple
-from renate.models.renate_module import RenateModule
+from renate.models import RenateModule
 from renate.updaters.learner_components.component import Component
 
 

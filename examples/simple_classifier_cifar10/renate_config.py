@@ -8,7 +8,7 @@ from torchvision import transforms
 
 import renate.defaults as defaults
 from renate.benchmark.datasets.vision_datasets import TorchVisionDataModule
-from renate.benchmark.models.resnet import ResNet18CIFAR
+from renate.benchmark.models import ResNet18CIFAR
 from renate.benchmark.scenarios import ClassIncrementalScenario, Scenario
 from renate.models import RenateModule
 

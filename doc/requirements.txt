@@ -3,3 +3,4 @@ sphinx-copybutton
 sphinx-hoverxref
 sphinxext-opengraph
 pydata-sphinx-theme
+sphinx-autodoc-typehints

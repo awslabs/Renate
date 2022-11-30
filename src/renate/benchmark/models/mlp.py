@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 
 from renate.defaults import TASK_ID
-from renate.models.renate_module import RenateModule
+from renate.models import RenateModule
 
 
 class MultiLayerPerceptron(RenateModule):

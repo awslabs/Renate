@@ -17,3 +17,19 @@ from renate.benchmark.models.vision_transformer import (
     VisionTransformerL16,
     VisionTransformerL32,
 )
+
+__all__ = [
+    "MultiLayerPerceptron",
+    "ResNet18",
+    "ResNet18CIFAR",
+    "ResNet34",
+    "ResNet34CIFAR",
+    "ResNet50",
+    "ResNet50CIFAR",
+    "VisionTransformerB16",
+    "VisionTransformerB32",
+    "VisionTransformerCIFAR",
+    "VisionTransformerH14",
+    "VisionTransformerL16",
+    "VisionTransformerL32",
+]

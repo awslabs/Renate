@@ -8,7 +8,7 @@ from torchvision.models.resnet import BasicBlock, Bottleneck
 from torchvision.models.resnet import ResNet as _ResNet
 
 from renate.defaults import TASK_ID
-from renate.models.renate_module import RenateModule
+from renate.models import RenateModule
 
 
 class ResNet(RenateModule):

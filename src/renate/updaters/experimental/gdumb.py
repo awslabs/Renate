@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from renate import defaults
 from renate.memory import GreedyClassBalancingBuffer
-from renate.models.renate_module import RenateModule
+from renate.models import RenateModule
 from renate.updaters.learner import Learner, ReplayLearner
 from renate.updaters.model_updater import SimpleModelUpdater
 from renate.utils.pytorch import reinitialize_model_parameters
