@@ -25,7 +25,7 @@ and `Lightning <https://www.pytorchlightning.ai>`_ for deep learning, and
 
 Quick links
 ===========
-* Install renate with `pip install renate` or look at `these instructions <https://renate.readthedocs.io/en/latest/getting_started/install.html>`_
+* Install renate with ``pip install renate`` or look at `these instructions <https://renate.readthedocs.io/en/latest/getting_started/install.html>`_
 * Examples for `local training <https://renate.readthedocs.io/en/latest/examples/train_mlp_locally.html>`_ and `training on Amazon SageMaker <https://renate.readthedocs.io/en/latest/examples/train_classifier_sagemaker.html>`_.
 * `Documentation <https://renate.readthedocs.io>`_
 * `Supported Algorithms <https://renate.readthedocs.io/en/latest/getting_started/supported_algorithms.html>`_
