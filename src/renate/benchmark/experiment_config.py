@@ -68,10 +68,11 @@ def model_fn(
     if model_fn_model_name == "MultiLayerPerceptron":
         model_kwargs = {
             "num_inputs": int(model_fn_num_inputs),
-            "num_outputs": int(model_fn_num_outputs),
             "num_hidden_layers": int(model_fn_num_hidden_layers),
             "hidden_size": ast.literal_eval(model_fn_hidden_size),
         }
+    if model_fn_num_outputs is not None:
+        model_kwargs["num_outputs"] = int(model_fn_num_outputs)
     if model_state_url is None:
         model = model_class(**model_kwargs)
     else:

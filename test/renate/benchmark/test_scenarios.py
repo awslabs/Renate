@@ -1,6 +1,5 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-import copy
 from collections import Counter
 
 import numpy as np
@@ -64,6 +63,18 @@ def test_class_incremental_scenario():
         assert len(val_data) == sum([val_data_class_counts[c] for c in class_groupings[i]])
         for j, test_data in enumerate(scenario.test_data()):
             assert len(test_data) == sum([test_data_class_counts[c] for c in class_groupings[j]])
+
+
+def test_class_incremental_scenario_class_grouping_error():
+    """Classes selected do not exist in data."""
+    scenario = ClassIncrementalScenario(
+        data_module=DummyTorchVisionDataModule(val_size=0.3, seed=42),
+        class_groupings=[[0, 1, 3], [2, 200]],
+        chunk_id=0,
+    )
+    scenario.prepare_data()
+    with pytest.raises(ValueError, match=r"Chunk 1 does not contain classes \[200\]."):
+        scenario.setup()
 
 
 def test_image_rotation_scenario():
