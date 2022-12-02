@@ -138,7 +138,14 @@ class ClassIncrementalScenario(Scenario):
             [i for i in range(len(dataset)) if dataset[i][1] in class_group],
             dtype=torch.long,
         )
-        return Subset(dataset, indices)
+        subset = Subset(dataset, indices)
+        targets = set(np.unique([subset[i][1].item() for i in range(len(subset))]))
+        expected_targets = set(self._class_groupings[chunk_id])
+        if targets != expected_targets:
+            raise ValueError(
+                f"Chunk {chunk_id} does not contain classes {sorted(list(expected_targets - targets))}."
+            )
+        return subset
 
 
 class TransformScenario(Scenario):
