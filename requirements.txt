@@ -4,7 +4,7 @@ pandas~=1.4.2
 boto3
 requests
 sagemaker>=2.112.0
-syne-tune[extra]>=0.3.2
+syne-tune[raytune,bore,kde,gpsearchers,aws]>=0.3.2
 pytorch-lightning~=1.8.0
 Pillow>=9.0
 torchmetrics~=0.10.0
