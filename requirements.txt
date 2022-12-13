@@ -5,7 +5,7 @@ boto3
 requests
 sagemaker>=2.112.0
 syne-tune[raytune,kde,gpsearchers,aws]>=0.3.2
-pytorch-lightning~=1.8.0
+pytorch-lightning~=1.8.4
 Pillow>=9.0
 torchmetrics~=0.10.0
 torchdata>=0.4.0
