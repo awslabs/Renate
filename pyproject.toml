@@ -19,6 +19,7 @@ dynamic = ["version", "readme", "dependencies"]
 [project.optional-dependencies]
 dev = [
     "black",
+    "flake8>=5.0.0",
     # PyTest Dependencies
     "pytest>=7.0, <=7.1.2",
     "pytest-cov <=3.0.0",
