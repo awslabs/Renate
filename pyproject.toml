@@ -21,7 +21,7 @@ dev = [
     "black",
     # PyTest Dependencies
     "pytest>=7.0, <7.2.1",
-    "pytest-cov <=3.0.0",
+    "pytest-cov <5.0.0",
     "pytest-helpers-namespace",
     ]
 
