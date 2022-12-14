@@ -54,7 +54,8 @@ def test_move_to_uri_locally(
 
 
 @pytest.mark.parametrize(
-    "file_content1_source_dir, file_content2_source_dir, file_content1_destination_dir, file_content2_destination_dir",
+    "file_content1_source_dir, file_content2_source_dir, file_content1_destination_dir, "
+    "file_content2_destination_dir",
     [["test1_1", "test1_1", "test1_2", "test2_2"]],
 )
 def test_copy_to_uri_locally(

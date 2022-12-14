@@ -15,7 +15,8 @@ def create_metrics(
 
     Args:
         task: Whether classification or regression, for now.
-        additional_metrics: Dictionary of additionally metrics to be added to the returned `MetricCollection`.
+        additional_metrics: Dictionary of additionally metrics to be added to the returned
+            `MetricCollection`.
     """
     if task == "classification":
         metric_collection = {
@@ -27,8 +28,8 @@ def create_metrics(
         raise NotImplementedError(f"Task {task} not implemented.")
     if additional_metrics:
         assert set(metric_collection).isdisjoint(set(additional_metrics)), (
-            f"Use a different name for your custom metrics. Following names are reserved for the default metrics: "
-            f"{set(metric_collection)}."
+            "Use a different name for your custom metrics. Following names are reserved for the "
+            f"default metrics: {set(metric_collection)}."
         )
         metric_collection.update(additional_metrics)
     return torchmetrics.MetricCollection(metric_collection)

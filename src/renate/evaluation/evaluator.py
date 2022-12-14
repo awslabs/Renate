@@ -19,8 +19,8 @@ class Evaluator(LightningModule, abc.ABC):
     """A general Evaluator module for collection of quantitative metrics on the test dataset.
 
     This is an abstract interface which can be called with respect to a PyTorch Lightning `Trainer`.
-    and its `.test()` function. It collects quantitative observations with respect to a single dataset. The
-    metrics that are being collected are defined in the `create_metrics` function.
+    and its `.test()` function. It collects quantitative observations with respect to a single
+    dataset. The metrics that are being collected are defined in the `create_metrics` function.
 
     Args:
         model: A `RenateModule` to be evaluated.
@@ -85,7 +85,9 @@ class Evaluator(LightningModule, abc.ABC):
 
 
 class ClassificationEvaluator(Evaluator):
-    """A classification Evaluator module for collection of quantitative metrics on the test dataset."""
+    """A classification Evaluator module for collection of quantitative metrics on the test
+    dataset.
+    """
 
     def __init__(self, **kwargs: Any):
         super().__init__(task="classification", **kwargs)
@@ -113,11 +115,13 @@ def evaluate(
     accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
     devices: Optional[int] = None,
 ) -> Dict[str, List[float]]:
-    """Evaluate the model on the test dataset or a set of test datasets corresponding to distinct tasks.
+    """Evaluate the model on the test dataset or a set of test datasets corresponding to distinct
+    tasks.
 
-    If the `test_dataset` are specified as a list of datasets, it is assumed to be ordered. Similarly, in a case
-    the `task_id` are specified as a list, it is assumed to be ordered. A task ID list can be used to set specific
-    model part to be used, for example, an output head with some specific test dataset in the input sequence.
+    If the `test_dataset` are specified as a list of datasets, it is assumed to be ordered.
+    Similarly, in a case the `task_id` are specified as a list, it is assumed to be ordered. A task
+    ID list can be used to set specific model part to be used, for example, an output head with some
+    specific test dataset in the input sequence.
 
     Args:
         model: A `RenateModule` to be evaluated.
@@ -129,8 +133,9 @@ def evaluate(
         logged_metrics: Metrics logged additional to the default ones.
         logger: Logger used by PyTorch Lightning to log intermediate results.
         accelerator: Accelerator used by PyTorch Lightning to train the model.
-        devices: Devices used by PyTorch Lightning to train the model. If the devices flag is not defined,
-                 it will assume devices to be "auto" and fetch the `auto_device_count` from the `accelerator`.
+        devices: Devices used by PyTorch Lightning to train the model. If the devices flag is not
+            defined, it will assume devices to be "auto" and fetch the `auto_device_count` from the
+            `accelerator`.
     """
     if isinstance(test_dataset, Dataset):
         test_dataset = [test_dataset]

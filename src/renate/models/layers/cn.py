@@ -12,8 +12,8 @@ class ContinualNorm(_BatchNorm):
     "Continual normalization: Rethinking batch normalization for online continual learning."
     International Conference on Learning Representations (2022).
 
-    It combines Group Normalization with respect to a user-defined `num_groups` parameter, the number of groups in Group Normalization,
-    followed by Batch Normalization.
+    It combines Group Normalization with respect to a user-defined `num_groups` parameter, the
+    number of groups in Group Normalization, followed by Batch Normalization.
 
     Args:
         num_features: The number of input features in the channel dimension.

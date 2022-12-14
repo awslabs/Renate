@@ -28,7 +28,8 @@ logger.setLevel(logging.INFO)
 class ModelUpdaterCLI:
     """Entry point to update a model.
 
-    Given a dataset, a model and a training configuration, this class will update the model with the given data.
+    Given a dataset, a model and a training configuration, this class will update the model with the
+    given data.
 
     It will create following folder structure:
         args.working_dir
@@ -88,7 +89,8 @@ class ModelUpdaterCLI:
             "--task_id",
             type=str,
             default=defaults.TASK_ID,
-            help="Task ID matching the current dataset. If you do not distinguish between different tasks, ignore this"
+            help="Task ID matching the current dataset. If you do not distinguish between "
+            "different tasks, ignore this"
             f" argument. Default: {defaults.TASK_ID}.",
         )
         argument_group.add_argument(
@@ -113,7 +115,8 @@ class ModelUpdaterCLI:
             "--working_directory",
             type=str,
             default=defaults.WORKING_DIRECTORY,
-            help=f"Folder used by Renate to store files temporarily. Default: {defaults.WORKING_DIRECTORY}.",
+            help="Folder used by Renate to store files temporarily. Default: "
+            f"{defaults.WORKING_DIRECTORY}.",
         )
         argument_group.add_argument(
             "--seed",
@@ -138,7 +141,8 @@ class ModelUpdaterCLI:
             type=str,
             default=str(defaults.EARLY_STOPPING),
             choices=["True", "False"],
-            help=f"Enables the early stopping of the optimization. Default: {defaults.EARLY_STOPPING}.",
+            help="Enables the early stopping of the optimization. Default: "
+            f"{defaults.EARLY_STOPPING}.",
         )
 
         argument_group = parser.add_argument_group("DO NOT CHANGE")
@@ -158,9 +162,10 @@ class ModelUpdaterCLI:
     def _copy_state_to_working_directory(self, state_url: str, current_state_folder: str) -> None:
         """Copies current state into the working directory.
 
-        If state is on s3, download directly from there to current_state_folder.
-        If state is already in local directory, copy to right folder unless it is already in the right folder.
-        If current_state_folder exists but state_url is not provided, current_state_folder will be removed.
+        If state is on s3, download directly from there to `current_state_folder`.
+        If state is already in local directory, copy to right folder unless it is already in the
+        right folder. If `current_state_folder` exists but `state_url` is not provided,
+        `current_state_folder` will be removed.
         """
         local_dir = maybe_download_from_s3(state_url, current_state_folder)
         folder_downloaded_from_s3 = local_dir == current_state_folder

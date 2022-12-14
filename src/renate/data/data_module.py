@@ -20,7 +20,8 @@ class RenateDataModule(abc.ABC):
 
     A data module implements two methods for data preparation:
     - `prepare_data()` downloads the data to the local machine and unpacks it.
-    - `setup()` creates pytorch dataset objects that return training, test and (possibly) validation data.
+    - `setup()` creates pytorch dataset objects that return training, test and (possibly) validation
+        data.
     These two steps are separated to streamline the process when launching multiple training jobs
     simultaneously, e.g., for hyperparameter optimization. In this case, `prepare_data()` is only
     called once per machine.
@@ -83,7 +84,9 @@ class RenateDataModule(abc.ABC):
         return self._test_data
 
     def _verify_file(self, file_name: str) -> bool:
-        """A helper function that verifies that the required dataset files are downloaded and correct."""
+        """A helper function that verifies that the required dataset files are downloaded and
+        correct.
+        """
         return check_integrity(
             os.path.join(self._data_path, self._dataset_name, file_name),
             self.md5s[file_name],

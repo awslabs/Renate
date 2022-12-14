@@ -194,7 +194,7 @@ class ModelUpdater(abc.ABC):
             )
         if metric is None and early_stopping_enabled:
             warnings.warn(
-                "Early stopping is enabled but no metric is specified. Early stopping will be"
+                "Early stopping is enabled but no metric is specified. Early stopping will be "
                 "ignored."
             )
             early_stopping_enabled = False
@@ -299,8 +299,8 @@ class ModelUpdater(abc.ABC):
                 )
             else:
                 warnings.warn(
-                    "Early stopping is currently not supported without a validation set. It will be"
-                    "ignored."
+                    "Early stopping is currently not supported without a validation set. It will "
+                    "be ignored."
                 )
 
         trainer = Trainer(
