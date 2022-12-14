@@ -27,7 +27,8 @@ class MyMNISTMLP(RenateModule):
 
 def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule:
     if model_state_url is None:
-        # If no model state is given, we create the model from scratch with initial model hyperparameters.
+        # If no model state is given, we create the model from scratch with initial model
+        # hyperparameters.
         model = MyMNISTMLP(num_hidden=100)
     else:
         # If a model state is passed, we reload the model using PyTorch's load_state_dict.

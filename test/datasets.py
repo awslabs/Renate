@@ -30,8 +30,8 @@ class DummyDataset(Dataset):
 
 class DummyTorchVisionDataModule(RenateDataModule):
     """
-    A simple data module similar to `TorchVisionDataModule` with 100 training instances and 100 test instances with
-    shape (1, 5, 5) and 5 classes.
+    A simple data module similar to `TorchVisionDataModule` with 100 training instances and 100 test
+    instances with shape (1, 5, 5) and 5 classes.
     """
 
     def __init__(

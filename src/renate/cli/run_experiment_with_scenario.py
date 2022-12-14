@@ -1,9 +1,9 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 """
-This script is used to launch an experiment on SageMaker. Previously passed arguments on a different machine are loaded
-from S3 and the update process is started with these parameters.
-Arguments expected are described in renate.benchmark.execute_experiment_job.
+This script is used to launch an experiment on SageMaker. Previously passed arguments on a different
+machine are loaded from S3 and the update process is started with these parameters. Arguments
+expected are described in renate.benchmark.execute_experiment_job.
 """
 import argparse
 
@@ -15,8 +15,8 @@ class ExperimentCLI:
     """Entry point to perform an experiment from start to end including evaluation.
 
     Given a dataset, optionally wrapped in a scenario, a model and a training configuration,
-    this script will find the best hyper-parameters per each data chunk, update the model and evaluate it
-    on all the provided test data.
+    this script will find the best hyper-parameters per each data chunk, update the model and
+    evaluate it on all the provided test data.
     """
 
     def run(self):
@@ -27,7 +27,8 @@ class ExperimentCLI:
             "--config_file",
             type=str,
             required=True,
-            help="File containing the definition of model_fn, data_module_fn, config_space_fn and scheduler_fn.",
+            help="File containing the definition of model_fn, data_module_fn, config_space_fn and "
+            "scheduler_fn.",
         )
         argument_group.add_argument(
             "--experiment_outputs_url",
@@ -39,7 +40,8 @@ class ExperimentCLI:
             "--num_updates",
             type=int,
             required=True,
-            help="How many updates or chunk IDs should be passed to the updater to update the model.",
+            help="How many updates or chunk IDs should be passed to the updater to update the "
+            "model.",
         )
         argument_group.add_argument(
             "--mode",
@@ -89,7 +91,8 @@ class ExperimentCLI:
             "--working_directory",
             type=str,
             default=defaults.WORKING_DIRECTORY,
-            help=f"Folder used by Renate to store files temporarily. Default: {defaults.WORKING_DIRECTORY}.",
+            help="Folder used by Renate to store files temporarily. Default: "
+            f"{defaults.WORKING_DIRECTORY}.",
         )
 
         argument_group = parser.add_argument_group("Optional Parameters")

@@ -158,19 +158,22 @@ def parse_optimizer_arguments(parser: argparse.Namespace) -> None:
         "--learning_rate_scheduler",
         type=str,
         default=defaults.LEARNING_RATE_SCHEDULER,
-        help=f"Learning rate scheduler used during model update. Default: {defaults.LEARNING_RATE_SCHEDULER}.",
+        help="Learning rate scheduler used during model update. Default: "
+        f"{defaults.LEARNING_RATE_SCHEDULER}.",
     )
     parser.add_argument(
         "--learning_rate_scheduler_step_size",
         type=int,
         default=defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-        help=f"Step size for learning rate scheduler. Default: {defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE}.",
+        help="Step size for learning rate scheduler. Default: "
+        f"{defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE}.",
     )
     parser.add_argument(
         "--learning_rate_scheduler_gamma",
         type=float,
         default=defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-        help=f"Gamma for learning rate scheduler. Default: {defaults.LEARNING_RATE_SCHEDULER_GAMMA}.",
+        help="Gamma for learning rate scheduler. Default: "
+        f"{defaults.LEARNING_RATE_SCHEDULER_GAMMA}.",
     )
 
     parser.add_argument(
@@ -189,7 +192,8 @@ def parse_optimizer_arguments(parser: argparse.Namespace) -> None:
         "--batch_size",
         type=int,
         default=defaults.BATCH_SIZE,
-        help=f"Batch size used during model update for the new data. Default: {defaults.BATCH_SIZE}.",
+        help="Batch size used during model update for the new data. Default: "
+        f"{defaults.BATCH_SIZE}.",
     )
 
     parser.add_argument(
@@ -212,7 +216,8 @@ def parse_replay_learner_arguments(parser: argparse.Namespace) -> None:
         "--memory_batch_size",
         type=int,
         default=defaults.BATCH_SIZE,
-        help=f"Batch size used during model update for the memory buffer. Default: {defaults.BATCH_SIZE}.",
+        help="Batch size used during model update for the memory buffer. Default: "
+        f"{defaults.BATCH_SIZE}.",
     )
 
 
@@ -222,7 +227,8 @@ def _parse_base_experience_replay_arguments(parser: argparse.Namespace) -> None:
         "--ema_memory_update_gamma",
         type=float,
         default=defaults.EMA_MEMORY_UPDATE_GAMMA,
-        help=f"Exponential moving average factor to update logits. Default: {defaults.EMA_MEMORY_UPDATE_GAMMA}.",
+        help="Exponential moving average factor to update logits. Default: "
+        f"{defaults.EMA_MEMORY_UPDATE_GAMMA}.",
     )
     parser.add_argument(
         "--loss_normalization",
@@ -279,7 +285,8 @@ def parse_pod_experience_replay_arguments(parser: argparse.Namespace) -> None:
         "--alpha",
         type=float,
         default=defaults.POD_ALPHA,
-        help=f"Weight for intermediate representation regularization term. Default: {defaults.POD_ALPHA}.",
+        help="Weight for intermediate representation regularization term. Default: "
+        f"{defaults.POD_ALPHA}.",
     )
     parser.add_argument(
         "--distillation_type",
@@ -292,8 +299,8 @@ def parse_pod_experience_replay_arguments(parser: argparse.Namespace) -> None:
         "--normalize",
         type=int,
         default=defaults.POD_NORMALIZE,
-        help="Whether to normalize both the current and cached features before computing the Frobenius norm. "
-        f"Default: {defaults.POD_NORMALIZE}.",
+        help="Whether to normalize both the current and cached features before computing the "
+        "Frobenius norm. Default: {defaults.POD_NORMALIZE}.",
     )
     _parse_base_experience_replay_arguments(parser)
 
@@ -330,13 +337,15 @@ def parse_cls_experience_replay_arguments(parser: argparse.Namespace) -> None:
         "--stable_model_update_probability",
         type=float,
         default=defaults.CLS_STABLE_MODEL_UPDATE_PROBABILITY,
-        help=f"Probability to update the stable model. Default: {defaults.CLS_STABLE_MODEL_UPDATE_PROBABILITY}.",
+        help="Probability to update the stable model. Default: "
+        f"{defaults.CLS_STABLE_MODEL_UPDATE_PROBABILITY}.",
     )
     parser.add_argument(
         "--plastic_model_update_probability",
         type=float,
         default=defaults.CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,
-        help=f"Probability to update the plastic model. Default: {defaults.CLS_PLASTIC_MODEL_UPDATE_PROBABILITY}.",
+        help="Probability to update the plastic model. Default: "
+        f"{defaults.CLS_PLASTIC_MODEL_UPDATE_PROBABILITY}.",
     )
     _parse_base_experience_replay_arguments(parser)
 
@@ -371,7 +380,8 @@ def parse_super_experience_replay_arguments(parser: argparse.Namespace) -> None:
         "--pod_alpha",
         type=float,
         default=defaults.SER_POD_ALPHA,
-        help=f"Weight for intermediate representation regularization term. Default: {defaults.SER_POD_ALPHA}.",
+        help="Weight for intermediate representation regularization term. Default: "
+        f"{defaults.SER_POD_ALPHA}.",
     )
     parser.add_argument(
         "--pod_distillation_type",
@@ -384,8 +394,8 @@ def parse_super_experience_replay_arguments(parser: argparse.Namespace) -> None:
         "--pod_normalize",
         type=int,
         default=defaults.SER_POD_NORMALIZE,
-        help="Whether to normalize both the current and cached features before computing the Frobenius norm. "
-        f"Default: {defaults.SER_POD_NORMALIZE}.",
+        help="Whether to normalize both the current and cached features before computing the "
+        f"Frobenius norm. Default: {defaults.SER_POD_NORMALIZE}.",
     )
     parser.add_argument(
         "--cls_alpha",
@@ -411,13 +421,15 @@ def parse_super_experience_replay_arguments(parser: argparse.Namespace) -> None:
         "--cls_stable_model_update_probability",
         type=float,
         default=defaults.SER_CLS_STABLE_MODEL_UPDATE_PROBABILITY,
-        help=f"Probability to update the stable model. Default: {defaults.SER_CLS_STABLE_MODEL_UPDATE_PROBABILITY}.",
+        help="Probability to update the stable model. Default: "
+        f"{defaults.SER_CLS_STABLE_MODEL_UPDATE_PROBABILITY}.",
     )
     parser.add_argument(
         "--cls_plastic_model_update_probability",
         type=float,
         default=defaults.SER_CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,
-        help=f"Probability to update the plastic model. Default: {defaults.SER_CLS_PLASTIC_MODEL_UPDATE_PROBABILITY}.",
+        help="Probability to update the plastic model. Default: "
+        f"{defaults.SER_CLS_PLASTIC_MODEL_UPDATE_PROBABILITY}.",
     )
     _parse_base_experience_replay_arguments(parser)
 
@@ -435,7 +447,9 @@ def parse_rd_learner_arguments(parser: argparse.Namespace) -> None:
 def _get_args_by_prefix(
     args: Union[argparse.Namespace, Dict[str, str]], prefix: str
 ) -> Dict[str, str]:
-    """Returns a dictionary containing all key/value pairs from `args` whose arguments start with `prefix`."""
+    """Returns a dictionary containing all key/value pairs from `args` whose arguments start with
+    `prefix`.
+    """
     if isinstance(args, argparse.Namespace):
         args = vars(args)
     return {k: v for k, v in args.items() if k.startswith(prefix)}

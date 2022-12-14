@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath("../src/"))
 
-import renate
+import renate  # noqa: E402
 
 
 def run_apidoc(app):

@@ -330,8 +330,8 @@ def check_learner_transforms(learner: Learner, expected_transforms: Dict[str, Ca
 
     Args:
         learner: The learner which transforms will be checked.
-        expected_transforms: Dictionairy mapping from transform name to transform. These are the expected transforms
-            for the learner.
+        expected_transforms: Dictionairy mapping from transform name to transform. These are the
+            expected transforms for the learner.
     """
     assert learner._train_transform is expected_transforms.get(
         "train_transform"

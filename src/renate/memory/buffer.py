@@ -34,7 +34,7 @@ class DataBuffer(Dataset, ABC):
     Note that the buffer does not change the device placement of data passed to it.
     Please ensure that the data passed to `DataBuffer.update` resides on the CPU.
 
-    Note that, in order to apply transformations, the buffer assumes that the datapoints
+    Note that, in order to apply transformations, the buffer assumes that the data points
     are tuples of exactly 2 tensors i.e. `(x, y)` where `x` is the input and `y` is some target.
 
     Args:
@@ -43,7 +43,8 @@ class DataBuffer(Dataset, ABC):
            support `in_memory`.
         seed: Seed for the random number generator used in the buffer.
         transform: The transformation to be applied to the memory buffer data samples.
-        target_transform: The target transformation to be applied to the memory buffer target samples.
+        target_transform: The target transformation to be applied to the memory buffer target
+            samples.
     """
 
     def __init__(
@@ -111,9 +112,9 @@ class DataBuffer(Dataset, ABC):
                 )
             if metadata[key].size(0) != expected_length:
                 raise ValueError(
-                    f"Tensors in metadata dictionary need to be of size {expected_length} (size ",
-                    f"of the associated dataset) in dimension 0. Found size {metadata[key].size()} ",
-                    f"at key {key}.",
+                    f"Tensors in metadata dictionary need to be of size {expected_length} (size "
+                    "of the associated dataset) in dimension 0. Found size "
+                    f"{metadata[key].size()} at key {key}.",
                 )
 
     def __setitem__(self, idx: int, data_and_metadata: Tuple[DataTuple, DataDict]) -> None:
@@ -127,7 +128,7 @@ class DataBuffer(Dataset, ABC):
     def _append(self, data: DataTuple, metadata: DataDict) -> None:
         """Appends a data point to the internal storage."""
         for i, d in enumerate(data):
-            key = f"{i}"  # FIXME: choose a better naming for the keys of the data points coming from the dataset
+            key = f"{i}"  # FIXME: choose a better naming for the keys of the data points
             if key not in self._data_points:
                 self._data_points[key] = torch.empty(
                     (self._max_size, *d.shape), dtype=d.dtype, device=d.device
@@ -217,7 +218,8 @@ class InfiniteBuffer(DataBuffer):
         storage_mode: How to store the data in the buffer. Currently, we only
            support `in_memory`.
         transform: The transformation to be applied to the memory buffer data samples.
-        target_transform: The target transformation to be applied to the memory buffer target samples.
+        target_transform: The target transformation to be applied to the memory buffer target
+            samples.
     """
 
     def __init__(

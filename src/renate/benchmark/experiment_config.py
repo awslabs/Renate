@@ -115,7 +115,8 @@ def get_scenario(
         chunk_id: The data chunk to load in for the training or validation data.
         seed: A random seed to fix the created scenario.
         num_tasks: The total number of expected tasks for experimentation.
-        class_groupings: Used for scenario `ClassIncrementalScenario`. Partitions classes into different chunks
+        class_groupings: Used for scenario `ClassIncrementalScenario`. Partitions classes into
+            different chunks
         degrees: Used for scenario `ImageRotationScenario`. Rotations applied for each chunk.
         input_dim: Used for scenario `PermutationScenario`. Input dimensionality.
 

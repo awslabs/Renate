@@ -36,11 +36,12 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
     training step, the memory is updated.
 
     Args:
-        components: An ordered dictionary of components that are part of the experience replay learner.
+        components: An ordered dictionary of components that are part of the experience replay
+            learner.
         loss_weight: A scalar weight factor for the base loss function to trade it off with other
             loss functions added by `components`.
-        ema_memory_update_gamma: The gamma used for exponential moving average to update the meta data with respect to
-            the logits and intermediate representation, if there is some.
+        ema_memory_update_gamma: The gamma used for exponential moving average to update the meta
+            data with respect to the logits and intermediate representation, if there is some.
         loss_normalization: Whether to normalize the loss by the weights of all the components.
     """
 
@@ -70,7 +71,8 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
         for name in self._components_names:
             if name in self._loss_collections:
                 raise ValueError(
-                    f"Component name {name} is already used as a loss name. Please pick a different name."
+                    f"Component name {name} is already used as a loss name. Please pick a "
+                    "different name."
                 )
             self._loss_collections["train_losses"].update({name: torchmetrics.MeanMetric()})
 
@@ -275,10 +277,10 @@ class DarkExperienceReplayLearner(ExperienceReplayLearner):
     Dark Experience for General Continual Learning: a Strong, Simple Baseline. NeurIPS 2020
 
     Args:
-        alpha: The weight of the mean squared error loss component between memorised logits and the current logits
-               on the memory data.
-        beta: The weight of the cross-entropy loss component between memorised targets and the current logits
-              on the memory data.
+        alpha: The weight of the mean squared error loss component between memorised logits and the
+            current logits on the memory data.
+        beta: The weight of the cross-entropy loss component between memorised targets and the
+            current logits on the memory data.
     """
 
     def __init__(
@@ -314,13 +316,16 @@ class DarkExperienceReplayLearner(ExperienceReplayLearner):
 class PooledOutputDistillationExperienceReplayLearner(BaseExperienceReplayLearner):
     """A Learner that implements Pooled Output Distillation.
 
-    Douillard, Arthur, et al. "Podnet: Pooled outputs distillation for small-tasks incremental learning."
+    Douillard, Arthur, et al. "Podnet: Pooled outputs distillation for small-tasks incremental
+    learning."
     European Conference on Computer Vision. Springer, Cham, 2020.
 
     Args:
         alpha: Scaling value which scales the loss with respect to all intermediate representations.
-        distillation_type: Which distillation type to apply with respect to the intermediate representation.
-        normalize: Whether to normalize both the current and cached features before computing the Frobenius norm.
+        distillation_type: Which distillation type to apply with respect to the intermediate
+            representation.
+        normalize: Whether to normalize both the current and cached features before computing the
+            Frobenius norm.
     """
 
     def __init__(
@@ -369,16 +374,17 @@ class CLSExperienceReplayLearner(BaseExperienceReplayLearner):
     """A learner that implements a Complementary Learning Systems Based Experience Replay.
 
     Arani, Elahe, Fahad Sarfraz, and Bahram Zonooz.
-    "Learning fast, learning slow: A general continual learning method based on complementary learning system."
+    "Learning fast, learning slow: A general continual learning method based on complementary
+    learning system."
     arXiv preprint arXiv:2201.12604 (2022).
 
     Args:
         alpha: Scaling value for the cross-entropy loss.
         beta: Scaling value for the consistency loss.
-        stable_model_update_weight: The starting weight for the exponential moving average to update the stable model
-            copy.
-        plastic_model_update_weight: The starting weight for the exponential moving average to update the plastic model
-            copy.
+        stable_model_update_weight: The starting weight for the exponential moving average to update
+            the stable model copy.
+        plastic_model_update_weight: The starting weight for the exponential moving average to
+            update the plastic model copy.
         stable_model_update_probability: The probability to update the stable model copy.
         plastic_model_update_probability: The probability to update the plastic model copy.
     """
@@ -458,24 +464,27 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
     """A learner that implements a selected combination of methods.
 
     Args:
-        der_alpha: The weight of the mean squared error loss component between memorised logits and the current logits
-                   on the memory data.
-        der_beta: The weight of the cross-entropy loss component between memorised targets and the current logits
-                  on the memory data.
+        der_alpha: The weight of the mean squared error loss component between memorised logits and
+            the current logits on the memory data.
+        der_beta: The weight of the cross-entropy loss component between memorised targets and the
+            current logits on the memory data.
         sp_shrink_factor: Shrinking value applied with respect to shrink and perturbation.
         sp_sigma: Standard deviation applied with respect to shrink and perturbation.
         cls_alpha: Scaling value for the consistency loss added to the base cross-entropy loss.
-        cls_stable_model_update_weight: The starting weight for the exponential moving average to update the stable
-            model copy.
-        cls_plastic_model_update_weight: The starting weight for the exponential moving average to update the plastic
-            model copy.
+        cls_stable_model_update_weight: The starting weight for the exponential moving average to
+            update the stable model copy.
+        cls_plastic_model_update_weight: The starting weight for the exponential moving average to
+            update the plastic model copy.
         cls_stable_model_update_probability: The probability to update the stable model copy.
         cls_plastic_model_update_probability: The probability to update the plastic model copy.
-        pod_alpha: Scaling value which scales the loss with respect to all intermediate representations.
-        pod_distillation_type: Which distillation type to apply with respect to the intermediate representation.
-        pod_normalize: Whether to normalize both the current and cached features before computing the Frobenius norm.
-        ema_memory_update_gamma: The gamma used for exponential moving average to update the meta data with respect to
-            the logits and intermediate representation, if there is some.
+        pod_alpha: Scaling value which scales the loss with respect to all intermediate
+            representations.
+        pod_distillation_type: Which distillation type to apply with respect to the intermediate
+            representation.
+        pod_normalize: Whether to normalize both the current and cached features before computing
+            the Frobenius norm.
+        ema_memory_update_gamma: The gamma used for exponential moving average to update the meta
+            data with respect to the logits and intermediate representation, if there is some.
     """
 
     def __init__(
@@ -487,8 +496,8 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
         cls_alpha: float = defaults.SER_CLS_ALPHA,
         cls_stable_model_update_weight: float = defaults.SER_CLS_STABLE_MODEL_UPDATE_WEIGHT,
         cls_plastic_model_update_weight: float = defaults.SER_CLS_PLASTIC_MODEL_UPDATE_WEIGHT,
-        cls_stable_model_update_probability: float = defaults.SER_CLS_STABLE_MODEL_UPDATE_PROBABILITY,
-        cls_plastic_model_update_probability: float = defaults.SER_CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,
+        cls_stable_model_update_probability: float = defaults.SER_CLS_STABLE_MODEL_UPDATE_PROBABILITY,  # noqa: E501
+        cls_plastic_model_update_probability: float = defaults.SER_CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,  # noqa: E501
         pod_alpha: float = defaults.SER_POD_ALPHA,
         pod_distillation_type: str = defaults.SER_POD_DISTILLATION_TYPE,
         pod_normalize: bool = defaults.SER_POD_NORMALIZE,
@@ -526,8 +535,8 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
         cls_alpha: float = defaults.SER_CLS_ALPHA,
         cls_stable_model_update_weight: float = defaults.SER_CLS_STABLE_MODEL_UPDATE_WEIGHT,
         cls_plastic_model_update_weight: float = defaults.SER_CLS_PLASTIC_MODEL_UPDATE_WEIGHT,
-        cls_stable_model_update_probability: float = defaults.SER_CLS_STABLE_MODEL_UPDATE_PROBABILITY,
-        cls_plastic_model_update_probability: float = defaults.SER_CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,
+        cls_stable_model_update_probability: float = defaults.SER_CLS_STABLE_MODEL_UPDATE_PROBABILITY,  # noqa: E501
+        cls_plastic_model_update_probability: float = defaults.SER_CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,  # noqa: E501
         pod_alpha: float = defaults.SER_POD_ALPHA,
         pod_distillation_type: str = defaults.SER_POD_DISTILLATION_TYPE,
         pod_normalize: bool = defaults.SER_POD_NORMALIZE,
@@ -609,7 +618,7 @@ class ExperienceReplayModelUpdater(SimpleModelUpdater):
         alpha: float = defaults.ER_ALPHA,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,
+        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
         learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
         learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
         momentum: float = defaults.MOMENTUM,
@@ -686,7 +695,7 @@ class DarkExperienceReplayModelUpdater(SimpleModelUpdater):
         beta: float = defaults.DER_BETA,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,
+        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
         learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
         learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
         momentum: float = defaults.MOMENTUM,
@@ -765,7 +774,7 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SimpleModelUpdater):
         normalize: bool = defaults.POD_NORMALIZE,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,
+        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
         learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
         learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
         momentum: float = defaults.MOMENTUM,
@@ -848,7 +857,7 @@ class CLSExperienceReplayModelUpdater(SimpleModelUpdater):
         plastic_model_update_probability: float = defaults.CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,
+        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
         learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
         learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
         momentum: float = defaults.MOMENTUM,
@@ -933,14 +942,14 @@ class SuperExperienceReplayModelUpdater(SimpleModelUpdater):
         cls_alpha: float = defaults.SER_CLS_ALPHA,
         cls_stable_model_update_weight: float = defaults.SER_CLS_STABLE_MODEL_UPDATE_WEIGHT,
         cls_plastic_model_update_weight: float = defaults.SER_CLS_PLASTIC_MODEL_UPDATE_WEIGHT,
-        cls_stable_model_update_probability: float = defaults.SER_CLS_STABLE_MODEL_UPDATE_PROBABILITY,
-        cls_plastic_model_update_probability: float = defaults.SER_CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,
+        cls_stable_model_update_probability: float = defaults.SER_CLS_STABLE_MODEL_UPDATE_PROBABILITY,  # noqa: E501
+        cls_plastic_model_update_probability: float = defaults.SER_CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,  # noqa: E501
         pod_alpha: float = defaults.SER_POD_ALPHA,
         pod_distillation_type: str = defaults.SER_POD_DISTILLATION_TYPE,
         pod_normalize: bool = defaults.SER_POD_NORMALIZE,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,
+        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
         learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
         learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
         momentum: float = defaults.MOMENTUM,

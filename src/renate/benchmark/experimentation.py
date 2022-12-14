@@ -48,8 +48,8 @@ def experiment_config_file():
 
 
 def create_cumulative_metrics(task: defaults.SUPPORTED_TASKS_TYPE) -> List[Tuple[str, Callable]]:
-    """Gets the cumulative metrics for a given task along with a name of the metric to include in any potential results
-    table.
+    """Gets the cumulative metrics for a given task along with a name of the metric to include in
+    any potential results table.
 
     Args:
         task: Whether classification or regression, for now.
@@ -70,10 +70,12 @@ def cumulative_metrics_summary(
     cumulative_metrics: List[Tuple[str, Callable]],
     num_tasks: int,
 ) -> pd.DataFrame:
-    """Creates a pandas DataFrame summary with respect to the observed tasks, specified by `num_tasks`.
+    """Creates a pandas DataFrame summary with respect to the observed tasks, specified by
+    `num_tasks`.
 
     Args:
-        results: The results dictionary holding all the results with respect to all recorded metrics.
+        results: The results dictionary holding all the results with respect to all recorded
+            metrics.
         cumulative_metrics: The list of (name, metric) tuples.
         num_tasks: The total number of tasks.
     """
@@ -94,10 +96,12 @@ def individual_metrics_summary(
     current_task: int,
     num_tasks: int,
 ) -> pd.DataFrame:
-    """Creates a pandas DataFrame summary for all individual metrics with respect to all observed tasks.
+    """Creates a pandas DataFrame summary for all individual metrics with respect to all observed
+    tasks.
 
     Args:
-        results: The results dictionary holding all the results with respect to all recorded metrics.
+        results: The results dictionary holding all the results with respect to all recorded
+            metrics.
         current_task: The current task ID.
         num_tasks: The total number of tasks.
     """
@@ -149,7 +153,8 @@ def execute_experiment_job(
         backend: Backend of the experiment job.
         config_file: Path to the Renate config file.
         config_space: Details for defining your own search space is provided in the
-            `Syne Tune Documentation <https://github.com/awslabs/syne-tune/blob/main/docs/search_space.md>`_.
+            `Syne Tune Documentation
+            <https://github.com/awslabs/syne-tune/blob/main/docs/search_space.md>`_.
         experiment_outputs_url: Path to the experiment outputs.
         mode: Whether to minimize or maximize the metric.
         metric: Metric of the experiment job.

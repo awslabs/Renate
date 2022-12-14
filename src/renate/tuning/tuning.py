@@ -97,7 +97,8 @@ def execute_tuning_job(
     Args:
         mode: Declares the type of optimization problem: `min` or `max`.
         config_space: Details for defining your own search space is provided in the
-            `Syne Tune Documentation <https://github.com/awslabs/syne-tune/blob/main/docs/search_space.md>`_.
+            `Syne Tune Documentation
+            <https://syne-tune.readthedocs.io/en/latest/search_space.html>`_.
         metric: Name of metric to optimize.
         backend: Whether to run jobs locally (`local`) or on SageMaker (`sagemaker`).
         updater: Updater used for model update.
@@ -109,19 +110,22 @@ def execute_tuning_job(
         working_directory: Path to the working directory.
         source_dir: (SageMaker backend only) Root directory which will be moved to SageMaker.
         config_file: File containing the definition of `model_fn` and `data_module_fn`.
-        requirements_file: (SageMaker backend only) Path to requirements.txt containing environment dependencies.
+        requirements_file: (SageMaker backend only) Path to requirements.txt containing environment
+            dependencies.
         role: (SageMaker backend only) An AWS IAM role (either name or full ARN).
         instance_type: (SageMaker backend only) Sagemaker instance type for each worker.
         instance_count: (SageMaker backend only) Number of instances for each worker.
-        instance_max_time: (SageMaker backend only) Requested maximum wall_clock time for each worker.
+        instance_max_time: (SageMaker backend only) Requested maximum wall_clock time for each
+            worker.
         max_time: Stopping criterion: wall clock time.
         max_num_trials_started: Stopping criterion: trials started.
         max_num_trials_completed: Stopping criterion: trials completed.
         max_num_trials_finished: Stopping criterion: trials finished.
         max_cost: (SageMaker backend only) Stopping criterion: SageMaker cost.
         n_workers: Number of workers running in parallel.
-        scheduler: Default is random search, you can change it by providing a either a string (`random`, `bo`, `asha` or
-            `rush`) or scheduler class and its corresponding scheduler_kwargs if required. For latter option,
+        scheduler: Default is random search, you can change it by providing a either a string
+            (`random`, `bo`, `asha` or `rush`) or scheduler class and its corresponding
+            `scheduler_kwargs` if required. For latter option,
             `see details at <https://github.com/awslabs/syne-tune/blob/main/docs/schedulers.md>`_ .
         scheduler_kwargs: Only required if custom scheduler is provided.
         seed: Seed used for ensuring reproducibility.
@@ -223,17 +227,20 @@ def _get_transfer_learning_task_evaluations(
     metric: str,
     max_epochs: int,
 ) -> Optional[TransferLearningTaskEvaluations]:
-    """Converts data frame with tuning results of a single update step into `TransferLearningTaskEvaluations`.
+    """Converts data frame with tuning results of a single update step into
+    `TransferLearningTaskEvaluations`.
 
     Args:
         tuning_results: Results of previous hyperparameter optimization runs.
         config_space: Configuration space used.
-        metric: The metric to be optimized. This will be the only metric added to `TransferLearningTaskEvaluations`.
-        max_epochs: Length of the learning curve. Learning curves will be padded with `np.nan` to this length.
+        metric: The metric to be optimized. This will be the only metric added to
+            `TransferLearningTaskEvaluations`.
+        max_epochs: Length of the learning curve. Learning curves will be padded with `np.nan`
+            to this length.
     Returns:
-        `TransferLearningTaskEvaluations` contains a `pd.DataFrame` of hyperparameters, a `np.array` of shape
-        `(num_hyperparameters, 1, max_epochs, 1)` which contains the learning curves for `metric` for each
-        hyperparameter.
+        `TransferLearningTaskEvaluations` contains a `pd.DataFrame` of hyperparameters, a `np.array`
+        of shape `(num_hyperparameters, 1, max_epochs, 1)` which contains the learning curves for
+        `metric` for each hyperparameter.
     """
     for config in RENATE_CONFIG_COLUMNS:
         config_with_prefix = f"config_{config}"
@@ -289,15 +296,17 @@ def _get_transfer_learning_task_evaluations(
 def _load_tuning_history(
     state_url: str, config_space: Dict[str, Any], metric: str
 ) -> Dict[str, TransferLearningTaskEvaluations]:
-    """Loads the tuning history in a list where each entry of the list is the tuning history of one update.
+    """Loads the tuning history in a list where each entry of the list is the tuning history of one
+    update.
 
     Args:
         state_url: Location of state. Will check at this location of a tuning history exists.
         config_space: The configuration space defines which parts of the tuning history to load.
         metric: Only the defined metric of the tuning history will be loaded.
     Returns:
-        Returns an empty list if no previous tuning history exists or it does not match the current `config_space`.
-        The list contains an instance of `TransferLearningTaskEvaluations` for each update that contains matching data.
+        Returns an empty list if no previous tuning history exists or it does not match the current
+        `config_space`. The list contains an instance of `TransferLearningTaskEvaluations` for each
+        update that contains matching data.
     """
     if state_url is None or not Path(defaults.hpo_file(state_url)).exists():
         return {}
@@ -330,8 +339,8 @@ def _merge_tuning_history(
 ) -> pd.DataFrame:
     """Merges old tuning history with tuning results from current chunk.
 
-    `update_id` identifies the update step in the csv file. This allows creating the metadata required for transfer
-        hyperparameter optimization.
+    `update_id` identifies the update step in the csv file. This allows creating the metadata
+        required for transfer hyperparameter optimization.
     """
     update_id = 0 if old_tuning_results is None else old_tuning_results["update_id"].max() + 1
     new_tuning_results.insert(0, "update_id", update_id)
@@ -355,7 +364,8 @@ def _teardown_tuning_job(
             best_trial_id = experiment.best_config()["trial_id"]
             if is_syne_tune_config_space(config_space):
                 logger.info(
-                    f"Best hyperparameter settings: {best_hyperparameters(experiment, config_space)}"
+                    "Best hyperparameter settings: "
+                    f"{best_hyperparameters(experiment, config_space)}"
                 )
         except AttributeError:
             raise RuntimeError(
@@ -391,13 +401,16 @@ def _verify_validation_set_for_hpo_and_checkpointing(
     chunk_id: int,
     seed: int,
 ) -> Tuple[str, defaults.SUPPORTED_TUNING_MODE_TYPE]:
-    """Checks if validation set is provided when needed and updates config_space such that checkpointing works.
+    """Checks if validation set is provided when needed and updates config_space such that
+    checkpointing works.
 
-    If a validation set exists, the metric is forwarded such that we store the checkpoint which performs best on
-    validation. This is a side effect changing `config_space`. Otherwise, the checkpoint of the last epoch is used.
+    If a validation set exists, the metric is forwarded such that we store the checkpoint which
+    performs best on validation. This is a side effect changing `config_space`. Otherwise, the
+    checkpoint of the last epoch is used.
 
     Returns:
-        Metric and mode used by the Syne Tune tuner. If there is no validation set, returns `("train_loss", "min")`.
+        Metric and mode used by the Syne Tune tuner. If there is no validation set, returns
+        `("train_loss", "min")`.
     Raises:
         AssertionError: If `tune_hyperparameters` is True but no validation set is provided.
     """
@@ -453,8 +466,8 @@ def _create_scheduler(
         )
         if scheduler_kwargs["transfer_learning_evaluations"]:
             logger.info(
-                f"Using information of {len(scheduler_kwargs['transfer_learning_evaluations'])} previous tuning "
-                "jobs to accelerate this job."
+                f"Using information of {len(scheduler_kwargs['transfer_learning_evaluations'])} "
+                "previous tuning jobs to accelerate this job."
             )
     return scheduler(
         config_space=config_space,
@@ -523,13 +536,15 @@ def _execute_tuning_job_locally(
     logger.info("Start updating the model.")
     if tune_hyperparameters:
         logger.info(
-            f"Tuning hyperparameters with respect to {metric} ({mode}) for {max_time} seconds on {n_workers} worker(s)."
+            f"Tuning hyperparameters with respect to {metric} ({mode}) for {max_time} seconds on "
+            f"{n_workers} worker(s)."
         )
     backend = LocalBackend(entry_point=training_script)
     if scheduler is None or not tune_hyperparameters:
         if scheduler is not None:
             warnings.warn(
-                "Configuration space contains exactly one configuration, custom scheduler is ignored."
+                "Configuration space contains exactly one configuration, custom scheduler is "
+                "ignored."
             )
         scheduler = defaults.scheduler(config_space=config_space, mode=mode, metric=metric)
     else:
