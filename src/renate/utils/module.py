@@ -27,7 +27,8 @@ def evaluate_and_record_results(
     accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
     devices: Optional[int] = None,
 ) -> Dict[str, List[List[float]]]:
-    """A helper function that performs the evaluation on test data and records quantitative metrics in a dictionary.
+    """A helper function that performs the evaluation on test data and records quantitative metrics
+    in a dictionary.
 
     Args:
         results: The results dictionary to which the results should be saved.
@@ -40,8 +41,9 @@ def evaluate_and_record_results(
         metric_postfix: The postfix for the metric names.
         batch_size: A batch size for the test loader.
         accelerator: Accelerator used by PyTorch Lightning to train the model.
-        devices: Devices used by PyTorch Lightning to train the model. If the devices flag is not defined,
-                 it will assume devices to be "auto" and fetch the `auto_device_count` from the `accelerator`.
+        devices: Devices used by PyTorch Lightning to train the model. If the devices flag is not
+            defined, it will assume devices to be "auto" and fetch the `auto_device_count` from the
+            `accelerator`.
     """
 
     data_module.setup()

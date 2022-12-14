@@ -82,8 +82,9 @@ def test_getitem_returns_points_and_metadata(buffer):
 
 
 def test_reservoir_is_uniform():
-    # Present buffer with numbers from 1-10k. It should subsample uniformly,
-    # resulting in a mean of 5k with a standard deviation of ~91.
+    """Present buffer with numbers from 1-10k. It should subsample uniformly, resulting in a mean of
+    5k with a standard deviation of ~91.
+    """
     buffer = ReservoirBuffer(max_size=1000)
     for i in range(10):
         x = torch.arange(i * 1000, (i + 1) * 1000, dtype=torch.float) + 1
@@ -94,8 +95,9 @@ def test_reservoir_is_uniform():
 
 
 def test_greedy_is_balanced():
-    # Present buffer with 10 classes with respect to 10000 samples, where each class has 1000 samples.
-    # When inspecting the ._class_counts attribute, it should be uniform.
+    """Present buffer with 10 classes with respect to 10000 samples, where each class has 1000
+    samples. When inspecting the ._class_counts attribute, it should be uniform.
+    """
     buffer = GreedyClassBalancingBuffer(max_size=100)
     X = torch.ones(10000, 1)
     Y = torch.ones(10000, 1, dtype=torch.long)

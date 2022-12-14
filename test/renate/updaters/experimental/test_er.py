@@ -7,7 +7,6 @@ import torch
 from torch.utils.data import TensorDataset
 
 from renate import defaults
-from renate.data.datasets import _EnumeratedDataset, _TransformedDataset
 from renate.updaters.experimental.er import (
     CLSExperienceReplayLearner,
     DarkExperienceReplayLearner,

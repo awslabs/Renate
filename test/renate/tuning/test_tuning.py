@@ -124,9 +124,10 @@ def test_merge_tuning_history(
 def test_verify_validation_set_for_hpo_and_checkpointing(tmpdir, val_size, tune_hyperparameters):
     """Check if misconfigurations are spotted and config_space is updated correctly.
 
-    If tune_hyperparameters is `True` (hyperparameter optimization is enabled), a validation set must exist.
-    If a validation set exists, the `config_space` must be changed such that the right metric and mode for checkpointing
-    and hyperparameter optimization is used.
+    If tune_hyperparameters is `True` (hyperparameter optimization is enabled), a validation set
+    must exist.
+    If a validation set exists, the `config_space` must be changed such that the right metric and
+    mode for checkpointing and hyperparameter optimization is used.
     """
     config_space = {"data_module_fn_val_size": val_size}
     expected_metric = "val_accuracy"
@@ -160,7 +161,9 @@ def test_verify_validation_set_for_hpo_and_checkpointing(tmpdir, val_size, tune_
 
 
 def test_is_syne_tune_config_space():
-    """Function should return True if any entry in the `config_space` is a Syne Tune search space."""
+    """Function should return True if any entry in the `config_space` is a Syne Tune search
+    space.
+    """
     assert is_syne_tune_config_space({"a": uniform(0, 1), "b": 1})
     assert not is_syne_tune_config_space({"a": 0.5, "b": 1})
 
@@ -199,8 +202,9 @@ def _get_transfer_learning_task_evaluations_input():
 def test_get_transfer_learning_task_evaluations():
     """Case that should successfully return a result.
 
-    Function must drop duplicate hyperparameters, rows where metric or hyperparameter are missing. Only the relevant
-    metric is kept. Renate configurations are replaced with the current ones (e.g. working space).
+    Function must drop duplicate hyperparameters, rows where metric or hyperparameter are missing.
+    Only the relevant metric is kept. Renate configurations are replaced with the current ones
+    (e.g. working space).
     """
     input_dict = _get_transfer_learning_task_evaluations_input()
     expected_objectives_evaluations = np.array(
@@ -300,10 +304,12 @@ def _get_tuning_results():
 
 @pytest.mark.parametrize("hyperparameter, num_task_evaluations", [("lr", 2), ("momentum", 1)])
 def test_load_tuning_history(tmpdir, hyperparameter, num_task_evaluations):
-    """Check if tuning results can be successfully converted to a list of TransferLearningTaskEvaluations.
+    """Check if tuning results can be successfully converted to a list of
+    TransferLearningTaskEvaluations.
 
     Case 1: Evaluations for hyperparameter `lr` is available for both updates. Return both.
-    Case 2: Evaluations for hyperparameter `momentum` is only available for the second update. Drop first data.
+    Case 2: Evaluations for hyperparameter `momentum` is only available for the second update.
+        Drop first data.
     """
     tuning_results = _get_tuning_results()
     config_space = {hyperparameter: uniform(0.001, 1)}
