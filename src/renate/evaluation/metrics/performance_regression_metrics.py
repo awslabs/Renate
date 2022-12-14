@@ -45,11 +45,6 @@ class NegativeFlipRateMetric(Metric):
     """Compute Negative Flip Rate (NFR) between new and old models' predictions,
 
     NFR = len((pred_old == labels) and (pred_new != labels)) / len(test_set).
-
-    Args:
-        new_pred: a 1-D torch tensor contains new model's predicted labels.
-        old_pred: a 1-D torch tensor contains old model's predicted labels.
-        labels: a 1-D torch tensor contains ground truth labels.
     """
 
     full_state_update: bool = False
@@ -62,6 +57,13 @@ class NegativeFlipRateMetric(Metric):
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
     def update(self, new_pred: torch.Tensor, old_pred: torch.Tensor, labels: torch.Tensor):
+        """Update the metric.
+
+        Args:
+            new_pred: a 1-D torch tensor contains new model's predicted labels.
+            old_pred: a 1-D torch tensor contains old model's predicted labels.
+            labels: a 1-D torch tensor contains ground truth labels.
+        """
         assert (
             new_pred.shape == old_pred.shape == labels.shape
         ), "dim of new_pred, old_pred, and labels are not matched!"
@@ -78,11 +80,6 @@ class NegativeFlipImpactMetric(Metric):
     """Compute Negative Flip Impact (NFI) between new and old models' predictions,
 
     NFI = len((pred_old == labels) and (pred_new != labels)) / len(pred_new != labels).
-
-    Args:
-        new_pred: a 1-D torch tensor contains new model's predicted labels.
-        old_pred: a 1-D torch tensor contains old model's predicted labels.
-        labels: a 1-D torch tensor contains ground truth labels.
     """
 
     full_state_update: bool = False
@@ -95,6 +92,13 @@ class NegativeFlipImpactMetric(Metric):
         self.add_state("neg_flip_num", default=torch.tensor(0), dist_reduce_fx="sum")
 
     def update(self, new_pred: torch.Tensor, old_pred: torch.Tensor, labels: torch.Tensor):
+        """Updates the metric.
+
+        Args:
+            new_pred: a 1-D torch tensor contains new model's predicted labels.
+            old_pred: a 1-D torch tensor contains old model's predicted labels.
+            labels: a 1-D torch tensor contains ground truth labels.
+        """
         assert (
             new_pred.shape == old_pred.shape == labels.shape
         ), "dim of new_pred, old_pred, and labels are not matched!"
@@ -111,11 +115,6 @@ class PositiveFlipRateMetric(Metric):
     """Compute Positive Flip Rate (PFR) between new and old models' predictions,
 
     PFR = len((pred_old != labels) and (pred_new == labels)) / len(test_set).
-
-    Args:
-        new_pred: a 1-D torch tensor contains new model's predicted labels.
-        old_pred: a 1-D torch tensor contains old model's predicted labels.
-        labels: a 1-D torch tensor contains ground truth labels.
     """
 
     full_state_update: bool = False
@@ -128,6 +127,13 @@ class PositiveFlipRateMetric(Metric):
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
     def update(self, new_pred: torch.Tensor, old_pred: torch.Tensor, labels: torch.Tensor):
+        """Updates the metric.
+
+        Args:
+            new_pred: a 1-D torch tensor contains new model's predicted labels.
+            old_pred: a 1-D torch tensor contains old model's predicted labels.
+            labels: a 1-D torch tensor contains ground truth labels.
+        """
         assert (
             new_pred.shape == old_pred.shape == labels.shape
         ), "dim of new_pred, old_pred, and labels are not matched!"
@@ -144,11 +150,6 @@ class PositiveFlipImpactMetric(Metric):
     """Compute Positive Flip Impact (PFI) between new and old models' predictions,
 
     PFI = len((pred_old != labels) and (pred_new == labels)) / len(pred_new == labels).
-
-    Args:
-        new_pred: a 1-D torch tensor contains new model's predicted labels.
-        old_pred: a 1-D torch tensor contains old model's predicted labels.
-        labels: a 1-D torch tensor contains ground truth labels.
     """
 
     full_state_update: bool = False
@@ -161,6 +162,13 @@ class PositiveFlipImpactMetric(Metric):
         self.add_state("pos_flip_num", default=torch.tensor(0), dist_reduce_fx="sum")
 
     def update(self, new_pred: torch.Tensor, old_pred: torch.Tensor, labels: torch.Tensor):
+        """Updates the metric.
+
+        Args:
+            new_pred: a 1-D torch tensor contains new model's predicted labels.
+            old_pred: a 1-D torch tensor contains old model's predicted labels.
+            labels: a 1-D torch tensor contains ground truth labels.
+        """
         assert (
             new_pred.shape == old_pred.shape == labels.shape
         ), "dim of new_pred, old_pred, and labels are not matched!"
