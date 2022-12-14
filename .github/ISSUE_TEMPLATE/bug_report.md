@@ -27,7 +27,6 @@ If applicable, add the output of the execution to help explain your problem (e.g
 
 **Desktop (please complete the following information):**
  - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
  - Version [e.g. 22]
 
 **Dependencies versions:**
