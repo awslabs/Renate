@@ -99,7 +99,6 @@ html_theme_options = {
         }
     ],
     "use_edit_page_button": True,
-    "announcement": "<p>Renate 0.1.0 is released. See you at NeurIPS!</p>",
     "collapse_navigation": True,
 }
 html_context = {
