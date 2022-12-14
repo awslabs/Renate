@@ -4,7 +4,6 @@ import os
 
 import pytest
 import torch
-from torch.utils.data import TensorDataset
 
 from renate import defaults
 from renate.updaters.experimental.er import (
