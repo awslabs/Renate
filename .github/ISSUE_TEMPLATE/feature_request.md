@@ -1,7 +1,7 @@
 ---
 name: Feature request
 about: Suggest an idea for this project
-title: "Summarize the rquest in the title "
+title: "Summarize the request in the title "
 labels: 'triage'
 assignees: ''
 
