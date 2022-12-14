@@ -21,7 +21,7 @@ class RenateDataModule(abc.ABC):
     A data module implements two methods for data preparation:
     - `prepare_data()` downloads the data to the local machine and unpacks it.
     - `setup()` creates pytorch dataset objects that return training, test and (possibly) validation
-        data.
+    data.
     These two steps are separated to streamline the process when launching multiple training jobs
     simultaneously, e.g., for hyperparameter optimization. In this case, `prepare_data()` is only
     called once per machine.
