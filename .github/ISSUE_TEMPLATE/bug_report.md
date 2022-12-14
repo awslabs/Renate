@@ -1,8 +1,8 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-title: "[BUG] Summarize your problem in the title"
-labels: ''
+title: "Summarize your problem in the title"
+labels: 'triage'
 assignees: ''
 
 ---
