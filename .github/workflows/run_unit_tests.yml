@@ -1,5 +1,5 @@
 
-name: Run unit tests on push and PR
+name: Unit tests/Coverage
 
 on:
   push:
@@ -41,7 +41,7 @@ jobs:
           # stop the build if there are Python syntax errors or undefined names
           flake8 . --count --select=E9,E402,E501,F63,F7,F82,F401,W291,W605 --max-line-length=100 --show-source --statistics
           # exit-zero treats all errors as warnings.
-          flake8 . --count --exit-zero --max-complexity=10 --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=100 --statistics
 
       - name: Run unit tests
         run: PYTHONPATH=test python -m pytest test/
