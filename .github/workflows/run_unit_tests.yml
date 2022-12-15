@@ -45,27 +45,12 @@ jobs:
 
       - name: Run unit tests
         run: PYTHONPATH=test python -m pytest test/
-        env:
-          COVERAGE_FILE: ".coverage.${{ matrix.python_version }}"
-
-      - name: Store coverage file
-        uses: actions/upload-artifact@v2
-        with:
-          name: coverage
-          path: .coverage.${{ matrix.python_version }}
 
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
     needs: test
     steps:
-      - uses: actions/checkout@v2
-
-      - uses: actions/download-artifact@v2
-        id: download
-        with:
-          name: 'coverage'
-
       - name: Coverage comment
         id: coverage_comment
         uses: py-cov-action/python-coverage-comment-action@v3

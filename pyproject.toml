@@ -39,7 +39,7 @@ target-version = ["py38", "py39", "py310"]
 include = '\.pyi?$'
 
 [tool.pytest.ini_options]
-addopts = "--cov --cov-append --cov-report html --cov-report term-missing --cov-fail-under 80"
+addopts = "--cov --cov-append --cov-fail-under 80"
 
 [tool.coverage.run]
 source = ["src"]
