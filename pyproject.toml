@@ -43,3 +43,4 @@ addopts = "--cov --cov-append --cov-report html --cov-report term-missing --cov-
 
 [tool.coverage.run]
 source = ["src"]
+relative_files = true
