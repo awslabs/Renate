@@ -44,7 +44,7 @@ if __name__ == "__main__":
         role=get_execution_role(),
         instance_count=1,
         instance_type="ml.g4dn.xlarge",
-        max_num_trials_finished=10,
+        max_num_trials_finished=100,
         scheduler="asha",  # run ASHA to optimize our hyperparameters
         # if you use a big instance with multiple GPUs you can multiple workers evaluating
         # configuration in parallel
