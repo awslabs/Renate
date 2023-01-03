@@ -1,5 +1,5 @@
 
-name: Check Sphinx Doc Building
+name: Sphinx Doc Building
 
 on:
   push:
