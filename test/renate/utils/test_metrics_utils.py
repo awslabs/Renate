@@ -47,7 +47,8 @@ def test_create_metrics_without_additional_metrics(task):
 def test_given_additional_metrics_create_metrics_adds_them_to_metric_collection(
     additional_metrics, is_duplicate
 ):
-    """Passes if duplicate metric names raise an exception and additional metrics are added to the metric collection.
+    """Passes if duplicate metric names raise an exception and additional metrics are added to the
+    metric collection.
 
     Case 1: Valid case.
     Case 2: Metric name already used as part of the default metric collection.

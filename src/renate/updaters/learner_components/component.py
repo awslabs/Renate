@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 
 from renate.memory.buffer import DataDict, DataTuple
-from renate.models.renate_module import RenateModule
+from renate.models import RenateModule
 
 
 class Component(nn.Module, abc.ABC):
@@ -30,12 +30,14 @@ class Component(nn.Module, abc.ABC):
         batch_memory: Tuple[DataTuple, DataDict],
         intermediate_representation_memory: Optional[List[torch.Tensor]],
     ) -> torch.Tensor:
-        """Computes some user-defined loss which is added to the main training loss in the training step.
+        """Computes some user-defined loss which is added to the main training loss in the training
+        step.
 
         Args:
             outputs_memory: The outputs of the model with respect to memory data (batch_memory).
             batch_memory: The batch of data sampled from the memory buffer, including the meta data.
-            intermediate_representation_memory: Intermediate feature representations of the network upon passing the input through the network.
+            intermediate_representation_memory: Intermediate feature representations of the network
+                upon passing the input through the network.
         """
         return torch.tensor(0.0)
 

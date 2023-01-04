@@ -62,8 +62,8 @@ class RenateModelCheckpoint(ModelCheckpoint):
         model: Model to be saved when creating a checkpoint.
         state_folder: Checkpoint folder location.
         val_enabled: Whether validation was enabled in the Learner. Forwarded to `SyneTuneCallback`.
-        metric: Monitored metric to decide when to write a new checkpoint. If no metric is provided or validation is not
-            enabled, the latest model will be stored.
+        metric: Monitored metric to decide when to write a new checkpoint. If no metric is provided
+            or validation is not enabled, the latest model will be stored.
         mode: `min` or `max`. Whether to minimize or maximize the monitored `metric`.
         use_syne_tune_callback: Whether to use `SyneTuneCallback`.
     """
@@ -99,8 +99,8 @@ class RenateModelCheckpoint(ModelCheckpoint):
         Path(defaults.learner_state_file(self._state_folder)).unlink(missing_ok=True)
         # FIXME: Hack to make sure Syne Tune is called after checkpointing.
         # Details: https://github.com/Lightning-AI/lightning/issues/15026
-        # If fixed, remove on_train_epoch_end, on_validation_epoch_end, val_enabled, remove line below,
-        # and add in ModelUpdaterSyneTune callback.
+        # If fixed, remove on_train_epoch_end, on_validation_epoch_end, val_enabled, remove line
+        # below, and add in ModelUpdaterSyneTune callback.
         if use_syne_tune_callback:
             self._syne_tune_callback = SyneTuneCallback(val_enabled)
         else:
@@ -137,19 +137,20 @@ class ModelUpdater(abc.ABC):
         train_target_transform: The target transformation applied during testing.
         test_transform: The transformation at test time.
         test_target_transform: The target transformation at test time.
-        buffer_transform: Augmentations applied to the input data coming from the memory. Not all updaters require this.
-            If required but not passed, `transform` will be used.
-        buffer_target_transform: Transformations applied to the target. Not all updaters require this.
-            If required but not passed, `target_transform` will be used.
-        metric: Monitored metric to decide when to write a new checkpoint or early-stop the optimization.
-            If no metric is provided, the latest model will be stored.
+        buffer_transform: Augmentations applied to the input data coming from the memory. Not all
+            updaters require this. If required but not passed, `transform` will be used.
+        buffer_target_transform: Transformations applied to the target. Not all updaters require
+            this. If required but not passed, `target_transform` will be used.
+        metric: Monitored metric to decide when to write a new checkpoint or early-stop the
+            optimization. If no metric is provided, the latest model will be stored.
         mode: `min` or `max`. Whether to minimize or maximize the monitored `metric`.
         logged_metrics: Metrics logged additional to the default ones.
         early_stopping_enabled: Enables the early stopping of the optimization.
         logger: Logger used by PyTorch Lightning to log intermediate results.
         accelerator: Accelerator used by PyTorch Lightning to train the model.
-        devices: Devices used by PyTorch Lightning to train the model. If the devices flag is not defined,
-            it will assume devices to be "auto" and fetch the `auto_device_count` from the `accelerator`.
+        devices: Devices used by PyTorch Lightning to train the model. If the devices flag is not
+            defined, it will assume devices to be "auto" and fetch the `auto_device_count` from the
+            `accelerator`.
     """
 
     def __init__(
@@ -193,7 +194,8 @@ class ModelUpdater(abc.ABC):
             )
         if metric is None and early_stopping_enabled:
             warnings.warn(
-                "Early stopping is enabled but no metric is specified. Early stopping will be ignored."
+                "Early stopping is enabled but no metric is specified. Early stopping will be "
+                "ignored."
             )
             early_stopping_enabled = False
 
@@ -297,7 +299,8 @@ class ModelUpdater(abc.ABC):
                 )
             else:
                 warnings.warn(
-                    "Early stopping is currently not supported without a validation set. It will be ignored."
+                    "Early stopping is currently not supported without a validation set. It will "
+                    "be ignored."
                 )
 
         trainer = Trainer(

@@ -8,16 +8,14 @@ import pytest
 import torch
 from pytorch_lightning.loggers import TensorBoardLogger
 
-from renate.benchmark.models.mlp import MultiLayerPerceptron
-from renate.benchmark.models.resnet import (
+from renate.benchmark.models import (
+    MultiLayerPerceptron,
     ResNet18,
     ResNet18CIFAR,
     ResNet34,
     ResNet34CIFAR,
     ResNet50,
     ResNet50CIFAR,
-)
-from renate.benchmark.models.vision_transformer import (
     VisionTransformerB16,
     VisionTransformerB32,
     VisionTransformerCIFAR,
@@ -26,11 +24,11 @@ from renate.benchmark.models.vision_transformer import (
     VisionTransformerL32,
 )
 from renate.models.renate_module import RenateModule
-from renate.updaters.experimental.repeated_distill import RepeatedDistillationLearner
 from renate.updaters.experimental.er import ExperienceReplayLearner
 from renate.updaters.experimental.gdumb import GDumbLearner
 from renate.updaters.experimental.joint import JointLearner
 from renate.updaters.experimental.offline_er import OfflineExperienceReplayLearner
+from renate.updaters.experimental.repeated_distill import RepeatedDistillationLearner
 from renate.updaters.learner import Learner, ReplayLearner
 from renate.updaters.model_updater import SimpleModelUpdater
 
@@ -332,8 +330,8 @@ def check_learner_transforms(learner: Learner, expected_transforms: Dict[str, Ca
 
     Args:
         learner: The learner which transforms will be checked.
-        expected_transforms: Dictionairy mapping from transform name to transform. These are the expected transforms
-            for the learner.
+        expected_transforms: Dictionairy mapping from transform name to transform. These are the
+            expected transforms for the learner.
     """
     assert learner._train_transform is expected_transforms.get(
         "train_transform"

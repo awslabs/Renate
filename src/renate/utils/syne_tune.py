@@ -17,8 +17,9 @@ logger = logging.getLogger(__name__)
 class TuningLoggerCallback(TunerCallback):
     """Syne Tune Logging Callback when running hyperparameter optimization.
 
-    Will report whenever improved results are obtained. If no better configuration is received within the last ten
-    minutes, it will send a message to indicate it is still running."""
+    Will report whenever improved results are obtained. If no better configuration is received
+    within the last ten minutes, it will send a message to indicate it is still running.
+    """
 
     def __init__(self, mode: str, metric: str):
         self._mode = mode
@@ -61,8 +62,9 @@ class TrainingLoggerCallback(TunerCallback):
 def redirect_to_tmp(uri: str) -> str:
     """Changes uri in /opt/ml to /tmp.
 
-    Syne Tune stores checkpoints by default in /opt/ml when running on SageMaker. While we want to store checkpoints,
-    we have no interest in uploading them to S3. Therefore, this function changes the location to /tmp instead.
+    Syne Tune stores checkpoints by default in /opt/ml when running on SageMaker. While we want to
+    store checkpoints, we have no interest in uploading them to S3. Therefore, this function changes
+    the location to /tmp instead.
     """
     if "SM_MODEL_DIR" in os.environ:  # If running on sagemaker, redirect checkpoints to /tmp
         assert uri.startswith("/opt/ml")
@@ -89,7 +91,8 @@ def config_space_from_dict(
 def best_hyperparameters(
     experiment: ExperimentResult, config_space: Dict[str, Union[Domain, int, float, str]]
 ) -> Dict[str, Union[int, float, str]]:
-    """Returns the values of all keys in the `config_space` that belong to a Syne Tune search space."""
+    """Returns the values of all keys in the `config_space` that belong to a Syne Tune search
+    space."""
     return {
         k[7:]: v
         for k, v in experiment.best_config().items()

@@ -14,7 +14,8 @@ def create_file(path, content):
 
 
 @pytest.mark.parametrize(
-    "file_content1_source_dir, file_content2_source_dir, file_content1_destination_dir, file_content2_destination_dir",
+    "file_content1_source_dir, file_content2_source_dir, file_content1_destination_dir,"
+    "file_content2_destination_dir",
     [["test1_1", "test1_1", "test1_2", "test2_2"]],
 )
 def test_move_to_uri_locally(
@@ -26,10 +27,11 @@ def test_move_to_uri_locally(
 ):
     """Test for moving files from a local directory to another local directory.
 
-    The files should be moved from the source directory and the destination directory should be created
-    if it does not exist.
+    The files should be moved from the source directory and the destination directory should be
+    created if it does not exist.
 
-    If there are files with the same name in the destination directory as in the source directory they should be overwritten.
+    If there are files with the same name in the destination directory as in the source directory
+    they should be overwritten.
     """
 
     create_file(os.path.join(tmpdir, "source_dir", "file1.txt"), file_content1_source_dir)
@@ -52,7 +54,8 @@ def test_move_to_uri_locally(
 
 
 @pytest.mark.parametrize(
-    "file_content1_source_dir, file_content2_source_dir, file_content1_destination_dir, file_content2_destination_dir",
+    "file_content1_source_dir, file_content2_source_dir, file_content1_destination_dir, "
+    "file_content2_destination_dir",
     [["test1_1", "test1_1", "test1_2", "test2_2"]],
 )
 def test_copy_to_uri_locally(
@@ -64,10 +67,11 @@ def test_copy_to_uri_locally(
 ):
     """Test for copying files from a local directory to another local directory.
 
-    The files should be copied from the source directory and the destination directory should be created
-    if it does not exist.
+    The files should be copied from the source directory and the destination directory should be
+    created if it does not exist.
 
-    If there are files with the same name in the destination directory as in the source directory they should be overwritten.
+    If there are files with the same name in the destination directory as in the source directory
+    they should be overwritten.
 
     The source directory should not be changed.
     """

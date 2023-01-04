@@ -8,7 +8,7 @@ import torch
 import torch.nn.functional as F
 
 from renate.memory.buffer import DataDict, DataTuple
-from renate.models.renate_module import RenateModule
+from renate.models import RenateModule
 from renate.updaters.learner_components.component import Component
 
 
@@ -19,7 +19,8 @@ class WeightedLossComponent(Component, ABC):
 
     Args:
         weight: A scaling coefficient which should scale the loss which gets returned.
-        sample_new_memory_batch: Whether a new batch of data should be sampled from the memory buffer when the loss is calculated.
+        sample_new_memory_batch: Whether a new batch of data should be sampled from the memory
+            buffer when the loss is calculated.
     """
 
     def __init__(self, weight: float, sample_new_memory_batch: bool, **kwargs: Any) -> None:
@@ -74,7 +75,8 @@ class WeightedCustomLossComponent(WeightedLossComponent):
     Args:
         loss_fn: The loss function to apply.
         weight: A scaling coefficient which should scale the loss which gets returned.
-        sample_new_memory_batch: Whether a new batch of data should be sampled from the memory buffer when the loss is calculated.
+        sample_new_memory_batch: Whether a new batch of data should be sampled from the memory
+            buffer when the loss is calculated.
     """
 
     def __init__(
@@ -95,11 +97,8 @@ class WeightedCustomLossComponent(WeightedLossComponent):
 
 
 class WeightedMeanSquaredErrorLossComponent(WeightedLossComponent):
-    """Mean squared error between the current and previous logits computed with respect to the memory sample.
-
-    Args:
-        weight: A scaling coefficient which should scale the loss which gets returned.
-        sample_new_memory_batch: Whether a new batch of data should be sampled from the memory buffer when the loss is calculated.
+    """Mean squared error between the current and previous logits computed with respect to the
+    memory sample.
     """
 
     def _loss(
@@ -118,19 +117,24 @@ class WeightedMeanSquaredErrorLossComponent(WeightedLossComponent):
 class WeightedPooledOutputDistillationLossComponent(WeightedLossComponent):
     """Pooled output feature distillation with respect to intermediate network features.
 
-    As described in: Douillard, Arthur, et al. "Podnet: Pooled outputs distillation for small-tasks incremental learning."
-    European Conference on Computer Vision. Springer, Cham, 2020.
+    As described in: Douillard, Arthur, et al. "Podnet: Pooled outputs distillation for small-tasks
+    incremental learning." European Conference on Computer Vision. Springer, Cham, 2020.
 
-    Given the intermediate representations collected at different parts of the network, minimise their Euclidean distance
-    with respect to the cached representation. There are different `distillation_type`s trading-off plasticity and stability
-    of the resultant representations. `normalize` enables the user to normalize the resultant feature representations
-    to ensure that they are less affected by their magnitude.
+    Given the intermediate representations collected at different parts of the network, minimise
+    their Euclidean distance with respect to the cached representation. There are different
+    `distillation_type`s trading-off plasticity and stability of the resultant representations.
+    `normalize` enables the user to normalize the resultant feature representations to ensure that
+    they are less affected by their magnitude.
 
     Args:
-        weight: Scaling coefficient which scales the loss with respect to all intermediate representations.
-        sample_new_memory_batch: Whether a new batch of data should be sampled from the memory buffer when the loss is calculated.
-        distillation_type: Which distillation type to apply with respect to all intermediate representations.
-        normalize: Whether to normalize both the current and cached features before computing the Frobenius norm.
+        weight: Scaling coefficient which scales the loss with respect to all intermediate
+            representations.
+        sample_new_memory_batch: Whether a new batch of data should be sampled from the memory
+            buffer when the loss is calculated.
+        distillation_type: Which distillation type to apply with respect to all intermediate
+            representations.
+        normalize: Whether to normalize both the current and cached features before computing the
+            Frobenius norm.
     """
 
     def __init__(
@@ -197,7 +201,8 @@ class WeightedPooledOutputDistillationLossComponent(WeightedLossComponent):
         """
         if features.shape != features_memory.shape:
             raise ValueError(
-                f"The shape of the features and the cached features should be the same: {features.shape}, and: {features_memory.shape}"
+                "The shape of the features and the cached features should be the same: "
+                f"{features.shape}, and: {features_memory.shape}"
             )
 
         features = features.pow(2)
@@ -248,7 +253,9 @@ class WeightedPooledOutputDistillationLossComponent(WeightedLossComponent):
         batch_memory: Tuple[DataTuple, DataDict],
         intermediate_representation_memory: List[torch.Tensor],
     ) -> torch.Tensor:
-        """Compute the pooled output with respect to current and cached intermediate outputs from memory."""
+        """Compute the pooled output with respect to current and cached intermediate outputs from
+        memory.
+        """
         loss = 0.0
         (_, _), meta_data = batch_memory
         for n in range(len(intermediate_representation_memory)):
@@ -262,20 +269,23 @@ class WeightedCLSLossComponent(WeightedLossComponent):
     """Complementary Learning Systems Based Experience Replay.
 
     Arani, Elahe, Fahad Sarfraz, and Bahram Zonooz.
-    "Learning fast, learning slow: A general continual learning method based on complementary learning system."
-    arXiv preprint arXiv:2201.12604 (2022).
+    "Learning fast, learning slow: A general continual learning method based on complementary
+    learning system." arXiv preprint arXiv:2201.12604 (2022).
 
     The implementation follows the Algorithm 1 in the respective paper. The complete `Learner`
     implementing this loss, is the `CLSExperienceReplayLearner`.
 
     Args:
         weight: A scaling coefficient which should scale the loss which gets returned.
-        sample_new_memory_batch: Whether a new batch of data should be sampled from the memory buffer when the loss is calculated.
+        sample_new_memory_batch: Whether a new batch of data should be sampled from the memory
+            buffer when the loss is calculated.
         model: The model that is being trained.
         stable_model_update_weight: The weight used in the update of the stable model.
         plastic_model_update_weight:  The weight used in the update of the plastic model.
-        stable_model_update_probability:  The probability of updating the stable model at each training step.
-        plastic_model_update_probability:  The probability of updating the plastic model at each training step.
+        stable_model_update_probability:  The probability of updating the stable model at each
+            training step.
+        plastic_model_update_probability:  The probability of updating the plastic model at each
+            training step.
     """
 
     def __init__(

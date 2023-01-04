@@ -15,7 +15,8 @@ def average_accuracy(results: Dict[str, List[List[float]]], task_id: int) -> flo
     of the model on task :math:`i`, while having learned all tasks up to :math:`T`.
 
     Args:
-        results: The results dictionary holding all the results with respect to all recorded metrics.
+        results: The results dictionary holding all the results with respect to all recorded
+            metrics.
         task_id: The task index.
     """
     return sum(results["accuracy"][task_id][: task_id + 1]) / (task_id + 1)
@@ -32,14 +33,15 @@ def forgetting(results: Dict[str, List[List[float]]], task_id: int) -> float:
     where :math:`f_{j,i}` is defined as:
 
     .. math::
-        f_{j,i} = \\max_{k\\in\{1, \\ldots, j=i\\}} a_{k,i} - a_{j,i}
+        f_{j,i} = \\max_{k\\in\\{1, \\ldots, j=i\\}} a_{k,i} - a_{j,i}
 
     where :math:`T` is the final task index, :math:`a_{n,i}` is the test classification accuracy
-    on task :math:`i` after sequentially learning the nth task and :math:`f_{j,i}` is a measure of forgetting
-    on task :math:`i` after training up to task :math:`j`.
+    on task :math:`i` after sequentially learning the nth task and :math:`f_{j,i}` is a measure of
+    forgetting on task :math:`i` after training up to task :math:`j`.
 
     Args:
-        results: The results dictionary holding all the results with respect to all recorded metrics.
+        results: The results dictionary holding all the results with respect to all recorded
+            metrics.
         task_id: The task index.
     """
     if task_id == 0:
@@ -69,7 +71,8 @@ def backward_transfer(results: Dict[str, List[List[float]]], task_id: int) -> fl
     on task :math:`i` after sequentially learning the nth task.
 
     Args:
-        results: The results dictionary holding all the results with respect to all recorded metrics.
+        results: The results dictionary holding all the results with respect to all recorded
+            metrics.
         task_id: The task index.
     """
     if task_id == 0:
@@ -89,11 +92,12 @@ def forward_transfer(results: Dict[str, List[List[float]]], task_id: int) -> flo
         \\frac{1}{T-1}  sum_{i=2}^{T}  a_{i-1,i} - b_{i}
 
     where :math:`T` is the final task index, :math:`a_{n,i}` is the test classification accuracy
-    on task :math:`i` after sequentially learning the nth task. :math:`b_{i}` is the accuracy for all
-    :math:`T` tasks recorded at initialisation prior to observing any task.
+    on task :math:`i` after sequentially learning the nth task. :math:`b_{i}` is the accuracy for
+    all :math:`T` tasks recorded at initialisation prior to observing any task.
 
     Args:
-        results: The results dictionary holding all the results with respect to all recorded metrics.
+        results: The results dictionary holding all the results with respect to all recorded
+            metrics.
         task_id: The task index.
     """
     if task_id == 0:

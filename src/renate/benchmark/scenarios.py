@@ -84,7 +84,9 @@ class Scenario(abc.ABC):
 
 
 class BenchmarkScenario(Scenario):
-    """This is a scenario to concatenate test data of a data module, which by definition has different chunks."""
+    """This is a scenario to concatenate test data of a data module, which by definition has
+    different chunks.
+    """
 
     def setup(self) -> None:
         self._data_module.setup()
@@ -94,13 +96,15 @@ class BenchmarkScenario(Scenario):
 
 
 class ClassIncrementalScenario(Scenario):
-    """A scenario that creates data chunks from data samples with specific classes from a data module.
+    """A scenario that creates data chunks from data samples with specific classes from a data
+    module.
 
     This class, upon giving a list describing the separation of the dataset separates the dataset
     with respect to classification labels.
 
-    Note that, in order to apply this scenario, the scenario assumes that the data points in the data module
-    are organised into tuples of exactly 2 tensors i.e. `(x, y)` where `x` is the input and `y` is the class id.
+    Note that, in order to apply this scenario, the scenario assumes that the data points in the
+    data module are organised into tuples of exactly 2 tensors i.e. `(x, y)` where `x` is the input
+    and `y` is the class id.
 
     Args:
         data_module: The source RenateDataModule for the the user data.
@@ -143,7 +147,8 @@ class ClassIncrementalScenario(Scenario):
         expected_targets = set(self._class_groupings[chunk_id])
         if targets != expected_targets:
             raise ValueError(
-                f"Chunk {chunk_id} does not contain classes {sorted(list(expected_targets - targets))}."
+                f"Chunk {chunk_id} does not contain classes "
+                f"{sorted(list(expected_targets - targets))}."
             )
         return subset
 

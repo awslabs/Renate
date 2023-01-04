@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath("../src/"))
 
-import renate
+import renate  # noqa: E402
 
 
 def run_apidoc(app):
@@ -59,6 +59,7 @@ extensions = [
     "sphinx.ext.autosectionlabel",
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
+    "sphinx_autodoc_typehints",  # typing shown in api reference
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
@@ -98,7 +99,6 @@ html_theme_options = {
         }
     ],
     "use_edit_page_button": True,
-    "announcement": "<p>Renate 0.1.0 is released. See you at NeurIPS!</p>",
     "collapse_navigation": True,
 }
 html_context = {

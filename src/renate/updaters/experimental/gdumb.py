@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from renate import defaults
 from renate.memory import GreedyClassBalancingBuffer
-from renate.models.renate_module import RenateModule
+from renate.models import RenateModule
 from renate.updaters.learner import Learner, ReplayLearner
 from renate.updaters.model_updater import SimpleModelUpdater
 from renate.utils.pytorch import reinitialize_model_parameters
@@ -90,7 +90,7 @@ class GDumbModelUpdater(SimpleModelUpdater):
         memory_batch_size: int = defaults.BATCH_SIZE,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,
+        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
         learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
         learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
         momentum: float = defaults.MOMENTUM,

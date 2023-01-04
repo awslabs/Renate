@@ -66,5 +66,7 @@ In particular:
 argument pointing to the same S3 location. In this case it will be useful to change the
 url for the :code:`next_state_url` to avoid overwriting the old artefacts.
 
-
+Note that in our example we specified :code:`requirements_file="requirements.txt"`
+even if it is not necessary since the only dependency in the file is Renate itself.
+The only purpose of this is to show how additional dependencies can be added when needed.
 

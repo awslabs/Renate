@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 from typing import Any, Callable, Optional, Tuple
-from typing import Dict, List, Union
+from typing import List
 
 import torch
 from PIL import Image

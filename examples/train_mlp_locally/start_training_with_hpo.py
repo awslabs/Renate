@@ -30,7 +30,7 @@ if __name__ == "__main__":
         chunk_id=1,  # this time we use the second chunk of the dataset
         config_file="renate_config.py",
         state_url="./state_dump_first_model_rd/",  # the output of the first training job is loaded
-        next_state_url="./state_dump_second_model_rd/",  # the new model will be stored in this folder
+        next_state_url="./state_dump_second_model_rd/",  # location where the new model is saved to
         backend="local",
         scheduler="asha",
         max_num_trials_finished=5,

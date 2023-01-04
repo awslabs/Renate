@@ -8,7 +8,7 @@ from torchvision.models.resnet import BasicBlock, Bottleneck
 from torchvision.models.resnet import ResNet as _ResNet
 
 from renate.defaults import TASK_ID
-from renate.models.renate_module import RenateModule
+from renate.models import RenateModule
 
 
 class ResNet(RenateModule):
@@ -22,8 +22,8 @@ class ResNet(RenateModule):
         block: The type of the block to use as the core building block.
         layers: The number of blocks in the respective parts of ResNet.
         num_outputs: The number of output units.
-        zero_init_residual: Whether to set the initial weights of the residual blocks
-                            to zero through initializing the Batch Normalization parameters at the end of the block to zero.
+        zero_init_residual: Whether to set the initial weights of the residual blocks to zero
+            through initializing the Batch Normalization parameters at the end of the block to zero.
         groups: The number of groups to be used for the group convolution.
         width_per_group: The width of the group convolution.
         replace_stride_with_dilation: Whether to replace the stride with a dilation to save memory.

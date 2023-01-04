@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader, Dataset
 from renate import defaults
 from renate.data.datasets import _TransformedDataset
 from renate.evaluation.metrics.utils import create_metrics
-from renate.memory.buffer import DataBuffer, InfiniteBuffer, ReservoirBuffer
+from renate.memory import DataBuffer, InfiniteBuffer, ReservoirBuffer
 from renate.models import RenateModule
 from renate.utils.optimizer import create_optimizer, create_scheduler
 from renate.utils.pytorch import get_generator
@@ -57,7 +57,7 @@ class Learner(LightningModule, abc.ABC):
         model: RenateModule,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,
+        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
         learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
         learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
         momentum: float = defaults.MOMENTUM,
@@ -382,7 +382,8 @@ class ReplayLearner(Learner, abc.ABC):
             appended to the batch sampled from the current dataset, leading to an effective batch
             size of `memory_batch_size + batch_size`.
         buffer_transform: The transformation to be applied to the memory buffer data samples.
-        buffer_target_transform: The target transformation to be applied to the memory buffer target samples.
+        buffer_target_transform: The target transformation to be applied to the memory buffer target
+            samples.
         seed: See :func:`renate.models.utils.get_generator`.
     """
 

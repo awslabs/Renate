@@ -19,7 +19,8 @@ class TorchTextDataModule(RenateDataModule):
 
     Args:
         data_path: the path to the folder containing the dataset files.
-        src_bucket: the name of the s3 bucket. If not provided, downloads the data from original source.
+        src_bucket: the name of the s3 bucket. If not provided, downloads the data from original
+            source.
         src_object_name: the folder path in the s3 bucket.
         dataset_name: Name of the torchvision dataset.
         val_size: Fraction of the training data to be used for validation.

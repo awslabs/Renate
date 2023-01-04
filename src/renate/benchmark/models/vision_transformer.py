@@ -9,14 +9,15 @@ from torchvision.models.vision_transformer import ConvStemConfig, WeightsEnum
 from torchvision.models.vision_transformer import VisionTransformer as _VisionTransformer
 
 from renate.defaults import TASK_ID
-from renate.models.renate_module import RenateModule
+from renate.models import RenateModule
 
 
 class VisionTransformer(RenateModule):
     """Vision Transformer base model.
 
     TODO: Fix citation
-    Dosovitskiy, Alexey, et al. "An image is worth 16x16 words: Transformers for image recognition at scale."
+    Dosovitskiy, Alexey, et al. "An image is worth 16x16 words: Transformers for image recognition
+    at scale."
     arXiv preprint arXiv:2010.11929 (2020).
 
     Args:
@@ -29,9 +30,11 @@ class VisionTransformer(RenateModule):
         dropout: Dropout probability.
         attention_dropout: Dropout probability for the attention in the Multi-head Attention layer.
         num_outputs: Size of the output.
-        representation_size: If specified, the model will return a linear projection of the last hidden state.
+        representation_size: If specified, the model will return a linear projection of the last
+            hidden state.
         norm_layer: Normalization layer.
-        conv_stem_configs: List of ConvStemConfig. Each ConvStemConfig corresponds to a convolutional stem.
+        conv_stem_configs: List of ConvStemConfig. Each ConvStemConfig corresponds to a
+            convolutional stem.
         loss: Loss function.
     """
 

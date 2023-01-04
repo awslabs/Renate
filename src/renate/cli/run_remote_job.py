@@ -1,9 +1,9 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 """
-This script is used to launch model tuning on SageMaker. Previously passed arguments on a different machine are loaded
-again and the update process is started with these parameters.
-Arguments expected are described in renate.tuning.execute_tuning_job.
+This script is used to launch model tuning on SageMaker. Previously passed arguments on a different
+machine are loaded again and the update process is started with these parameters. Arguments expected
+are described in renate.tuning.execute_tuning_job.
 """
 import json
 
