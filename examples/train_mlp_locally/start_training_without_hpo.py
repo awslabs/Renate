@@ -2,7 +2,7 @@ from renate.tuning import execute_tuning_job
 
 
 config_space = {
-    'optimizer': "SGD",
+    "optimizer": "SGD",
     "momentum": 0.0,
     "weight_decay": 0.0,
     "learning_rate": 0.1,
