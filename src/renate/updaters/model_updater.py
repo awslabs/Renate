@@ -219,9 +219,9 @@ class ModelUpdater(abc.ABC):
         if issubclass(learner_class, ReplayLearner):
             self._transforms_kwargs["buffer_transform"] = self._buffer_transform
             self._transforms_kwargs["buffer_target_transform"] = self._buffer_target_transform
+        self._max_epochs = max_epochs
         self._learner = self._load_learner(learner_class, self._learner_kwargs)
         assert self._learner.is_logged_metric(metric), f"Target metric `{metric}` is not logged."
-        self._max_epochs = max_epochs
         self._logger = logger
         self._num_epochs_trained = 0
         if accelerator not in defaults.SUPPORTED_ACCELERATORS:

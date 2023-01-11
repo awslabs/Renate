@@ -131,8 +131,11 @@ def model_file(state_folder: str):
     return os.path.join(state_folder, "model.ckpt")
 
 
+LEARNER_CHECKPOINT_NAME = "learner.ckpt"
+
+
 def learner_state_file(state_folder: str):
-    return os.path.join(state_folder, "learner.ckpt")
+    return os.path.join(state_folder, LEARNER_CHECKPOINT_NAME)
 
 
 def metric_summary_file(logs_folder: str, special_str: str = ""):

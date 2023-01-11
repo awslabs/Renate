@@ -43,6 +43,7 @@ def create_scheduler(
     Args:
         optimizer: The optimizer to be used.
         scheduler: The name of the scheduler to be used.
+        step_size: Period of learning rate decay.
         gamma: Value for the gamma hyperparameter (if relevant).
     """
 
