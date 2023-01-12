@@ -15,11 +15,13 @@ from avalanche.training.plugins.checkpoint import CheckpointPlugin, FileSystemCh
 from pytorch_lightning.loggers import Logger
 from syne_tune import Reporter
 from torch.optim import Optimizer
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, TensorDataset
 
 from renate import defaults
 from .learner import Learner, ReplayLearner
 from .model_updater import SimpleModelUpdater
+from ..data.datasets import _TransformedDataset
+from ..memory import DataBuffer
 from ..models import RenateModule
 
 logging_logger = logging.getLogger(__name__)
@@ -156,6 +158,9 @@ class AvalancheModelUpdater(SimpleModelUpdater):
                 lr_scheduler_plugin=lr_scheduler_plugin,
                 optimizer=optimizer,
             )
+        self._dummy_learner._val_memory_buffer.load_state_dict(
+            torch.load(Path(self._current_state_folder) / "buffer.ckpt")
+        )  # TODO
         avalanche_learner.plugins = self._replace_plugin(
             checkpoint_plugin, avalanche_learner.plugins
         )
@@ -206,7 +211,7 @@ class AvalancheModelUpdater(SimpleModelUpdater):
         return avalanche_learner
 
     @staticmethod
-    def _load_if_exists(current_state_folder) -> Optional[Naive]:
+    def _load_if_exists(current_state_folder: Optional[str]) -> Optional[Naive]:
         """Loads the Avalanche strategy if a state exists."""
 
         if current_state_folder is None:
@@ -243,15 +248,20 @@ class AvalancheModelUpdater(SimpleModelUpdater):
     def update(
         self,
         train_dataset: Dataset,
-        val_dataset: Optional[Dataset] = None,
+        val_dataset: Optional[Dataset] = None,  # TODO consider optional case
         task_id: Optional[str] = None,
     ) -> RenateModule:
-        print(vars(val_dataset))
+        if isinstance(train_dataset, _TransformedDataset):
+            x_data, y_data = [], []
+            for x, y in train_dataset:
+                x_data.append(x)
+                y_data.append(y)
+            train_dataset = TensorDataset(torch.stack(x_data), torch.stack(y_data))
         self._dummy_learner._val_memory_buffer.update(val_dataset)
-        print(vars(self._dummy_learner._val_memory_buffer))
+        val_memory_dataset = TensorDataset(*self._dummy_learner._val_memory_buffer.to_tensors())
         benchmark = dataset_benchmark(
             [train_dataset],
-            [self._dummy_learner._val_memory_buffer],
+            [val_memory_dataset],
             train_transform=self._train_transform,
             train_target_transform=self._train_target_transform,
             eval_transform=self._test_transform,
@@ -261,6 +271,10 @@ class AvalancheModelUpdater(SimpleModelUpdater):
         self._learner.train(train_exp)
         results = self._learner.eval(benchmark.test_stream)
         torch.save(self._model.state_dict(), defaults.model_file(self._next_state_folder))
+        torch.save(
+            self._dummy_learner._val_memory_buffer.state_dict(),
+            Path(self._next_state_folder) / "buffer.ckpt",
+        )
         self._report(
             train_loss=results["Loss_Epoch/train_phase/train_stream/Task000"],
             train_accuracy=results["Top1_Acc_Epoch/train_phase/train_stream/Task000"],
