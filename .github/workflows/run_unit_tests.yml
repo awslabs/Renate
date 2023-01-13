@@ -1,14 +1,11 @@
-
 name: Unit tests/Coverage
+
 
 on:
   push:
     branches: [ "main", "dev" ]
   pull_request:
     branches: [ "main", "dev" ]
-
-  workflow_dispatch:
-
 
 jobs:
   test:
