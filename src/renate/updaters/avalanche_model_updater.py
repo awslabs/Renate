@@ -1,17 +1,32 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+import datetime
 import logging
+import os
+import sys
+import warnings
 from collections import Counter
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, TextIO, Type
 
 import torch
 import torchmetrics
-from avalanche.benchmarks import dataset_benchmark
-from avalanche.core import BasePlugin
+from avalanche.benchmarks import OnlineCLExperience, dataset_benchmark
+from avalanche.core import BasePlugin, SupervisedPlugin, Template
+from avalanche.evaluation.metric_results import MetricValue
+from avalanche.evaluation.metric_utils import phase_and_task, stream_type
+from avalanche.evaluation.metrics import LossMetric, accuracy_metrics, loss_metrics
+from avalanche.logging import BaseLogger, CSVLogger, TextLogger
+from avalanche.logging.text_logging import UNSUPPORTED_TYPES, _remove_prefix
 from avalanche.training import Naive
-from avalanche.training.plugins import LRSchedulerPlugin, ReplayPlugin
+from avalanche.training.plugins import (
+    EarlyStoppingPlugin,
+    EvaluationPlugin,
+    LRSchedulerPlugin,
+    ReplayPlugin,
+)
 from avalanche.training.plugins.checkpoint import CheckpointPlugin, FileSystemCheckpointStorage
+from avalanche.training.templates import SupervisedTemplate
 from pytorch_lightning.loggers import Logger
 from syne_tune import Reporter
 from torch.optim import Optimizer
@@ -55,6 +70,62 @@ class RenateCheckpointPlugin(CheckpointPlugin):
 
 class AvalancheReplayLearner(ReplayLearner):
     """Dummy class that enables consistent access and handling of inputs."""
+
+
+class SyneTunePlugin(BaseLogger, SupervisedPlugin):
+    def __init__(self):
+        super().__init__()
+        self.metric_vals = {}
+        self._report = Reporter()
+
+    def log_single_metric(self, name, value, x_plot) -> None:
+        self.metric_vals[name] = (name, x_plot, value)
+
+    def after_training_epoch(
+        self,
+        strategy: "SupervisedTemplate",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
+        super().after_training_epoch(strategy, metric_values, **kwargs)
+        # f"Epoch {strategy.clock.train_exp_epochs} ended.",
+        print("after_training_epoch", self.metric_vals)
+
+    def after_eval_exp(
+        self,
+        strategy: "SupervisedTemplate",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
+        super().after_eval_exp(strategy, metric_values, **kwargs)
+        print("after_eval_exp", self.metric_vals, metric_values)
+        results = {key: value[-1] for key, value in self.metric_vals.items()}
+        print("RESULTS", results)
+        if "Loss_Stream/eval_phase/test_stream/Task000" not in results:  # TODO
+            return
+        self._report(
+            train_loss=results.get("Loss_Epoch/train_phase/train_stream/Task000", -1),  # TODO
+            train_accuracy=results.get(
+                "Top1_Acc_Epoch/train_phase/train_stream/Task000", -1
+            ),  # TODO
+            val_loss=results["Loss_Stream/eval_phase/test_stream/Task000"],
+            val_accuracy=results["Top1_Acc_Stream/eval_phase/test_stream/Task000"],
+            step=strategy.clock.train_exp_epochs,
+            epoch=strategy.clock.train_exp_epochs + 1,
+        )
+        self.metric_vals = {}
+
+    """def after_training_epoch(self, strategy: Template):
+        results = strategy.evaluator.get_last_metrics()
+        print("STP", results)
+        self._report(
+            # train_loss=results["Loss_Epoch/train_phase/train_stream/Task000/Exp000"],
+            # train_accuracy=results["Top1_Acc_Epoch/train_phase/train_stream/Task000/Exp000"],
+            val_loss=results["Loss_Stream/eval_phase/test_stream/Task000"],
+            val_accuracy=results["Top1_Acc_Stream/eval_phase/test_stream/Task000"],
+            step=strategy.clock.train_exp_epochs,
+            epoch=strategy.clock.train_exp_epochs + 1,
+        )"""
 
 
 class AvalancheModelUpdater(SimpleModelUpdater):
@@ -167,6 +238,7 @@ class AvalancheModelUpdater(SimpleModelUpdater):
         avalanche_learner.plugins = self._replace_plugin(
             lr_scheduler_plugin, avalanche_learner.plugins
         )
+        # TODO: overwrite evaluator
         avalanche_learner.model = self._model
         avalanche_learner.optimizer = optimizer
         avalanche_learner._criterion = self._model.loss_fn
@@ -174,6 +246,13 @@ class AvalancheModelUpdater(SimpleModelUpdater):
         avalanche_learner.train_mb_size = self._dummy_learner._batch_size
         avalanche_learner.eval_mb_size = self._dummy_learner._batch_size
         return avalanche_learner
+
+    def _create_evaluator(self) -> EvaluationPlugin:
+        return EvaluationPlugin(
+            accuracy_metrics(minibatch=False, epoch=True, experience=True, stream=True),
+            loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
+            loggers=[SyneTunePlugin()],
+        )
 
     def _create_avalanche_learner(
         self,
@@ -199,8 +278,10 @@ class AvalancheModelUpdater(SimpleModelUpdater):
             train_mb_size=learner._batch_size,
             eval_mb_size=learner._batch_size,
             train_epochs=self._max_epochs,
-            plugins=[replay_plugin, checkpoint_plugin],
+            plugins=plugins,
+            evaluator=self._create_evaluator(),
             device=device,
+            eval_every=1,
         )
         avalanche_learner.is_logged_metric = lambda metric_name: metric_name in [
             "train_loss",
@@ -268,12 +349,15 @@ class AvalancheModelUpdater(SimpleModelUpdater):
             eval_target_transform=self._test_target_transform,
         )
         train_exp = benchmark.train_stream[0]
-        self._learner.train(train_exp)
+        self._learner.train(train_exp, eval_streams=[benchmark.test_stream])
+        assert self._learner.eval_every == 1
+        assert self._learner.plugins[-2].eval_every == 1
+        assert self._learner.plugins[-2].peval_mode == "epoch"
         results = self._learner.eval(benchmark.test_stream)
         torch.save(self._model.state_dict(), defaults.model_file(self._next_state_folder))
         torch.save(
             self._dummy_learner._val_memory_buffer.state_dict(),
-            Path(self._next_state_folder) / "buffer.ckpt",
+            Path(self._next_state_folder) / "buffer.ckpt",  # TODO don't hardcode
         )
         self._report(
             train_loss=results["Loss_Epoch/train_phase/train_stream/Task000"],
@@ -283,4 +367,5 @@ class AvalancheModelUpdater(SimpleModelUpdater):
             step=self._max_epochs,
             epoch=self._max_epochs + 1,
         )
+
         return self._model
