@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 from syne_tune.optimizer.scheduler import TrialScheduler
 
 from renate import defaults
+from renate.updaters.experimental.fine_tuning import FineTuningModelUpdater
 from renate.updaters.experimental.repeated_distill import RepeatedDistillationModelUpdater
 from renate.updaters.experimental.er import (
     CLSExperienceReplayModelUpdater,
@@ -92,6 +93,9 @@ def get_updater_and_learner_kwargs(
     elif args.updater == "Joint":
         learner_args = learner_args
         updater_class = JointModelUpdater
+    elif args.updater == "FineTuning":
+        learner_args = learner_args
+        updater_class = FineTuningModelUpdater
     if updater_class is None:
         raise ValueError(f"Unknown learner {args.updater}.")
     learner_kwargs = {arg: value for arg, value in vars(args).items() if arg in learner_args}
@@ -248,6 +252,11 @@ def parse_gdumb_arguments(parser: argparse.Namespace) -> None:
 
 def parse_joint_arguments(parser: argparse.Namespace) -> None:
     """A helper function that adds Joint Learner arguments."""
+    pass
+
+
+def parse_finetuning_arguments(parser: argparse.Namespace) -> None:
+    """A helper function that adds Fine Tuning arguments."""
     pass
 
 
@@ -509,6 +518,7 @@ parse_by_updater = {
     "Super-ER": parse_super_experience_replay_arguments,
     "GDumb": parse_gdumb_arguments,
     "Joint": parse_joint_arguments,
+    "FineTuning": parse_finetuning_arguments,
     "RD": parse_rd_learner_arguments,
     "OfflineER": parse_replay_learner_arguments,
 }
