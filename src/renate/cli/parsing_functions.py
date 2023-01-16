@@ -8,8 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 from syne_tune.optimizer.scheduler import TrialScheduler
 
 from renate import defaults
-from renate.updaters.avalanche_model_updater import AvalancheModelUpdater
-from renate.updaters.experimental.repeated_distill import RepeatedDistillationModelUpdater
+from renate.updaters.avalanche.model_updater import ExperienceReplayAvalancheModelUpdater
 from renate.updaters.experimental.er import (
     CLSExperienceReplayModelUpdater,
     DarkExperienceReplayModelUpdater,
@@ -20,6 +19,7 @@ from renate.updaters.experimental.er import (
 from renate.updaters.experimental.gdumb import GDumbModelUpdater
 from renate.updaters.experimental.joint import JointModelUpdater
 from renate.updaters.experimental.offline_er import OfflineExperienceReplayModelUpdater
+from renate.updaters.experimental.repeated_distill import RepeatedDistillationModelUpdater
 from renate.updaters.model_updater import ModelUpdater
 
 
@@ -93,9 +93,9 @@ def get_updater_and_learner_kwargs(
     elif args.updater == "Joint":
         learner_args = learner_args
         updater_class = JointModelUpdater
-    elif args.updater == "Avalanche":  # TODO
+    elif args.updater == "ER-Avalanche":
         learner_args = learner_args + ["memory_size", "memory_batch_size"]
-        updater_class = AvalancheModelUpdater
+        updater_class = ExperienceReplayAvalancheModelUpdater
     if updater_class is None:
         raise ValueError(f"Unknown learner {args.updater}.")
     learner_kwargs = {arg: value for arg, value in vars(args).items() if arg in learner_args}
@@ -514,6 +514,6 @@ parse_by_updater = {
     "GDumb": parse_gdumb_arguments,
     "Joint": parse_joint_arguments,
     "RD": parse_rd_learner_arguments,
-    "OfflineER": parse_replay_learner_arguments,
-    "Avalanche": parse_experience_replay_arguments,  # TODO
+    "Offline-ER": parse_replay_learner_arguments,
+    "ER-Avalanche": parse_experience_replay_arguments,
 }

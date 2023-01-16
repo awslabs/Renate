@@ -132,6 +132,7 @@ def model_file(state_folder: str):
 
 
 LEARNER_CHECKPOINT_NAME = "learner.ckpt"
+BUFFER_CHECKPOINT_NAME = "buffer.ckpt"
 
 
 def learner_state_file(state_folder: str):

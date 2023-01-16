@@ -54,7 +54,7 @@ def test_execute_tuning_job(tmpdir, num_chunks, val_size, raises, fixed_search_s
 
         def execute_job():
             execute_tuning_job(
-                updater="ER",
+                updater="ER-Avalanche",
                 max_epochs=5,
                 config_file=config_file,
                 state_url=state_url,
