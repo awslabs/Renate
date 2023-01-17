@@ -6,7 +6,7 @@ from typing import Any, List, Optional, Type
 
 import torch
 from avalanche.core import BasePlugin, SupervisedPlugin
-from avalanche.training import EWC, Naive
+from avalanche.training import EWC, ExperienceBalancedBuffer, Naive
 from avalanche.training.plugins import EWCPlugin, EvaluationPlugin, ReplayPlugin
 from avalanche.training.templates import BaseSGDTemplate
 from torch.optim import Optimizer
@@ -62,15 +62,21 @@ class AvalancheLoaderMixing:
         max_epochs: int,
         current_state_folder: Optional[str] = None,
     ):
-        for plugin in plugins + [evaluator]:
+        for plugin in plugins:  # + [evaluator]:
             avalanche_learner.plugins = replace_plugin(plugin, avalanche_learner.plugins)
-        avalanche_learner.evaluator = evaluator
+        # avalanche_learner.evaluator = evaluator
         avalanche_learner.model = self._model
         avalanche_learner.optimizer = optimizer
         avalanche_learner._criterion = self._model.loss_fn
         avalanche_learner.train_epochs = max_epochs
         avalanche_learner.train_mb_size = self._batch_size
         avalanche_learner.eval_mb_size = self._batch_size
+        if current_state_folder is not None:
+            buffer_checkpoint_file = Path(current_state_folder) / defaults.BUFFER_CHECKPOINT_NAME
+            if buffer_checkpoint_file.exists():
+                self._val_memory_buffer.load_state_dict(
+                    torch.load(Path(current_state_folder) / defaults.BUFFER_CHECKPOINT_NAME)
+                )
 
     def _create_avalanche_learner(
         self,
@@ -105,17 +111,12 @@ class AvalancheLearner(Learner, AvalancheLoaderMixing):
 class AvalancheReplayLearner(ReplayLearner, AvalancheLoaderMixing):
     """Dummy class that enables consistent access and handling of inputs."""
 
-    def update_settings(self, current_state_folder: Optional[str] = None, **kwargs: Any):
-        super().update_settings(current_state_folder=current_state_folder, **kwargs)
-        self._val_memory_buffer.load_state_dict(
-            torch.load(Path(current_state_folder) / defaults.BUFFER_CHECKPOINT_NAME)
-        )
-
     def create_avalanche_learner(
         self, plugins: List[SupervisedPlugin], **kwargs: Any
     ) -> BaseSGDTemplate:
         replay_plugin = ReplayPlugin(
             mem_size=self._memory_buffer._max_size,
+            batch_size=self._batch_size,
             batch_size_mem=self._memory_batch_size,
         )
         plugins.append(replay_plugin)

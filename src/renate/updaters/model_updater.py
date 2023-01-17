@@ -61,11 +61,11 @@ class RenateModelCheckpoint(ModelCheckpoint):
     Args:
         model: Model to be saved when creating a checkpoint.
         state_folder: Checkpoint folder location.
-        val_enabled: Whether validation was enabled in the Learner. Forwarded to `SyneTunePlugin`.
+        val_enabled: Whether validation was enabled in the Learner. Forwarded to `SyneTuneCallback`.
         metric: Monitored metric to decide when to write a new checkpoint. If no metric is provided
             or validation is not enabled, the latest model will be stored.
         mode: `min` or `max`. Whether to minimize or maximize the monitored `metric`.
-        use_syne_tune_callback: Whether to use `SyneTunePlugin`.
+        use_syne_tune_callback: Whether to use `SyneTuneCallback`.
     """
 
     def __init__(

@@ -101,10 +101,10 @@ def get_updater_and_learner_kwargs(
     elif args.updater == "FineTuning":
         learner_args = learner_args
         updater_class = FineTuningModelUpdater
-    elif args.updater == "ER-Avalanche":
+    elif args.updater == "Avalanche-ER":
         learner_args = learner_args + ["memory_size", "memory_batch_size"]
         updater_class = ExperienceReplayAvalancheModelUpdater
-    elif args.updater == "EWC":
+    elif args.updater == "Avalanche-EWC":
         learner_args = learner_args + ["ewc_lambda"]
         updater_class = ElasticWeightConsolidationModelUpdater
     if updater_class is None:
@@ -464,8 +464,8 @@ def parse_rd_learner_arguments(parser: argparse.Namespace) -> None:
     )
 
 
-def parse_ewc_learner_arguments(parser: argparse.Namespace) -> None:
-    """A helper function that adds Repeated Distill Learner arguments."""
+def parse_avalanche_ewc_learner_arguments(parser: argparse.Namespace) -> None:
+    """A helper function that adds EWC arguments."""
     parser.add_argument(
         "--ewc_lambda",
         type=float,
@@ -542,6 +542,6 @@ parse_by_updater = {
     "FineTuning": parse_finetuning_arguments,
     "RD": parse_rd_learner_arguments,
     "Offline-ER": parse_replay_learner_arguments,
-    "ER-Avalanche": parse_experience_replay_arguments,
-    "EWC": parse_ewc_learner_arguments,
+    "Avalanche-ER": parse_experience_replay_arguments,
+    "Avalanche-EWC": parse_avalanche_ewc_learner_arguments,
 }

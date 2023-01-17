@@ -184,8 +184,9 @@ class AvalancheModelUpdater(SimpleModelUpdater):
         )
         train_exp = benchmark.train_stream[0]
         self._learner.train(train_exp, eval_streams=[benchmark.test_stream])
-        torch.save(self._model.state_dict(), defaults.model_file(self._next_state_folder))
-        if val_dataset_exists:
+        if self._next_state_folder is not None:
+            torch.save(self._model.state_dict(), defaults.model_file(self._next_state_folder))
+        if val_dataset_exists and self._next_state_folder is not None:
             torch.save(
                 self._dummy_learner._val_memory_buffer.state_dict(),
                 Path(self._next_state_folder) / defaults.BUFFER_CHECKPOINT_NAME,
