@@ -40,7 +40,10 @@ config_file = str(Path(__file__).parent.parent / "renate_config_files" / "config
         "training-single-config-without-val",
     ],
 )
-def test_execute_tuning_job(tmpdir, num_chunks, val_size, raises, fixed_search_space, scheduler):
+@pytest.mark.parametrize("updater", ("ER", "ER-Avalanche"))
+def test_execute_tuning_job(
+    tmpdir, num_chunks, val_size, raises, fixed_search_space, scheduler, updater
+):
     """Simply running tuning job to check if anything fails.
 
     Case 1: Standard HPO setup with transfer learning in second step.
@@ -54,7 +57,7 @@ def test_execute_tuning_job(tmpdir, num_chunks, val_size, raises, fixed_search_s
 
         def execute_job():
             execute_tuning_job(
-                updater="ER-Avalanche",
+                updater=updater,
                 max_epochs=5,
                 config_file=config_file,
                 state_url=state_url,

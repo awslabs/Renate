@@ -33,3 +33,6 @@ using Renate (e.g., using :py:func:`renate.tuning.tuning.execute_tuning_job`; se
    * - ``"Joint"``
      - :py:class:`JointLearner <renate.updaters.experimental.joint.JointLearner>`
      - Retraining from scratch on all data seen so far. Used as an "upper bound" in experiments, inefficient for practical use.
+   * - ``"FineTuning"``
+     - :py:class:`Learner <renate.updaters.experimental.learner.Learner>`
+     - Fine-tuning the existing model using the new data without any sort of mitigation for forgetting. Users as "lower bound" baseline in the experiments.

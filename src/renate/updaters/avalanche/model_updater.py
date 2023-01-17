@@ -1,31 +1,26 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import logging
-from abc import abstractmethod
-from collections import Counter
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, Optional, Type
 
 import torch
 import torchmetrics
 from avalanche.benchmarks import dataset_benchmark
-from avalanche.core import BasePlugin, SupervisedPlugin
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
-from avalanche.training import EWC, Naive
+from avalanche.training import Naive
 from avalanche.training.plugins import (
     EvaluationPlugin,
     LRSchedulerPlugin,
-    ReplayPlugin,
 )
 from avalanche.training.templates import BaseSGDTemplate
-from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import Dataset, TensorDataset
 
 from renate import defaults
 from renate.data.datasets import _TransformedDataset
 from renate.models import RenateModule
-from renate.updaters.avalanche.learner import AvalancheReplayLearner
+from renate.updaters.avalanche.learner import AvalancheEWCLearner, AvalancheReplayLearner
 from renate.updaters.avalanche.plugins import (
     RenateCheckpointPlugin,
     RenateFileSystemCheckpointStorage,
@@ -77,7 +72,6 @@ class AvalancheModelUpdater(SimpleModelUpdater):
         if avalanche_learner is None:
             logger.warning("No updater state available. Updating from scratch.")
             return self._create_avalanche_learner(
-                learner=self._dummy_learner,
                 evaluator=evaluator,
                 checkpoint_plugin=checkpoint_plugin,
                 lr_scheduler_plugin=lr_scheduler_plugin,
@@ -114,7 +108,6 @@ class AvalancheModelUpdater(SimpleModelUpdater):
 
     def _create_avalanche_learner(
         self,
-        learner: Learner,
         evaluator: EvaluationPlugin,
         checkpoint_plugin: RenateCheckpointPlugin,
         lr_scheduler_plugin: LRSchedulerPlugin,
@@ -123,7 +116,6 @@ class AvalancheModelUpdater(SimpleModelUpdater):
         """Returns an Avalanche learner based on the arguments passed to the ModelUpdater.
 
         Args:
-            learner: A dummy Renate learner which contains the relevant settings.
             evaluator: Evaluation plugin.
             checkpoint_plugin: Plugin to checkpoint regularly.
             lr_scheduler_plugin: Plugin to adapt the learning rate.
@@ -132,13 +124,8 @@ class AvalancheModelUpdater(SimpleModelUpdater):
         plugins = [lr_scheduler_plugin]
         if checkpoint_plugin is not None:
             plugins.append(checkpoint_plugin)
-        avalanche_learner = self._init_avalanche_learner(
-            learner=learner,
-            model=self._model,
+        avalanche_learner = self._dummy_learner.create_avalanche_learner(
             optimizer=optimizer,
-            criterion=self._model.loss_fn,
-            train_mb_size=learner._batch_size,
-            eval_mb_size=learner._batch_size,
             train_epochs=self._max_epochs,
             plugins=plugins,
             evaluator=evaluator,
@@ -149,23 +136,6 @@ class AvalancheModelUpdater(SimpleModelUpdater):
             lambda metric_name: metric_name is None or metric_name in metrics_mapper.keys()
         )
         return avalanche_learner
-
-    @abstractmethod
-    def _init_avalanche_learner(
-        self,
-        learner: Learner,
-        model: Module,
-        optimizer: Optimizer,
-        criterion: Module,
-        train_mb_size: int,
-        eval_mb_size: int,
-        train_epochs: int,
-        plugins: List[BasePlugin],
-        evaluator: EvaluationPlugin,
-        device: torch.device,
-        eval_every: int,
-    ) -> BaseSGDTemplate:
-        pass
 
     @staticmethod
     def _load_if_exists(
@@ -293,45 +263,12 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
             devices=devices,
         )
 
-    def _init_avalanche_learner(
-        self,
-        learner: Learner,
-        model: Module,
-        optimizer: Optimizer,
-        criterion: Module,
-        train_mb_size: int,
-        eval_mb_size: int,
-        train_epochs: int,
-        plugins: List[SupervisedPlugin],
-        evaluator: EvaluationPlugin,
-        device: torch.device,
-        eval_every: int,
-    ) -> BaseSGDTemplate:
-        replay_plugin = ReplayPlugin(
-            mem_size=learner._memory_buffer._max_size,
-            batch_size_mem=learner._memory_batch_size,
-        )
-        plugins.append(replay_plugin)
-        return Naive(
-            model=model,
-            optimizer=optimizer,
-            criterion=criterion,
-            train_mb_size=train_mb_size,
-            eval_mb_size=eval_mb_size,
-            train_epochs=train_epochs,
-            plugins=plugins,
-            evaluator=evaluator,
-            device=device,
-            eval_every=eval_every,
-        )
-
 
 class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
     def __init__(
         self,
         model: RenateModule,
-        memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
+        ewc_lambda: float = defaults.EWC_LAMBDA,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
         learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
@@ -358,8 +295,6 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
         seed: int = defaults.SEED,
     ):
         learner_kwargs = {
-            "memory_size": memory_size,
-            "memory_batch_size": memory_batch_size,
             "optimizer": optimizer,
             "learning_rate": learning_rate,
             "learning_rate_scheduler": learning_rate_scheduler,
@@ -368,11 +303,12 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
             "momentum": momentum,
             "weight_decay": weight_decay,
             "batch_size": batch_size,
+            "ewc_lambda": ewc_lambda,
             "seed": seed,
         }
         super().__init__(
             model,
-            learner_class=AvalancheReplayLearner,
+            learner_class=AvalancheEWCLearner,
             learner_kwargs=learner_kwargs,
             current_state_folder=current_state_folder,
             next_state_folder=next_state_folder,
@@ -389,36 +325,4 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
             early_stopping_enabled=early_stopping_enabled,
             accelerator=accelerator,
             devices=devices,
-        )
-
-    def _init_avalanche_learner(
-        self,
-        learner: Learner,
-        model: Module,
-        optimizer: Optimizer,
-        criterion: Module,
-        train_mb_size: int,
-        eval_mb_size: int,
-        train_epochs: int,
-        plugins: List[BasePlugin],
-        evaluator: EvaluationPlugin,
-        device: torch.device,
-        eval_every: int,
-    ) -> BaseSGDTemplate:
-        replay_plugin = ReplayPlugin(
-            mem_size=learner._memory_buffer._max_size,
-            batch_size_mem=learner._memory_batch_size,
-        )
-        plugins.append(replay_plugin)
-        return EWC(
-            model=model,
-            optimizer=optimizer,
-            criterion=criterion,
-            train_mb_size=train_mb_size,
-            eval_mb_size=eval_mb_size,
-            train_epochs=train_epochs,
-            plugins=plugins,
-            evaluator=evaluator,
-            device=device,
-            eval_every=eval_every,
         )

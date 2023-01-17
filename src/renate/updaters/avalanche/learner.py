@@ -5,8 +5,9 @@ from pathlib import Path
 from typing import Any, List, Optional, Type
 
 import torch
-from avalanche.core import BasePlugin
-from avalanche.training.plugins import EWCPlugin, EvaluationPlugin
+from avalanche.core import BasePlugin, SupervisedPlugin
+from avalanche.training import EWC, Naive
+from avalanche.training.plugins import EWCPlugin, EvaluationPlugin, ReplayPlugin
 from avalanche.training.templates import BaseSGDTemplate
 from torch.optim import Optimizer
 
@@ -71,6 +72,31 @@ class AvalancheLoaderMixing:
         avalanche_learner.train_mb_size = self._batch_size
         avalanche_learner.eval_mb_size = self._batch_size
 
+    def _create_avalanche_learner(
+        self,
+        avalanche_learner_class: Type[BaseSGDTemplate],
+        optimizer: Optimizer,
+        train_epochs: int,
+        plugins: List[SupervisedPlugin],
+        evaluator: EvaluationPlugin,
+        device: torch.device,
+        eval_every: int,
+        **kwargs: Any,
+    ) -> BaseSGDTemplate:
+        return avalanche_learner_class(
+            model=self._model,
+            optimizer=optimizer,
+            criterion=self._model.loss_fn,
+            train_mb_size=self._batch_size,
+            eval_mb_size=self._batch_size,
+            train_epochs=train_epochs,
+            plugins=plugins,
+            evaluator=evaluator,
+            device=device,
+            eval_every=eval_every,
+            **kwargs,
+        )
+
 
 class AvalancheLearner(Learner, AvalancheLoaderMixing):
     """"""
@@ -85,6 +111,16 @@ class AvalancheReplayLearner(ReplayLearner, AvalancheLoaderMixing):
             torch.load(Path(current_state_folder) / defaults.BUFFER_CHECKPOINT_NAME)
         )
 
+    def create_avalanche_learner(
+        self, plugins: List[SupervisedPlugin], **kwargs: Any
+    ) -> BaseSGDTemplate:
+        replay_plugin = ReplayPlugin(
+            mem_size=self._memory_buffer._max_size,
+            batch_size_mem=self._memory_batch_size,
+        )
+        plugins.append(replay_plugin)
+        return self._create_avalanche_learner(Naive, plugins=plugins, **kwargs)
+
 
 class AvalancheEWCLearner(Learner, AvalancheLoaderMixing):
     """"""
@@ -96,3 +132,6 @@ class AvalancheEWCLearner(Learner, AvalancheLoaderMixing):
     def update_settings(self, avalanche_learner: BaseSGDTemplate, **kwargs: Any):
         super().update_settings(avalanche_learner=avalanche_learner, **kwargs)
         plugin_by_class(EWCPlugin, avalanche_learner.plugins).ewc_lambda = self._ewc_lambda
+
+    def create_avalanche_learner(self, **kwargs) -> BaseSGDTemplate:
+        return self._create_avalanche_learner(EWC, ewc_lambda=self._ewc_lambda, **kwargs)

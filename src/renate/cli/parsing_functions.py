@@ -8,7 +8,12 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 from syne_tune.optimizer.scheduler import TrialScheduler
 
 from renate import defaults
-from renate.updaters.avalanche.model_updater import ExperienceReplayAvalancheModelUpdater
+from renate.updaters.avalanche.model_updater import (
+    ElasticWeightConsolidationModelUpdater,
+    ExperienceReplayAvalancheModelUpdater,
+)
+from renate.updaters.experimental.fine_tuning import FineTuningModelUpdater
+from renate.updaters.experimental.repeated_distill import RepeatedDistillationModelUpdater
 from renate.updaters.experimental.er import (
     CLSExperienceReplayModelUpdater,
     DarkExperienceReplayModelUpdater,
@@ -93,9 +98,15 @@ def get_updater_and_learner_kwargs(
     elif args.updater == "Joint":
         learner_args = learner_args
         updater_class = JointModelUpdater
+    elif args.updater == "FineTuning":
+        learner_args = learner_args
+        updater_class = FineTuningModelUpdater
     elif args.updater == "ER-Avalanche":
         learner_args = learner_args + ["memory_size", "memory_batch_size"]
         updater_class = ExperienceReplayAvalancheModelUpdater
+    elif args.updater == "EWC":
+        learner_args = learner_args + ["ewc_lambda"]
+        updater_class = ElasticWeightConsolidationModelUpdater
     if updater_class is None:
         raise ValueError(f"Unknown learner {args.updater}.")
     learner_kwargs = {arg: value for arg, value in vars(args).items() if arg in learner_args}
@@ -252,6 +263,11 @@ def parse_gdumb_arguments(parser: argparse.Namespace) -> None:
 
 def parse_joint_arguments(parser: argparse.Namespace) -> None:
     """A helper function that adds Joint Learner arguments."""
+    pass
+
+
+def parse_finetuning_arguments(parser: argparse.Namespace) -> None:
+    """A helper function that adds Fine Tuning arguments."""
     pass
 
 
@@ -448,6 +464,16 @@ def parse_rd_learner_arguments(parser: argparse.Namespace) -> None:
     )
 
 
+def parse_ewc_learner_arguments(parser: argparse.Namespace) -> None:
+    """A helper function that adds Repeated Distill Learner arguments."""
+    parser.add_argument(
+        "--ewc_lambda",
+        type=float,
+        default=defaults.EWC_LAMBDA,
+        help=f"EWC regularization hyperparameter. Default: {defaults.EWC_LAMBDA}.",
+    )
+
+
 def _get_args_by_prefix(
     args: Union[argparse.Namespace, Dict[str, str]], prefix: str
 ) -> Dict[str, str]:
@@ -513,7 +539,9 @@ parse_by_updater = {
     "Super-ER": parse_super_experience_replay_arguments,
     "GDumb": parse_gdumb_arguments,
     "Joint": parse_joint_arguments,
+    "FineTuning": parse_finetuning_arguments,
     "RD": parse_rd_learner_arguments,
     "Offline-ER": parse_replay_learner_arguments,
     "ER-Avalanche": parse_experience_replay_arguments,
+    "EWC": parse_ewc_learner_arguments,
 }
