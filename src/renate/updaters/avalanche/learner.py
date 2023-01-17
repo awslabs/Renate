@@ -2,13 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 from collections import Counter
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional, Type
 
 import torch
 from avalanche.core import BasePlugin
-from avalanche.training.plugins import EvaluationPlugin
+from avalanche.training.plugins import EWCPlugin, EvaluationPlugin
 from avalanche.training.templates import BaseSGDTemplate
-from torch.nn import Module
 from torch.optim import Optimizer
 
 from renate import defaults
@@ -22,15 +21,34 @@ def replace_plugin(plugin: Optional[BasePlugin], plugins: List[BasePlugin]) -> L
         plugin: New plugin that replaces existing one.
         plugins: List of current plugins.
     """
-    plugins_types = [type(p) for p in plugins]
-    assert max(Counter(plugins_types).values()) <= 1, "Duplicate plugins are not supported"
-    if plugin is None:
-        return plugins
-    if type(plugin) in plugins_types:
-        plugins[plugins_types.index(type(plugin))] = plugin
+    idx = _plugin_index(type(plugin), plugins)
+    if idx >= 0:
+        plugins[idx] = plugin
     else:
         plugins.append(plugin)
     return plugins
+
+
+def plugin_by_class(
+    plugin_class: Type[BasePlugin], plugins: List[BasePlugin]
+) -> Optional[BasePlugin]:
+    idx = _plugin_index(plugin_class, plugins)
+    if idx >= 0:
+        return plugins[idx]
+    return None
+
+
+def _plugin_index(plugin_class: Type[BasePlugin], plugins: List[BasePlugin]) -> int:
+    """Returns index at which a plugin of that type is located in the list.
+
+    Returns:
+        Returns location of plugin and ``-1`` if it does not exist.
+    """
+    plugins_types = [type(p) for p in plugins]
+    assert max(Counter(plugins_types).values()) <= 1, "Duplicate plugins are not supported"
+    if plugin_class in plugins_types:
+        return plugins_types.index(plugin_class)
+    return -1
 
 
 class AvalancheLoaderMixing:
@@ -61,23 +79,20 @@ class AvalancheLearner(Learner, AvalancheLoaderMixing):
 class AvalancheReplayLearner(ReplayLearner, AvalancheLoaderMixing):
     """Dummy class that enables consistent access and handling of inputs."""
 
-    def update_settings(
-        self,
-        avalanche_learner: BaseSGDTemplate,
-        plugins: List[BasePlugin],
-        evaluator: EvaluationPlugin,
-        optimizer: Optimizer,
-        max_epochs: int,
-        current_state_folder: Optional[str] = None,
-    ):
-        super().update_settings(
-            avalanche_learner=avalanche_learner,
-            plugins=plugins,
-            evaluator=evaluator,
-            optimizer=optimizer,
-            max_epochs=max_epochs,
-            current_state_folder=current_state_folder,
-        )
+    def update_settings(self, current_state_folder: Optional[str] = None, **kwargs: Any):
+        super().update_settings(current_state_folder=current_state_folder, **kwargs)
         self._val_memory_buffer.load_state_dict(
             torch.load(Path(current_state_folder) / defaults.BUFFER_CHECKPOINT_NAME)
         )
+
+
+class AvalancheEWCLearner(Learner, AvalancheLoaderMixing):
+    """"""
+
+    def __init__(self, ewc_lambda: float, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._ewc_lambda = ewc_lambda
+
+    def update_settings(self, avalanche_learner: BaseSGDTemplate, **kwargs: Any):
+        super().update_settings(avalanche_learner=avalanche_learner, **kwargs)
+        plugin_by_class(EWCPlugin, avalanche_learner.plugins).ewc_lambda = self._ewc_lambda
