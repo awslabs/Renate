@@ -185,6 +185,7 @@ class AvalancheModelUpdater(SimpleModelUpdater):
         train_exp = benchmark.train_stream[0]
         self._learner.train(train_exp, eval_streams=[benchmark.test_stream])
         if self._next_state_folder is not None:
+            Path(self._next_state_folder).mkdir(exist_ok=True, parents=True)  # TODO: remove
             torch.save(self._model.state_dict(), defaults.model_file(self._next_state_folder))
         if val_dataset_exists and self._next_state_folder is not None:
             torch.save(

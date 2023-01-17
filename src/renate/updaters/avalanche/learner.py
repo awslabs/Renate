@@ -62,9 +62,9 @@ class AvalancheLoaderMixing:
         max_epochs: int,
         current_state_folder: Optional[str] = None,
     ):
-        for plugin in plugins + [evaluator]:
+        for plugin in plugins:  # + [evaluator]:
             avalanche_learner.plugins = replace_plugin(plugin, avalanche_learner.plugins)
-        avalanche_learner.evaluator = evaluator
+        # avalanche_learner.evaluator = evaluator
         avalanche_learner.model = self._model
         avalanche_learner.optimizer = optimizer
         avalanche_learner._criterion = self._model.loss_fn
@@ -97,7 +97,7 @@ class AvalancheLoaderMixing:
             eval_mb_size=self._batch_size,
             train_epochs=train_epochs,
             plugins=plugins,
-            evaluator=evaluator,
+            # evaluator=evaluator,
             device=device,
             eval_every=eval_every,
             **kwargs,
