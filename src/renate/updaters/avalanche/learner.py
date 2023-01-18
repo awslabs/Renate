@@ -6,9 +6,9 @@ from typing import Any, List, Optional, Type
 
 import torch
 from avalanche.core import BasePlugin, SupervisedPlugin
-from avalanche.training import EWC, ExperienceBalancedBuffer, Naive
-from avalanche.training.plugins import EWCPlugin, EvaluationPlugin, ReplayPlugin
-from avalanche.training.templates import BaseSGDTemplate
+from avalanche.training.plugins import EWCPlugin, LwFPlugin, ReplayPlugin
+from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.templates import BaseSGDTemplate, SupervisedTemplate
 from torch.optim import Optimizer
 
 from renate import defaults
@@ -57,7 +57,7 @@ class AvalancheLoaderMixing:
         self,
         avalanche_learner: BaseSGDTemplate,
         plugins: List[BasePlugin],
-        evaluator: EvaluationPlugin,
+        # evaluator: EvaluationPlugin,
         optimizer: Optimizer,
         max_epochs: int,
         current_state_folder: Optional[str] = None,
@@ -80,16 +80,15 @@ class AvalancheLoaderMixing:
 
     def _create_avalanche_learner(
         self,
-        avalanche_learner_class: Type[BaseSGDTemplate],
         optimizer: Optimizer,
         train_epochs: int,
         plugins: List[SupervisedPlugin],
-        evaluator: EvaluationPlugin,
+        # evaluator: EvaluationPlugin,
         device: torch.device,
         eval_every: int,
         **kwargs: Any,
     ) -> BaseSGDTemplate:
-        return avalanche_learner_class(
+        return SupervisedTemplate(
             model=self._model,
             optimizer=optimizer,
             criterion=self._model.loss_fn,
@@ -97,15 +96,11 @@ class AvalancheLoaderMixing:
             eval_mb_size=self._batch_size,
             train_epochs=train_epochs,
             plugins=plugins,
-            # evaluator=evaluator,
+            evaluator=default_evaluator(),
             device=device,
             eval_every=eval_every,
             **kwargs,
         )
-
-
-class AvalancheLearner(Learner, AvalancheLoaderMixing):
-    """"""
 
 
 class AvalancheReplayLearner(ReplayLearner, AvalancheLoaderMixing):
@@ -120,7 +115,7 @@ class AvalancheReplayLearner(ReplayLearner, AvalancheLoaderMixing):
             batch_size_mem=self._memory_batch_size,
         )
         plugins.append(replay_plugin)
-        return self._create_avalanche_learner(Naive, plugins=plugins, **kwargs)
+        return self._create_avalanche_learner(plugins=plugins, **kwargs)
 
 
 class AvalancheEWCLearner(Learner, AvalancheLoaderMixing):
@@ -134,5 +129,31 @@ class AvalancheEWCLearner(Learner, AvalancheLoaderMixing):
         super().update_settings(avalanche_learner=avalanche_learner, **kwargs)
         plugin_by_class(EWCPlugin, avalanche_learner.plugins).ewc_lambda = self._ewc_lambda
 
-    def create_avalanche_learner(self, **kwargs) -> BaseSGDTemplate:
-        return self._create_avalanche_learner(EWC, ewc_lambda=self._ewc_lambda, **kwargs)
+    def create_avalanche_learner(
+        self, plugins: List[SupervisedPlugin], **kwargs
+    ) -> BaseSGDTemplate:
+        ewc_plugin = EWCPlugin(ewc_lambda=self._ewc_lambda)
+        plugins.append(ewc_plugin)
+        return self._create_avalanche_learner(plugins=plugins, **kwargs)
+
+
+class AvalancheLwFLearner(Learner, AvalancheLoaderMixing):
+    """"""
+
+    def __init__(self, alpha: float, temperature: float, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._alpha = alpha
+        self._temperature = temperature
+
+    def update_settings(self, avalanche_learner: BaseSGDTemplate, **kwargs: Any):
+        super().update_settings(avalanche_learner=avalanche_learner, **kwargs)
+        lwf_plugin = plugin_by_class(LwFPlugin, avalanche_learner.plugins)
+        lwf_plugin.lwf.alpha = self._alpha
+        lwf_plugin.lwf.temperature = self._temperature
+
+    def create_avalanche_learner(
+        self, plugins: List[SupervisedPlugin], **kwargs
+    ) -> BaseSGDTemplate:
+        lwf_plugin = LwFPlugin(alpha=self._alpha, temperature=self._temperature)
+        plugins.append(lwf_plugin)
+        return self._create_avalanche_learner(plugins=plugins, **kwargs)

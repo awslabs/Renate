@@ -11,6 +11,7 @@ from renate import defaults
 from renate.updaters.avalanche.model_updater import (
     ElasticWeightConsolidationModelUpdater,
     ExperienceReplayAvalancheModelUpdater,
+    LearningWithoutForgettingModelUpdater,
 )
 from renate.updaters.experimental.fine_tuning import FineTuningModelUpdater
 from renate.updaters.experimental.repeated_distill import RepeatedDistillationModelUpdater
@@ -107,6 +108,9 @@ def get_updater_and_learner_kwargs(
     elif args.updater == "Avalanche-EWC":
         learner_args = learner_args + ["ewc_lambda"]
         updater_class = ElasticWeightConsolidationModelUpdater
+    elif args.updater == "Avalanche-LwF":
+        learner_args = learner_args + ["alpha", "temperature"]
+        updater_class = LearningWithoutForgettingModelUpdater
     if updater_class is None:
         raise ValueError(f"Unknown learner {args.updater}.")
     learner_kwargs = {arg: value for arg, value in vars(args).items() if arg in learner_args}
@@ -474,6 +478,22 @@ def parse_avalanche_ewc_learner_arguments(parser: argparse.Namespace) -> None:
     )
 
 
+def parse_avalanche_lwf_learner_arguments(parser: argparse.Namespace) -> None:
+    """A helper function that adds LwF arguments."""
+    parser.add_argument(
+        "--alpha",
+        type=float,
+        default=defaults.LWF_ALPHA,
+        help=f"Distillation loss weight. Default: {defaults.LWF_ALPHA}.",
+    )
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=defaults.LWF_TEMPERATURE,
+        help=f"Temperature of the softmax function. Default: {defaults.LWF_TEMPERATURE}.",
+    )
+
+
 def _get_args_by_prefix(
     args: Union[argparse.Namespace, Dict[str, str]], prefix: str
 ) -> Dict[str, str]:
@@ -544,4 +564,5 @@ parse_by_updater = {
     "Offline-ER": parse_replay_learner_arguments,
     "Avalanche-ER": parse_experience_replay_arguments,
     "Avalanche-EWC": parse_avalanche_ewc_learner_arguments,
+    "Avalanche-LwF": parse_avalanche_lwf_learner_arguments,
 }

@@ -7,33 +7,41 @@ from typing import Any, Callable, Dict, Optional, Type
 import torch
 import torchmetrics
 from avalanche.benchmarks import dataset_benchmark
-from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
 from avalanche.training import Naive
-from avalanche.training.plugins import (
-    EvaluationPlugin,
-    LRSchedulerPlugin,
-)
+from avalanche.training.plugins import LRSchedulerPlugin
 from avalanche.training.templates import BaseSGDTemplate
+from syne_tune import Reporter
 from torch.optim import Optimizer
 from torch.utils.data import Dataset, TensorDataset
 
 from renate import defaults
 from renate.data.datasets import _TransformedDataset
 from renate.models import RenateModule
-from renate.updaters.avalanche.learner import AvalancheEWCLearner, AvalancheReplayLearner
+from renate.updaters.avalanche.learner import (
+    AvalancheEWCLearner,
+    AvalancheLwFLearner,
+    AvalancheReplayLearner,
+)
 from renate.updaters.avalanche.plugins import (
     RenateCheckpointPlugin,
     RenateFileSystemCheckpointStorage,
-    SyneTunePlugin,
-    metrics_mapper,
 )
 from renate.updaters.learner import Learner
 from renate.updaters.model_updater import SimpleModelUpdater
 
 logger = logging.getLogger(__name__)
 
+metrics_mapper = {
+    "train_loss": "Loss_Epoch/train_phase/train_stream/Task000",
+    "train_accuracy": "Top1_Acc_Epoch/train_phase/train_stream/Task000",
+    "val_loss": "Loss_Stream/eval_phase/test_stream/Task000",
+    "val_accuracy": "Top1_Acc_Stream/eval_phase/test_stream/Task000",
+}
+
 
 class AvalancheModelUpdater(SimpleModelUpdater):
+    _report = Reporter()
+
     def _load_learner(
         self,
         learner_class: Type[Learner],
@@ -63,16 +71,15 @@ class AvalancheModelUpdater(SimpleModelUpdater):
                 RenateFileSystemCheckpointStorage(
                     directory=Path(self._next_state_folder),
                 ),
-                metric=self._metric,
-                mode=self._mode,
+                # metric=self._metric,
+                # mode=self._mode,
                 # map_location=self._devices TODO
             )
-        evaluator = self._create_evaluator()
 
         if avalanche_learner is None:
             logger.warning("No updater state available. Updating from scratch.")
             return self._create_avalanche_learner(
-                evaluator=evaluator,
+                # evaluator=evaluator,
                 checkpoint_plugin=checkpoint_plugin,
                 lr_scheduler_plugin=lr_scheduler_plugin,
                 optimizer=optimizer,
@@ -81,20 +88,11 @@ class AvalancheModelUpdater(SimpleModelUpdater):
         self._dummy_learner.update_settings(
             avalanche_learner=avalanche_learner,
             plugins=[checkpoint_plugin, lr_scheduler_plugin],
-            evaluator=evaluator,
             optimizer=optimizer,
             max_epochs=self._max_epochs,
             current_state_folder=self._current_state_folder,
         )
         return avalanche_learner
-
-    @staticmethod
-    def _create_evaluator() -> EvaluationPlugin:
-        return EvaluationPlugin(
-            accuracy_metrics(minibatch=False, epoch=True, experience=True, stream=True),
-            loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
-            loggers=[SyneTunePlugin()],
-        )
 
     def _get_device(self) -> torch.device:
         """Returns the device according to the chosen accelerator."""
@@ -108,7 +106,7 @@ class AvalancheModelUpdater(SimpleModelUpdater):
 
     def _create_avalanche_learner(
         self,
-        evaluator: EvaluationPlugin,
+        # evaluator: EvaluationPlugin,
         checkpoint_plugin: RenateCheckpointPlugin,
         lr_scheduler_plugin: LRSchedulerPlugin,
         optimizer: Optimizer,
@@ -116,7 +114,6 @@ class AvalancheModelUpdater(SimpleModelUpdater):
         """Returns an Avalanche learner based on the arguments passed to the ModelUpdater.
 
         Args:
-            evaluator: Evaluation plugin.
             checkpoint_plugin: Plugin to checkpoint regularly.
             lr_scheduler_plugin: Plugin to adapt the learning rate.
             optimizer: PyTorch optimizer object used for training the Avalanche learner.
@@ -128,7 +125,7 @@ class AvalancheModelUpdater(SimpleModelUpdater):
             optimizer=optimizer,
             train_epochs=self._max_epochs,
             plugins=plugins,
-            evaluator=evaluator,
+            # evaluator=evaluator,
             device=self._get_device(),
             eval_every=1,
         )
@@ -149,8 +146,8 @@ class AvalancheModelUpdater(SimpleModelUpdater):
             RenateFileSystemCheckpointStorage(
                 directory=Path(current_state_folder),
             ),
-            metric=metric,
-            mode=mode,
+            # metric=metric,
+            # mode=mode,
             # map_location=self._devices TODO
         )
         avalanche_learner, _ = checkpoint_plugin.load_checkpoint_if_exists()
@@ -173,7 +170,7 @@ class AvalancheModelUpdater(SimpleModelUpdater):
         if val_dataset_exists:
             self._dummy_learner._val_memory_buffer.update(val_dataset)
             val_memory_dataset = TensorDataset(*self._dummy_learner._val_memory_buffer.to_tensors())
-        self._learner.evaluator.loggers[0].report_val = val_dataset_exists
+        # self._learner.evaluator.loggers[0].report_val = val_dataset_exists
         benchmark = dataset_benchmark(
             [train_dataset],
             [val_memory_dataset],
@@ -193,8 +190,14 @@ class AvalancheModelUpdater(SimpleModelUpdater):
                 Path(self._next_state_folder) / defaults.BUFFER_CHECKPOINT_NAME,
             )
         results = self._learner.eval(benchmark.test_stream)
-        SyneTunePlugin.report(
-            epoch=self._max_epochs, results=results, report_val=val_dataset_exists
+        self._report(
+            **{
+                metric_name: results[metric_internal_name]
+                for metric_name, metric_internal_name in metrics_mapper.items()
+                if val_dataset_exists or not metric_name.startswith("val")
+            },
+            step=self._max_epochs - 1,
+            epoch=self._max_epochs,
         )
 
         return self._model
@@ -311,6 +314,72 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
         super().__init__(
             model,
             learner_class=AvalancheEWCLearner,
+            learner_kwargs=learner_kwargs,
+            current_state_folder=current_state_folder,
+            next_state_folder=next_state_folder,
+            max_epochs=max_epochs,
+            train_transform=train_transform,
+            train_target_transform=train_target_transform,
+            test_transform=test_transform,
+            test_target_transform=test_target_transform,
+            buffer_transform=buffer_transform,
+            buffer_target_transform=buffer_target_transform,
+            metric=metric,
+            mode=mode,
+            logged_metrics=logged_metrics,
+            early_stopping_enabled=early_stopping_enabled,
+            accelerator=accelerator,
+            devices=devices,
+        )
+
+
+class LearningWithoutForgettingModelUpdater(AvalancheModelUpdater):
+    def __init__(
+        self,
+        model: RenateModule,
+        alpha: float = defaults.LWF_ALPHA,
+        temperature: float = defaults.LWF_TEMPERATURE,
+        optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
+        learning_rate: float = defaults.LEARNING_RATE,
+        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
+        learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
+        learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
+        momentum: float = defaults.MOMENTUM,
+        weight_decay: float = defaults.WEIGHT_DECAY,
+        batch_size: int = defaults.BATCH_SIZE,
+        current_state_folder: Optional[str] = None,
+        next_state_folder: Optional[str] = None,
+        max_epochs: int = defaults.MAX_EPOCHS,
+        train_transform: Optional[Callable] = None,
+        train_target_transform: Optional[Callable] = None,
+        test_transform: Optional[Callable] = None,
+        test_target_transform: Optional[Callable] = None,
+        buffer_transform: Optional[Callable] = None,
+        buffer_target_transform: Optional[Callable] = None,
+        metric: Optional[str] = None,
+        mode: defaults.SUPPORTED_TUNING_MODE_TYPE = "min",
+        logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None,
+        early_stopping_enabled: bool = False,
+        accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
+        devices: Optional[int] = None,
+        seed: int = defaults.SEED,
+    ):
+        learner_kwargs = {
+            "optimizer": optimizer,
+            "learning_rate": learning_rate,
+            "learning_rate_scheduler": learning_rate_scheduler,
+            "learning_rate_scheduler_gamma": learning_rate_scheduler_gamma,
+            "learning_rate_scheduler_step_size": learning_rate_scheduler_step_size,
+            "momentum": momentum,
+            "weight_decay": weight_decay,
+            "batch_size": batch_size,
+            "alpha": alpha,
+            "temperature": temperature,
+            "seed": seed,
+        }
+        super().__init__(
+            model,
+            learner_class=AvalancheLwFLearner,
             learner_kwargs=learner_kwargs,
             current_state_folder=current_state_folder,
             next_state_folder=next_state_folder,
