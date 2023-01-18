@@ -364,7 +364,6 @@ class WeightedCLSLossComponent(WeightedLossComponent):
         """Computes the consistency loss with respect to averaged plastic and stable models."""
         (x_memory, y_memory), _ = batch_memory
         with torch.no_grad():
-
             outputs_plastic = self._plastic_model(x_memory)
             outputs_stable = self._stable_model(x_memory)
 

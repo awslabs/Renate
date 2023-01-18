@@ -8,16 +8,17 @@ from pytorch_lightning.loggers.logger import Logger
 from renate import defaults
 from renate.models import RenateModule
 from renate.updaters.learner import Learner
-from renate.updaters.model_updater import SimpleModelUpdater
+from renate.updaters.model_updater import SingleTrainingLoopUpdater
 
 
-class FineTuningModelUpdater(SimpleModelUpdater):
+class FineTuningModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
+        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,
+        # noqa: E501
         learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
         learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
         momentum: float = defaults.MOMENTUM,

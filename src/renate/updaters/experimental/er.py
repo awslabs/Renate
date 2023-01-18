@@ -5,10 +5,10 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, Dataset, Subset
 import torchmetrics
 from pytorch_lightning.loggers.logger import Logger
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+from torch.utils.data import DataLoader, Dataset, Subset
 
 from renate import defaults
 from renate.data.datasets import _EnumeratedDataset
@@ -24,7 +24,7 @@ from renate.updaters.learner_components.losses import (
 from renate.updaters.learner_components.reinitialization import (
     ShrinkAndPerturbReinitializationComponent,
 )
-from renate.updaters.model_updater import SimpleModelUpdater
+from renate.updaters.model_updater import SingleTrainingLoopUpdater
 
 
 class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
@@ -497,7 +497,8 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
         cls_stable_model_update_weight: float = defaults.SER_CLS_STABLE_MODEL_UPDATE_WEIGHT,
         cls_plastic_model_update_weight: float = defaults.SER_CLS_PLASTIC_MODEL_UPDATE_WEIGHT,
         cls_stable_model_update_probability: float = defaults.SER_CLS_STABLE_MODEL_UPDATE_PROBABILITY,  # noqa: E501
-        cls_plastic_model_update_probability: float = defaults.SER_CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,  # noqa: E501
+        cls_plastic_model_update_probability: float = defaults.SER_CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,
+        # noqa: E501
         pod_alpha: float = defaults.SER_POD_ALPHA,
         pod_distillation_type: str = defaults.SER_POD_DISTILLATION_TYPE,
         pod_normalize: bool = defaults.SER_POD_NORMALIZE,
@@ -536,7 +537,8 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
         cls_stable_model_update_weight: float = defaults.SER_CLS_STABLE_MODEL_UPDATE_WEIGHT,
         cls_plastic_model_update_weight: float = defaults.SER_CLS_PLASTIC_MODEL_UPDATE_WEIGHT,
         cls_stable_model_update_probability: float = defaults.SER_CLS_STABLE_MODEL_UPDATE_PROBABILITY,  # noqa: E501
-        cls_plastic_model_update_probability: float = defaults.SER_CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,  # noqa: E501
+        cls_plastic_model_update_probability: float = defaults.SER_CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,
+        # noqa: E501
         pod_alpha: float = defaults.SER_POD_ALPHA,
         pod_distillation_type: str = defaults.SER_POD_DISTILLATION_TYPE,
         pod_normalize: bool = defaults.SER_POD_NORMALIZE,
@@ -606,7 +608,7 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
             )
 
 
-class ExperienceReplayModelUpdater(SimpleModelUpdater):
+class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
@@ -618,7 +620,8 @@ class ExperienceReplayModelUpdater(SimpleModelUpdater):
         alpha: float = defaults.ER_ALPHA,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
+        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,
+        # noqa: E501
         learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
         learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
         momentum: float = defaults.MOMENTUM,
@@ -682,7 +685,7 @@ class ExperienceReplayModelUpdater(SimpleModelUpdater):
         )
 
 
-class DarkExperienceReplayModelUpdater(SimpleModelUpdater):
+class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
@@ -695,7 +698,8 @@ class DarkExperienceReplayModelUpdater(SimpleModelUpdater):
         beta: float = defaults.DER_BETA,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
+        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,
+        # noqa: E501
         learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
         learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
         momentum: float = defaults.MOMENTUM,
@@ -760,7 +764,7 @@ class DarkExperienceReplayModelUpdater(SimpleModelUpdater):
         )
 
 
-class PooledOutputDistillationExperienceReplayModelUpdater(SimpleModelUpdater):
+class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
@@ -774,7 +778,8 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SimpleModelUpdater):
         normalize: bool = defaults.POD_NORMALIZE,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
+        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,
+        # noqa: E501
         learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
         learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
         momentum: float = defaults.MOMENTUM,
@@ -840,7 +845,7 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SimpleModelUpdater):
         )
 
 
-class CLSExperienceReplayModelUpdater(SimpleModelUpdater):
+class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
@@ -857,7 +862,8 @@ class CLSExperienceReplayModelUpdater(SimpleModelUpdater):
         plastic_model_update_probability: float = defaults.CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
+        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,
+        # noqa: E501
         learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
         learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
         momentum: float = defaults.MOMENTUM,
@@ -926,7 +932,7 @@ class CLSExperienceReplayModelUpdater(SimpleModelUpdater):
         )
 
 
-class SuperExperienceReplayModelUpdater(SimpleModelUpdater):
+class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
@@ -943,13 +949,15 @@ class SuperExperienceReplayModelUpdater(SimpleModelUpdater):
         cls_stable_model_update_weight: float = defaults.SER_CLS_STABLE_MODEL_UPDATE_WEIGHT,
         cls_plastic_model_update_weight: float = defaults.SER_CLS_PLASTIC_MODEL_UPDATE_WEIGHT,
         cls_stable_model_update_probability: float = defaults.SER_CLS_STABLE_MODEL_UPDATE_PROBABILITY,  # noqa: E501
-        cls_plastic_model_update_probability: float = defaults.SER_CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,  # noqa: E501
+        cls_plastic_model_update_probability: float = defaults.SER_CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,
+        # noqa: E501
         pod_alpha: float = defaults.SER_POD_ALPHA,
         pod_distillation_type: str = defaults.SER_POD_DISTILLATION_TYPE,
         pod_normalize: bool = defaults.SER_POD_NORMALIZE,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
+        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,
+        # noqa: E501
         learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
         learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
         momentum: float = defaults.MOMENTUM,

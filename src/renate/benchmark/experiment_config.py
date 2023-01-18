@@ -34,7 +34,6 @@ from renate.benchmark.scenarios import (
 from renate.data.data_module import RenateDataModule
 from renate.models import RenateModule
 
-
 models = {
     "MultiLayerPerceptron": MultiLayerPerceptron,
     "ResNet18CIFAR": ResNet18CIFAR,

@@ -8,8 +8,6 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 from syne_tune.optimizer.scheduler import TrialScheduler
 
 from renate import defaults
-from renate.updaters.experimental.fine_tuning import FineTuningModelUpdater
-from renate.updaters.experimental.repeated_distill import RepeatedDistillationModelUpdater
 from renate.updaters.experimental.er import (
     CLSExperienceReplayModelUpdater,
     DarkExperienceReplayModelUpdater,
@@ -17,9 +15,11 @@ from renate.updaters.experimental.er import (
     PooledOutputDistillationExperienceReplayModelUpdater,
     SuperExperienceReplayModelUpdater,
 )
+from renate.updaters.experimental.fine_tuning import FineTuningModelUpdater
 from renate.updaters.experimental.gdumb import GDumbModelUpdater
 from renate.updaters.experimental.joint import JointModelUpdater
 from renate.updaters.experimental.offline_er import OfflineExperienceReplayModelUpdater
+from renate.updaters.experimental.repeated_distill import RepeatedDistillationModelUpdater
 from renate.updaters.model_updater import ModelUpdater
 
 

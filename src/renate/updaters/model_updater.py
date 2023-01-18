@@ -315,7 +315,7 @@ class ModelUpdater(abc.ABC):
         self._num_epochs_trained = trainer.current_epoch
 
 
-class SimpleModelUpdater(ModelUpdater):
+class SingleTrainingLoopUpdater(ModelUpdater):
     """Simple ModelUpdater which requires a single learner only to update the model."""
 
     def update(

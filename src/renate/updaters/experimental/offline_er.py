@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader, Dataset
 from renate import defaults
 from renate.models import RenateModule
 from renate.updaters.learner import ReplayLearner
-from renate.updaters.model_updater import SimpleModelUpdater
+from renate.updaters.model_updater import SingleTrainingLoopUpdater
 
 
 class OfflineExperienceReplayLearner(ReplayLearner):
@@ -121,7 +121,7 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         self._num_points_previous_tasks = state_dict["num_points_previous_tasks"]
 
 
-class OfflineExperienceReplayModelUpdater(SimpleModelUpdater):
+class OfflineExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
@@ -130,7 +130,8 @@ class OfflineExperienceReplayModelUpdater(SimpleModelUpdater):
         loss_weight_new_data: Optional[float] = None,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
+        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,
+        # noqa: E501
         learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
         learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
         momentum: float = defaults.MOMENTUM,
