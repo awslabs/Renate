@@ -69,6 +69,11 @@ Key features
 * Advanced HPO functionalities available out-of-the-box
 * Open for experimentation 
 
+Blog posts
+==========
+
+* `Automatically retrain neural networks with Renate <https://aws.amazon.com/blogs/machine-learning/automatically-retrain-neural-networks-with-renate/>`_
+
 
 What are you looking for?
 =========================
