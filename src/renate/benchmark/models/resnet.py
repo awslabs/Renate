@@ -79,6 +79,9 @@ class ResNet(RenateModule):
         self._model.fc = nn.Identity()
         self._tasks_params: nn.ModuleDict = nn.ModuleDict()
         self.add_task_params(TASK_ID)
+        self.class_means = torch.nn.Parameter(
+            torch.zeros((512, num_outputs)), requires_grad=False
+        )  # TODO
 
         for m in self.modules():
             if hasattr(m, "reset_parameters"):
@@ -87,6 +90,10 @@ class ResNet(RenateModule):
     def forward(self, x: torch.Tensor, task_id: str = TASK_ID) -> torch.Tensor:
         """Performs a forward pass on the inputs and returns the predictions."""
         x = self._model(x)
+        if not self.training:  # TODO: icarl only
+            pred_inter = (x.T / torch.norm(x.T, dim=0)).T
+            sqd = torch.cdist(self.class_means.to(pred_inter.device)[:, :].T, pred_inter)
+            return (-sqd).T
         return self._tasks_params[task_id](x)
 
     def _add_task_params(self, task_id: str = TASK_ID) -> None:

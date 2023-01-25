@@ -11,10 +11,9 @@ from renate import defaults
 from renate.updaters.avalanche.model_updater import (
     ElasticWeightConsolidationModelUpdater,
     ExperienceReplayAvalancheModelUpdater,
+    ICaRLModelUpdater,
     LearningWithoutForgettingModelUpdater,
 )
-from renate.updaters.experimental.fine_tuning import FineTuningModelUpdater
-from renate.updaters.experimental.repeated_distill import RepeatedDistillationModelUpdater
 from renate.updaters.experimental.er import (
     CLSExperienceReplayModelUpdater,
     DarkExperienceReplayModelUpdater,
@@ -22,6 +21,7 @@ from renate.updaters.experimental.er import (
     PooledOutputDistillationExperienceReplayModelUpdater,
     SuperExperienceReplayModelUpdater,
 )
+from renate.updaters.experimental.fine_tuning import FineTuningModelUpdater
 from renate.updaters.experimental.gdumb import GDumbModelUpdater
 from renate.updaters.experimental.joint import JointModelUpdater
 from renate.updaters.experimental.offline_er import OfflineExperienceReplayModelUpdater
@@ -87,7 +87,7 @@ def get_updater_and_learner_kwargs(
             "pod_normalize",
         ]
         updater_class = SuperExperienceReplayModelUpdater
-    elif args.updater == "OfflineER":
+    elif args.updater == "Offline-ER":
         learner_args = learner_args + ["loss_weight_new_data", "memory_size", "memory_batch_size"]
         updater_class = OfflineExperienceReplayModelUpdater
     elif args.updater == "RD":
@@ -111,6 +111,9 @@ def get_updater_and_learner_kwargs(
     elif args.updater == "Avalanche-LwF":
         learner_args = learner_args + ["alpha", "temperature"]
         updater_class = LearningWithoutForgettingModelUpdater
+    elif args.updater == "Avalanche-iCaRL":
+        learner_args = learner_args + ["memory_size", "memory_batch_size"]
+        updater_class = ICaRLModelUpdater
     if updater_class is None:
         raise ValueError(f"Unknown learner {args.updater}.")
     learner_kwargs = {arg: value for arg, value in vars(args).items() if arg in learner_args}
@@ -565,4 +568,5 @@ parse_by_updater = {
     "Avalanche-ER": parse_experience_replay_arguments,
     "Avalanche-EWC": parse_avalanche_ewc_learner_arguments,
     "Avalanche-LwF": parse_avalanche_lwf_learner_arguments,
+    "Avalanche-iCaRL": parse_experience_replay_arguments,
 }

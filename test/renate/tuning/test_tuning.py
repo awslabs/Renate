@@ -30,8 +30,8 @@ config_file = str(Path(__file__).parent.parent / "renate_config_files" / "config
     [
         (2, 0.9, False, False, "rush"),
         (1, 0.0, True, False, "rush"),
-        (1, 0.9, False, True, None),
-        (1, 0.0, False, True, None),
+        (2, 0.9, False, True, None),
+        (2, 0.0, False, True, None),
     ],
     ids=[
         "transfer-hpo-with-val",
@@ -40,7 +40,7 @@ config_file = str(Path(__file__).parent.parent / "renate_config_files" / "config
         "training-single-config-without-val",
     ],
 )
-@pytest.mark.parametrize("updater", ("ER", "Avalanche-LwF"))
+@pytest.mark.parametrize("updater", ("ER", "Avalanche-ER", "Avalanche-iCaRL"))
 def test_execute_tuning_job(
     tmpdir, num_chunks, val_size, raises, fixed_search_space, scheduler, updater
 ):

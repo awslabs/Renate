@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import logging
+from collections import Counter
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Type
 
@@ -12,15 +13,19 @@ from avalanche.training.plugins import LRSchedulerPlugin
 from avalanche.training.templates import BaseSGDTemplate
 from syne_tune import Reporter
 from torch.optim import Optimizer
-from torch.utils.data import Dataset, TensorDataset
+from torch.utils.data import DataLoader, Dataset, Subset, TensorDataset
 
 from renate import defaults
 from renate.data.datasets import _TransformedDataset
 from renate.models import RenateModule
 from renate.updaters.avalanche.learner import (
     AvalancheEWCLearner,
+    AvalancheICaRLLearner,
     AvalancheLwFLearner,
     AvalancheReplayLearner,
+    ICaRL,
+    _ICaRLPlugin,
+    plugin_by_class,
 )
 from renate.updaters.avalanche.plugins import (
     RenateCheckpointPlugin,
@@ -37,6 +42,93 @@ metrics_mapper = {
     "val_loss": "Loss_Stream/eval_phase/test_stream/Task000",
     "val_accuracy": "Top1_Acc_Stream/eval_phase/test_stream/Task000",
 }
+
+
+class AvalancheSubset2(Dataset):  # TODO why do we need this?
+    def __init__(self, subset):
+        super().__init__()
+        x_data, y_data = [], []
+        data_loader = DataLoader(subset)
+        for x, y in data_loader:
+            x_data.append(x)
+            y_data.append(y.item())
+        self.x = torch.cat(x_data)
+        print(self.x.shape)
+        self.y = y_data
+        self._targets = None
+
+    @property
+    def targets(self):
+        if self._targets is not None:
+            return self._targets
+        self._targets = torch.tensor(self.y, dtype=torch.long)
+        return self._targets
+
+    def __getitem__(self, idx):
+        return self.x[idx], self.y[idx]
+
+    def __len__(self):
+        return len(self.y)
+
+
+class AvalancheBenchmarkWrapper:
+    def __init__(
+        self,
+        train_dataset,
+        val_dataset,
+        train_transform,
+        train_target_transform,
+        test_transform,
+        test_target_transform,
+    ):
+        self._n_classes_per_exp = None
+        self._classes_order = None
+        self._n_classes = 0
+        self._train_dataset = train_dataset
+        self._train_target_transform = train_target_transform
+        self._benchmark = dataset_benchmark(
+            [train_dataset],
+            [val_dataset],
+            train_transform=train_transform,
+            train_target_transform=train_target_transform,
+            eval_transform=test_transform,
+            eval_target_transform=test_target_transform,
+        )
+        self.train_stream = self._benchmark.train_stream
+        self.test_stream = self._benchmark.test_stream
+
+    def update_benchmark_properties(self):
+        dataset = _TransformedDataset(
+            dataset=self._train_dataset, target_transform=self._train_target_transform
+        )
+        dataloader = DataLoader(dataset)
+        unique_classes = set()
+        for batch in dataloader:
+            unique_classes.add(batch[1].item())
+        if self._n_classes_per_exp is None:
+            self._n_classes_per_exp = [len(unique_classes)]
+            self._classes_order = list(sorted(unique_classes))
+        else:
+            self._n_classes_per_exp.append(len(unique_classes))
+            self._classes_order += list(sorted(unique_classes))
+        self._n_classes = sum(self._classes_order)
+        self._benchmark.n_classes_per_exp = self._n_classes_per_exp
+        self._benchmark.classes_order = self._classes_order
+        print("data stats", self._n_classes_per_exp, self._classes_order)
+        # self._benchmark.n_classes = self._n_classes
+
+    def state_dict(self) -> Dict[str, Any]:
+        """Returns the state of the benchmark."""
+        state_dict = {
+            "n_classes_per_exp": self._n_classes_per_exp,
+            "classes_order": self._classes_order,
+        }
+        return state_dict
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        """Restores the state of the benchmark."""
+        self._n_classes_per_exp = state_dict["n_classes_per_exp"]
+        self._classes_order = state_dict["classes_order"]
 
 
 class AvalancheModelUpdater(SimpleModelUpdater):
@@ -159,37 +251,19 @@ class AvalancheModelUpdater(SimpleModelUpdater):
         val_dataset: Optional[Dataset] = None,
         task_id: Optional[str] = None,
     ) -> RenateModule:
-        if isinstance(train_dataset, _TransformedDataset):
-            x_data, y_data = [], []
-            for x, y in train_dataset:
-                x_data.append(x)
-                y_data.append(y)
-            train_dataset = TensorDataset(torch.stack(x_data), torch.stack(y_data))
-        val_memory_dataset = train_dataset
         val_dataset_exists = val_dataset is not None
-        if val_dataset_exists:
-            self._dummy_learner._val_memory_buffer.update(val_dataset)
-            val_memory_dataset = TensorDataset(*self._dummy_learner._val_memory_buffer.to_tensors())
         # self._learner.evaluator.loggers[0].report_val = val_dataset_exists
-        benchmark = dataset_benchmark(
-            [train_dataset],
-            [val_memory_dataset],
-            train_transform=self._train_transform,
-            train_target_transform=self._train_target_transform,
-            eval_transform=self._test_transform,
-            eval_target_transform=self._test_target_transform,
-        )
+        benchmark = self._load_benchmark_if_exists(train_dataset, val_dataset)
         train_exp = benchmark.train_stream[0]
         self._learner.train(train_exp, eval_streams=[benchmark.test_stream])
+        results = self._learner.eval(benchmark.test_stream)
+        if isinstance(self._learner, ICaRL):
+            class_means = plugin_by_class(_ICaRLPlugin, self._learner.plugins).class_means
+            self._model.class_means.data[:, : class_means.shape[1]] = class_means
         if self._next_state_folder is not None:
             Path(self._next_state_folder).mkdir(exist_ok=True, parents=True)  # TODO: remove
             torch.save(self._model.state_dict(), defaults.model_file(self._next_state_folder))
-        if val_dataset_exists and self._next_state_folder is not None:
-            torch.save(
-                self._dummy_learner._val_memory_buffer.state_dict(),
-                Path(self._next_state_folder) / defaults.BUFFER_CHECKPOINT_NAME,
-            )
-        results = self._learner.eval(benchmark.test_stream)
+        self._save_avalanche_state(benchmark, val_dataset_exists)
         self._report(
             **{
                 metric_name: results[metric_internal_name]
@@ -201,6 +275,54 @@ class AvalancheModelUpdater(SimpleModelUpdater):
         )
 
         return self._model
+
+    def _load_benchmark_if_exists(
+        self, train_dataset: Dataset, val_dataset: Optional[Dataset] = None
+    ) -> AvalancheBenchmarkWrapper:
+        if isinstance(train_dataset, _TransformedDataset):
+            x_data, y_data = [], []
+            for x, y in train_dataset:
+                x_data.append(x)
+                y_data.append(y)
+            train_dataset = TensorDataset(torch.stack(x_data), torch.stack(y_data))
+        if isinstance(train_dataset, Subset):
+            train_dataset = AvalancheSubset2(train_dataset)
+
+        avalanche_state = None
+        if self._current_state_folder is not None:
+            avalanche_state_file = (
+                Path(self._current_state_folder) / defaults.AVALANCHE_CHECKPOINT_NAME
+            )
+            if avalanche_state_file.exists():
+                avalanche_state = torch.load(avalanche_state_file)
+                if "val_memory_buffer" in avalanche_state:
+                    self._dummy_learner._val_memory_buffer.load_state_dict(
+                        avalanche_state["val_memory_buffer"]
+                    )
+        if val_dataset is not None:
+            self._dummy_learner._val_memory_buffer.update(val_dataset)
+            val_memory_dataset = TensorDataset(*self._dummy_learner._val_memory_buffer.to_tensors())
+        else:
+            val_memory_dataset = train_dataset  # TODO can we work without val dataset?
+
+        benchmark = AvalancheBenchmarkWrapper(
+            train_dataset=train_dataset,
+            val_dataset=val_memory_dataset,
+            train_transform=self._train_transform,
+            train_target_transform=self._train_target_transform,
+            test_transform=self._test_transform,
+            test_target_transform=self._test_target_transform,
+        )
+        if avalanche_state is not None:
+            benchmark.load_state_dict(avalanche_state)
+        benchmark.update_benchmark_properties()
+        return benchmark
+
+    def _save_avalanche_state(self, benchmark: AvalancheBenchmarkWrapper, val_dataset_exists: bool):
+        state = benchmark.state_dict()
+        if val_dataset_exists and self._next_state_folder is not None:
+            state["val_memory_buffer"] = self._dummy_learner._val_memory_buffer.state_dict()
+        torch.save(state, Path(self._next_state_folder) / defaults.AVALANCHE_CHECKPOINT_NAME)
 
 
 class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
@@ -380,6 +502,72 @@ class LearningWithoutForgettingModelUpdater(AvalancheModelUpdater):
         super().__init__(
             model,
             learner_class=AvalancheLwFLearner,
+            learner_kwargs=learner_kwargs,
+            current_state_folder=current_state_folder,
+            next_state_folder=next_state_folder,
+            max_epochs=max_epochs,
+            train_transform=train_transform,
+            train_target_transform=train_target_transform,
+            test_transform=test_transform,
+            test_target_transform=test_target_transform,
+            buffer_transform=buffer_transform,
+            buffer_target_transform=buffer_target_transform,
+            metric=metric,
+            mode=mode,
+            logged_metrics=logged_metrics,
+            early_stopping_enabled=early_stopping_enabled,
+            accelerator=accelerator,
+            devices=devices,
+        )
+
+
+class ICaRLModelUpdater(AvalancheModelUpdater):
+    def __init__(
+        self,
+        model: RenateModule,
+        memory_size: int,
+        memory_batch_size: int = defaults.BATCH_SIZE,
+        optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
+        learning_rate: float = defaults.LEARNING_RATE,
+        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
+        learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
+        learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
+        momentum: float = defaults.MOMENTUM,
+        weight_decay: float = defaults.WEIGHT_DECAY,
+        batch_size: int = defaults.BATCH_SIZE,
+        current_state_folder: Optional[str] = None,
+        next_state_folder: Optional[str] = None,
+        max_epochs: int = defaults.MAX_EPOCHS,
+        train_transform: Optional[Callable] = None,
+        train_target_transform: Optional[Callable] = None,
+        test_transform: Optional[Callable] = None,
+        test_target_transform: Optional[Callable] = None,
+        buffer_transform: Optional[Callable] = None,
+        buffer_target_transform: Optional[Callable] = None,
+        metric: Optional[str] = None,
+        mode: defaults.SUPPORTED_TUNING_MODE_TYPE = "min",
+        logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None,
+        early_stopping_enabled: bool = False,
+        accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
+        devices: Optional[int] = None,
+        seed: int = defaults.SEED,
+    ):
+        learner_kwargs = {
+            "memory_size": memory_size,
+            "memory_batch_size": memory_batch_size,
+            "optimizer": optimizer,
+            "learning_rate": learning_rate,
+            "learning_rate_scheduler": learning_rate_scheduler,
+            "learning_rate_scheduler_gamma": learning_rate_scheduler_gamma,
+            "learning_rate_scheduler_step_size": learning_rate_scheduler_step_size,
+            "momentum": momentum,
+            "weight_decay": weight_decay,
+            "batch_size": batch_size,
+            "seed": seed,
+        }
+        super().__init__(
+            model,
+            learner_class=AvalancheICaRLLearner,
             learner_kwargs=learner_kwargs,
             current_state_folder=current_state_folder,
             next_state_folder=next_state_folder,
