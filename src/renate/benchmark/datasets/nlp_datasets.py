@@ -1,15 +1,18 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import os
+from collections import Counter
 from pathlib import Path
 from typing import Optional, Union
 
 import torchtext
+from torchtext._torchtext import Vocab
 from torchtext.data import to_map_style_dataset
 
 from renate import defaults
 from renate.data.data_module import RenateDataModule
 from renate.utils.file import download_folder_from_s3
+from torchtext.data.utils import get_tokenizer
 
 
 class TorchTextDataModule(RenateDataModule):
@@ -73,6 +76,23 @@ class TorchTextDataModule(RenateDataModule):
     def setup(self) -> None:
         """Set up train, test and val datasets."""
         cls, _ = TorchTextDataModule.dataset_dict[self._dataset_name]
-        train_data = to_map_style_dataset(cls(root=self._data_path, split="train"))
+        train_iter = cls(root=self._data_path, split="train")
+        test_iter = cls(root=self._data_path, split="test")
+
+        tokenizer = get_tokenizer("basic_english")
+        counter = Counter()
+        for (label, line) in train_iter:
+            counter.update(tokenizer(line))
+        vocab = Vocab(counter, min_freq=1)
+
+        text_pipeline = lambda x: [vocab[token] for token in tokenizer(x)]
+        label_pipeline = lambda x: int(x) - 1
+
+        train_data = to_map_style_dataset()
+        X_train, y_train = self.train_data
+
         self._train_data, self._val_data = self._split_train_val_data(train_data)
         self._test_data = to_map_style_dataset(cls(root=self._data_path, split="test"))
+
+        print(X_train)
+        print(y_train)
