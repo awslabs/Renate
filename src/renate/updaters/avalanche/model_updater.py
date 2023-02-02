@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, Optional, Type
 import torch
 import torchmetrics
 from avalanche.benchmarks import dataset_benchmark
-from avalanche.training import Naive
+from avalanche.training import ICaRLLossPlugin, Naive
 from avalanche.training.plugins import LRSchedulerPlugin
 from avalanche.training.templates import BaseSGDTemplate
 from syne_tune import Reporter
@@ -259,7 +259,10 @@ class AvalancheModelUpdater(SimpleModelUpdater):
         results = self._learner.eval(benchmark.test_stream)
         if isinstance(self._learner, ICaRL):
             class_means = plugin_by_class(_ICaRLPlugin, self._learner.plugins).class_means
-            self._model.class_means.data[:, : class_means.shape[1]] = class_means
+            self._model.class_means.data[:, :] = class_means
+            assert isinstance(self._learner._criterion, ICaRLLossPlugin), "{} {}".format(
+                self._learner._criterion, [type(p) for p in self._learner.plugins]
+            )  # TODO: remove
         if self._next_state_folder is not None:
             Path(self._next_state_folder).mkdir(exist_ok=True, parents=True)  # TODO: remove
             torch.save(self._model.state_dict(), defaults.model_file(self._next_state_folder))

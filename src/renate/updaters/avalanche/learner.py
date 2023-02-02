@@ -165,10 +165,6 @@ class AvalancheLwFLearner(Learner, AvalancheLoaderMixing):
 class AvalancheICaRLLearner(ReplayLearner, AvalancheLoaderMixing):
     """"""
 
-    def update_settings(self, avalanche_learner: BaseSGDTemplate, **kwargs: Any):
-        super().update_settings(avalanche_learner=avalanche_learner, **kwargs)
-        avalanche_learner._criterion = ICaRLLossPlugin()
-
     def create_avalanche_learner(
         self,
         optimizer: Optimizer,
@@ -201,7 +197,8 @@ class AvalancheICaRLLearner(ReplayLearner, AvalancheLoaderMixing):
             train_classifier=self._model._tasks_params[defaults.TASK_ID],
             eval_classifier=NCMClassifier(),
         )
-        plugin_by_class(_ICaRLPlugin, avalanche_learner.plugins).class_means = None
+        icarl_loss_plugin = plugin_by_class(ICaRLLossPlugin, avalanche_learner.plugins)
+        avalanche_learner._criterion = icarl_loss_plugin
 
 
 class ICaRL(SupervisedTemplate):
@@ -401,7 +398,9 @@ class _ICaRLPlugin(SupervisedPlugin):
         if self.class_means is None:
             print(strategy.experience.benchmark.n_classes_per_exp)
             n_classes = sum(strategy.experience.benchmark.n_classes_per_exp)
-            self.class_means = torch.zeros((self.embedding_size, n_classes)).to(strategy.device)
+            self.class_means = torch.zeros((self.embedding_size, 10)).to(
+                strategy.device
+            )  # TODO 10->n_classes
         print("class_means.shape", self.class_means.shape)
 
         for i, class_samples in enumerate(self.x_memory):
