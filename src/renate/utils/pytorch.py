@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import logging
+import math
 from typing import List, Optional
 
 import torch
@@ -59,7 +60,7 @@ def _proportions_into_sizes(proportions: List[float], size: int) -> List[int]:
 
     In case of rounding doubts, any remaining samples are appended to the last split size.
     """
-    assert sum(proportions) == 1.0
+    assert math.isclose(sum(proportions), 1.0), sum(proportions)
     sizes = [round(proportion * size) for proportion in proportions[:-1]]
     sizes.append(size - sum(sizes))
     return sizes
