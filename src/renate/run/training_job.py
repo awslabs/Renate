@@ -227,7 +227,7 @@ def _get_transfer_learning_task_evaluations(
     metric: str,
     max_epochs: int,
 ) -> Optional[TransferLearningTaskEvaluations]:
-    """Converts data frame with run results of a single update step into
+    """Converts data frame with training results of a single update step into
     `TransferLearningTaskEvaluations`.
 
     Args:
@@ -337,7 +337,7 @@ def _load_tuning_history(
 def _merge_tuning_history(
     new_tuning_results: pd.DataFrame, old_tuning_results: Optional[pd.DataFrame] = None
 ) -> pd.DataFrame:
-    """Merges old tuning history with run results from current chunk.
+    """Merges old tuning history with training results from current chunk.
 
     `update_id` identifies the update step in the csv file. This allows creating the metadata
         required for transfer hyperparameter optimization.
