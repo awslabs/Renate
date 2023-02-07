@@ -24,8 +24,8 @@ from renate.evaluation.metrics.classification import (
     forgetting,
     forward_transfer,
 )
-from renate.tuning import execute_tuning_job
-from renate.tuning.tuning import submit_remote_job
+from renate.run import run_training_job
+from renate.run.training_job import submit_remote_job
 from renate.utils.file import (
     copy_to_uri,
     is_s3_uri,
@@ -241,7 +241,7 @@ def _execute_experiment_job_locally(
     max_num_trials_finished: int,
     n_workers: int,
 ) -> None:
-    """Runs an experiment, combining hyperparameter tuning and model for multiple updates.
+    """Runs an experiment, combining hyperparameter run and model for multiple updates.
 
     See renate.benchmark.experimentation.execute_experiment_job for more details.
     """
@@ -301,7 +301,7 @@ def _execute_experiment_job_locally(
     for update_id in range(num_updates):
         logger.info(f"Starting Update {update_id + 1}/{num_updates}.")
         update_url = os.path.join(experiment_outputs_url, f"update_{update_id}")
-        execute_tuning_job(
+        run_training_job(
             mode=mode,
             config_space=config_space,
             metric=metric,
@@ -309,8 +309,8 @@ def _execute_experiment_job_locally(
             updater=config_space["updater"],
             max_epochs=config_space["max_epochs"],
             chunk_id=update_id,
-            state_url=state_url,
-            next_state_url=next_state_url,
+            input_state_url=state_url,
+            output_state_url=next_state_url,
             working_directory=working_directory,
             config_file=config_file,
             max_time=max_time,

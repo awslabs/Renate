@@ -11,14 +11,14 @@ from syne_tune.optimizer.schedulers import FIFOScheduler
 from syne_tune.optimizer.schedulers.transfer_learning import RUSHScheduler
 
 from renate import defaults
-from renate.tuning.tuning import (
+from renate.run.training_job import (
     RENATE_CONFIG_COLUMNS,
     _create_scheduler,
     _get_transfer_learning_task_evaluations,
     _load_tuning_history,
     _merge_tuning_history,
     _verify_validation_set_for_hpo_and_checkpointing,
-    execute_tuning_job,
+    run_training_job,
 )
 from renate.utils.syne_tune import is_syne_tune_config_space
 
@@ -41,7 +41,7 @@ config_file = str(Path(__file__).parent.parent / "renate_config_files" / "config
     ],
 )
 def test_execute_tuning_job(tmpdir, num_chunks, val_size, raises, fixed_search_space, scheduler):
-    """Simply running tuning job to check if anything fails.
+    """Simply running run job to check if anything fails.
 
     Case 1: Standard HPO setup with transfer learning in second step.
     Case 2: HPO without validation set fails.
@@ -53,12 +53,12 @@ def test_execute_tuning_job(tmpdir, num_chunks, val_size, raises, fixed_search_s
     for _ in range(num_chunks):
 
         def execute_job():
-            execute_tuning_job(
+            run_training_job(
                 updater="ER",
                 max_epochs=5,
                 config_file=config_file,
-                state_url=state_url,
-                next_state_url=tmpdir,
+                input_state_url=state_url,
+                output_state_url=tmpdir,
                 backend="local",
                 mode="max",
                 config_space={
@@ -95,7 +95,7 @@ def test_execute_tuning_job(tmpdir, num_chunks, val_size, raises, fixed_search_s
 def test_merge_tuning_history(
     data_old, data_new, expected_data_first_row, expected_data_second_row
 ):
-    """Test whether HPO tuning results are merged correctly.
+    """Test whether HPO run results are merged correctly.
 
     Testing two cases:
         1. Old results exist and new ones are added.
@@ -304,7 +304,7 @@ def _get_tuning_results():
 
 @pytest.mark.parametrize("hyperparameter, num_task_evaluations", [("lr", 2), ("momentum", 1)])
 def test_load_tuning_history(tmpdir, hyperparameter, num_task_evaluations):
-    """Check if tuning results can be successfully converted to a list of
+    """Check if run results can be successfully converted to a list of
     TransferLearningTaskEvaluations.
 
     Case 1: Evaluations for hyperparameter `lr` is available for both updates. Return both.
@@ -324,7 +324,7 @@ def test_load_tuning_history_when_no_previous_history_exists(tmpdir, use_dir):
     """Check if function returns empty dict in case no previous history exists.
 
     Case 1: state_url is None. Return empty dict.
-    Case 2: state_url is a path which does not contain a tuning history. Return empty dict.
+    Case 2: state_url is a path which does not contain a run history. Return empty dict.
     """
     state_url = None
     if use_dir:
@@ -349,12 +349,12 @@ def test_load_tuning_history_when_no_previous_history_exists(tmpdir, use_dir):
     ids=["str_random", "str_asha", "str_rush", "class_random", "class_asha", "class_rush"],
 )
 def test_create_scheduler(tmpdir, scheduler, scheduler_kwargs, tuning_results_exist):
-    """Test various ways of creating a scheduler with and without previous tuning results.
+    """Test various ways of creating a scheduler with and without previous run results.
 
     Cases:
         1. Check if schedulers can be created by using a string only.
         2. Custom Syne Tune schedulers can be created by passing class and kwargs.
-        3. If any of the above methods works with and without previous tuning results.
+        3. If any of the above methods works with and without previous run results.
     """
     tuning_results = _get_tuning_results()
     state_url = None

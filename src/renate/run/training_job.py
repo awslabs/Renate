@@ -60,7 +60,7 @@ RENATE_CONFIG_COLUMNS = [
 ]
 
 
-def execute_tuning_job(
+def run_training_job(
     mode: defaults.SUPPORTED_TUNING_MODE_TYPE,
     config_space: Dict[str, Any],
     metric: str,
@@ -69,8 +69,8 @@ def execute_tuning_job(
     max_epochs: int = defaults.MAX_EPOCHS,
     task_id: str = defaults.TASK_ID,
     chunk_id: int = defaults.CHUNK_ID,
-    state_url: Optional[str] = None,
-    next_state_url: Optional[str] = None,
+    input_state_url: Optional[str] = None,
+    output_state_url: Optional[str] = None,
     working_directory: Optional[str] = defaults.WORKING_DIRECTORY,
     source_dir: Optional[str] = None,
     config_file: Optional[str] = None,
@@ -105,8 +105,8 @@ def execute_tuning_job(
         max_epochs: Maximum number of epochs the model is trained.
         task_id: Unique identifier for the current task.
         chunk_id: Unique identifier for the current data chunk.
-        state_url: Path to the Renate model state.
-        next_state_url: Path where Renate model state will be stored.
+        input_state_url: Path to the Renate model state.
+        output_state_url: Path where Renate model state will be stored.
         working_directory: Path to the working directory.
         source_dir: (SageMaker backend only) Root directory which will be moved to SageMaker.
         config_file: File containing the definition of `model_fn` and `data_module_fn`.
@@ -131,7 +131,7 @@ def execute_tuning_job(
         seed: Seed used for ensuring reproducibility.
         accelerator: Type of accelerator to use.
         devices: Number of devices to use.
-        job_name: Name of the tuning job.
+        job_name: Name of the run job.
     """
     assert (
         mode in defaults.SUPPORTED_TUNING_MODE
@@ -141,8 +141,8 @@ def execute_tuning_job(
     ), f"Backend {backend} is not in {defaults.SUPPORTED_BACKEND}."
     if backend == "local":
         return _execute_tuning_job_locally(
-            state_url=state_url,
-            next_state_url=next_state_url,
+            input_state_url=input_state_url,
+            output_state_url=output_state_url,
             working_directory=working_directory,
             config_file=config_file,
             mode=mode,
@@ -165,8 +165,8 @@ def execute_tuning_job(
             devices=devices,
         )
     submit_remote_job(
-        state_url=state_url,
-        next_state_url=next_state_url,
+        state_url=input_state_url,
+        next_state_url=output_state_url,
         working_directory=working_directory,
         config_file=config_file,
         mode=mode,
@@ -200,7 +200,7 @@ def execute_tuning_job(
 def _prepare_remote_job(
     tmp_dir: str, requirements_file: Optional[str], **job_kwargs: Any
 ) -> List[str]:
-    """Prepares a SageMaker tuning job."""
+    """Prepares a SageMaker run job."""
     dependencies = list(renate.__path__ + [job_kwargs["config_file"]])
 
     if "state_url" in job_kwargs and job_kwargs["state_url"] is None:
@@ -227,7 +227,7 @@ def _get_transfer_learning_task_evaluations(
     metric: str,
     max_epochs: int,
 ) -> Optional[TransferLearningTaskEvaluations]:
-    """Converts data frame with tuning results of a single update step into
+    """Converts data frame with run results of a single update step into
     `TransferLearningTaskEvaluations`.
 
     Args:
@@ -296,15 +296,15 @@ def _get_transfer_learning_task_evaluations(
 def _load_tuning_history(
     state_url: str, config_space: Dict[str, Any], metric: str
 ) -> Dict[str, TransferLearningTaskEvaluations]:
-    """Loads the tuning history in a list where each entry of the list is the tuning history of one
+    """Loads the run history in a list where each entry of the list is the run history of one
     update.
 
     Args:
-        state_url: Location of state. Will check at this location of a tuning history exists.
-        config_space: The configuration space defines which parts of the tuning history to load.
-        metric: Only the defined metric of the tuning history will be loaded.
+        state_url: Location of state. Will check at this location of a run history exists.
+        config_space: The configuration space defines which parts of the run history to load.
+        metric: Only the defined metric of the run history will be loaded.
     Returns:
-        Returns an empty list if no previous tuning history exists or it does not match the current
+        Returns an empty list if no previous run history exists or it does not match the current
         `config_space`. The list contains an instance of `TransferLearningTaskEvaluations` for each
         update that contains matching data.
     """
@@ -337,7 +337,7 @@ def _load_tuning_history(
 def _merge_tuning_history(
     new_tuning_results: pd.DataFrame, old_tuning_results: Optional[pd.DataFrame] = None
 ) -> pd.DataFrame:
-    """Merges old tuning history with tuning results from current chunk.
+    """Merges old run history with run results from current chunk.
 
     `update_id` identifies the update step in the csv file. This allows creating the metadata
         required for transfer hyperparameter optimization.
@@ -370,7 +370,7 @@ def _teardown_tuning_job(
         except AttributeError:
             raise RuntimeError(
                 "Not a single training run finished. This may have two reasons:\n"
-                "1) The provided tuning time is too short.\n"
+                "1) The provided run time is too short.\n"
                 "2) There is a bug in the training script."
                 + "\n\nLogs (stdout):\n\n{}".format("".join(backend.stdout(0)))
                 + "\n\nLogs (stderr):\n\n{}".format("".join(backend.stderr(0)))
@@ -467,7 +467,7 @@ def _create_scheduler(
         if scheduler_kwargs["transfer_learning_evaluations"]:
             logger.info(
                 f"Using information of {len(scheduler_kwargs['transfer_learning_evaluations'])} "
-                "previous tuning jobs to accelerate this job."
+                "previous run jobs to accelerate this job."
             )
     return scheduler(
         config_space=config_space,
@@ -479,8 +479,8 @@ def _create_scheduler(
 
 
 def _execute_tuning_job_locally(
-    state_url: Optional[str],
-    next_state_url: Optional[str],
+    input_state_url: Optional[str],
+    output_state_url: Optional[str],
     working_directory: Optional[str],
     config_file: str,
     mode: defaults.SUPPORTED_TUNING_MODE_TYPE,
@@ -502,9 +502,9 @@ def _execute_tuning_job_locally(
     accelerator: str,
     devices: int,
 ):
-    """Executes the tuning job locally.
+    """Executes the run job locally.
 
-    See renate.tuning.execute_tuning_job for a description of arguments.
+    See renate.run.execute_tuning_job for a description of arguments.
     """
     tune_hyperparameters = is_syne_tune_config_space(config_space)
     config_space["updater"] = updater
@@ -517,8 +517,8 @@ def _execute_tuning_job_locally(
     config_space["seed"] = seed
     config_space["accelerator"] = accelerator
     config_space["devices"] = devices
-    if state_url is not None:
-        config_space["state_url"] = state_url
+    if input_state_url is not None:
+        config_space["state_url"] = input_state_url
 
     metric, mode = _verify_validation_set_for_hpo_and_checkpointing(
         config_space=config_space,
@@ -556,7 +556,7 @@ def _execute_tuning_job_locally(
             max_epochs=max_epochs,
             seed=seed,
             scheduler_kwargs=scheduler_kwargs,
-            state_url=state_url,
+            state_url=input_state_url,
         )
     logging_callback = (
         TuningLoggerCallback(mode=mode, metric=metric)
@@ -592,8 +592,8 @@ def _execute_tuning_job_locally(
         backend=backend,
         config_space=config_space,
         job_name=tuner.name,
-        state_url=state_url,
-        next_state_url=next_state_url,
+        state_url=input_state_url,
+        next_state_url=output_state_url,
     )
 
     logger.info("Renate update completed successfully.")
@@ -610,9 +610,9 @@ def submit_remote_job(
     job_name: str,
     **job_kwargs: Any,
 ) -> str:
-    """Executes the tuning job on SageMaker.
+    """Executes the run job on SageMaker.
 
-    See renate.tuning.execute_tuning_job for a description of arguments."""
+    See renate.run.execute_tuning_job for a description of arguments."""
     tuning_script = str(Path(renate.__path__[0]) / "cli" / "run_remote_job.py")
     job_timestamp = defaults.current_timestamp()
     job_name = f"{job_name}-{job_timestamp}"
