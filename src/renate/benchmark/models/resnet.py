@@ -7,6 +7,10 @@ import torch.nn as nn
 from torchvision.models.resnet import BasicBlock, Bottleneck
 from torchvision.models.resnet import ResNet as _ResNet
 
+from renate.models.classification_strategies import (
+    ClassificationStrategy,
+    ICaRLClassificationStrategy,
+)
 from renate.defaults import TASK_ID
 from renate.models import RenateModule
 
@@ -44,6 +48,7 @@ class ResNet(RenateModule):
         norm_layer: Type[nn.Module] = nn.BatchNorm2d,
         cifar_stem: bool = True,
         loss: nn.Module = nn.CrossEntropyLoss(),
+        classification_strategy: Optional[ClassificationStrategy] = None,
     ) -> None:
         RenateModule.__init__(
             self,
@@ -59,6 +64,7 @@ class ResNet(RenateModule):
                 "cifar_stem": cifar_stem,
             },
             loss_fn=loss,
+            classification_strategy=classification_strategy,
         )
         self._model = _ResNet(
             block=block,
@@ -79,9 +85,8 @@ class ResNet(RenateModule):
         self._model.fc = nn.Identity()
         self._tasks_params: nn.ModuleDict = nn.ModuleDict()
         self.add_task_params(TASK_ID)
-        self.class_means = torch.nn.Parameter(
-            torch.zeros((512, num_outputs)), requires_grad=False
-        )  # TODO
+        self.class_means = torch.nn.Parameter(torch.zeros((512, num_outputs)), requires_grad=False)
+        """Required for the ICaRLClassificationStrategy."""
 
         for m in self.modules():
             if hasattr(m, "reset_parameters"):
@@ -90,10 +95,12 @@ class ResNet(RenateModule):
     def forward(self, x: torch.Tensor, task_id: str = TASK_ID) -> torch.Tensor:
         """Performs a forward pass on the inputs and returns the predictions."""
         x = self._model(x)
-        if not self.training:  # TODO: icarl only
-            pred_inter = (x.T / torch.norm(x.T, dim=0)).T
-            sqd = torch.cdist(self.class_means.to(pred_inter.device)[:, :].T, pred_inter)
-            return (-sqd).T
+        if isinstance(self._classification_strategy, ICaRLClassificationStrategy):
+            return self._classification_strategy(x, self.training, class_means=self.class_means)
+        else:
+            assert (
+                self._classification_strategy is None
+            ), f"Unknown classification strategy of type {type(self._classification_strategy)}."
         return self._tasks_params[task_id](x)
 
     def _add_task_params(self, task_id: str = TASK_ID) -> None:

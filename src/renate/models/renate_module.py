@@ -6,6 +6,7 @@ from typing import Any, Callable, List, Optional, Set
 
 import torch
 
+from renate.models.classification_strategies import ClassificationStrategy
 from renate.models.layers import ContinualNorm
 
 
@@ -53,13 +54,19 @@ class RenateModule(torch.nn.Module, ABC):
         loss_fn: The loss function to be optimized during the training.
     """
 
-    def __init__(self, constructor_arguments: dict, loss_fn: torch.nn.Module):
+    def __init__(
+        self,
+        constructor_arguments: dict,
+        loss_fn: torch.nn.Module,
+        classification_strategy: Optional[ClassificationStrategy] = None,
+    ):
         super(RenateModule, self).__init__()
         self._constructor_arguments = copy.deepcopy(constructor_arguments)
         self.loss_fn = loss_fn
         self._tasks_params_ids: Set[str] = set()
         self._intermediate_representation_cache: List[torch.Tensor] = []
         self._hooks: List[Callable] = []
+        self._classification_strategy = classification_strategy
 
     @classmethod
     def from_state_dict(cls, state_dict):
@@ -82,6 +89,7 @@ class RenateModule(torch.nn.Module, ABC):
             "constructor_arguments": self._constructor_arguments,
             "tasks_params_ids": self._tasks_params_ids,
             "loss_fn": self.loss_fn,
+            "classification_strategy": self._classification_strategy,
         }
 
     def set_extra_state(self, state: Any):
@@ -89,6 +97,7 @@ class RenateModule(torch.nn.Module, ABC):
         self._constructor_arguments = state["constructor_arguments"]
         self._tasks_params_ids = state["tasks_params_ids"]
         self.loss_fn = state["loss_fn"]
+        self._classification_strategy = state["classification_strategy"]
 
     @abstractmethod
     def forward(self, x: torch.Tensor, task_id: Optional[str] = None) -> torch.Tensor:

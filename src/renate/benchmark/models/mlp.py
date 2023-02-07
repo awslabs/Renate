@@ -1,10 +1,14 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
 
+from renate.models.classification_strategies import (
+    ClassificationStrategy,
+    ICaRLClassificationStrategy,
+)
 from renate.defaults import TASK_ID
 from renate.models import RenateModule
 
@@ -35,6 +39,7 @@ class MultiLayerPerceptron(RenateModule):
         loss: nn.Module = nn.CrossEntropyLoss(),
         activation: str = "ReLU",
         batch_normalization: bool = False,
+        classification_strategy: Optional[ClassificationStrategy] = None,
     ) -> None:
         super().__init__(
             constructor_arguments={
@@ -46,6 +51,7 @@ class MultiLayerPerceptron(RenateModule):
                 "batch_normalization": batch_normalization,
             },
             loss_fn=loss,
+            classification_strategy=classification_strategy,
         )
         if isinstance(hidden_size, int):
             hidden_size = [hidden_size for _ in range(num_hidden_layers + 1)]
@@ -63,6 +69,10 @@ class MultiLayerPerceptron(RenateModule):
 
         self._last_hidden_size = hidden_size[-1]
         self._num_outputs = num_outputs
+        self.class_means = torch.nn.Parameter(
+            torch.zeros((self._last_hidden_size, num_outputs)), requires_grad=False
+        )
+        """Required for the ICaRLClassificationStrategy."""
 
         self._model = nn.Sequential(*layers)
         self._tasks_params: nn.ModuleDict = nn.ModuleDict()
@@ -70,7 +80,14 @@ class MultiLayerPerceptron(RenateModule):
 
     def forward(self, x: torch.Tensor, task_id: str = TASK_ID) -> torch.Tensor:
         """Performs a forward pass on the inputs and returns the predictions."""
-        return self._tasks_params[task_id](self._model(x))
+        x = self._model(x)
+        if isinstance(self._classification_strategy, ICaRLClassificationStrategy):
+            return self._classification_strategy(x, self.training, class_means=self.class_means)
+        else:
+            assert (
+                self._classification_strategy is None
+            ), f"Unknown classification strategy of type {type(self._classification_strategy)}."
+        return self._tasks_params[task_id](x)
 
     def _add_task_params(self, task_id: str = TASK_ID) -> None:
         """Adds new parameters associated to a specific task to the model."""

@@ -1,19 +1,17 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import logging
-from collections import Counter
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Type
 
 import torch
 import torchmetrics
-from avalanche.benchmarks import dataset_benchmark
-from avalanche.training import ICaRLLossPlugin, Naive
+from avalanche.training import Naive
 from avalanche.training.plugins import LRSchedulerPlugin
 from avalanche.training.templates import BaseSGDTemplate
 from syne_tune import Reporter
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, Dataset, Subset, TensorDataset
+from torch.utils.data import Dataset, Subset, TensorDataset
 
 from renate import defaults
 from renate.data.datasets import _TransformedDataset
@@ -33,6 +31,7 @@ from renate.updaters.avalanche.plugins import (
 )
 from renate.updaters.learner import Learner
 from renate.updaters.model_updater import SimpleModelUpdater
+from renate.utils.avalanche import AvalancheBenchmarkWrapper, AvalancheSubset
 
 logger = logging.getLogger(__name__)
 
@@ -42,93 +41,6 @@ metrics_mapper = {
     "val_loss": "Loss_Stream/eval_phase/test_stream/Task000",
     "val_accuracy": "Top1_Acc_Stream/eval_phase/test_stream/Task000",
 }
-
-
-class AvalancheSubset2(Dataset):  # TODO why do we need this?
-    def __init__(self, subset):
-        super().__init__()
-        x_data, y_data = [], []
-        data_loader = DataLoader(subset)
-        for x, y in data_loader:
-            x_data.append(x)
-            y_data.append(y.item())
-        self.x = torch.cat(x_data)
-        print(self.x.shape)
-        self.y = y_data
-        self._targets = None
-
-    @property
-    def targets(self):
-        if self._targets is not None:
-            return self._targets
-        self._targets = torch.tensor(self.y, dtype=torch.long)
-        return self._targets
-
-    def __getitem__(self, idx):
-        return self.x[idx], self.y[idx]
-
-    def __len__(self):
-        return len(self.y)
-
-
-class AvalancheBenchmarkWrapper:
-    def __init__(
-        self,
-        train_dataset,
-        val_dataset,
-        train_transform,
-        train_target_transform,
-        test_transform,
-        test_target_transform,
-    ):
-        self._n_classes_per_exp = None
-        self._classes_order = None
-        self._n_classes = 0
-        self._train_dataset = train_dataset
-        self._train_target_transform = train_target_transform
-        self._benchmark = dataset_benchmark(
-            [train_dataset],
-            [val_dataset],
-            train_transform=train_transform,
-            train_target_transform=train_target_transform,
-            eval_transform=test_transform,
-            eval_target_transform=test_target_transform,
-        )
-        self.train_stream = self._benchmark.train_stream
-        self.test_stream = self._benchmark.test_stream
-
-    def update_benchmark_properties(self):
-        dataset = _TransformedDataset(
-            dataset=self._train_dataset, target_transform=self._train_target_transform
-        )
-        dataloader = DataLoader(dataset)
-        unique_classes = set()
-        for batch in dataloader:
-            unique_classes.add(batch[1].item())
-        if self._n_classes_per_exp is None:
-            self._n_classes_per_exp = [len(unique_classes)]
-            self._classes_order = list(sorted(unique_classes))
-        else:
-            self._n_classes_per_exp.append(len(unique_classes))
-            self._classes_order += list(sorted(unique_classes))
-        self._n_classes = sum(self._classes_order)
-        self._benchmark.n_classes_per_exp = self._n_classes_per_exp
-        self._benchmark.classes_order = self._classes_order
-        print("data stats", self._n_classes_per_exp, self._classes_order)
-        # self._benchmark.n_classes = self._n_classes
-
-    def state_dict(self) -> Dict[str, Any]:
-        """Returns the state of the benchmark."""
-        state_dict = {
-            "n_classes_per_exp": self._n_classes_per_exp,
-            "classes_order": self._classes_order,
-        }
-        return state_dict
-
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        """Restores the state of the benchmark."""
-        self._n_classes_per_exp = state_dict["n_classes_per_exp"]
-        self._classes_order = state_dict["classes_order"]
 
 
 class AvalancheModelUpdater(SimpleModelUpdater):
@@ -260,11 +172,10 @@ class AvalancheModelUpdater(SimpleModelUpdater):
         if isinstance(self._learner, ICaRL):
             class_means = plugin_by_class(_ICaRLPlugin, self._learner.plugins).class_means
             self._model.class_means.data[:, :] = class_means
-            assert isinstance(self._learner._criterion, ICaRLLossPlugin), "{} {}".format(
-                self._learner._criterion, [type(p) for p in self._learner.plugins]
-            )  # TODO: remove
         if self._next_state_folder is not None:
-            Path(self._next_state_folder).mkdir(exist_ok=True, parents=True)  # TODO: remove
+            Path(self._next_state_folder).mkdir(
+                exist_ok=True, parents=True
+            )  # TODO: remove when checkpointing is active
             torch.save(self._model.state_dict(), defaults.model_file(self._next_state_folder))
         self._save_avalanche_state(benchmark, val_dataset_exists)
         self._report(
@@ -289,7 +200,7 @@ class AvalancheModelUpdater(SimpleModelUpdater):
                 y_data.append(y)
             train_dataset = TensorDataset(torch.stack(x_data), torch.stack(y_data))
         if isinstance(train_dataset, Subset):
-            train_dataset = AvalancheSubset2(train_dataset)
+            train_dataset = AvalancheSubset(train_dataset)
 
         avalanche_state = None
         if self._current_state_folder is not None:

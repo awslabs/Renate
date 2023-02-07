@@ -40,7 +40,7 @@ config_file = str(Path(__file__).parent.parent / "renate_config_files" / "config
         "training-single-config-without-val",
     ],
 )
-@pytest.mark.parametrize("updater", ("ER", "Avalanche-ER", "Avalanche-iCaRL"))
+@pytest.mark.parametrize("updater", ("ER", "Avalanche-ER", "Avalanche-iCaRL", "Avalanche-EWC"))
 def test_execute_tuning_job(
     tmpdir, num_chunks, val_size, raises, fixed_search_space, scheduler, updater
 ):
