@@ -12,14 +12,16 @@ if __name__ == "__main__":
         max_epochs=50,
         chunk_id=0,  # this selects the first chunk of the dataset
         config_file="renate_config.py",
-        output_state_url="./state_dump_first_model_rd/",  # this is where the model will be stored
+        # location where the new model is saved to
+        output_state_url="./state_dump_first_model_rd/",
         backend="local",  # the training job will run on the local machine
         scheduler="asha",
-        # using only 5 trials will not give great performance but this is just an example
+        # using only 5 trials will not give great performance -- just an example
         max_num_trials_finished=5,
     )
 
-    # retrieve the model from `./state_dump_first_model_rd/` if you want -- don't delete it
+    # retrieve the model from `./state_dump_first_model_rd/` if you want
+    # do not delete it, we will need it in the remaining of this example
 
     run_training_job(
         config_space=config_space("RD"),
@@ -29,8 +31,10 @@ if __name__ == "__main__":
         max_epochs=50,
         chunk_id=1,  # this time we use the second chunk of the dataset
         config_file="renate_config.py",
-        input_state_url="./state_dump_first_model_rd/",  # the output of the first training job is loaded
-        output_state_url="./state_dump_second_model_rd/",  # location where the new model is saved to
+        # the output of the first training job is loaded
+        input_state_url="./state_dump_first_model_rd/",
+        # location where the new model is saved to
+        output_state_url="./state_dump_second_model_rd/",
         backend="local",
         scheduler="asha",
         max_num_trials_finished=5,
