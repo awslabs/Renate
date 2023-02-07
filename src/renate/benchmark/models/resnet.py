@@ -2,20 +2,16 @@
 # SPDX-License-Identifier: Apache-2.0
 from typing import List, Optional, Type, Union
 
-import torch
 import torch.nn as nn
 from torchvision.models.resnet import BasicBlock, Bottleneck
 from torchvision.models.resnet import ResNet as _ResNet
 
-from renate.models.classification_strategies import (
-    ClassificationStrategy,
-    ICaRLClassificationStrategy,
-)
-from renate.defaults import TASK_ID
+from renate.benchmark.models.base import RenateBenchmarkingModule
 from renate.models import RenateModule
+from renate.models.classification_strategies import ClassificationStrategy
 
 
-class ResNet(RenateModule):
+class ResNet(RenateBenchmarkingModule):
     """ResNet model base class.
 
     TODO: Fix citation
@@ -50,12 +46,22 @@ class ResNet(RenateModule):
         loss: nn.Module = nn.CrossEntropyLoss(),
         classification_strategy: Optional[ClassificationStrategy] = None,
     ) -> None:
-        RenateModule.__init__(
-            self,
+        model = _ResNet(
+            block=block,
+            layers=layers,
+            num_classes=num_outputs,
+            zero_init_residual=zero_init_residual,
+            groups=groups,
+            width_per_group=width_per_group,
+            replace_stride_with_dilation=replace_stride_with_dilation,
+            norm_layer=norm_layer,
+        )
+        super().__init__(
+            embedding_size=model.fc.in_features,
+            num_outputs=num_outputs,
             constructor_arguments={
                 "block": block,
                 "layers": layers,
-                "num_outputs": num_outputs,
                 "zero_init_residual": zero_init_residual,
                 "groups": groups,
                 "width_per_group": width_per_group,
@@ -66,50 +72,15 @@ class ResNet(RenateModule):
             loss_fn=loss,
             classification_strategy=classification_strategy,
         )
-        self._model = _ResNet(
-            block=block,
-            layers=layers,
-            num_classes=num_outputs,
-            zero_init_residual=zero_init_residual,
-            groups=groups,
-            width_per_group=width_per_group,
-            replace_stride_with_dilation=replace_stride_with_dilation,
-            norm_layer=norm_layer,
-        )
+        self._model = model
         if cifar_stem:
             self._model.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
             self._model.maxpool = nn.Identity()
-
-        self._last_hidden_size = self._model.fc.in_features
-        self._num_outputs = num_outputs
         self._model.fc = nn.Identity()
-        self._tasks_params: nn.ModuleDict = nn.ModuleDict()
-        self.add_task_params(TASK_ID)
-        self.class_means = torch.nn.Parameter(torch.zeros((512, num_outputs)), requires_grad=False)
-        """Required for the ICaRLClassificationStrategy."""
 
         for m in self.modules():
             if hasattr(m, "reset_parameters"):
                 m.reset_parameters()
-
-    def forward(self, x: torch.Tensor, task_id: str = TASK_ID) -> torch.Tensor:
-        """Performs a forward pass on the inputs and returns the predictions."""
-        x = self._model(x)
-        if isinstance(self._classification_strategy, ICaRLClassificationStrategy):
-            return self._classification_strategy(x, self.training, class_means=self.class_means)
-        else:
-            assert (
-                self._classification_strategy is None
-            ), f"Unknown classification strategy of type {type(self._classification_strategy)}."
-        return self._tasks_params[task_id](x)
-
-    def _add_task_params(self, task_id: str = TASK_ID) -> None:
-        """Adds new parameters associated to a specific task to the model."""
-        self._tasks_params[task_id] = nn.Linear(self._last_hidden_size, self._num_outputs)
-
-    def get_params(self, task_id: str = TASK_ID) -> List[nn.Parameter]:
-        """Returns the list of parameters for the core model and a specific `task_id`."""
-        return list(self._model.parameters()) + list(self._tasks_params[task_id].parameters())
 
 
 class ResNet18CIFAR(ResNet):

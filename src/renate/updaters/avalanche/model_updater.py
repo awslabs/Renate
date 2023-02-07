@@ -8,6 +8,7 @@ import torch
 import torchmetrics
 from avalanche.training import Naive
 from avalanche.training.plugins import LRSchedulerPlugin
+from avalanche.training.supervised.icarl import _ICaRLPlugin
 from avalanche.training.templates import BaseSGDTemplate
 from syne_tune import Reporter
 from torch.optim import Optimizer
@@ -22,7 +23,6 @@ from renate.updaters.avalanche.learner import (
     AvalancheLwFLearner,
     AvalancheReplayLearner,
     ICaRL,
-    _ICaRLPlugin,
     plugin_by_class,
 )
 from renate.updaters.avalanche.plugins import (

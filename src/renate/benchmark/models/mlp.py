@@ -2,18 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 from typing import List, Optional, Tuple, Union
 
-import torch
 import torch.nn as nn
 
-from renate.models.classification_strategies import (
-    ClassificationStrategy,
-    ICaRLClassificationStrategy,
-)
-from renate.defaults import TASK_ID
-from renate.models import RenateModule
+from renate.benchmark.models.base import RenateBenchmarkingModule
+from renate.models.classification_strategies import ClassificationStrategy
 
 
-class MultiLayerPerceptron(RenateModule):
+class MultiLayerPerceptron(RenateBenchmarkingModule):
     """A simple Multi Layer Perceptron with hidden layers, activation and Batch Normalization if
     enabled.
 
@@ -41,10 +36,12 @@ class MultiLayerPerceptron(RenateModule):
         batch_normalization: bool = False,
         classification_strategy: Optional[ClassificationStrategy] = None,
     ) -> None:
+        embedding_size = hidden_size if type(hidden_size) == int else hidden_size[-1]
         super().__init__(
+            embedding_size=embedding_size,
+            num_outputs=num_outputs,
             constructor_arguments={
                 "num_inputs": num_inputs,
-                "num_outputs": num_outputs,
                 "num_hidden_layers": num_hidden_layers,
                 "hidden_size": hidden_size,
                 "activation": activation,
@@ -67,35 +64,4 @@ class MultiLayerPerceptron(RenateModule):
             if batch_normalization:
                 layers.append(nn.BatchNorm1d(hidden_size[i + 1]))
 
-        self._last_hidden_size = hidden_size[-1]
-        self._num_outputs = num_outputs
-        self.class_means = torch.nn.Parameter(
-            torch.zeros((self._last_hidden_size, num_outputs)), requires_grad=False
-        )
-        """Required for the ICaRLClassificationStrategy."""
-
         self._model = nn.Sequential(*layers)
-        self._tasks_params: nn.ModuleDict = nn.ModuleDict()
-        self.add_task_params(TASK_ID)
-
-    def forward(self, x: torch.Tensor, task_id: str = TASK_ID) -> torch.Tensor:
-        """Performs a forward pass on the inputs and returns the predictions."""
-        x = self._model(x)
-        if isinstance(self._classification_strategy, ICaRLClassificationStrategy):
-            return self._classification_strategy(x, self.training, class_means=self.class_means)
-        else:
-            assert (
-                self._classification_strategy is None
-            ), f"Unknown classification strategy of type {type(self._classification_strategy)}."
-        return self._tasks_params[task_id](x)
-
-    def _add_task_params(self, task_id: str = TASK_ID) -> None:
-        """Adds new parameters associated to a specific task to the model."""
-        self._tasks_params[task_id] = nn.Linear(
-            self._last_hidden_size,
-            self._num_outputs,
-        )
-
-    def get_params(self, task_id: str = TASK_ID) -> List[nn.Parameter]:
-        """Returns the list of parameters for the core model and a specific `task_id`."""
-        return list(self._model.parameters()) + list(self._tasks_params[task_id].parameters())
