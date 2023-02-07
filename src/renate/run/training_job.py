@@ -131,7 +131,7 @@ def run_training_job(
         seed: Seed used for ensuring reproducibility.
         accelerator: Type of accelerator to use.
         devices: Number of devices to use.
-        job_name: Name of the run job.
+        job_name: Prefix for the name of the SageMaker training job.
     """
     assert (
         mode in defaults.SUPPORTED_TUNING_MODE
@@ -200,7 +200,7 @@ def run_training_job(
 def _prepare_remote_job(
     tmp_dir: str, requirements_file: Optional[str], **job_kwargs: Any
 ) -> List[str]:
-    """Prepares a SageMaker run job."""
+    """Prepares a SageMaker job."""
     dependencies = list(renate.__path__ + [job_kwargs["config_file"]])
 
     if "state_url" in job_kwargs and job_kwargs["state_url"] is None:
@@ -296,15 +296,15 @@ def _get_transfer_learning_task_evaluations(
 def _load_tuning_history(
     state_url: str, config_space: Dict[str, Any], metric: str
 ) -> Dict[str, TransferLearningTaskEvaluations]:
-    """Loads the run history in a list where each entry of the list is the run history of one
+    """Loads the tuning history in a list where each entry of the list is the tuning history of one
     update.
 
     Args:
-        state_url: Location of state. Will check at this location of a run history exists.
-        config_space: The configuration space defines which parts of the run history to load.
-        metric: Only the defined metric of the run history will be loaded.
+        state_url: Location of state. Will check at this location of a tuning history exists.
+        config_space: The configuration space defines which parts of the tuning history to load.
+        metric: Only the defined metric of the tuning history will be loaded.
     Returns:
-        Returns an empty list if no previous run history exists or it does not match the current
+        Returns an empty list if no previous tuning history exists or it does not match the current
         `config_space`. The list contains an instance of `TransferLearningTaskEvaluations` for each
         update that contains matching data.
     """
@@ -337,7 +337,7 @@ def _load_tuning_history(
 def _merge_tuning_history(
     new_tuning_results: pd.DataFrame, old_tuning_results: Optional[pd.DataFrame] = None
 ) -> pd.DataFrame:
-    """Merges old run history with run results from current chunk.
+    """Merges old tuning history with run results from current chunk.
 
     `update_id` identifies the update step in the csv file. This allows creating the metadata
         required for transfer hyperparameter optimization.
@@ -370,7 +370,7 @@ def _teardown_tuning_job(
         except AttributeError:
             raise RuntimeError(
                 "Not a single training run finished. This may have two reasons:\n"
-                "1) The provided run time is too short.\n"
+                "1) The provided tuning time is too short.\n"
                 "2) There is a bug in the training script."
                 + "\n\nLogs (stdout):\n\n{}".format("".join(backend.stdout(0)))
                 + "\n\nLogs (stderr):\n\n{}".format("".join(backend.stderr(0)))
@@ -467,7 +467,7 @@ def _create_scheduler(
         if scheduler_kwargs["transfer_learning_evaluations"]:
             logger.info(
                 f"Using information of {len(scheduler_kwargs['transfer_learning_evaluations'])} "
-                "previous run jobs to accelerate this job."
+                "previous tuning jobs to accelerate this job."
             )
     return scheduler(
         config_space=config_space,
@@ -502,7 +502,7 @@ def _execute_tuning_job_locally(
     accelerator: str,
     devices: int,
 ):
-    """Executes the run job locally.
+    """Executes the training job locally.
 
     See renate.run.execute_tuning_job for a description of arguments.
     """
@@ -610,7 +610,7 @@ def submit_remote_job(
     job_name: str,
     **job_kwargs: Any,
 ) -> str:
-    """Executes the run job on SageMaker.
+    """Executes the training job on SageMaker.
 
     See renate.run.execute_tuning_job for a description of arguments."""
     tuning_script = str(Path(renate.__path__[0]) / "cli" / "run_remote_job.py")

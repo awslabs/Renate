@@ -241,7 +241,7 @@ def _execute_experiment_job_locally(
     max_num_trials_finished: int,
     n_workers: int,
 ) -> None:
-    """Runs an experiment, combining hyperparameter run and model for multiple updates.
+    """Runs an experiment, combining hyperparameter tuning and model for multiple updates.
 
     See renate.benchmark.experimentation.execute_experiment_job for more details.
     """
