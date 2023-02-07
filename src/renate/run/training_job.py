@@ -140,7 +140,7 @@ def run_training_job(
         backend in defaults.SUPPORTED_BACKEND
     ), f"Backend {backend} is not in {defaults.SUPPORTED_BACKEND}."
     if backend == "local":
-        return _execute_tuning_job_locally(
+        return _execute_tuning_and_tuning_job_locally(
             input_state_url=input_state_url,
             output_state_url=output_state_url,
             working_directory=working_directory,
@@ -478,7 +478,7 @@ def _create_scheduler(
     )
 
 
-def _execute_tuning_job_locally(
+def _execute_tuning_and_tuning_job_locally(
     input_state_url: Optional[str],
     output_state_url: Optional[str],
     working_directory: Optional[str],
@@ -504,7 +504,7 @@ def _execute_tuning_job_locally(
 ):
     """Executes the training job locally.
 
-    See renate.run.execute_tuning_job for a description of arguments.
+    See renate.run.run_training_job for a description of arguments.
     """
     tune_hyperparameters = is_syne_tune_config_space(config_space)
     config_space["updater"] = updater
@@ -612,7 +612,7 @@ def submit_remote_job(
 ) -> str:
     """Executes the training job on SageMaker.
 
-    See renate.run.execute_tuning_job for a description of arguments."""
+    See renate.run.run_training_job for a description of arguments."""
     tuning_script = str(Path(renate.__path__[0]) / "cli" / "run_remote_job.py")
     job_timestamp = defaults.current_timestamp()
     job_name = f"{job_name}-{job_timestamp}"
