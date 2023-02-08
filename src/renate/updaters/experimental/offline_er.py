@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader, Dataset
 from renate import defaults
 from renate.models import RenateModule
 from renate.updaters.learner import ReplayLearner
-from renate.updaters.model_updater import SimpleModelUpdater
+from renate.updaters.model_updater import SingleTrainingLoopUpdater
 
 
 class OfflineExperienceReplayLearner(ReplayLearner):
@@ -121,7 +121,7 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         self._num_points_previous_tasks = state_dict["num_points_previous_tasks"]
 
 
-class OfflineExperienceReplayModelUpdater(SimpleModelUpdater):
+class OfflineExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,

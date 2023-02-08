@@ -44,7 +44,7 @@ def test_execute_experiment_job(tmpdir, experiment_job_kwargs):
         assert (Path(tmpdir) / f"update_{update_id}" / "model.ckpt").is_file()
     assert (
         len(
-            pd.read_csv(str(Path(tmpdir) / f"update_{expected_num_updates-1}" / "hpo.csv"))[
+            pd.read_csv(str(Path(tmpdir) / f"update_{expected_num_updates - 1}" / "hpo.csv"))[
                 "update_id"
             ].unique()
         )

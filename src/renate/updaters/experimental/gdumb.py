@@ -12,7 +12,7 @@ from renate import defaults
 from renate.memory import GreedyClassBalancingBuffer
 from renate.models import RenateModule
 from renate.updaters.learner import Learner, ReplayLearner
-from renate.updaters.model_updater import SimpleModelUpdater
+from renate.updaters.model_updater import SingleTrainingLoopUpdater
 from renate.utils.pytorch import reinitialize_model_parameters
 
 
@@ -82,7 +82,7 @@ class GDumbLearner(ReplayLearner):
         return super().training_step(batch=batch, batch_idx=batch_idx)
 
 
-class GDumbModelUpdater(SimpleModelUpdater):
+class GDumbModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,

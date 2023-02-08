@@ -30,7 +30,7 @@ from renate.updaters.experimental.joint import JointLearner
 from renate.updaters.experimental.offline_er import OfflineExperienceReplayLearner
 from renate.updaters.experimental.repeated_distill import RepeatedDistillationLearner
 from renate.updaters.learner import Learner, ReplayLearner
-from renate.updaters.model_updater import SimpleModelUpdater
+from renate.updaters.model_updater import SingleTrainingLoopUpdater
 
 pytest_plugins = ["helpers_namespace"]
 
@@ -309,7 +309,7 @@ def get_simple_updater(
     if issubclass(learner_class, ReplayLearner):
         transforms_kwargs["buffer_transform"] = buffer_transform
         transforms_kwargs["buffer_target_transform"] = buffer_target_transform
-    return SimpleModelUpdater(
+    return SingleTrainingLoopUpdater(
         model=model,
         learner_class=learner_class,
         learner_kwargs=learner_kwargs,

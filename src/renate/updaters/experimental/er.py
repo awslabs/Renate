@@ -5,10 +5,10 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, Dataset, Subset
 import torchmetrics
 from pytorch_lightning.loggers.logger import Logger
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+from torch.utils.data import DataLoader, Dataset, Subset
 
 from renate import defaults
 from renate.data.datasets import _EnumeratedDataset
@@ -24,7 +24,7 @@ from renate.updaters.learner_components.losses import (
 from renate.updaters.learner_components.reinitialization import (
     ShrinkAndPerturbReinitializationComponent,
 )
-from renate.updaters.model_updater import SimpleModelUpdater
+from renate.updaters.model_updater import SingleTrainingLoopUpdater
 
 
 class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
@@ -606,7 +606,7 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
             )
 
 
-class ExperienceReplayModelUpdater(SimpleModelUpdater):
+class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
@@ -682,7 +682,7 @@ class ExperienceReplayModelUpdater(SimpleModelUpdater):
         )
 
 
-class DarkExperienceReplayModelUpdater(SimpleModelUpdater):
+class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
@@ -760,7 +760,7 @@ class DarkExperienceReplayModelUpdater(SimpleModelUpdater):
         )
 
 
-class PooledOutputDistillationExperienceReplayModelUpdater(SimpleModelUpdater):
+class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
@@ -840,7 +840,7 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SimpleModelUpdater):
         )
 
 
-class CLSExperienceReplayModelUpdater(SimpleModelUpdater):
+class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
@@ -926,7 +926,7 @@ class CLSExperienceReplayModelUpdater(SimpleModelUpdater):
         )
 
 
-class SuperExperienceReplayModelUpdater(SimpleModelUpdater):
+class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,

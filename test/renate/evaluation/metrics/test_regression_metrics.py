@@ -125,7 +125,6 @@ def test_regression_metric_corner_case_empty_input():
 
 
 def test_regression_metric_corner_case_unmatch_input():
-
     new_pred = torch.tensor([1, 2])
     old_pred = torch.tensor([1])
     gt = torch.tensor([1])

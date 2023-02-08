@@ -8,10 +8,10 @@ from pytorch_lightning.loggers.logger import Logger
 from renate import defaults
 from renate.models import RenateModule
 from renate.updaters.learner import Learner
-from renate.updaters.model_updater import SimpleModelUpdater
+from renate.updaters.model_updater import SingleTrainingLoopUpdater
 
 
-class FineTuningModelUpdater(SimpleModelUpdater):
+class FineTuningModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,

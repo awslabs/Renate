@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
 import torch
-from torch.utils.data import Dataset
 import torchvision
+from torch.utils.data import Dataset
 from torchvision import transforms
 
 from renate import defaults

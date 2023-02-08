@@ -14,5 +14,4 @@ if not _root_logger.hasHandlers():
     _renate_logger.addHandler(_handler)
     _renate_logger.propagate = False
 
-
 __version__ = "0.1.0"
