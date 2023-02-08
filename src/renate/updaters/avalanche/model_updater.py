@@ -30,7 +30,7 @@ from renate.updaters.avalanche.plugins import (
     RenateFileSystemCheckpointStorage,
 )
 from renate.updaters.learner import Learner
-from renate.updaters.model_updater import SimpleModelUpdater
+from renate.updaters.model_updater import SingleTrainingLoopUpdater
 from renate.utils.avalanche import AvalancheBenchmarkWrapper, AvalancheSubset
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ metrics_mapper = {
 }
 
 
-class AvalancheModelUpdater(SimpleModelUpdater):
+class AvalancheModelUpdater(SingleTrainingLoopUpdater):
     _report = Reporter()
 
     def _load_learner(
