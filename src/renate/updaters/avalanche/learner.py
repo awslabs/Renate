@@ -168,7 +168,9 @@ class AvalancheICaRLLearner(ReplayLearner, AvalancheLoaderMixing):
     ) -> BaseSGDTemplate:
         if not hasattr(self._model, "class_means"):
             raise RuntimeError(
-                """The RenateModule must contain an attribute `class_means`. Please add something like
+                """The RenateModule must contain an attribute `class_means`.
+                Please add something like
+                
                 self.class_means = torch.nn.Parameter(
                     torch.zeros((embedding_size, num_outputs)), requires_grad=False
                 )
