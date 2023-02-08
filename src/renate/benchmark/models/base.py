@@ -4,13 +4,11 @@ from abc import ABC
 from typing import List, Optional
 
 import torch
+from torch import nn
 
 from renate import defaults
 from renate.models import RenateModule
-from renate.models.prediction_strategies import (
-    PredictionStrategy,
-    ICaRLClassificationStrategy,
-)
+from renate.models.prediction_strategies import ICaRLClassificationStrategy, PredictionStrategy
 
 
 class RenateBenchmarkingModule(RenateModule, ABC):
@@ -47,10 +45,10 @@ class RenateBenchmarkingModule(RenateModule, ABC):
             ), f"Unknown prediction strategy of type {type(self._prediction_strategy)}."
         return self.get_predictor(task_id)(x)
 
-    def get_backbone(self, task_id: str = defaults.TASK_ID):
+    def get_backbone(self, task_id: str = defaults.TASK_ID) -> nn.Module:
         return self._model
 
-    def get_predictor(self, task_id: str = defaults.TASK_ID):
+    def get_predictor(self, task_id: str = defaults.TASK_ID) -> nn.Module:
         return self._tasks_params[task_id]
 
     def _add_task_params(self, task_id: str = defaults.TASK_ID) -> None:

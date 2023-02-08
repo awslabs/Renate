@@ -1,16 +1,10 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from functools import partial
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 import torch
-from avalanche.core import SupervisedPlugin
-from avalanche.logging import BaseLogger
-from avalanche.training.determinism import RNGManager
 from avalanche.training.plugins.checkpoint import CheckpointPlugin, FileSystemCheckpointStorage
-from avalanche.training.templates import BaseSGDTemplate
-from syne_tune import Reporter
 
 from renate import defaults
 

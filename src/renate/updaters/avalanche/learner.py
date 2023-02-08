@@ -13,7 +13,6 @@ from avalanche.training.supervised.icarl import _ICaRLPlugin
 from avalanche.training.templates import BaseSGDTemplate, SupervisedTemplate
 from torch.optim import Optimizer
 
-from renate import defaults
 from renate.updaters.learner import Learner, ReplayLearner
 
 

@@ -1,13 +1,13 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import copy
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Any, Callable, List, Optional, Set
 
 import torch
 
-from renate.models.prediction_strategies import PredictionStrategy
 from renate.models.layers import ContinualNorm
+from renate.models.prediction_strategies import PredictionStrategy
 
 
 class RenateModule(torch.nn.Module, ABC):
