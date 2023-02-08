@@ -6,7 +6,7 @@ from typing import Any, Callable, List, Optional, Set
 
 import torch
 
-from renate.models.classification_strategies import ClassificationStrategy
+from renate.models.prediction_strategies import PredictionStrategy
 from renate.models.layers import ContinualNorm
 
 
@@ -58,7 +58,7 @@ class RenateModule(torch.nn.Module, ABC):
         self,
         constructor_arguments: dict,
         loss_fn: torch.nn.Module,
-        classification_strategy: Optional[ClassificationStrategy] = None,
+        prediction_strategy: Optional[PredictionStrategy] = None,
     ):
         super(RenateModule, self).__init__()
         self._constructor_arguments = copy.deepcopy(constructor_arguments)
@@ -66,7 +66,7 @@ class RenateModule(torch.nn.Module, ABC):
         self._tasks_params_ids: Set[str] = set()
         self._intermediate_representation_cache: List[torch.Tensor] = []
         self._hooks: List[Callable] = []
-        self._classification_strategy = classification_strategy
+        self._prediction_strategy = prediction_strategy
 
     @classmethod
     def from_state_dict(cls, state_dict):
@@ -89,7 +89,7 @@ class RenateModule(torch.nn.Module, ABC):
             "constructor_arguments": self._constructor_arguments,
             "tasks_params_ids": self._tasks_params_ids,
             "loss_fn": self.loss_fn,
-            "classification_strategy": self._classification_strategy,
+            "prediction_strategy": self._prediction_strategy,
         }
 
     def set_extra_state(self, state: Any):
@@ -97,18 +97,19 @@ class RenateModule(torch.nn.Module, ABC):
         self._constructor_arguments = state["constructor_arguments"]
         self._tasks_params_ids = state["tasks_params_ids"]
         self.loss_fn = state["loss_fn"]
-        self._classification_strategy = state["classification_strategy"]
+        self._prediction_strategy = state["prediction_strategy"]
 
-    @abstractmethod
     def forward(self, x: torch.Tensor, task_id: Optional[str] = None) -> torch.Tensor:
         """Performs a forward pass on the inputs and returns the predictions.
 
         This method accepts a task ID, which may be provided by some continual learning scenarios.
-        As an examle, the task id may be used to switch between multiple output heads.
+        As an example, the task id may be used to switch between multiple output heads.
 
         Args:
             x: The input tensor.
             task_id: The identifier of the task for which predictions are made.
+        Returns:
+            The models' predictions.
         """
         pass
 
@@ -171,7 +172,7 @@ class RenateModule(torch.nn.Module, ABC):
 
         Args:
             num_groups: Number of groups when considering the group normalization in continual
-                normalizeion
+                normalization.
         """
 
         def _replace(module):

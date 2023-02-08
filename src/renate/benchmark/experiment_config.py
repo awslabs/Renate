@@ -33,7 +33,7 @@ from renate.benchmark.scenarios import (
 )
 from renate.data.data_module import RenateDataModule
 from renate.models import RenateModule
-from renate.models.classification_strategies import ICaRLClassificationStrategy
+from renate.models.prediction_strategies import ICaRLClassificationStrategy
 
 models = {
     "MultiLayerPerceptron": MultiLayerPerceptron,
@@ -67,7 +67,7 @@ def model_fn(
     model_class = models[model_fn_model_name]
     model_kwargs = {}
     if model_fn_updater == "Avalanche-iCaRL":
-        model_kwargs["classification_strategy"] = ICaRLClassificationStrategy()
+        model_kwargs["prediction_strategy"] = ICaRLClassificationStrategy()
     if model_fn_model_name == "MultiLayerPerceptron":
         model_kwargs.update(
             {

@@ -167,7 +167,7 @@ class AvalancheICaRLLearner(ReplayLearner, AvalancheLoaderMixing):
         device: torch.device,
         eval_every: int,
     ) -> BaseSGDTemplate:
-        if getattr(self._model, "class_means") is None:
+        if not hasattr(self._model, "class_means"):
             raise RuntimeError(
                 """The RenateModule must contain an attribute `class_means`. Please add something like
                 self.class_means = torch.nn.Parameter(
@@ -176,8 +176,8 @@ class AvalancheICaRLLearner(ReplayLearner, AvalancheLoaderMixing):
                 """
             )
         icarl = ICaRL(
-            feature_extractor=self._model._model,
-            classifier=self._model._tasks_params[defaults.TASK_ID],
+            feature_extractor=self._model.get_backbone(),
+            classifier=self._model.get_predictor(),
             optimizer=optimizer,
             memory_size=self._memory_buffer._max_size,
             buffer_transform=None,  # TODO
@@ -197,8 +197,8 @@ class AvalancheICaRLLearner(ReplayLearner, AvalancheLoaderMixing):
     def update_settings(self, avalanche_learner: BaseSGDTemplate, **kwargs) -> None:
         super().update_settings(avalanche_learner=avalanche_learner, **kwargs)
         avalanche_learner.model = TrainEvalModel(
-            feature_extractor=self._model._model,
-            train_classifier=self._model._tasks_params[defaults.TASK_ID],
+            feature_extractor=self._model.get_backbone(),
+            train_classifier=self._model.get_predictor(),
             eval_classifier=NCMClassifier(),
         )
         icarl_loss_plugin = plugin_by_class(ICaRLLossPlugin, avalanche_learner.plugins)

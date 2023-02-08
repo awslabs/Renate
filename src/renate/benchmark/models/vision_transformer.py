@@ -8,6 +8,7 @@ from torchvision.models.vision_transformer import ConvStemConfig, WeightsEnum
 from torchvision.models.vision_transformer import VisionTransformer as _VisionTransformer
 
 from renate.benchmark.models.base import RenateBenchmarkingModule
+from renate.models.prediction_strategies import PredictionStrategy
 
 
 class VisionTransformer(RenateBenchmarkingModule):
@@ -52,6 +53,7 @@ class VisionTransformer(RenateBenchmarkingModule):
         conv_stem_configs: Optional[List[ConvStemConfig]] = None,
         weights: Optional[WeightsEnum] = None,
         loss: nn.Module = nn.CrossEntropyLoss(),
+        prediction_strategy: Optional[PredictionStrategy] = None,
     ) -> None:
         model = _VisionTransformer(
             image_size=image_size,
@@ -84,6 +86,7 @@ class VisionTransformer(RenateBenchmarkingModule):
                 "conv_stem_configs": conv_stem_configs,
             },
             loss_fn=loss,
+            prediction_strategy=prediction_strategy,
         )
         self._model = model
         if weights:

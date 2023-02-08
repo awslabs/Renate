@@ -7,15 +7,15 @@ import torch
 from torch import Tensor
 
 
-class ClassificationStrategy(ABC):
+class PredictionStrategy(ABC):
     @abstractmethod
-    def __call__(self, inputs: Tensor, training: bool, **kwargs: Any):
-        return inputs, False
+    def __call__(self, inputs: Tensor, training: bool, **kwargs: Any) -> Tensor:
+        return inputs
 
 
-class ICaRLClassificationStrategy(ClassificationStrategy):
-    def __call__(self, inputs: Tensor, training: bool, class_means: Tensor):
+class ICaRLClassificationStrategy(PredictionStrategy):
+    def __call__(self, inputs: Tensor, training: bool, class_means: Tensor) -> Tensor:
         if training:
-            return super().forward(inputs, training)
+            return super().__call__(inputs, training)
         normalized_inputs = (inputs.T / torch.norm(inputs.T, dim=0)).T
         return (-torch.cdist(class_means.to(normalized_inputs.device)[:, :].T, normalized_inputs)).T

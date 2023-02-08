@@ -372,7 +372,7 @@ def _teardown_tuning_job(
                 "Not a single training run finished. This may have two reasons:\n"
                 "1) The provided tuning time is too short.\n"
                 "2) There is a bug in the training script."
-                # + "\n\nLogs (stdout):\n\n{}".format("".join(backend.stdout(0)))
+                + "\n\nLogs (stdout):\n\n{}".format("".join(backend.stdout(0)))
                 + "\n\nLogs (stderr):\n\n{}".format("".join(backend.stderr(0)))
             )
         next_state_folder = defaults.next_state_folder(

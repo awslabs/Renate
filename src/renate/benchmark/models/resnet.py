@@ -7,8 +7,7 @@ from torchvision.models.resnet import BasicBlock, Bottleneck
 from torchvision.models.resnet import ResNet as _ResNet
 
 from renate.benchmark.models.base import RenateBenchmarkingModule
-from renate.models import RenateModule
-from renate.models.classification_strategies import ClassificationStrategy
+from renate.models.prediction_strategies import PredictionStrategy
 
 
 class ResNet(RenateBenchmarkingModule):
@@ -44,7 +43,7 @@ class ResNet(RenateBenchmarkingModule):
         norm_layer: Type[nn.Module] = nn.BatchNorm2d,
         cifar_stem: bool = True,
         loss: nn.Module = nn.CrossEntropyLoss(),
-        classification_strategy: Optional[ClassificationStrategy] = None,
+        prediction_strategy: Optional[PredictionStrategy] = None,
     ) -> None:
         model = _ResNet(
             block=block,
@@ -70,7 +69,7 @@ class ResNet(RenateBenchmarkingModule):
                 "cifar_stem": cifar_stem,
             },
             loss_fn=loss,
-            classification_strategy=classification_strategy,
+            prediction_strategy=prediction_strategy,
         )
         self._model = model
         if cifar_stem:

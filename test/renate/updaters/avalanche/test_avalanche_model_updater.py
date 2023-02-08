@@ -2,10 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 import pytest
 import torch
-from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.training.plugins import ReplayPlugin
 
-from datasets import DummyTorchVisionDataModule
 from renate.updaters.avalanche.learner import plugin_by_class
 from renate.updaters.avalanche.model_updater import ExperienceReplayAvalancheModelUpdater
 

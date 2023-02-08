@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple, Union
 import torch.nn as nn
 
 from renate.benchmark.models.base import RenateBenchmarkingModule
-from renate.models.classification_strategies import ClassificationStrategy
+from renate.models.prediction_strategies import PredictionStrategy
 
 
 class MultiLayerPerceptron(RenateBenchmarkingModule):
@@ -34,7 +34,7 @@ class MultiLayerPerceptron(RenateBenchmarkingModule):
         loss: nn.Module = nn.CrossEntropyLoss(),
         activation: str = "ReLU",
         batch_normalization: bool = False,
-        classification_strategy: Optional[ClassificationStrategy] = None,
+        prediction_strategy: Optional[PredictionStrategy] = None,
     ) -> None:
         embedding_size = hidden_size if type(hidden_size) == int else hidden_size[-1]
         super().__init__(
@@ -48,7 +48,7 @@ class MultiLayerPerceptron(RenateBenchmarkingModule):
                 "batch_normalization": batch_normalization,
             },
             loss_fn=loss,
-            classification_strategy=classification_strategy,
+            prediction_strategy=prediction_strategy,
         )
         if isinstance(hidden_size, int):
             hidden_size = [hidden_size for _ in range(num_hidden_layers + 1)]
