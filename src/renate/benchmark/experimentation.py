@@ -25,7 +25,7 @@ from renate.evaluation.metrics.classification import (
     forward_transfer,
 )
 from renate.training import run_training_job
-from renate.training.training_job import submit_remote_job
+from renate.training.training import submit_remote_job
 from renate.utils.file import (
     copy_to_uri,
     is_s3_uri,
