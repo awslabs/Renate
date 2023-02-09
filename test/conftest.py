@@ -181,11 +181,14 @@ TEST_LOGGER_KWARGS = {"save_dir": TEST_WORKING_DIRECTORY, "version": 1, "name": 
 
 @pytest.helpers.register
 def get_renate_module_mlp(num_inputs, num_outputs, num_hidden_layers, hidden_size) -> RenateModule:
-    return MultiLayerPerceptron(num_inputs, num_outputs, num_hidden_layers, hidden_size)
+    return MultiLayerPerceptron(
+        num_inputs, num_outputs, num_hidden_layers, hidden_size, add_icarl_class_means=False
+    )
 
 
 @pytest.helpers.register
 def get_renate_module_resnet(sub_class="resnet18cifar", **kwargs) -> RenateModule:
+    kwargs["add_icarl_class_means"] = False
     if sub_class == "resnet18cifar":
         return ResNet18CIFAR(**kwargs)
     elif sub_class == "resnet34cifar":
@@ -206,6 +209,7 @@ def get_renate_module_resnet(sub_class="resnet18cifar", **kwargs) -> RenateModul
 def get_renate_module_vision_transformer(
     sub_class="visiontransformerb16", **kwargs
 ) -> RenateModule:
+    kwargs["add_icarl_class_means"] = False
     if sub_class == "visiontransformercifar":
         return VisionTransformerCIFAR(**kwargs)
     elif sub_class == "visiontransformerb16":

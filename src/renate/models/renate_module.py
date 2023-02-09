@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import copy
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Any, Callable, List, Optional, Set
 
 import torch
@@ -99,6 +99,7 @@ class RenateModule(torch.nn.Module, ABC):
         self.loss_fn = state["loss_fn"]
         self._prediction_strategy = state["prediction_strategy"]
 
+    @abstractmethod
     def forward(self, x: torch.Tensor, task_id: Optional[str] = None) -> torch.Tensor:
         """Performs a forward pass on the inputs and returns the predictions.
 

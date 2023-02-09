@@ -23,6 +23,10 @@ class MultiLayerPerceptron(RenateBenchmarkingModule):
             hidden layers.
         batch_normalization: Whether to use Batch Normalization after the activation. By default the
             Batch Normalization tracks the running statistics.
+        prediction_strategy: Continual learning strategies may alter the prediction at train or test
+            time.
+        add_icarl_class_means: If ``True``, additional parameters used only by the
+            ``ICaRLModelUpdater`` are added. Only required when using that updater.
     """
 
     def __init__(
@@ -35,6 +39,7 @@ class MultiLayerPerceptron(RenateBenchmarkingModule):
         activation: str = "ReLU",
         batch_normalization: bool = False,
         prediction_strategy: Optional[PredictionStrategy] = None,
+        add_icarl_class_means: bool = True,
     ) -> None:
         embedding_size = hidden_size if type(hidden_size) == int else hidden_size[-1]
         super().__init__(
@@ -49,6 +54,7 @@ class MultiLayerPerceptron(RenateBenchmarkingModule):
             },
             loss_fn=loss,
             prediction_strategy=prediction_strategy,
+            add_icarl_class_means=add_icarl_class_means,
         )
         if isinstance(hidden_size, int):
             hidden_size = [hidden_size for _ in range(num_hidden_layers + 1)]

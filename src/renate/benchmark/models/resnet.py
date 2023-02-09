@@ -29,6 +29,10 @@ class ResNet(RenateBenchmarkingModule):
         norm_layer: What kind of normalization layer to use, following convolutions.
         cifar_stem: Whether to use a stem for CIFAR-sized images.
         loss: Loss function to be used for training.
+        prediction_strategy: Continual learning strategies may alter the prediction at train or test
+            time.
+        add_icarl_class_means: If ``True``, additional parameters used only by the
+            ``ICaRLModelUpdater`` are added. Only required when using that updater.
     """
 
     def __init__(
@@ -44,6 +48,7 @@ class ResNet(RenateBenchmarkingModule):
         cifar_stem: bool = True,
         loss: nn.Module = nn.CrossEntropyLoss(),
         prediction_strategy: Optional[PredictionStrategy] = None,
+        add_icarl_class_means: bool = True,
     ) -> None:
         model = _ResNet(
             block=block,
@@ -70,6 +75,7 @@ class ResNet(RenateBenchmarkingModule):
             },
             loss_fn=loss,
             prediction_strategy=prediction_strategy,
+            add_icarl_class_means=add_icarl_class_means,
         )
         self._model = model
         if cifar_stem:

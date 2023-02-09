@@ -10,7 +10,7 @@ from renate import defaults
 from renate.models import RenateModule
 from renate.models.prediction_strategies import ICaRLClassificationStrategy, PredictionStrategy
 
-
+# TODO: merge unit tests for the submodules
 class RenateBenchmarkingModule(RenateModule, ABC):
     def __init__(
         self,
@@ -19,8 +19,10 @@ class RenateBenchmarkingModule(RenateModule, ABC):
         constructor_arguments: dict,
         loss_fn: torch.nn.Module,
         prediction_strategy: Optional[PredictionStrategy] = None,
+        add_icarl_class_means: bool = True,
     ):
         constructor_arguments["num_outputs"] = num_outputs
+        constructor_arguments["add_icarl_class_means"] = add_icarl_class_means
         super().__init__(
             constructor_arguments=constructor_arguments,
             loss_fn=loss_fn,
@@ -30,10 +32,10 @@ class RenateBenchmarkingModule(RenateModule, ABC):
         self._num_outputs = num_outputs
         self._tasks_params: torch.nn.ModuleDict = torch.nn.ModuleDict()
         self.add_task_params(defaults.TASK_ID)
-        self.class_means = torch.nn.Parameter(
-            torch.zeros((embedding_size, num_outputs)), requires_grad=False
-        )
-        """Required for the ICaRLClassificationStrategy."""
+        if add_icarl_class_means:
+            self.class_means = torch.nn.Parameter(
+                torch.zeros((embedding_size, num_outputs)), requires_grad=False
+            )
 
     def forward(self, x: torch.Tensor, task_id: str = defaults.TASK_ID) -> torch.Tensor:
         x = self.get_backbone(task_id=task_id)(x)

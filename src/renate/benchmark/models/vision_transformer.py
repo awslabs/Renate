@@ -35,6 +35,10 @@ class VisionTransformer(RenateBenchmarkingModule):
         conv_stem_configs: List of ConvStemConfig. Each ConvStemConfig corresponds to a
             convolutional stem.
         loss: Loss function.
+        prediction_strategy: Continual learning strategies may alter the prediction at train or test
+            time.
+        add_icarl_class_means: If ``True``, additional parameters used only by the
+            ``ICaRLModelUpdater`` are added. Only required when using that updater.
     """
 
     def __init__(
@@ -54,6 +58,7 @@ class VisionTransformer(RenateBenchmarkingModule):
         weights: Optional[WeightsEnum] = None,
         loss: nn.Module = nn.CrossEntropyLoss(),
         prediction_strategy: Optional[PredictionStrategy] = None,
+        add_icarl_class_means: bool = True,
     ) -> None:
         model = _VisionTransformer(
             image_size=image_size,
@@ -87,6 +92,7 @@ class VisionTransformer(RenateBenchmarkingModule):
             },
             loss_fn=loss,
             prediction_strategy=prediction_strategy,
+            add_icarl_class_means=add_icarl_class_means,
         )
         self._model = model
         if weights:
