@@ -4,7 +4,7 @@
 from syne_tune.backend.sagemaker_backend.sagemaker_utils import get_execution_role
 from syne_tune.config_space import choice, loguniform, uniform
 
-from renate.run import run_training_job
+from renate.training import run_training_job
 
 config_space = {
     "optimizer": "SGD",

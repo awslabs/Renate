@@ -1,4 +1,4 @@
-from renate.run import run_training_job
+from renate.training import run_training_job
 from renate.utils.config_spaces import config_space
 
 if __name__ == "__main__":

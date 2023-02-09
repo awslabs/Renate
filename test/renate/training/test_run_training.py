@@ -11,7 +11,7 @@ from syne_tune.optimizer.schedulers import FIFOScheduler
 from syne_tune.optimizer.schedulers.transfer_learning import RUSHScheduler
 
 from renate import defaults
-from renate.run.training_job import (
+from renate.training.training_job import (
     RENATE_CONFIG_COLUMNS,
     _create_scheduler,
     _get_transfer_learning_task_evaluations,

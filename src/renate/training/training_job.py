@@ -140,7 +140,7 @@ def run_training_job(
         backend in defaults.SUPPORTED_BACKEND
     ), f"Backend {backend} is not in {defaults.SUPPORTED_BACKEND}."
     if backend == "local":
-        return _execute_tuning_and_tuning_job_locally(
+        return _execute_training_and_tuning_job_locally(
             input_state_url=input_state_url,
             output_state_url=output_state_url,
             working_directory=working_directory,
@@ -478,7 +478,7 @@ def _create_scheduler(
     )
 
 
-def _execute_tuning_and_tuning_job_locally(
+def _execute_training_and_tuning_job_locally(
     input_state_url: Optional[str],
     output_state_url: Optional[str],
     working_directory: Optional[str],

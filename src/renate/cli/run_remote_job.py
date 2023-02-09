@@ -9,7 +9,7 @@ import json
 
 import renate.defaults as defaults
 from renate.benchmark.experimentation import execute_experiment_job
-from renate.run import run_training_job
+from renate.training import run_training_job
 from renate.utils.syne_tune import config_space_from_dict
 
 if __name__ == "__main__":
