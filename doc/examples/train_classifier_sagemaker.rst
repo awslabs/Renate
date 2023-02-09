@@ -57,7 +57,7 @@ after the first training job has been executed, it is possible to re-train the m
 on the second chunk of the dataset that we left intentionally untouched during
 the first training process.
 
-To do this, it is sufficient to modifying the arguments passed to the :code:`execute_tuning_job` function.
+To do this, it is sufficient to modifying the arguments passed to the :py:func:`~renate.training.training.run_training_job` function.
 In particular:
 
 1. select the second part of the datasets by setting :code:`chunk-id = 1`.

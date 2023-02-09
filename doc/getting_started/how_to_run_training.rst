@@ -5,7 +5,7 @@ Renate offers possibility to run training jobs using both CLIs and functions tha
 programmatically in python. The best choice may be different depending on the requirements (e.g.,
 a CLI can be convenient to run remote jobs). In the following we illustrate the solution that we
 find to be the simplest and more convenient. The complete documentation is available in
-:py:func:`~renate.tuning.tuning.execute_tuning_job`.
+:py:func:`~renate.training.training.run_training_job`.
 
 
 Setup
@@ -15,7 +15,7 @@ The first step that needs to be completed before running a training job is to de
 to be trained and on which data. This is explained in :doc:`how_to_renate_config`.
 
 Once completed the first step, a simple way to run a training job is to use the
-:py:func:`~renate.tuning.tuning.execute_tuning_job`,
+:py:func:`~renate.training.training.run_training_job`,
 this can work for most training needs: it can launch trainings with and without HPO,
 either locally or on Amazon SageMaker.
 
@@ -48,7 +48,7 @@ instantiating the method you selected. See :doc:`supported_algorithms` for more 
 
 
 Once the configuration of the learning algorithm is specified, we need to set another couple of arguments
-in the :py:func:`~renate.tuning.tuning.execute_tuning_job` function to make sure we obtain the desired behavior:
+in the :py:func:`~renate.training.training.run_training_job` function to make sure we obtain the desired behavior:
 
 * :code:`mode`: it can be either :code:`min` or :code:`max` and define if the aim is to minimize or maximize the metric
 * :code:`metric`: it is the target metric. Metrics measured on the validation set are prefixed with :code:`val_`,
@@ -75,7 +75,7 @@ Run a training job on SageMaker
 ===============================
 
 Running a job on SageMaker is very similar to run the training job locally, but it will require a few changes
-to the arguments passed to :py:func:`~renate.tuning.tuning.execute_tuning_job`:
+to the arguments passed to :py:func:`~renate.training.training.run_training_job`:
 
 * :code:`backend`: the backend will have to be set to :code:`sagemaker`.
 * :code:`role`: an `execution role <https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-roles.html>`_ will need to be passed.
@@ -115,16 +115,16 @@ instead of exact values. If a hyperparameter does not need to be tuned, an exact
 For more suggestions and details about how to design a search space,
 see the `Syne Tune documentation <https://github.com/awslabs/syne-tune/blob/main/docs/search_space.md>`_.
 If you do not know which search space to use, you can adopt a default one by calling
-:py:func:`~renate.tuning.config_spaces.config_space` and passing the name of your algorithm to it.
+:py:func:`~renate.utils.config_spaces.config_space` and passing the name of your algorithm to it.
 
 .. code-block:: python
 
-    from renate.tuning.config_spaces import config_space
+    from renate.utils.config_spaces import config_space
 
     config_space("ER")
 
 After configuring the search space, it will be sufficient to add a few more arguments to
-the :py:func:`~renate.tuning.tuning.execute_tuning_job` function.
+the :py:func:`~renate.training.training.run_training_job` function.
 To start, please make sure that :code:`mode` and :code:`metric` (already introduced above) reflect your aim.
 Also, please make sure that in :code:`data_module_fn` a reasonable
 fraction of the data is assigned to the validation set, otherwise it will not be possible to measure validation performance reliably
