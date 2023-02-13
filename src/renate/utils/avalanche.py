@@ -1,9 +1,11 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Any, Dict, List, Optional, Tuple
+from collections import Counter
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 import torch
 from avalanche.benchmarks import dataset_benchmark
+from avalanche.core import BasePlugin
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset, Subset
 
@@ -106,3 +108,53 @@ class AvalancheBenchmarkWrapper:
         """Restores the state of the benchmark."""
         self._n_classes_per_exp = state_dict["n_classes_per_exp"]
         self._classes_order = state_dict["classes_order"]
+        self._benchmark.n_classes_per_exp = self._n_classes_per_exp
+        self._benchmark.classes_order = self._classes_order
+
+
+def replace_plugin(plugin: Optional[BasePlugin], plugins: List[BasePlugin]) -> List[BasePlugin]:
+    """Replaces a plugin if already exists and appends otherwise.
+
+    Args:
+        plugin: New plugin that replaces existing one.
+        plugins: List of current plugins.
+    Returns:
+        Reference to ``plugins``.
+    """
+    idx = _plugin_index(type(plugin), plugins)
+    if idx >= 0:
+        plugins[idx] = plugin
+    else:
+        plugins.append(plugin)
+    return plugins
+
+
+def plugin_by_class(
+    plugin_class: Type[BasePlugin], plugins: List[BasePlugin]
+) -> Optional[BasePlugin]:
+    """Returns plugin with respective class from a list of plugins.
+
+    Args:
+        plugin_class: Class type of interest in ``plugins``.
+        plugins: List of plugins we search for an object of type ``plugin_class``.
+    Returns:
+        ``None`` if class does not exist, otherwise the respective object.
+    """
+    idx = _plugin_index(plugin_class, plugins)
+    if idx >= 0:
+        return plugins[idx]
+    return None
+
+
+def _plugin_index(plugin_class: Type[BasePlugin], plugins: List[BasePlugin]) -> int:
+    """Returns index at which a plugin of that type is located in the list.
+
+    Returns:
+        Returns location of plugin and ``-1`` if it does not exist.
+    """
+    plugins_types = [type(p) for p in plugins]
+    if max(Counter(plugins_types).values()) > 1:
+        raise ValueError("Multiple occurrences of same type in `plugins` are not supported.")
+    if plugin_class in plugins_types:
+        return plugins_types.index(plugin_class)
+    return -1

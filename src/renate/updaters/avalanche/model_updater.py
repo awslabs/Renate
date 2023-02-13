@@ -94,7 +94,8 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
             plugins=[checkpoint_plugin, lr_scheduler_plugin],
             optimizer=optimizer,
             max_epochs=self._max_epochs,
-            current_state_folder=self._current_state_folder,
+            device=self._get_device(),
+            eval_every=1,
         )
         return avalanche_learner
 
@@ -177,7 +178,7 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
                 exist_ok=True, parents=True
             )  # TODO: remove when checkpointing is active
             torch.save(self._model.state_dict(), defaults.model_file(self._next_state_folder))
-        self._save_avalanche_state(benchmark, val_dataset_exists)
+            self._save_avalanche_state(benchmark, val_dataset_exists)
         self._report(
             **{
                 metric_name: results[metric_internal_name]
@@ -217,7 +218,9 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
             self._dummy_learner._val_memory_buffer.update(val_dataset)
             val_memory_dataset = TensorDataset(*self._dummy_learner._val_memory_buffer.to_tensors())
         else:
-            val_memory_dataset = train_dataset  # TODO can we work without val dataset?
+            val_memory_dataset = TensorDataset(*train_dataset[:2])
+            if isinstance(self, ICaRLModelUpdater):  # FIXME: fix problem to remove this exception
+                raise RuntimeError("ICaRLModelUpdater requires validation data.")
 
         benchmark = AvalancheBenchmarkWrapper(
             train_dataset=train_dataset,
@@ -234,7 +237,7 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
 
     def _save_avalanche_state(self, benchmark: AvalancheBenchmarkWrapper, val_dataset_exists: bool):
         state = benchmark.state_dict()
-        if val_dataset_exists and self._next_state_folder is not None:
+        if val_dataset_exists:
             state["val_memory_buffer"] = self._dummy_learner._val_memory_buffer.state_dict()
         torch.save(state, Path(self._next_state_folder) / defaults.AVALANCHE_CHECKPOINT_NAME)
 

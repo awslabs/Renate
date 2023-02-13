@@ -6,6 +6,7 @@ from typing import Callable, Dict
 
 import pytest
 import torch
+from avalanche.training.plugins import EWCPlugin
 from pytorch_lightning.loggers import TensorBoardLogger
 
 from renate.benchmark.models import (
@@ -24,6 +25,12 @@ from renate.benchmark.models import (
     VisionTransformerL32,
 )
 from renate.models.renate_module import RenateModule
+from renate.updaters.avalanche.learner import (
+    AvalancheEWCLearner,
+    AvalancheICaRLLearner,
+    AvalancheLwFLearner,
+    AvalancheReplayLearner,
+)
 from renate.updaters.experimental.er import ExperienceReplayLearner
 from renate.updaters.experimental.gdumb import GDumbLearner
 from renate.updaters.experimental.joint import JointLearner
@@ -114,6 +121,47 @@ LEARNER_KWARGS = {
         "seed": 1,
     },
 }
+AVALANCHE_LEARNER_KWARGS = {
+    AvalancheReplayLearner: {
+        "memory_size": 30,
+        "memory_batch_size": 20,
+        "optimizer": "SGD",
+        "learning_rate": 2.5,
+        "momentum": 1.3,
+        "weight_decay": 0.5,
+        "batch_size": 50,
+        "seed": 1,
+    },
+    AvalancheEWCLearner: {
+        "ewc_lambda": 0.1,
+        "optimizer": "SGD",
+        "learning_rate": 2.5,
+        "momentum": 1.3,
+        "weight_decay": 0.5,
+        "batch_size": 50,
+        "seed": 1,
+    },
+    AvalancheLwFLearner: {
+        "alpha": 0.1,
+        "temperature": 2,
+        "optimizer": "SGD",
+        "learning_rate": 2.5,
+        "momentum": 1.3,
+        "weight_decay": 0.5,
+        "batch_size": 50,
+        "seed": 1,
+    },
+    AvalancheICaRLLearner: {
+        "memory_size": 30,
+        "memory_batch_size": 20,
+        "optimizer": "SGD",
+        "learning_rate": 2.5,
+        "momentum": 1.3,
+        "weight_decay": 0.5,
+        "batch_size": 50,
+        "seed": 1,
+    },
+}
 LEARNER_HYPERPARAMETER_UPDATES = {
     ExperienceReplayLearner: {
         "optimizer": "Adam",
@@ -156,7 +204,19 @@ LEARNER_HYPERPARAMETER_UPDATES = {
         "batch_size": 128,
     },
 }
+AVALANCHE_LEARNER_HYPERPARAMETER_UPDATES = {
+    AvalancheEWCLearner: {
+        "ewc_lambda": 0.3,
+    },
+    AvalancheLwFLearner: {
+        "alpha": 0.2,
+        "temperature": 3,
+    },
+    AvalancheICaRLLearner: {},
+    AvalancheReplayLearner: {},
+}
 LEARNERS = list(LEARNER_KWARGS)
+AVALANCHE_LEARNERS = list(AVALANCHE_LEARNER_KWARGS)
 LEARNERS_USING_SIMPLE_UPDATER = [
     ExperienceReplayLearner,
     Learner,
@@ -180,9 +240,15 @@ TEST_LOGGER_KWARGS = {"save_dir": TEST_WORKING_DIRECTORY, "version": 1, "name": 
 
 
 @pytest.helpers.register
-def get_renate_module_mlp(num_inputs, num_outputs, num_hidden_layers, hidden_size) -> RenateModule:
+def get_renate_module_mlp(
+    num_inputs, num_outputs, num_hidden_layers, hidden_size, add_icarl_class_means=False
+) -> RenateModule:
     return MultiLayerPerceptron(
-        num_inputs, num_outputs, num_hidden_layers, hidden_size, add_icarl_class_means=False
+        num_inputs,
+        num_outputs,
+        num_hidden_layers,
+        hidden_size,
+        add_icarl_class_means=add_icarl_class_means,
     )
 
 
@@ -245,12 +311,14 @@ def get_renate_module_mlp_and_data(
     train_num_samples,
     test_num_samples,
     val_num_samples=0,
+    add_icarl_class_means=False,
 ):
     model = get_renate_module_mlp(
         num_inputs=num_inputs,
         num_outputs=num_outputs,
         hidden_size=hidden_size,
         num_hidden_layers=num_hidden_layers,
+        add_icarl_class_means=add_icarl_class_means,
     )
     train_dataset = torch.utils.data.TensorDataset(
         torch.rand(train_num_samples, num_inputs),

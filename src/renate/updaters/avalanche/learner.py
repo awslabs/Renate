@@ -1,7 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from collections import Counter
-from typing import Any, List, Optional, Type
+from typing import Any, List, Optional
 
 import torch
 from avalanche.core import BasePlugin, SupervisedPlugin
@@ -14,46 +13,12 @@ from avalanche.training.templates import BaseSGDTemplate, SupervisedTemplate
 from torch.optim import Optimizer
 
 from renate.updaters.learner import Learner, ReplayLearner
+from renate.utils.avalanche import plugin_by_class, replace_plugin
 
 
-def replace_plugin(plugin: Optional[BasePlugin], plugins: List[BasePlugin]) -> List[BasePlugin]:
-    """Replaces a plugin if already exists and appends otherwise.
+class AvalancheLoaderMixin:
+    """Mixin for Avalanche dummy learner classes."""
 
-    Args:
-        plugin: New plugin that replaces existing one.
-        plugins: List of current plugins.
-    """
-    idx = _plugin_index(type(plugin), plugins)
-    if idx >= 0:
-        plugins[idx] = plugin
-    else:
-        plugins.append(plugin)
-    return plugins
-
-
-def plugin_by_class(
-    plugin_class: Type[BasePlugin], plugins: List[BasePlugin]
-) -> Optional[BasePlugin]:
-    idx = _plugin_index(plugin_class, plugins)
-    if idx >= 0:
-        return plugins[idx]
-    return None
-
-
-def _plugin_index(plugin_class: Type[BasePlugin], plugins: List[BasePlugin]) -> int:
-    """Returns index at which a plugin of that type is located in the list.
-
-    Returns:
-        Returns location of plugin and ``-1`` if it does not exist.
-    """
-    plugins_types = [type(p) for p in plugins]
-    assert max(Counter(plugins_types).values()) <= 1, "Duplicate plugins are not supported"
-    if plugin_class in plugins_types:
-        return plugins_types.index(plugin_class)
-    return -1
-
-
-class AvalancheLoaderMixing:
     def update_settings(
         self,
         avalanche_learner: BaseSGDTemplate,
@@ -61,8 +26,10 @@ class AvalancheLoaderMixing:
         # evaluator: EvaluationPlugin,
         optimizer: Optimizer,
         max_epochs: int,
-        current_state_folder: Optional[str] = None,
+        device: torch.device,
+        eval_every: int,
     ) -> None:
+        """Updates settings of Avalanche learner after reloading."""
         for plugin in plugins:  # + [evaluator]:
             avalanche_learner.plugins = replace_plugin(plugin, avalanche_learner.plugins)
         # avalanche_learner.evaluator = evaluator
@@ -72,6 +39,8 @@ class AvalancheLoaderMixing:
         avalanche_learner.train_epochs = max_epochs
         avalanche_learner.train_mb_size = self._batch_size
         avalanche_learner.eval_mb_size = self._batch_size
+        avalanche_learner.device = device
+        avalanche_learner.eval_every = eval_every
 
     def _create_avalanche_learner(
         self,
@@ -83,6 +52,7 @@ class AvalancheLoaderMixing:
         eval_every: int,
         **kwargs: Any,
     ) -> BaseSGDTemplate:
+        """Returns Avalanche object that this dummy learner wraps around."""
         return SupervisedTemplate(
             model=self._model,
             optimizer=optimizer,
@@ -98,8 +68,8 @@ class AvalancheLoaderMixing:
         )
 
 
-class AvalancheReplayLearner(ReplayLearner, AvalancheLoaderMixing):
-    """Dummy class that enables consistent access and handling of inputs."""
+class AvalancheReplayLearner(ReplayLearner, AvalancheLoaderMixin):
+    """Renate wrapper around Avalanche Experience Replay."""
 
     def create_avalanche_learner(
         self, plugins: List[SupervisedPlugin], **kwargs: Any
@@ -113,8 +83,8 @@ class AvalancheReplayLearner(ReplayLearner, AvalancheLoaderMixing):
         return self._create_avalanche_learner(plugins=plugins, **kwargs)
 
 
-class AvalancheEWCLearner(Learner, AvalancheLoaderMixing):
-    """"""
+class AvalancheEWCLearner(Learner, AvalancheLoaderMixin):
+    """Renate wrapper around Avalanche EWC."""
 
     def __init__(self, ewc_lambda: float, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -132,8 +102,8 @@ class AvalancheEWCLearner(Learner, AvalancheLoaderMixing):
         return self._create_avalanche_learner(plugins=plugins, **kwargs)
 
 
-class AvalancheLwFLearner(Learner, AvalancheLoaderMixing):
-    """"""
+class AvalancheLwFLearner(Learner, AvalancheLoaderMixin):
+    """Renate wrapper around Avalanche LwF"""
 
     def __init__(self, alpha: float, temperature: float, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -154,8 +124,8 @@ class AvalancheLwFLearner(Learner, AvalancheLoaderMixing):
         return self._create_avalanche_learner(plugins=plugins, **kwargs)
 
 
-class AvalancheICaRLLearner(ReplayLearner, AvalancheLoaderMixing):
-    """"""
+class AvalancheICaRLLearner(ReplayLearner, AvalancheLoaderMixin):
+    """Renate wrapper around Avalanche ICaRL."""
 
     def create_avalanche_learner(
         self,
@@ -176,6 +146,12 @@ class AvalancheICaRLLearner(ReplayLearner, AvalancheLoaderMixing):
                 )
                 """
             )
+        if not hasattr(self._model, "get_backbone") or not hasattr(self._model, "get_predictor"):
+            raise RuntimeError(
+                "The RenateModule must be explicitly split into backbone and predictor module. "
+                "Please implement functions `get_backbone()` and `get_predictor()` to return these "
+                "modules."
+            )
         icarl = ICaRL(
             feature_extractor=self._model.get_backbone(),
             classifier=self._model.get_predictor(),
@@ -189,7 +165,7 @@ class AvalancheICaRLLearner(ReplayLearner, AvalancheLoaderMixing):
             device=device,
             plugins=plugins,
             # evaluator=evaluator,
-            eval_every=-1,  # TODO
+            eval_every=-1,  # TODO: https://github.com/ContinualAI/avalanche/issues/1281
         )
         plugin_by_class(_ICaRLPlugin, icarl.plugins).class_means = self._model.class_means
 
@@ -204,3 +180,6 @@ class AvalancheICaRLLearner(ReplayLearner, AvalancheLoaderMixing):
         )
         icarl_loss_plugin = plugin_by_class(ICaRLLossPlugin, avalanche_learner.plugins)
         avalanche_learner._criterion = icarl_loss_plugin
+        avalanche_learner.eval_every = (
+            -1
+        )  # TODO: https://github.com/ContinualAI/avalanche/issues/1281
