@@ -12,8 +12,9 @@ from avalanche.training.supervised.icarl import _ICaRLPlugin
 from avalanche.training.templates import BaseSGDTemplate, SupervisedTemplate
 from torch.optim import Optimizer
 
+from renate.updaters.avalanche.plugins import RenateCheckpointPlugin
 from renate.updaters.learner import Learner, ReplayLearner
-from renate.utils.avalanche import plugin_by_class, replace_plugin
+from renate.utils.avalanche import plugin_by_class, remove_plugin, replace_plugin
 
 
 class AvalancheLoaderMixin:
@@ -30,6 +31,7 @@ class AvalancheLoaderMixin:
         eval_every: int,
     ) -> None:
         """Updates settings of Avalanche learner after reloading."""
+        avalanche_learner.plugins = remove_plugin(RenateCheckpointPlugin, avalanche_learner.plugins)
         for plugin in plugins:  # + [evaluator]:
             avalanche_learner.plugins = replace_plugin(plugin, avalanche_learner.plugins)
         # avalanche_learner.evaluator = evaluator

@@ -11,6 +11,7 @@ from renate.utils.avalanche import (
     AvalancheSubset,
     _plugin_index,
     plugin_by_class,
+    remove_plugin,
     replace_plugin,
 )
 
@@ -91,6 +92,16 @@ def test_given_type_and_object_exists_in_list_returns_it():
     """``plugin_by_class`` returns object by type from list if exists."""
     expected = ReplayPlugin()
     assert expected == plugin_by_class(ReplayPlugin, [expected, EWCPlugin(ewc_lambda=1)])
+
+
+def test_given_plugin_exists_in_list_remove_it():
+    """Tests if `remove_plugin` removes a plugin if a plugin of this class already exists."""
+    to_be_removed = ReplayPlugin()
+    expected_plugin = EWCPlugin(ewc_lambda=1)
+    plugins = [to_be_removed, expected_plugin]
+    plugins = remove_plugin(ReplayPlugin, plugins)
+    assert expected_plugin == plugins[0]
+    assert len(plugins) == 1
 
 
 def test_given_type_and_object_exists_not_in_list_returns_none():

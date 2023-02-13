@@ -129,6 +129,21 @@ def replace_plugin(plugin: Optional[BasePlugin], plugins: List[BasePlugin]) -> L
     return plugins
 
 
+def remove_plugin(plugin_class: Type[BasePlugin], plugins: List[BasePlugin]) -> List[BasePlugin]:
+    """Removes a plugin by class if exists.
+
+    Args:
+        plugin_class: Remove a plugin of this class if exists.
+        plugins: List of current plugins.
+    Returns:
+        Reference to ``plugins``.
+    """
+    idx = _plugin_index(plugin_class, plugins)
+    if idx >= 0:
+        del plugins[idx]
+    return plugins
+
+
 def plugin_by_class(
     plugin_class: Type[BasePlugin], plugins: List[BasePlugin]
 ) -> Optional[BasePlugin]:

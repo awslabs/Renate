@@ -65,6 +65,7 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
         optimizer, scheduler = self._dummy_learner.configure_optimizers()
         optimizer, scheduler = optimizer[0], scheduler[0]
         lr_scheduler_plugin = LRSchedulerPlugin(scheduler=scheduler)
+        plugins = [lr_scheduler_plugin]
         avalanche_learner = self._load_if_exists(
             self._current_state_folder, self._metric, self._mode
         )
@@ -79,6 +80,7 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
                 # mode=self._mode,
                 # map_location=self._devices TODO
             )
+            plugins.append(checkpoint_plugin)
 
         if avalanche_learner is None:
             logger.warning("No updater state available. Updating from scratch.")
@@ -91,7 +93,7 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
 
         self._dummy_learner.update_settings(
             avalanche_learner=avalanche_learner,
-            plugins=[checkpoint_plugin, lr_scheduler_plugin],
+            plugins=plugins,
             optimizer=optimizer,
             max_epochs=self._max_epochs,
             device=self._get_device(),

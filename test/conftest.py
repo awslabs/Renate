@@ -6,7 +6,6 @@ from typing import Callable, Dict
 
 import pytest
 import torch
-from avalanche.training.plugins import EWCPlugin
 from pytorch_lightning.loggers import TensorBoardLogger
 
 from renate.benchmark.models import (
@@ -30,6 +29,9 @@ from renate.updaters.avalanche.learner import (
     AvalancheICaRLLearner,
     AvalancheLwFLearner,
     AvalancheReplayLearner,
+)
+from renate.updaters.avalanche.model_updater import (
+    AvalancheModelUpdater,
 )
 from renate.updaters.experimental.er import ExperienceReplayLearner
 from renate.updaters.experimental.gdumb import GDumbLearner
@@ -390,6 +392,41 @@ def get_simple_updater(
         max_epochs=max_epochs,
         accelerator="cpu",
         logger=TEST_LOGGER(**TEST_LOGGER_KWARGS),
+        early_stopping_enabled=early_stopping_enabled,
+        metric=metric,
+        **transforms_kwargs,
+    )
+
+
+@pytest.helpers.register
+def get_avalanche_updater(
+    model,
+    current_state_folder=None,
+    next_state_folder=None,
+    learner_class=AvalancheReplayLearner,
+    learner_kwargs={"memory_size": 10},
+    max_epochs=5,
+    train_transform=None,
+    train_target_transform=None,
+    test_transform=None,
+    test_target_transform=None,
+    early_stopping_enabled=False,
+    metric=None,
+):
+    transforms_kwargs = {
+        "train_transform": train_transform,
+        "train_target_transform": train_target_transform,
+        "test_transform": test_transform,
+        "test_target_transform": test_target_transform,
+    }
+    return AvalancheModelUpdater(
+        model=model,
+        learner_class=learner_class,
+        learner_kwargs=learner_kwargs,
+        current_state_folder=current_state_folder,
+        next_state_folder=next_state_folder,
+        max_epochs=max_epochs,
+        accelerator="cpu",
         early_stopping_enabled=early_stopping_enabled,
         metric=metric,
         **transforms_kwargs,
