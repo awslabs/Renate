@@ -10,6 +10,7 @@ from renate import defaults
 from renate.models import RenateModule
 from renate.models.prediction_strategies import ICaRLClassificationStrategy, PredictionStrategy
 
+
 # TODO: merge unit tests for the submodules
 class RenateBenchmarkingModule(RenateModule, ABC):
     def __init__(

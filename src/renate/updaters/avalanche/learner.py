@@ -1,6 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Any, List, Optional
+from typing import Any, List
 
 import torch
 from avalanche.core import BasePlugin, SupervisedPlugin

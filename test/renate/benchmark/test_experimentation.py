@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-from pandas.testing import assert_frame_equal
 
 from renate.benchmark.experimentation import execute_experiment_job
 
