@@ -27,10 +27,10 @@ class RenateBenchmarkingModule(RenateModule, ABC):
         super().__init__(
             constructor_arguments=constructor_arguments,
             loss_fn=loss_fn,
-            prediction_strategy=prediction_strategy,
         )
         self._embedding_size = embedding_size
         self._num_outputs = num_outputs
+        self._prediction_strategy = prediction_strategy
         self._tasks_params: torch.nn.ModuleDict = torch.nn.ModuleDict()
         self.add_task_params(defaults.TASK_ID)
         if add_icarl_class_means:

@@ -58,7 +58,6 @@ class RenateModule(torch.nn.Module, ABC):
         self,
         constructor_arguments: dict,
         loss_fn: torch.nn.Module,
-        prediction_strategy: Optional[PredictionStrategy] = None,
     ):
         super(RenateModule, self).__init__()
         self._constructor_arguments = copy.deepcopy(constructor_arguments)
@@ -66,7 +65,6 @@ class RenateModule(torch.nn.Module, ABC):
         self._tasks_params_ids: Set[str] = set()
         self._intermediate_representation_cache: List[torch.Tensor] = []
         self._hooks: List[Callable] = []
-        self._prediction_strategy = prediction_strategy
 
     @classmethod
     def from_state_dict(cls, state_dict):
