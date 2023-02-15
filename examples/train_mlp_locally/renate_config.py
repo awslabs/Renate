@@ -4,13 +4,11 @@ from typing import Callable, Optional, Union
 import torch
 from torchvision.transforms import transforms
 
-from renate.benchmark.models.mlp import MultiLayerPerceptron
-
-from renate.models import RenateModule
-
 from renate import defaults
 from renate.benchmark.datasets.vision_datasets import TorchVisionDataModule
+from renate.benchmark.models.mlp import MultiLayerPerceptron
 from renate.benchmark.scenarios import ClassIncrementalScenario, Scenario
+from renate.models import RenateModule
 
 
 def data_module_fn(

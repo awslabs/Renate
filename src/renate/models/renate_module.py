@@ -7,7 +7,6 @@ from typing import Any, Callable, List, Optional, Set
 import torch
 
 from renate.models.layers import ContinualNorm
-from renate.models.prediction_strategies import PredictionStrategy
 
 
 class RenateModule(torch.nn.Module, ABC):
