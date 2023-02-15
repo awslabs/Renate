@@ -86,7 +86,6 @@ class RenateModule(torch.nn.Module, ABC):
             "constructor_arguments": self._constructor_arguments,
             "tasks_params_ids": self._tasks_params_ids,
             "loss_fn": self.loss_fn,
-            "prediction_strategy": self._prediction_strategy,
         }
 
     def set_extra_state(self, state: Any):
@@ -94,7 +93,6 @@ class RenateModule(torch.nn.Module, ABC):
         self._constructor_arguments = state["constructor_arguments"]
         self._tasks_params_ids = state["tasks_params_ids"]
         self.loss_fn = state["loss_fn"]
-        self._prediction_strategy = state["prediction_strategy"]
 
     @abstractmethod
     def forward(self, x: torch.Tensor, task_id: Optional[str] = None) -> torch.Tensor:
