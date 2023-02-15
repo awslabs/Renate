@@ -183,9 +183,9 @@ class ModelUpdaterCLI:
     def _prepare_data_state_model(self, args: argparse.Namespace) -> None:
         """Assigns locations for data, state and model."""
         self._data_folder = defaults.data_folder(args.working_directory)
-        self._current_state_folder = defaults.current_state_folder(args.working_directory)
+        self._current_state_folder = defaults.input_state_folder(args.working_directory)
         working_directory = redirect_to_tmp(args.st_checkpoint_dir or args.working_directory)
-        self._next_state_folder = defaults.next_state_folder(working_directory)
+        self._next_state_folder = defaults.output_state_folder(working_directory)
         self._current_model_file = defaults.model_file(self._current_state_folder)
         self._next_model_file = defaults.model_file(self._next_state_folder)
         self._copy_state_to_working_directory(args.state_url, self._current_state_folder)

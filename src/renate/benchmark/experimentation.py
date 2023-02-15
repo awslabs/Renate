@@ -248,8 +248,8 @@ def _execute_experiment_job_locally(
     logger.info("Start experiment.")
     seed_everything(seed)
 
-    state_url = defaults.current_state_folder(working_directory)
-    next_state_url = defaults.next_state_folder(working_directory)
+    state_url = defaults.input_state_folder(working_directory)
+    next_state_url = defaults.output_state_folder(working_directory)
     data_url = defaults.data_folder(working_directory)
     model_url = defaults.model_file(state_url)
     logs_url = defaults.logs_folder(working_directory)

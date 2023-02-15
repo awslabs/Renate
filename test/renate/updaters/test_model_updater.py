@@ -23,7 +23,7 @@ def test_simple_model_updater(tmpdir, provide_folder):
         test_num_samples=5,
     )
     model_updater = pytest.helpers.get_simple_updater(
-        model, next_state_folder=defaults.next_state_folder(tmpdir) if provide_folder else None
+        model, next_state_folder=defaults.output_state_folder(tmpdir) if provide_folder else None
     )
     y_hat_before_train = model(test_data, task_id=defaults.TASK_ID)
     model_updater.update(train_dataset, task_id=defaults.TASK_ID)
@@ -112,7 +112,7 @@ def test_continuation_of_training_with_simple_model_updater(tmpdir, learner_clas
         train_num_samples=10,
         test_num_samples=5,
     )
-    state_url = defaults.current_state_folder(tmpdir)
+    state_url = defaults.input_state_folder(tmpdir)
     model_updater = pytest.helpers.get_simple_updater(
         model,
         learner_class=learner_class,
@@ -151,7 +151,7 @@ def test_transforms_passed_to_simple_model_updater_will_be_used_by_learner(tmpdi
         train_num_samples=10,
         test_num_samples=5,
     )
-    state_url = defaults.current_state_folder(tmpdir)
+    state_url = defaults.input_state_folder(tmpdir)
     transforms_kwargs = {
         "train_transform": identity_transform(),
         "train_target_transform": identity_transform(),
