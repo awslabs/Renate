@@ -149,7 +149,8 @@ def test_permutation_scenario():
 def test_transforms_in_transform_scenarios_are_distinct(scenario_class, scenario_kwargs):
     """Tests if transformations are different.
 
-    Checks two cases: 1) transforms must not be same objects and 2) transforms must not perform identical operations.
+    Checks two cases: 1) transforms must not be same objects and 2) transforms must not perform
+    identical operations.
     """
     data_module = DummyTorchVisionDataModule()
     scenario = scenario_class(data_module=data_module, **scenario_kwargs, chunk_id=0, seed=0)
