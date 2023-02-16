@@ -357,15 +357,6 @@ class WeightedCLSLossComponent(WeightedLossComponent):
         assert self._plastic_model_update_probability > self._stable_model_update_probability
         assert self._plastic_model_update_weight <= self._stable_model_update_weight
 
-    def _get_model_outputs(self, inputs: Inputs) -> torch.Tensor:
-        """Computes outputs from plastic and stable model."""
-        if isinstance(inputs, torch.Tensor):
-            return self._plastic_model(inputs), self._stable_model(inputs)
-        elif isinstance(inputs, tuple):
-            return self._plastic_model(*inputs), self._stable_model(*inputs)
-        elif isinstance(inputs, dict):
-            return self._plastic_model(**inputs), self._stable_model(**inputs)
-
     def _loss(
         self,
         outputs_memory: torch.Tensor,
@@ -375,7 +366,8 @@ class WeightedCLSLossComponent(WeightedLossComponent):
         """Computes the consistency loss with respect to averaged plastic and stable models."""
         (inputs_memory, targets_memory), _ = batch_memory
         with torch.no_grad():
-            outputs_plastic, outputs_stable = self._get_model_outputs(inputs_memory)
+            outputs_plastic = self._plastic_model(inputs_memory)
+            outputs_stable = self._plastic_model(inputs_memory)
             probs_plastic = F.softmax(outputs_plastic, dim=-1)
             probs_stable = F.softmax(outputs_stable, dim=-1)
             label_mask = F.one_hot(targets_memory, num_classes=outputs_stable.shape[-1]) > 0

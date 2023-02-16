@@ -19,7 +19,7 @@ from renate.models import RenateModule
 from renate.utils.optimizer import create_optimizer, create_scheduler
 from renate.utils.pytorch import get_generator
 
-Inputs = Union[torch.Tensor, Tuple[torch.Tensor, ...], Dict[Hashable, torch.Tensor]]
+Inputs = Union[torch.Tensor, Tuple[torch.Tensor, ...], Dict[str, torch.Tensor]]
 
 
 class Learner(LightningModule, abc.ABC):
@@ -277,12 +277,7 @@ class Learner(LightningModule, abc.ABC):
         """Forward pass of the model."""
         if task_id is None:
             task_id = self._task_id
-        if isinstance(inputs, torch.Tensor):
-            return self._model(inputs, task_id=task_id)
-        elif isinstance(inputs, tuple):
-            return self._model(*inputs, task_id=task_id)
-        elif isinstance(inputs, dict):
-            return self._model(**inputs, task_id=task_id)
+        return self._model(inputs, task_id=task_id)
 
     def training_step(self, batch: List[torch.Tensor], batch_idx: int) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""

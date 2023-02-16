@@ -65,12 +65,7 @@ def extract_logits(
         inputs = batch[0][0] if isinstance(dataset, DataBuffer) else batch[0]
         device = next(model.parameters()).device
         inputs = move_tensors_to_device(inputs, device)
-        if isinstance(inputs, torch.Tensor):
-            logits.append(model.get_logits(inputs, task_id))
-        elif isinstance(inputs, tuple):
-            logits.append(model.get_logits(*inputs, task_id))
-        elif isinstance(inputs, dict):
-            logits.append(model.get_logits(**inputs, task_id=task_id))
+        logits.append(model.get_logits(inputs, task_id))
     return torch.cat(logits, dim=0)
 
 
