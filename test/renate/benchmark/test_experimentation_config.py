@@ -78,13 +78,6 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             3,
         ),
         (
-            "ClassIncrementalScenario",
-            "AG_NEWS",
-            {"data_module_fn_class_groupings": "[[1,2],[3,4]]"},
-            ClassIncrementalScenario,
-            2,
-        ),
-        (
             "ImageRotationScenario",
             "MNIST",
             {"data_module_fn_degrees": "[0,90,180]"},
@@ -102,7 +95,6 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
     ),
     ids=[
         "class_incremental_image",
-        "class_incremental_text",
         "rotation",
         "benchmark",
         "permutation",

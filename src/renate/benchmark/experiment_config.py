@@ -7,7 +7,6 @@ from typing import List, Optional, Tuple, Union
 import torch
 from torchvision.transforms import transforms
 
-from renate.benchmark.datasets.nlp_datasets import TorchTextDataModule
 from renate.benchmark.datasets.vision_datasets import CLEARDataModule, TorchVisionDataModule
 from renate.benchmark.models import (
     MultiLayerPerceptron,
@@ -89,10 +88,6 @@ def get_data_module(
         )
     if dataset_name in ["CLEAR10", "CLEAR100"]:
         return CLEARDataModule(data_path, dataset_name=dataset_name, val_size=val_size, seed=seed)
-    if dataset_name in TorchTextDataModule.dataset_dict:
-        return TorchTextDataModule(
-            data_path, dataset_name=dataset_name, val_size=val_size, seed=seed
-        )
     raise ValueError(f"Unknown dataset `{dataset_name}`.")
 
 
