@@ -5,6 +5,7 @@ from typing import Optional
 
 import datasets
 import torch
+import transformers
 
 from renate import defaults
 from renate.data.data_module import RenateDataModule
@@ -31,9 +32,9 @@ class HuggingfaceDataModule(RenateDataModule):
 
     This is convenience wrapper to expose a hugginface dataset as a `RenateDataModule`. Datasets
     will be pre-tokenized and will return `input, target = dataset[i]`, where `input` is a
-    dictionary with fields `"input_ids"`, `"attention_mask"` and `target` is a tensor.
+    dictionary with fields `["input_ids", "attention_mask"]`, and `target` is a tensor.
 
-    We expect the dataset to have a "train" and a "test" split. An additional "validation_split"
+    We expect the dataset to have a "train" and a "test" split. An additional "validation" split
     will be used if present. Otherwise, a validation set may be split off of the training data
     using the `val_size` argument.
 
@@ -54,7 +55,7 @@ class HuggingfaceDataModule(RenateDataModule):
         dataset_name: str = "ag_news",
         input_column: str = "text",
         target_column: str = "label",
-        tokenizer=None,
+        tokenizer: Optional[transformers.PreTrainedTokenizer] = None,
         tokenizer_kwargs: Optional[dict] = None,
         val_size: float = defaults.VALIDATION_SIZE,
         seed: int = defaults.SEED,
