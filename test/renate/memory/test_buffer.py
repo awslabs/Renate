@@ -199,8 +199,7 @@ def test_buffer_get_state_dict(max_size):
         metadata = {"x": torch.ones(10, 10)}
         buffer.update(ds, metadata)
     state_dict = buffer.state_dict()
-    # for key, value in state_dict["data_points"].items():
-    #     assert torch.all(torch.eq(buffer._data_points[key], value))
+    torch.all(torch.eq(buffer._data_points[0], state_dict["data_points"][0]))
 
     assert torch.all(torch.eq(buffer.metadata["x"], state_dict["metadata"]["x"]))
 
