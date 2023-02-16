@@ -11,8 +11,9 @@ from renate import defaults
 from renate.utils.pytorch import get_generator
 
 
+DataTuple = Tuple[torch.Tensor, ...]
 DataDict = Dict[Hashable, torch.Tensor]
-NestedTensors = Union[torch.Tensor, Tuple[torch.Tensor], Dict[Hashable, torch.Tensor]]
+NestedTensors = Union[torch.Tensor, DataTuple, DataDict]
 Index = Union[int, slice]
 
 
