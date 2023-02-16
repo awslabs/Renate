@@ -25,6 +25,7 @@ from renate.updaters.learner_components.reinitialization import (
     ShrinkAndPerturbReinitializationComponent,
 )
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
+from renate.utils.pytorch import move_tensors_to_device
 
 
 class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
@@ -138,8 +139,8 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
         self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor], batch_idx: int
     ) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
-        idx, (X, y) = batch
-        step_output = super().training_step(batch=(X, y), batch_idx=batch_idx)
+        idx, (inputs, targets) = batch
+        step_output = super().training_step(batch=(inputs, targets), batch_idx=batch_idx)
         step_output["train_data_idx"] = idx
         step_output["loss"] *= self._loss_weight
 
@@ -153,8 +154,12 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
                 memory_sampled = False
                 if component.sample_new_memory_batch or batch_memory is None:
                     batch_memory = self._sample_from_buffer(device=step_output["loss"].device)
-                    (x_memory, _), metadata_memory = batch_memory
-                    outputs_memory = self(x_memory)
+                    print(batch_memory)
+                    print(
+                        f"Memory buffer length {len(self._memory_buffer)}, memory_batch_size = {self._memory_batch_size}."
+                    )
+                    (inputs_memory, _), metadata_memory = batch_memory
+                    outputs_memory = self(inputs_memory)
                     intermediate_representation_memory = (
                         self._model.get_intermediate_representation()
                     )
@@ -187,12 +192,8 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
         """Function to sample from the buffer, if buffer is populated."""
         if self._memory_loader is not None and len(self._memory_buffer) >= self._memory_batch_size:
             memory_batch = next(iter(self._memory_loader))
-            (x_memory, y_memory), metadata = memory_batch
-            x_memory, y_memory = x_memory.to(device), y_memory.to(device)
-            for key, value in metadata.items():
-                if isinstance(value, torch.Tensor):
-                    metadata[key] = value.to(device)
-            return (x_memory, y_memory), metadata
+            print(f"Memory batch before device placement: {memory_batch}.")
+            return move_tensors_to_device(memory_batch, device)
         else:
             return None
 

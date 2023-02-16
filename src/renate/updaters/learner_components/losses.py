@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import copy
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, Hashable, List, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
@@ -10,6 +10,8 @@ import torch.nn.functional as F
 from renate.memory.buffer import DataDict, DataTuple
 from renate.models import RenateModule
 from renate.updaters.learner_components.component import Component
+
+Inputs = Union[torch.Tensor, Tuple[torch.Tensor, ...], Dict[Hashable, torch.Tensor]]
 
 
 class WeightedLossComponent(Component, ABC):
@@ -92,8 +94,8 @@ class WeightedCustomLossComponent(WeightedLossComponent):
         intermediate_representation_memory: Optional[List[torch.Tensor]],
     ) -> torch.Tensor:
         """Returns user-provided loss evaluated on memory batch."""
-        (_, y_memory), _ = batch_memory
-        return self.weight * self._loss_fn(outputs_memory, y_memory)
+        (_, targets_memory), _ = batch_memory
+        return self.weight * self._loss_fn(outputs_memory, targets_memory)
 
 
 class WeightedMeanSquaredErrorLossComponent(WeightedLossComponent):
@@ -109,7 +111,7 @@ class WeightedMeanSquaredErrorLossComponent(WeightedLossComponent):
     ) -> torch.Tensor:
         """Mean-squared error between current and previous logits on memory."""
         logits = outputs_memory
-        (_, _), meta_data = batch_memory
+        _, meta_data = batch_memory
         previous_logits = meta_data["outputs"]
         return self.weight * F.mse_loss(logits, previous_logits, reduction="mean")
 
@@ -257,7 +259,7 @@ class WeightedPooledOutputDistillationLossComponent(WeightedLossComponent):
         memory.
         """
         loss = 0.0
-        (_, _), meta_data = batch_memory
+        _, meta_data = batch_memory
         for n in range(len(intermediate_representation_memory)):
             features = intermediate_representation_memory[n]
             features_memory = meta_data[f"intermediate_representation_{n}"]
@@ -355,6 +357,15 @@ class WeightedCLSLossComponent(WeightedLossComponent):
         assert self._plastic_model_update_probability > self._stable_model_update_probability
         assert self._plastic_model_update_weight <= self._stable_model_update_weight
 
+    def _get_model_outputs(self, inputs: Inputs) -> torch.Tensor:
+        """Computes outputs from plastic and stable model."""
+        if isinstance(inputs, torch.Tensor):
+            return self._plastic_model(inputs), self._stable_model(inputs)
+        elif isinstance(inputs, tuple):
+            return self._plastic_model(*inputs), self._stable_model(*inputs)
+        elif isinstance(inputs, dict):
+            return self._plastic_model(**inputs), self._stable_model(**inputs)
+
     def _loss(
         self,
         outputs_memory: torch.Tensor,
@@ -362,23 +373,14 @@ class WeightedCLSLossComponent(WeightedLossComponent):
         intermediate_representation_memory: Optional[List[torch.Tensor]],
     ) -> torch.Tensor:
         """Computes the consistency loss with respect to averaged plastic and stable models."""
-        (x_memory, y_memory), _ = batch_memory
+        (inputs_memory, targets_memory), _ = batch_memory
         with torch.no_grad():
-            outputs_plastic = self._plastic_model(x_memory)
-            outputs_stable = self._stable_model(x_memory)
-
+            outputs_plastic, outputs_stable = self._get_model_outputs(inputs_memory)
             probs_plastic = F.softmax(outputs_plastic, dim=-1)
             probs_stable = F.softmax(outputs_stable, dim=-1)
-
-            label_mask = F.one_hot(y_memory, num_classes=outputs_stable.shape[-1]) > 0
+            label_mask = F.one_hot(targets_memory, num_classes=outputs_stable.shape[-1]) > 0
             idx = (probs_stable[label_mask] > probs_plastic[label_mask]).unsqueeze(1)
-
-            outputs = torch.where(
-                idx,
-                outputs_stable,
-                outputs_plastic,
-            )
-
+            outputs = torch.where(idx, outputs_stable, outputs_plastic)
         consistency_loss = F.mse_loss(outputs_memory, outputs.detach(), reduction="mean")
         return self.weight * consistency_loss
 

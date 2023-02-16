@@ -94,15 +94,15 @@ class OfflineExperienceReplayLearner(ReplayLearner):
             )
         else:
             alpha = self._loss_weight_new_data
-        x, y = batch["current_task"]
-        outputs = self(x)
-        loss = self._model.loss_fn(outputs, y)
+        inputs, targets = batch["current_task"]
+        outputs = self(inputs)
+        loss = self._model.loss_fn(outputs, targets)
         self._loss_collections["train_losses"]["base_loss"](loss)
-        self._update_metrics(outputs, y, "train")
+        self._update_metrics(outputs, targets, "train")
         if "memory" in batch:
-            x_mem, y_mem = batch["memory"]
-            outputs_mem = self(x_mem)
-            loss_mem = self._model.loss_fn(outputs_mem, y_mem)
+            inputs_mem, targets_mem = batch["memory"]
+            outputs_mem = self(inputs_mem)
+            loss_mem = self._model.loss_fn(outputs_mem, targets_mem)
             self._loss_collections["train_losses"]["memory_loss"](loss_mem)
             loss = alpha * loss + (1.0 - alpha) * loss_mem
         return {"loss": loss}

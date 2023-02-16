@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import abc
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Hashable, List, Literal, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -18,6 +18,8 @@ from renate.memory import DataBuffer, InfiniteBuffer, ReservoirBuffer
 from renate.models import RenateModule
 from renate.utils.optimizer import create_optimizer, create_scheduler
 from renate.utils.pytorch import get_generator
+
+Inputs = Union[torch.Tensor, Tuple[torch.Tensor, ...], Dict[Hashable, torch.Tensor]]
 
 
 class Learner(LightningModule, abc.ABC):
@@ -271,21 +273,25 @@ class Learner(LightningModule, abc.ABC):
         """Called right before a model update terminates."""
         return self._model
 
-    def forward(self, x, task_id: Optional[str] = None) -> torch.Tensor:
+    def forward(self, inputs: Inputs, task_id: Optional[str] = None) -> torch.Tensor:
         """Forward pass of the model."""
         if task_id is None:
             task_id = self._task_id
-        return self._model(x, task_id=task_id)
+        if isinstance(inputs, torch.Tensor):
+            return self._model(inputs, task_id=task_id)
+        elif isinstance(inputs, tuple):
+            return self._model(*inputs, task_id=task_id)
+        elif isinstance(inputs, dict):
+            return self._model(**inputs, task_id=task_id)
 
     def training_step(self, batch: List[torch.Tensor], batch_idx: int) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
-        x, y = batch
-        outputs = self(x)
+        inputs, targets = batch
+        outputs = self(inputs)
         intermediate_representation = self._model.get_intermediate_representation()
         self._model.reset_intermediate_representation_cache()
-        loss = self._model.loss_fn(outputs, y)
-
-        self._update_metrics(outputs, y, "train")
+        loss = self._model.loss_fn(outputs, targets)
+        self._update_metrics(outputs, targets, "train")
         self._loss_collections["train_losses"]["base_loss"](loss)
         return {
             "loss": loss,
@@ -307,10 +313,10 @@ class Learner(LightningModule, abc.ABC):
 
     def validation_step(self, batch: List[torch.Tensor], batch_idx: int) -> None:
         """PyTorch Lightning function to estimate validation metrics."""
-        (x, y), _ = batch
-        outputs = self(x)
-        loss = self._model.loss_fn(outputs, y)
-        self._update_metrics(outputs, y, "val")
+        (inputs, targets), _ = batch
+        outputs = self(inputs)
+        loss = self._model.loss_fn(outputs, targets)
+        self._update_metrics(outputs, targets, "val")
         self._loss_collections["val_losses"]["loss"](loss)
 
     def validation_epoch_end(self, outputs: List[Union[Tensor, Dict[str, Any]]]) -> None:

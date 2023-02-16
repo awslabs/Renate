@@ -14,7 +14,7 @@ from renate.memory import DataBuffer
 from renate.models import RenateModule
 from renate.updaters.learner import Learner, ReplayLearner
 from renate.updaters.model_updater import ModelUpdater
-from renate.utils.pytorch import reinitialize_model_parameters
+from renate.utils.pytorch import move_tensors_to_device, reinitialize_model_parameters
 
 
 def double_distillation_loss(
@@ -62,11 +62,15 @@ def extract_logits(
     logits = []
     loader = DataLoader(dataset, batch_size, shuffle=False, drop_last=False, pin_memory=True)
     for batch in loader:
-        if isinstance(dataset, DataBuffer):
-            X = batch[0][0].to(next(model.parameters()).device)
-        else:
-            X = batch[0].to(next(model.parameters()).device)
-        logits.append(model.get_logits(X, task_id))
+        inputs = batch[0][0] if isinstance(dataset, DataBuffer) else batch[0]
+        device = next(model.parameters()).device
+        inputs = move_tensors_to_device(inputs, device)
+        if isinstance(inputs, torch.Tensor):
+            logits.append(model.get_logits(inputs, task_id))
+        elif isinstance(inputs, tuple):
+            logits.append(model.get_logits(*inputs, task_id))
+        elif isinstance(inputs, dict):
+            logits.append(model.get_logits(**inputs, task_id=task_id))
     return torch.cat(logits, dim=0)
 
 
@@ -291,9 +295,9 @@ class RepeatedDistillationLearner(ReplayLearner):
 
     def training_step(self, batch: List[torch.Tensor], batch_idx: int) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
-        (X, y), metadata = batch
-        outputs = self._model(X)
+        (inputs, targets), metadata = batch
+        outputs = self(inputs)
         loss = double_distillation_loss(outputs, metadata["logits"]).mean()
-        self._update_metrics(outputs, y, prefix="train")
+        self._update_metrics(outputs, targets, prefix="train")
         self._loss_collections["train_losses"]["base_loss"](loss)
         return {"loss": loss, "outputs": outputs}
