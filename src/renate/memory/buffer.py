@@ -13,7 +13,7 @@ from renate.utils.pytorch import get_generator
 
 DataDict = Dict[Hashable, torch.Tensor]
 NestedTensors = Union[torch.Tensor, Tuple[torch.Tensor], Dict[Hashable, torch.Tensor]]
-Index = Union(int, slice)
+Index = Union[int, slice]
 
 
 def _make_storage(data_point: NestedTensors, length: int) -> NestedTensors:
