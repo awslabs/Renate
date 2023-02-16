@@ -238,6 +238,6 @@ class PermutationScenario(TransformScenario):
         transforms = [torch.nn.Identity()]
         for _ in range(num_tasks - 1):
             permutation = torch.randperm(input_dim, generator=rng)
-            transform = Lambda(lambda x: x.flatten()[permutation].view(x.size()))
+            transform = Lambda(lambda x, p=permutation: x.flatten()[p].view(x.size()))
             transforms.append(transform)
         super().__init__(data_module, transforms, chunk_id, seed)

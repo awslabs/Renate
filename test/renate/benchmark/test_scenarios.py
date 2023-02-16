@@ -139,6 +139,32 @@ def test_permutation_scenario():
                 assert torch.equal(a, b)
 
 
+@pytest.mark.parametrize(
+    "scenario_class, scenario_kwargs",
+    (
+        (ImageRotationScenario, {"degrees": [0, 90, 180, 270]}),
+        (PermutationScenario, {"num_tasks": 4, "input_dim": (1, 5, 5)}),
+    ),
+)
+def test_transforms_in_transform_scenarios_are_distinct(scenario_class, scenario_kwargs):
+    """Tests if transformations are different.
+
+    Checks two cases: 1) transforms must not be same objects and 2) transforms must not perform
+    identical operations.
+    """
+    data_module = DummyTorchVisionDataModule()
+    scenario = scenario_class(data_module=data_module, **scenario_kwargs, chunk_id=0, seed=0)
+    scenario.prepare_data()
+    scenario.setup()
+    x = data_module.X_train[0]
+    for i, transform in enumerate(scenario._transforms):
+        for j, transform2 in enumerate(scenario._transforms):
+            if i == j:
+                continue
+            assert transform != transform2
+            assert not torch.all(torch.isclose(transform(x), transform2(x)))
+
+
 def test_benchmark_scenario():
     data_module = DummyTorchVisionDataModuleWithChunks(num_chunks=3, val_size=0.2)
     for chunk_id in range(3):
