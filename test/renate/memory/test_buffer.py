@@ -71,7 +71,7 @@ def test_nested_tensor_storage(data_point, length):
         NestedTensorDataset({"X": torch.empty(10, 2), "y": torch.arange(10)}),
         NestedTensorDataset({"X": torch.empty(100, 2), "y": torch.arange(100)}),
         NestedTensorDataset(({"X": torch.empty(10, 2), "z": torch.empty(10)}, torch.arange(10))),
-        NestedTensorDataset(({"X": torch.empty(100, 2), "y": torch.empty(100)}, torch.arange(100))),
+        NestedTensorDataset(({"X": torch.empty(100, 2), "z": torch.empty(100)}, torch.arange(100))),
     ],
 )
 def test_buffer_respects_max_size(buffer_cls, max_size, num_updates, dataset):

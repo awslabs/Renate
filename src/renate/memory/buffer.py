@@ -11,10 +11,9 @@ from renate import defaults
 from renate.utils.pytorch import get_generator
 
 
-DataTuple = Tuple[torch.Tensor]
 DataDict = Dict[Hashable, torch.Tensor]
-NestedTensors = Union[torch.Tensor, DataTuple, DataDict]  # TODO: Technically, they could be nested.
-Index = int  # TODO: Include slices in type hint
+NestedTensors = Union[torch.Tensor, Tuple[torch.Tensor], Dict[Hashable, torch.Tensor]]
+Index = Union(int, slice)
 
 
 def _make_storage(data_point: NestedTensors, length: int) -> NestedTensors:
@@ -163,13 +162,13 @@ class DataBuffer(Dataset, ABC):
                 targets = self._target_transform(targets)
             return (inputs, targets), metadata
 
-    def __setitem__(self, idx: int, data_and_metadata: Tuple[NestedTensors, NestedTensors]) -> None:
+    def __setitem__(self, idx: int, data_and_metadata: Tuple[NestedTensors, DataDict]) -> None:
         """Replaces a data point in the buffer."""
         data, metadata = data_and_metadata
         _insert_data_point(self._data_points, idx, data)
         _insert_data_point(self.metadata, idx, metadata)
 
-    def _append(self, data: NestedTensors, metadata: NestedTensors) -> None:
+    def _append(self, data: NestedTensors, metadata: DataDict) -> None:
         """Appends a data point to the internal storage."""
         if not len(self):
             self._data_points = _make_storage(data, self._max_size)
@@ -177,7 +176,7 @@ class DataBuffer(Dataset, ABC):
         self[self._size] = data, metadata
         self._size += 1
 
-    def update(self, dataset: Dataset, metadata: Optional[NestedTensors] = None) -> None:
+    def update(self, dataset: Dataset, metadata: Optional[DataDict] = None) -> None:
         """Updates the buffer with a new dataset.
 
         Args:
@@ -189,7 +188,7 @@ class DataBuffer(Dataset, ABC):
         return self._update(dataset, metadata)
 
     @abstractmethod
-    def _update(self, dataset: Dataset, metadata: NestedTensors) -> None:
+    def _update(self, dataset: Dataset, metadata: DataDict) -> None:
         pass
 
     def set_transforms(
@@ -260,7 +259,7 @@ class InfiniteBuffer(DataBuffer):
         )
         self._max_size = 16
 
-    def _update(self, dataset: Dataset, metadata: NestedTensors) -> None:
+    def _update(self, dataset: Dataset, metadata: DataDict) -> None:
         for i in range(len(dataset)):
             self._append(dataset[i], {key: value[i] for key, value in metadata.items()})
 
@@ -369,7 +368,7 @@ class GreedyClassBalancingBuffer(DataBuffer):
 
             self._count += 1
 
-    def _record_class_index(self, data: DataTuple, target_index: int) -> None:
+    def _record_class_index(self, data: NestedTensors, target_index: int) -> None:
         """Helper function to record the class membership in the mapping."""
         _, y = data
         if isinstance(y, torch.Tensor):
