@@ -25,7 +25,7 @@ class MyMNISTMLP(RenateModule):
         return self._fc2(x)
 
 
-def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule:
+def model_fn(model_state_url: Optional[str] = None) -> RenateModule:
     if model_state_url is None:
         # If no model state is given, we create the model from scratch with initial model
         # hyperparameters.
@@ -39,7 +39,7 @@ def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule
 
 
 class MyMNISTDataModule(RenateDataModule):
-    def __init__(self, data_path: Union[Path, str], val_size: float, seed: int = 42) -> None:
+    def __init__(self, data_path: str, val_size: float, seed: int = 42) -> None:
         super().__init__(data_path, val_size=val_size, seed=seed)
 
     def prepare_data(self) -> None:

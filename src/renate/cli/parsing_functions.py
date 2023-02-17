@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import argparse
+import inspect
 import sys
 from types import ModuleType
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
@@ -115,33 +116,6 @@ def parse_hyperparameters(parser) -> None:
     assert updater in parse_by_updater, f"Unknown updater {updater}."
     parse_by_updater[updater](parser)
     parse_optimizer_arguments(parser)
-
-
-def parse_unknown_args(unknown_args_list: List[str]) -> Dict[str, str]:
-    """Parses arguments provided using the command line which are not in the standard list of args.
-
-    For example these args can be used to pass hyperparameters to the model function.
-    """
-    args: Dict[str, str] = {}
-
-    if len(unknown_args_list) % 2 != 0:
-        raise ValueError(
-            "Error: unable to parse the additional arguments. "
-            "Please make sure arguments are specified in the format: --arg_name value. "
-            f"The following list of arguments was received: {unknown_args_list}."
-        )
-
-    for i in range(0, len(unknown_args_list), 2):
-        if not unknown_args_list[i].startswith("--"):
-            raise ValueError(
-                "Please make sure arguments are specified in the format: --arg_name value. "
-                f"Failing to parse: {unknown_args_list[i]} due to the missing '--'."
-            )
-        arg_name = unknown_args_list[i][2:]
-        arg_val = unknown_args_list[i + 1]
-        args[arg_name] = arg_val
-
-    return args
 
 
 def parse_optimizer_arguments(parser: argparse.Namespace) -> None:
@@ -493,7 +467,7 @@ def get_transforms_kwargs(
     ]
     transforms = {}
     for transform_fn_name in transform_fn_names:
-        if transform_fn_name in vars(config_module):
+        if hasattr(config_module, transform_fn_name):
             transforms[transform_fn_name] = getattr(config_module, transform_fn_name)(
                 **get_transform_args(args)
             )
@@ -508,6 +482,75 @@ def get_scheduler_kwargs(
     if scheduler_fn_name in vars(config_module):
         return getattr(config_module, scheduler_fn_name)()
     return None, None
+
+
+def get_attribute_type(arg_spec, attribute_name):
+    if (
+        hasattr(arg_spec.annotations[attribute_name], "__origin__")
+        and arg_spec.annotations[attribute_name].__origin__ == Union
+    ):
+        if (
+            len(arg_spec.annotations[attribute_name].__args__) != 2
+            or arg_spec.annotations[attribute_name].__args__[1] is None
+        ):
+            raise TypeError(f"Type {arg_spec.annotations[attribute_name]} is not supported.")
+        attribute_type = arg_spec.annotations[attribute_name].__args__[0]
+    else:
+        attribute_type = arg_spec.annotations[attribute_name]
+    type_mapping = {Dict: dict, List: list, Tuple: tuple}
+    attribute_type = type_mapping.get(attribute_type, attribute_type)
+    if attribute_type not in [int, bool, float, str, list, dict, tuple]:
+        raise TypeError(f"Type {attribute_type} is not supported.")
+    return attribute_type
+
+
+def get_function_args(
+    config_module: ModuleType,
+    function_name: str,
+    all_args: Dict[str, Dict[str, Any]],
+    ignore_args: List[str],
+) -> List[str]:
+    """Returns all attribute names of the function and appends new arguments to ``all_args``.
+
+    Args:
+        config_module: Renate config file containing functions to access the model and data.
+        function_name: Function of which we want to return the arguments.
+        all_args: List of all arguments that will be an input to the script.
+        ignore_args: Arguments which will not be added to ``all_args`` because these values will
+            be created on the fly and are no input to the script.
+    """
+    if not hasattr(config_module, function_name):
+        return []
+    arg_spec = inspect.getfullargspec(getattr(config_module, function_name))
+    known_args = [arg for arg in arg_spec.args if arg in all_args]
+    new_args = [arg for arg in arg_spec.args if arg not in all_args and arg not in ignore_args]
+    if arg_spec.defaults is None:
+        default_values = {}
+    else:
+        default_values = {
+            arg_spec.args[len(arg_spec.args) - len(arg_spec.defaults) + i]: default
+            for i, default in enumerate(arg_spec.defaults)
+        }
+    for attribute_name in known_args:
+        attribute_type = get_attribute_type(arg_spec, attribute_name)
+        expected_type = all_args[attribute_name]["type"]
+        if attribute_type != expected_type:
+            raise TypeError(
+                f"Types of `{attribute_name}` are not consistent. Defined as type `{attribute_type}`"
+                f" as well as `{expected_type}`."
+            )
+        if attribute_name not in default_values:
+            all_args[attribute_name]["required"] = True
+
+    for attribute_name in new_args:
+        all_args[attribute_name] = {
+            "type": get_attribute_type(arg_spec, attribute_name),
+        }
+        if attribute_name in default_values:
+            all_args[attribute_name]["default"] = default_values[attribute_name]
+        else:
+            all_args[attribute_name]["required"] = True
+    return arg_spec.args
 
 
 parse_by_updater = {

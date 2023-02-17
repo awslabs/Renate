@@ -52,7 +52,7 @@ models = {
 
 
 def model_fn(
-    model_state_url: Optional[Union[Path, str]] = None,
+    model_state_url: Optional[str] = None,
     model_fn_model_name: Optional[str] = None,
     model_fn_num_inputs: Optional[str] = None,
     model_fn_num_outputs: Optional[str] = None,
@@ -75,7 +75,7 @@ def model_fn(
     if model_state_url is None:
         model = model_class(**model_kwargs)
     else:
-        state_dict = torch.load(str(model_state_url))
+        state_dict = torch.load(model_state_url)
         model = model_class.from_state_dict(state_dict)
     return model
 
