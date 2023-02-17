@@ -166,7 +166,7 @@ def run_training_job(
         )
     submit_remote_job(
         state_url=input_state_url,
-        next_state_url=output_state_url,
+        output_state_url=output_state_url,
         working_directory=working_directory,
         config_file=config_file,
         mode=mode,
@@ -354,11 +354,11 @@ def _teardown_tuning_job(
     config_space: Dict[str, Union[Domain, int, float, str]],
     job_name: str,
     state_url: Optional[str] = None,
-    next_state_url: Optional[str] = None,
+    output_state_url: Optional[str] = None,
 ) -> None:
     """Update lifelong hyperparameter optimization results, save state and clean up disk."""
     experiment_folder = redirect_to_tmp(str(experiment_path(job_name)))
-    if next_state_url is not None:
+    if output_state_url is not None:
         experiment = load_experiment(job_name)
         try:
             best_trial_id = experiment.best_config()["trial_id"]
@@ -375,7 +375,7 @@ def _teardown_tuning_job(
                 + "\n\nLogs (stdout):\n\n{}".format("".join(backend.stdout(0)))
                 + "\n\nLogs (stderr):\n\n{}".format("".join(backend.stderr(0)))
             )
-        next_state_folder = defaults.output_state_folder(
+        output_state_folder = defaults.output_state_folder(
             f"{experiment_folder}/{best_trial_id}/checkpoints"
         )
         old_tuning_results = (
@@ -384,9 +384,9 @@ def _teardown_tuning_job(
             else None
         )
         tuning_results = _merge_tuning_history(experiment.results, old_tuning_results)
-        tuning_results.to_csv(defaults.hpo_file(next_state_folder), index=False)
-        move_to_uri(next_state_folder, next_state_url)
-        logger.info(f"Renate state is available at {next_state_url}.")
+        tuning_results.to_csv(defaults.hpo_file(output_state_folder), index=False)
+        move_to_uri(output_state_folder, output_state_url)
+        logger.info(f"Renate state is available at {output_state_url}.")
     shutil.rmtree(experiment_folder, ignore_errors=True)
     shutil.rmtree(experiment_path(job_name), ignore_errors=True)
 
@@ -593,7 +593,7 @@ def _execute_training_and_tuning_job_locally(
         config_space=config_space,
         job_name=tuner.name,
         state_url=input_state_url,
-        next_state_url=output_state_url,
+        output_state_url=output_state_url,
     )
 
     logger.info("Renate update completed successfully.")

@@ -60,7 +60,7 @@ class RenateModelCheckpoint(ModelCheckpoint):
 
     Args:
         model: Model to be saved when creating a checkpoint.
-        state_folder: Checkpoint folder location.
+        input_state_folder: Checkpoint folder location.
         val_enabled: Whether validation was enabled in the Learner. Forwarded to `SyneTuneCallback`.
         metric: Monitored metric to decide when to write a new checkpoint. If no metric is provided
             or validation is not enabled, the latest model will be stored.
@@ -71,7 +71,7 @@ class RenateModelCheckpoint(ModelCheckpoint):
     def __init__(
         self,
         model: RenateModule,
-        state_folder: str,
+        input_state_folder: str,
         val_enabled: bool,
         metric: Optional[str] = None,
         mode: defaults.SUPPORTED_TUNING_MODE_TYPE = "min",
@@ -84,7 +84,7 @@ class RenateModelCheckpoint(ModelCheckpoint):
             save_last = True
         learner_checkpoint_filename = Path(defaults.learner_state_file("")).stem
         super().__init__(
-            dirpath=state_folder,
+            dirpath=input_state_folder,
             filename=learner_checkpoint_filename,
             every_n_epochs=every_n_epochs,
             monitor=metric,
@@ -93,10 +93,10 @@ class RenateModelCheckpoint(ModelCheckpoint):
             save_weights_only=True,
         )
         self._model = model
-        self._state_folder = state_folder
+        self._input_state_folder = input_state_folder
         self.CHECKPOINT_NAME_LAST = learner_checkpoint_filename
         # Delete old checkpoint if exists
-        Path(defaults.learner_state_file(self._state_folder)).unlink(missing_ok=True)
+        Path(defaults.learner_state_file(self._input_state_folder)).unlink(missing_ok=True)
         # FIXME: Hack to make sure Syne Tune is called after checkpointing.
         # Details: https://github.com/Lightning-AI/lightning/issues/15026
         # If fixed, remove on_train_epoch_end, on_validation_epoch_end, val_enabled, remove line
@@ -130,8 +130,8 @@ class ModelUpdater(abc.ABC):
         learner_class: Class of the learner to be used for model update.
         learner_kwargs: Arguments either used for creating a new learner (no previous
             state available) or replace current arguments of the learner.
-        current_state_folder: Folder used by Renate to store files for current state.
-        next_state_folder: Folder used by Renate to store files for next state.
+        input_state_folder: Folder used by Renate to store files for current state.
+        output_state_folder: Folder used by Renate to store files for next state.
         max_epochs: The maximum number of epochs used to train the model.
         train_transform: The transformation applied during training.
         train_target_transform: The target transformation applied during testing.
@@ -158,8 +158,8 @@ class ModelUpdater(abc.ABC):
         model: RenateModule,
         learner_class: Type[Learner],
         learner_kwargs: Optional[Dict[str, Any]] = None,
-        current_state_folder: Optional[str] = None,
-        next_state_folder: Optional[str] = None,
+        input_state_folder: Optional[str] = None,
+        output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
@@ -178,13 +178,13 @@ class ModelUpdater(abc.ABC):
         self._learner_kwargs = learner_kwargs or {}
         self._model = model
         self._learner_state_file: Optional[str] = None
-        if current_state_folder is not None:
-            self._learner_state_file = defaults.learner_state_file(current_state_folder)
+        if input_state_folder is not None:
+            self._learner_state_file = defaults.learner_state_file(input_state_folder)
         else:
             logging_logger.info(
                 "No location for current updater state provided. Updating will start from scratch."
             )
-        if next_state_folder is None:
+        if output_state_folder is None:
             logging_logger.info(
                 "No location for next updater state provided. No state will be stored."
             )
@@ -199,7 +199,7 @@ class ModelUpdater(abc.ABC):
             )
             early_stopping_enabled = False
 
-        self._next_state_folder = next_state_folder
+        self._output_state_folder = output_state_folder
         self._metric = metric
         self._mode = mode
         self._logged_metrics = logged_metrics
@@ -277,10 +277,10 @@ class ModelUpdater(abc.ABC):
         callbacks: List[Callback] = []
         if use_syne_tune_callback:
             callbacks.append(SyneTuneCallback(val_loader is not None))
-        if self._next_state_folder is not None:
+        if self._output_state_folder is not None:
             model_checkpoint_callback = RenateModelCheckpoint(
                 model=self._model,
-                state_folder=self._next_state_folder,
+                input_state_folder=self._output_state_folder,
                 metric=self._metric,
                 mode=self._mode,
                 val_enabled=val_loader is not None,
