@@ -25,7 +25,6 @@ def experiment_job_kwargs():
 
 def test_execute_experiment_job(tmpdir, experiment_job_kwargs):
     """Only checking if things run, not testing anything besides that."""
-    tmpdir = "/Users/zappella/workplace/github_renate/renate/output_REMOVE/"
     expected_results = pd.DataFrame([[1, 0.15, 0.0, 0.0, 0.0], [2, 0.175, -0.15, 0.0, 0.15]])
     expected_columns = [
         "Task ID",
