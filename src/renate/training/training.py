@@ -56,7 +56,7 @@ RENATE_CONFIG_COLUMNS = [
     "devices",
     "metric",
     "mode",
-    "state_url",
+    "input_state_url",
 ]
 
 
@@ -165,7 +165,7 @@ def run_training_job(
             devices=devices,
         )
     submit_remote_job(
-        state_url=input_state_url,
+        input_state_url=input_state_url,
         output_state_url=output_state_url,
         working_directory=working_directory,
         config_file=config_file,
@@ -203,8 +203,8 @@ def _prepare_remote_job(
     """Prepares a SageMaker job."""
     dependencies = list(renate.__path__ + [job_kwargs["config_file"]])
 
-    if "state_url" in job_kwargs and job_kwargs["state_url"] is None:
-        del job_kwargs["state_url"]
+    if "input_state_url" in job_kwargs and job_kwargs["input_state_url"] is None:
+        del job_kwargs["input_state_url"]
     job_kwargs["config_file"] = os.path.basename(job_kwargs["config_file"])
     job_kwargs["config_space"] = config_space_to_dict(job_kwargs["config_space"])
 
@@ -294,13 +294,13 @@ def _get_transfer_learning_task_evaluations(
 
 
 def _load_tuning_history(
-    state_url: str, config_space: Dict[str, Any], metric: str
+    input_state_url: str, config_space: Dict[str, Any], metric: str
 ) -> Dict[str, TransferLearningTaskEvaluations]:
     """Loads the tuning history in a list where each entry of the list is the tuning history of one
     update.
 
     Args:
-        state_url: Location of state. Will check at this location of a tuning history exists.
+        input_state_url: Location of state. Will check at this location of a tuning history exists.
         config_space: The configuration space defines which parts of the tuning history to load.
         metric: Only the defined metric of the tuning history will be loaded.
     Returns:
@@ -308,9 +308,9 @@ def _load_tuning_history(
         `config_space`. The list contains an instance of `TransferLearningTaskEvaluations` for each
         update that contains matching data.
     """
-    if state_url is None or not Path(defaults.hpo_file(state_url)).exists():
+    if input_state_url is None or not Path(defaults.hpo_file(input_state_url)).exists():
         return {}
-    tuning_results = pd.read_csv(defaults.hpo_file(state_url))
+    tuning_results = pd.read_csv(defaults.hpo_file(input_state_url))
     hyperparameter_names = [
         hyperparameter for hyperparameter in tuning_results if hyperparameter.startswith("config_")
     ]
@@ -353,7 +353,7 @@ def _teardown_tuning_job(
     backend: LocalBackend,
     config_space: Dict[str, Union[Domain, int, float, str]],
     job_name: str,
-    state_url: Optional[str] = None,
+    input_state_url: Optional[str] = None,
     output_state_url: Optional[str] = None,
 ) -> None:
     """Update lifelong hyperparameter optimization results, save state and clean up disk."""
@@ -379,8 +379,8 @@ def _teardown_tuning_job(
             f"{experiment_folder}/{best_trial_id}/checkpoints"
         )
         old_tuning_results = (
-            pd.read_csv(defaults.hpo_file(state_url))
-            if state_url is not None and os.path.exists(defaults.hpo_file(state_url))
+            pd.read_csv(defaults.hpo_file(input_state_url))
+            if input_state_url is not None and os.path.exists(defaults.hpo_file(input_state_url))
             else None
         )
         tuning_results = _merge_tuning_history(experiment.results, old_tuning_results)
@@ -444,7 +444,7 @@ def _create_scheduler(
     max_epochs: int,
     seed: int,
     scheduler_kwargs: Optional[Dict[str, Any]] = None,
-    state_url: Optional[str] = None,
+    input_state_url: Optional[str] = None,
 ) -> TrialScheduler:
     scheduler_kwargs = scheduler_kwargs or {}
     if isinstance(scheduler, str):
@@ -462,7 +462,7 @@ def _create_scheduler(
         scheduler = scheduler_classes[scheduler]["scheduler"]
     if "transfer_learning_evaluations" in inspect.getfullargspec(scheduler.__init__).args:
         scheduler_kwargs["transfer_learning_evaluations"] = _load_tuning_history(
-            state_url=state_url, config_space=config_space, metric=metric
+            input_state_url=input_state_url, config_space=config_space, metric=metric
         )
         if scheduler_kwargs["transfer_learning_evaluations"]:
             logger.info(
@@ -518,7 +518,7 @@ def _execute_training_and_tuning_job_locally(
     config_space["accelerator"] = accelerator
     config_space["devices"] = devices
     if input_state_url is not None:
-        config_space["state_url"] = input_state_url
+        config_space["input_state_url"] = input_state_url
 
     metric, mode = _verify_validation_set_for_hpo_and_checkpointing(
         config_space=config_space,
@@ -556,7 +556,7 @@ def _execute_training_and_tuning_job_locally(
             max_epochs=max_epochs,
             seed=seed,
             scheduler_kwargs=scheduler_kwargs,
-            state_url=input_state_url,
+            input_state_url=input_state_url,
         )
     logging_callback = (
         TuningLoggerCallback(mode=mode, metric=metric)
@@ -592,7 +592,7 @@ def _execute_training_and_tuning_job_locally(
         backend=backend,
         config_space=config_space,
         job_name=tuner.name,
-        state_url=input_state_url,
+        input_state_url=input_state_url,
         output_state_url=output_state_url,
     )
 

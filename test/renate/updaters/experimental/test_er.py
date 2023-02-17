@@ -68,7 +68,7 @@ def test_er_validation_buffer(tmpdir):
             torch.randint(10, (100,)),
         )
         model_updater = pytest.helpers.get_simple_updater(
-            model, current_state_folder=state_folder, next_state_folder=next_state_folder
+            model, input_state_folder=state_folder, output_state_folder=next_state_folder
         )
         model_updater.update(
             train_dataset=dataset_train, val_dataset=dataset_val, task_id=defaults.TASK_ID
@@ -77,7 +77,7 @@ def test_er_validation_buffer(tmpdir):
         state_folder = next_state_folder
 
     model_updater = pytest.helpers.get_simple_updater(
-        model, current_state_folder=state_folder, next_state_folder=next_state_folder
+        model, input_state_folder=state_folder, output_state_folder=next_state_folder
     )
     for i in range(3):
         for j in range(100):

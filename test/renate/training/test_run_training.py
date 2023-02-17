@@ -369,5 +369,5 @@ def test_create_scheduler(tmpdir, scheduler, scheduler_kwargs, tuning_results_ex
         max_epochs=3,
         seed=0,
         scheduler_kwargs=scheduler_kwargs,
-        state_url=state_url,
+        input_state_url=state_url,
     )
