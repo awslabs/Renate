@@ -27,8 +27,8 @@ class _InputTargetWrapper(torch.utils.data.Dataset):
         return item, target
 
 
-class HuggingfaceDataModule(RenateDataModule):
-    """Data module wrapping Huggingface datasets.
+class HuggingfaceTextDataModule(RenateDataModule):
+    """Data module wrapping Huggingface text datasets.
 
     This is convenience wrapper to expose a hugginface dataset as a `RenateDataModule`. Datasets
     will be pre-tokenized and will return `input, target = dataset[i]`, where `input` is a
@@ -60,7 +60,7 @@ class HuggingfaceDataModule(RenateDataModule):
         val_size: float = defaults.VALIDATION_SIZE,
         seed: int = defaults.SEED,
     ):
-        super(HuggingfaceDataModule, self).__init__(
+        super(HuggingfaceTextDataModule, self).__init__(
             data_path=data_path,
             val_size=val_size,
             seed=seed,

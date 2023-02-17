@@ -9,7 +9,7 @@ import torch
 from torch.utils.data import Dataset, TensorDataset
 import transformers
 
-from renate.benchmark.datasets.nlp_datasets import HuggingfaceDataModule
+from renate.benchmark.datasets.nlp_datasets import HuggingfaceTextDataModule
 from renate.benchmark.datasets.vision_datasets import (
     CLEARDataModule,
     TinyImageNetDataModule,
@@ -153,7 +153,7 @@ def test_tiny_imagenet_data_module(tmpdir):
 def test_huggingface_data_module(
     tmpdir, dataset_name, input_column, target_column, tokenizer, tokenizer_kwargs
 ):
-    data_module = HuggingfaceDataModule(
+    data_module = HuggingfaceTextDataModule(
         data_path=tmpdir,
         dataset_name=dataset_name,
         input_column=input_column,
