@@ -74,9 +74,7 @@ class HuggingfaceTextDataModule(RenateDataModule):
         self._input_column = input_column
         self._target_column = target_column
         self._tokenizer = tokenizer
-        self._tokenizer_kwargs = tokenizer_kwargs or dict(
-            padding="max_length", max_length=128, truncation=True
-        )
+        self._tokenizer_kwargs = tokenizer_kwargs or defaults.TOKENIZER_KWARGS
 
     def prepare_data(self) -> None:
         """Download data."""
