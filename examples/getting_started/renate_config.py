@@ -1,5 +1,4 @@
-from pathlib import Path
-from typing import Callable, Literal, Optional, Union
+from typing import Callable, Literal, Optional
 
 import torch
 import torchvision
@@ -33,7 +32,7 @@ def model_fn(model_state_url: Optional[str] = None) -> RenateModule:
     else:
         # If a model state is passed, we reload the model using PyTorch's load_state_dict.
         # In this case, model hyperparameters are restored from the saved state.
-        state_dict = torch.load(str(model_state_url))
+        state_dict = torch.load(model_state_url)
         model = MyMNISTMLP.from_state_dict(state_dict)
     return model
 
@@ -67,7 +66,7 @@ class MyMNISTDataModule(RenateDataModule):
             )
 
 
-def data_module_fn(data_path: Union[Path, str], seed: int) -> RenateDataModule:
+def data_module_fn(data_path: str, seed: int) -> RenateDataModule:
     return MyMNISTDataModule(val_size=0.2, seed=seed)
 
 

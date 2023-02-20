@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader, Dataset, Subset
 
 from renate import defaults
 from renate.data.datasets import _EnumeratedDataset
-from renate.memory.buffer import DataTuple, DataDict
+from renate.memory.buffer import DataDict, DataTuple
 from renate.models import RenateModule
 from renate.updaters.learner import ReplayLearner
 from renate.updaters.learner_components.losses import (

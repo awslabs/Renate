@@ -6,8 +6,6 @@ import sys
 from types import ModuleType
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
-from syne_tune.optimizer.scheduler import TrialScheduler
-
 from renate import defaults
 from renate.updaters.experimental.er import (
     CLSExperienceReplayModelUpdater,
@@ -22,6 +20,21 @@ from renate.updaters.experimental.joint import JointModelUpdater
 from renate.updaters.experimental.offline_er import OfflineExperienceReplayModelUpdater
 from renate.updaters.experimental.repeated_distill import RepeatedDistillationModelUpdater
 from renate.updaters.model_updater import ModelUpdater
+
+REQUIRED_ARGS_GROUP = "Required Arguments"
+RENATE_STATE_ARGS_GROUP = "Renate State"
+HYPERPARAMETER_ARGS_GROUP = "Hyperparameters"
+CUSTOM_ARGS_GROUP = "Custom Arguments"
+OPTIONAL_ARGS_GROUP = "Optional Arguments"
+DO_NOT_CHANGE_GROUP = "DO NOT CHANGE"
+ARGS_GROUP_ORDER = [
+    REQUIRED_ARGS_GROUP,
+    RENATE_STATE_ARGS_GROUP,
+    HYPERPARAMETER_ARGS_GROUP,
+    CUSTOM_ARGS_GROUP,
+    OPTIONAL_ARGS_GROUP,
+    DO_NOT_CHANGE_GROUP,
+]
 
 
 def get_updater_and_learner_kwargs(
@@ -103,7 +116,137 @@ def get_updater_and_learner_kwargs(
     return updater_class, learner_kwargs
 
 
-def parse_hyperparameters(parser) -> None:
+def parse_arguments(
+    config_module: ModuleType, function_names: List[str], ignore_args: List[str]
+) -> Tuple[argparse.Namespace, Dict[str, Any]]:
+
+    arguments = _standard_arguments()
+    _add_hyperparameter_arguments(arguments)
+    function_args = {}
+    for function_name in function_names:
+        function_args[function_name] = get_function_args(
+            config_module=config_module,
+            function_name=function_name,
+            all_args=arguments,
+            ignore_args=ignore_args,
+        )
+
+    parser = argparse.ArgumentParser()
+
+    for argument_group_name in ARGS_GROUP_ORDER:
+        argument_group = parser.add_argument_group(argument_group_name)
+        for argument_name, argument_kwargs in arguments.items():
+            if argument_kwargs["argument_group"] == argument_group_name:
+                argument_group.add_argument(
+                    f"--{argument_name}",
+                    **{
+                        key: value
+                        for key, value in argument_kwargs.items()
+                        if key != "argument_group"
+                    },
+                )
+    return parser.parse_args(), function_args
+
+
+def _standard_arguments() -> Dict[str, Dict[str, Any]]:
+    """Returns information about the minimum number of arguments accepted by ``run_training.py``."""
+    return {
+        "updater": {
+            "type": str,
+            "required": True,
+            "choices": list(parse_by_updater),
+            "help": "Select the type of model update strategy.",
+            "argument_group": REQUIRED_ARGS_GROUP,
+        },
+        "config_file": {
+            "type": str,
+            "required": True,
+            "help": "Location of python file containing model_fn and data_module_fn.",
+            "argument_group": REQUIRED_ARGS_GROUP,
+        },
+        "state_url": {
+            "type": str,
+            "help": "Location of previous Renate state (if available).",
+            "argument_group": RENATE_STATE_ARGS_GROUP,
+        },
+        "next_state_url": {
+            "type": str,
+            "help": "Location where to store the next Renate state.",
+            "argument_group": RENATE_STATE_ARGS_GROUP,
+        },
+        "max_epochs": {
+            "type": int,
+            "default": defaults.MAX_EPOCHS,
+            "help": f"Number of epochs trained at most. Default: {defaults.MAX_EPOCHS}",
+            "argument_group": OPTIONAL_ARGS_GROUP,
+        },
+        "task_id": {
+            "type": str,
+            "default": defaults.TASK_ID,
+            "help": "Task ID matching the current dataset. If you do not distinguish between "
+            "different tasks, ignore this"
+            f" argument. Default: {defaults.TASK_ID}.",
+            "argument_group": OPTIONAL_ARGS_GROUP,
+        },
+        "metric": {
+            "type": str,
+            "help": "Metric monitored during training to save checkpoints.",
+            "argument_group": OPTIONAL_ARGS_GROUP,
+        },
+        "mode": {
+            "type": str,
+            "default": "min",
+            "help": "Indicate whether a smaller `metric` is better (`min`) or a larger (`max`).",
+            "argument_group": OPTIONAL_ARGS_GROUP,
+        },
+        "working_directory": {
+            "type": str,
+            "default": defaults.WORKING_DIRECTORY,
+            "help": "Folder used by Renate to store files temporarily. Default: "
+            f"{defaults.WORKING_DIRECTORY}.",
+            "argument_group": OPTIONAL_ARGS_GROUP,
+        },
+        "seed": {
+            "type": int,
+            "default": defaults.SEED,
+            "help": f"Seed used for this job. Default: {defaults.SEED}.",
+            "argument_group": OPTIONAL_ARGS_GROUP,
+        },
+        "accelerator": {
+            "type": str,
+            "default": defaults.ACCELERATOR,
+            "help": f"Accelerator used for this job. Default: {defaults.ACCELERATOR}.",
+            "argument_group": OPTIONAL_ARGS_GROUP,
+        },
+        "devices": {
+            "type": int,
+            "default": defaults.DEVICES,
+            "help": f"Devices used for this job. Default: {defaults.DEVICES} device.",
+            "argument_group": OPTIONAL_ARGS_GROUP,
+        },
+        "early_stopping": {
+            "type": str,
+            "default": str(defaults.EARLY_STOPPING),
+            "choices": ["True", "False"],
+            "help": "Enables the early stopping of the optimization. Default: "
+            f"{defaults.EARLY_STOPPING}.",
+            "argument_group": OPTIONAL_ARGS_GROUP,
+        },
+        "prepare_data": {
+            "type": int,
+            "default": 1,
+            "help": "Whether to call DataModule.prepare_data(). Default: 1.",
+            "argument_group": DO_NOT_CHANGE_GROUP,
+        },
+        "st_checkpoint_dir": {
+            "type": str,
+            "help": "Location for checkpoints.",
+            "argument_group": DO_NOT_CHANGE_GROUP,
+        },
+    }
+
+
+def _add_hyperparameter_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """Adds arguments for the specified updater."""
     updater: Optional[str] = None
     for i, arg in enumerate(sys.argv):
@@ -114,135 +257,138 @@ def parse_hyperparameters(parser) -> None:
         return
 
     assert updater in parse_by_updater, f"Unknown updater {updater}."
-    parse_by_updater[updater](parser)
-    parse_optimizer_arguments(parser)
+    parse_by_updater[updater](arguments)
+    _add_optimizer_arguments(arguments)
+    for value in arguments.values():
+        if "argument_group" not in value:
+            value["argument_group"] = HYPERPARAMETER_ARGS_GROUP
 
 
-def parse_optimizer_arguments(parser: argparse.Namespace) -> None:
+def _add_optimizer_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds optimizer arguments."""
-    parser.add_argument(
-        "--optimizer",
-        type=str,
-        default=defaults.OPTIMIZER,
-        help=f"Optimizer used for training. Options: SGD or Adam. Default: {defaults.OPTIMIZER}.",
-    )
-    parser.add_argument(
-        "--learning_rate",
-        type=float,
-        default=defaults.LEARNING_RATE,
-        help=f"Learning rate used during model update. Default: {defaults.LEARNING_RATE}.",
-    )
-    parser.add_argument(
-        "--learning_rate_scheduler",
-        type=str,
-        default=defaults.LEARNING_RATE_SCHEDULER,
-        help="Learning rate scheduler used during model update. Default: "
-        f"{defaults.LEARNING_RATE_SCHEDULER}.",
-    )
-    parser.add_argument(
-        "--learning_rate_scheduler_step_size",
-        type=int,
-        default=defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-        help="Step size for learning rate scheduler. Default: "
-        f"{defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE}.",
-    )
-    parser.add_argument(
-        "--learning_rate_scheduler_gamma",
-        type=float,
-        default=defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-        help="Gamma for learning rate scheduler. Default: "
-        f"{defaults.LEARNING_RATE_SCHEDULER_GAMMA}.",
-    )
-
-    parser.add_argument(
-        "--momentum",
-        type=float,
-        default=defaults.MOMENTUM,
-        help=f"Momentum used during model update. Default: {defaults.MOMENTUM}.",
-    )
-    parser.add_argument(
-        "--weight_decay",
-        type=float,
-        default=defaults.WEIGHT_DECAY,
-        help=f"Weight decay used during model update. Default: {defaults.WEIGHT_DECAY}.",
-    )
-    parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=defaults.BATCH_SIZE,
-        help="Batch size used during model update for the new data. Default: "
-        f"{defaults.BATCH_SIZE}.",
-    )
-
-    parser.add_argument(
-        "--loss_weight",
-        type=float,
-        default=defaults.LOSS_WEIGHT,
-        help=f"Loss weight used during model update. Default: {defaults.LOSS_WEIGHT}.",
+    arguments.update(
+        {
+            "optimizer": {
+                "type": str,
+                "default": defaults.OPTIMIZER,
+                "help": f"Optimizer used for training. Options: SGD or Adam. Default: {defaults.OPTIMIZER}.",
+            },
+            "learning_rate": {
+                "type": float,
+                "default": defaults.LEARNING_RATE,
+                "help": f"Learning rate used during model update. Default: {defaults.LEARNING_RATE}.",
+            },
+            "learning_rate_scheduler": {
+                "type": str,
+                "default": defaults.LEARNING_RATE_SCHEDULER,
+                "help": "Learning rate scheduler used during model update. Default: "
+                f"{defaults.LEARNING_RATE_SCHEDULER}.",
+            },
+            "learning_rate_scheduler_step_size": {
+                "type": int,
+                "default": defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
+                "help": "Step size for learning rate scheduler. Default: "
+                f"{defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE}.",
+            },
+            "learning_rate_scheduler_gamma": {
+                "type": float,
+                "default": defaults.LEARNING_RATE_SCHEDULER_GAMMA,
+                "help": "Gamma for learning rate scheduler. Default: "
+                f"{defaults.LEARNING_RATE_SCHEDULER_GAMMA}.",
+            },
+            "momentum": {
+                "type": float,
+                "default": defaults.MOMENTUM,
+                "help": f"Momentum used during model update. Default: {defaults.MOMENTUM}.",
+            },
+            "weight_decay": {
+                "type": float,
+                "default": defaults.WEIGHT_DECAY,
+                "help": f"Weight decay used during model update. Default: {defaults.WEIGHT_DECAY}.",
+            },
+            "batch_size": {
+                "type": int,
+                "default": defaults.BATCH_SIZE,
+                "help": "Batch size used during model update for the new data. Default: "
+                f"{defaults.BATCH_SIZE}.",
+            },
+            "loss_weight": {
+                "type": float,
+                "default": defaults.LOSS_WEIGHT,
+                "help": f"Loss weight used during model update. Default: {defaults.LOSS_WEIGHT}.",
+            },
+        }
     )
 
 
-def parse_replay_learner_arguments(parser: argparse.Namespace) -> None:
+def _add_replay_learner_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds Replay Learner arguments."""
-    parser.add_argument(
-        "--memory_size",
-        type=int,
-        default=defaults.MEMORY_SIZE,
-        help=f"Memory size available for the memory buffer. Default: {defaults.MEMORY_SIZE}.",
-    )
-    parser.add_argument(
-        "--memory_batch_size",
-        type=int,
-        default=defaults.BATCH_SIZE,
-        help="Batch size used during model update for the memory buffer. Default: "
-        f"{defaults.BATCH_SIZE}.",
+    arguments.update(
+        {
+            "memory_size": {
+                "type": int,
+                "default": defaults.MEMORY_SIZE,
+                "help": f"Memory size available for the memory buffer. Default: {defaults.MEMORY_SIZE}.",
+            },
+            "memory_batch_size": {
+                "type": int,
+                "default": defaults.BATCH_SIZE,
+                "help": "Batch size used during model update for the memory buffer. Default: "
+                f"{defaults.BATCH_SIZE}.",
+            },
+        }
     )
 
 
-def _parse_base_experience_replay_arguments(parser: argparse.Namespace) -> None:
+def _add_base_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds Base Experience Replay arguments."""
-    parser.add_argument(
-        "--ema_memory_update_gamma",
-        type=float,
-        default=defaults.EMA_MEMORY_UPDATE_GAMMA,
-        help="Exponential moving average factor to update logits. Default: "
-        f"{defaults.EMA_MEMORY_UPDATE_GAMMA}.",
+    arguments.update(
+        {
+            "ema_memory_update_gamma": {
+                "type": float,
+                "default": defaults.EMA_MEMORY_UPDATE_GAMMA,
+                "help": "Exponential moving average factor to update logits. Default: "
+                f"{defaults.EMA_MEMORY_UPDATE_GAMMA}.",
+            },
+            "loss_normalization": {
+                "type": int,
+                "choices": [0, 1],
+                "default": defaults.LOSS_NORMALIZATION,
+                "help": "Whether to normalize the loss with respect to the loss weights. "
+                f"Default: {bool(defaults.LOSS_NORMALIZATION)}.",
+            },
+        }
     )
-    parser.add_argument(
-        "--loss_normalization",
-        type=int,
-        choices=[0, 1],
-        default=defaults.LOSS_NORMALIZATION,
-        help="Whether to normalize the loss with respect to the loss weights. "
-        f"Default: {bool(defaults.LOSS_NORMALIZATION)}.",
-    )
-    parse_replay_learner_arguments(parser)
+    _add_replay_learner_arguments(arguments)
 
 
-def parse_gdumb_arguments(parser: argparse.Namespace) -> None:
+def parse_gdumb_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds GDumb arguments."""
-    parse_replay_learner_arguments(parser)
+    _add_replay_learner_arguments(arguments)
 
 
-def parse_joint_arguments(parser: argparse.Namespace) -> None:
+def parse_joint_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds Joint Learner arguments."""
     pass
 
 
-def parse_finetuning_arguments(parser: argparse.Namespace) -> None:
+def parse_finetuning_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds Fine Tuning arguments."""
     pass
 
 
-def parse_experience_replay_arguments(parser: argparse.Namespace) -> None:
+def _add_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds Experience Replay arguments."""
-    parser.add_argument(
-        "--alpha",
-        type=float,
-        default=defaults.ER_ALPHA,
-        help=f"Weight for the loss of the buffer data. Default: {defaults.ER_ALPHA}.",
+    arguments.update(
+        {
+            "alpha": {
+                "type": float,
+                "default": defaults.ER_ALPHA,
+                "help": f"Weight for the loss of the buffer data. Default: {defaults.ER_ALPHA}.",
+            }
+        }
     )
-    _parse_base_experience_replay_arguments(parser)
+    _add_base_experience_replay_arguments(arguments)
 
 
 def parse_dark_experience_replay_arguments(parser: argparse.Namespace) -> None:
@@ -259,7 +405,7 @@ def parse_dark_experience_replay_arguments(parser: argparse.Namespace) -> None:
         default=defaults.DER_ALPHA,
         help=f"Weight for memory loss term. Default: {defaults.DER_BETA}.",
     )
-    _parse_base_experience_replay_arguments(parser)
+    _add_base_experience_replay_arguments(parser)
 
 
 def parse_pod_experience_replay_arguments(parser: argparse.Namespace) -> None:
@@ -285,7 +431,7 @@ def parse_pod_experience_replay_arguments(parser: argparse.Namespace) -> None:
         help="Whether to normalize both the current and cached features before computing the "
         "Frobenius norm. Default: {defaults.POD_NORMALIZE}.",
     )
-    _parse_base_experience_replay_arguments(parser)
+    _add_base_experience_replay_arguments(parser)
 
 
 def parse_cls_experience_replay_arguments(parser: argparse.Namespace) -> None:
@@ -330,7 +476,7 @@ def parse_cls_experience_replay_arguments(parser: argparse.Namespace) -> None:
         help="Probability to update the plastic model. Default: "
         f"{defaults.CLS_PLASTIC_MODEL_UPDATE_PROBABILITY}.",
     )
-    _parse_base_experience_replay_arguments(parser)
+    _add_base_experience_replay_arguments(parser)
 
 
 def parse_super_experience_replay_arguments(parser: argparse.Namespace) -> None:
@@ -414,7 +560,7 @@ def parse_super_experience_replay_arguments(parser: argparse.Namespace) -> None:
         help="Probability to update the plastic model. Default: "
         f"{defaults.SER_CLS_PLASTIC_MODEL_UPDATE_PROBABILITY}.",
     )
-    _parse_base_experience_replay_arguments(parser)
+    _add_base_experience_replay_arguments(parser)
 
 
 def parse_rd_learner_arguments(parser: argparse.Namespace) -> None:
@@ -427,36 +573,28 @@ def parse_rd_learner_arguments(parser: argparse.Namespace) -> None:
     )
 
 
-def _get_args_by_prefix(
-    args: Union[argparse.Namespace, Dict[str, str]], prefix: str
-) -> Dict[str, str]:
-    """Returns a dictionary containing all key/value pairs from `args` whose arguments start with
-    `prefix`.
+def get_function_kwargs(args: argparse.Namespace, function_args: Dict[str, Any]) -> Dict[str, Any]:
+    """Returns the kwargs for a function with defined arguments based on provided values.
+
+    Args:
+        args: Values for specific keys.
+        function_args: Arguments of the function for which we extract values.
     """
-    if isinstance(args, argparse.Namespace):
-        args = vars(args)
-    return {k: v for k, v in args.items() if k.startswith(prefix)}
+    return {key: value for key, value in vars(args).items() if key in function_args}
 
 
-def get_model_fn_args(args: Union[argparse.Namespace, Dict[str, str]]) -> Dict[str, str]:
-    """Returns all arguments from `args` which should be passed to `model_fn`."""
-    return _get_args_by_prefix(args, "model_fn_")
+def get_data_module_fn_kwargs(config_module, config_space: Dict[str, Any]) -> Dict[str, Any]:
+    """Returns the kwargs for a ``data_module_fn`` with defined arguments based on config_space."""
+    return _get_function_kwargs_helper(config_module, config_space, "data_module_fn", ["data_path"])
 
 
-def get_data_module_fn_args(args: Union[argparse.Namespace, Dict[str, str]]) -> Dict[str, str]:
-    """Returns all arguments from `args` which should be passed to `data_module_fn`."""
-    return _get_args_by_prefix(args, "data_module_fn_")
+def get_model_fn_kwargs(config_module, config_space: Dict[str, Any]) -> Dict[str, Any]:
+    """Returns the kwargs for a ``model_fn`` with defined arguments based on config_space."""
+    return _get_function_kwargs_helper(config_module, config_space, "model_fn", [])
 
 
-def get_transform_args(args: Union[argparse.Namespace, Dict[str, str]]) -> Dict[str, str]:
-    """Returns all arguments from `args` which should be passed to each `transform` function."""
-    return _get_args_by_prefix(args, "transform_")
-
-
-def get_transforms_kwargs(
-    config_module: ModuleType, args: Union[argparse.Namespace, Dict[str, str]]
-) -> Dict[str, Callable]:
-    """Creates and returns data transforms kwargs for updater."""
+def get_transforms_kwargs(config_module, config_space: Dict[str, Any]) -> Dict[str, Callable]:
+    """Returns the transforms based on config_space."""
     transform_fn_names = [
         "train_transform",
         "train_target_transform",
@@ -469,38 +607,61 @@ def get_transforms_kwargs(
     for transform_fn_name in transform_fn_names:
         if hasattr(config_module, transform_fn_name):
             transforms[transform_fn_name] = getattr(config_module, transform_fn_name)(
-                **get_transform_args(args)
+                **_get_function_kwargs_helper(config_module, config_space, transform_fn_name, [])
             )
     return transforms
 
 
-def get_scheduler_kwargs(
+def _get_function_kwargs_helper(
+    config_module, config_space: Dict[str, Any], function_name: str, ignore_args: List[str]
+) -> Dict[str, Any]:
+    """Returns kwargs for function based on its interface."""
+    function_args = get_function_args(config_module, function_name, {}, ignore_args)
+    return {key: value for key, value in config_space.items() if key in function_args}
+
+
+def get_transforms_dict(
     config_module: ModuleType,
-) -> Tuple[Optional[Type[TrialScheduler]], Optional[Dict[str, Any]]]:
-    """Creates and returns scheduler type and kwargs for the scheduler."""
-    scheduler_fn_name = "scheduler_fn"
-    if scheduler_fn_name in vars(config_module):
-        return getattr(config_module, scheduler_fn_name)()
-    return None, None
+    args: Union[argparse.Namespace, Dict[str, str]],
+    function_args: Dict[str, Dict[str, Any]],
+) -> Dict[str, Callable]:
+    """Creates and returns data transforms for updater."""
+    transform_fn_names = [
+        "train_transform",
+        "train_target_transform",
+        "test_transform",
+        "test_target_transform",
+        "buffer_transform",
+        "buffer_target_transform",
+    ]
+    transforms = {}
+    for transform_fn_name in transform_fn_names:
+        if hasattr(config_module, transform_fn_name):
+            transforms[transform_fn_name] = getattr(config_module, transform_fn_name)(
+                **get_function_kwargs(args, function_args[transform_fn_name])
+            )
+    return transforms
 
 
-def get_attribute_type(arg_spec, attribute_name):
-    if (
-        hasattr(arg_spec.annotations[attribute_name], "__origin__")
-        and arg_spec.annotations[attribute_name].__origin__ == Union
-    ):
-        if (
-            len(arg_spec.annotations[attribute_name].__args__) != 2
-            or arg_spec.annotations[attribute_name].__args__[1] is None
-        ):
-            raise TypeError(f"Type {arg_spec.annotations[attribute_name]} is not supported.")
-        attribute_type = arg_spec.annotations[attribute_name].__args__[0]
+def get_attribute_type(arg_spec: inspect.FullArgSpec, attribute_name: str) -> Type:
+    def raise_error(attr_type, attr_name):
+        raise TypeError(f"Type {attr_type} is not supported (Attribute {attr_name}).")
+
+    if hasattr(arg_spec.annotations[attribute_name], "__origin__"):
+        if arg_spec.annotations[attribute_name].__origin__ == Union:
+            if len(arg_spec.annotations[attribute_name].__args__) != 2 or arg_spec.annotations[
+                attribute_name
+            ].__args__[1] != type(None):
+                raise_error(arg_spec.annotations[attribute_name], attribute_name)
+            attribute_type = arg_spec.annotations[attribute_name].__args__[0]
+        elif arg_spec.annotations[attribute_name].__origin__ in [list, tuple]:
+            attribute_type = arg_spec.annotations[attribute_name].__origin__
+        else:
+            raise_error(arg_spec.annotations[attribute_name], attribute_name)
     else:
         attribute_type = arg_spec.annotations[attribute_name]
-    type_mapping = {Dict: dict, List: list, Tuple: tuple}
-    attribute_type = type_mapping.get(attribute_type, attribute_type)
-    if attribute_type not in [int, bool, float, str, list, dict, tuple]:
-        raise TypeError(f"Type {attribute_type} is not supported.")
+    if attribute_type not in [int, bool, float, str, list, tuple]:
+        raise_error(attribute_type, attribute_name)
     return attribute_type
 
 
@@ -545,6 +706,7 @@ def get_function_args(
     for attribute_name in new_args:
         all_args[attribute_name] = {
             "type": get_attribute_type(arg_spec, attribute_name),
+            "argument_group": CUSTOM_ARGS_GROUP,
         }
         if attribute_name in default_values:
             all_args[attribute_name]["default"] = default_values[attribute_name]
@@ -554,7 +716,7 @@ def get_function_args(
 
 
 parse_by_updater = {
-    "ER": parse_experience_replay_arguments,
+    "ER": _add_experience_replay_arguments,
     "DER": parse_dark_experience_replay_arguments,
     "POD-ER": parse_pod_experience_replay_arguments,
     "CLS-ER": parse_cls_experience_replay_arguments,
@@ -563,5 +725,5 @@ parse_by_updater = {
     "Joint": parse_joint_arguments,
     "FineTuning": parse_finetuning_arguments,
     "RD": parse_rd_learner_arguments,
-    "OfflineER": parse_replay_learner_arguments,
+    "OfflineER": _add_replay_learner_arguments,
 }

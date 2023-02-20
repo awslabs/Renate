@@ -23,16 +23,14 @@ def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule
     return model
 
 
-def data_module_fn(
-    data_path: Union[Path, str], chunk_id: int, seed: int = defaults.SEED
-) -> Scenario:
+def data_module_fn(data_path: str, chunk_id: int, seed: int = defaults.SEED) -> Scenario:
     """Returns a class-incremental scenario instance.
 
     The transformations passed to prepare the input data are required to convert the data to
     PyTorch tensors.
     """
     data_module = TorchVisionDataModule(
-        str(data_path),
+        data_path,
         dataset_name="CIFAR10",
         val_size=0.2,
         seed=seed,
