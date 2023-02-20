@@ -18,19 +18,21 @@ from renate.memory.buffer import _make_storage, _insert_data_point, _get_data_po
 class NestedTensorDataset(torch.utils.data.Dataset):
     def __init__(self, nested_tensors):
         self._nested_tensors = nested_tensors
-        self._length = None
-        self._get_len(nested_tensors)
+        self._length = self._get_len(nested_tensors)
 
-    def _get_len(self, nested_tensors):
+    def _get_len(self, nested_tensors, expected_length=None) -> int:
         if isinstance(nested_tensors, torch.Tensor):
-            self._length = self._length or nested_tensors.size(0)
-            assert nested_tensors.size(0) == self._length
+            length = nested_tensors.size(0)
+            assert length == expected_length or expected_length is None
+            return length
         elif isinstance(nested_tensors, tuple):
             for t in nested_tensors:
-                self._get_len(t)
+                expected_length = self._get_len(t, expected_length)
+            return expected_length
         elif isinstance(nested_tensors, dict):
             for t in nested_tensors.values():
-                self._get_len(t)
+                expected_length = self._get_len(t, expected_length)
+            return expected_length
         else:
             raise TypeError(f"Expected nested dict/tuple of tensors, found {type(nested_tensors)}.")
 
