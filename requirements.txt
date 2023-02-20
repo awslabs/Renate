@@ -10,5 +10,5 @@ Pillow>=9.0, <9.3.1
 torchmetrics~=0.10.3
 torchtext>=0.13.0, <0.14.2
 torchvision>=0.13.0, <0.14.2
-datasets
-transformers
+datasets~=2.9.0
+transformers>4.23.0, <4.26.2

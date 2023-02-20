@@ -147,7 +147,7 @@ def test_tiny_imagenet_data_module(tmpdir):
     "tokenizer_kwargs",
     [
         None,
-        dict(padding="max_length", max_length=128, truncation=True),
+        dict(padding="longest", max_length=512, truncation=True),
     ],
 )
 def test_huggingface_data_module(

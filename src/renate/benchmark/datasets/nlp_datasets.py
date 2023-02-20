@@ -30,7 +30,7 @@ class _InputTargetWrapper(torch.utils.data.Dataset):
 class HuggingfaceTextDataModule(RenateDataModule):
     """Data module wrapping Huggingface text datasets.
 
-    This is convenience wrapper to expose a hugginface dataset as a `RenateDataModule`. Datasets
+    This is a convenience wrapper to expose a hugginface dataset as a `RenateDataModule`. Datasets
     will be pre-tokenized and will return `input, target = dataset[i]`, where `input` is a
     dictionary with fields `["input_ids", "attention_mask"]`, and `target` is a tensor.
 
@@ -40,11 +40,16 @@ class HuggingfaceTextDataModule(RenateDataModule):
 
     Args:
         data_path: the path to the folder containing the dataset files.
-        dataset_name: Name of the dataset, see https://huggingface.co/datasets.
+        dataset_name: Name of the dataset, see https://huggingface.co/datasets. This is a wrapper
+            for text datasets only.
         input_column: Name of the column containing the input text.
         target_column: Name of the column containing the target (e.g., class label).
-        tokenizer: Tokenizer to apply to the dataset.
-        tokenize_kwargs: Keyword arguments to be passed to the tokenizer.
+        tokenizer: Tokenizer to apply to the dataset. See https://huggingface.co/docs/tokenizers/
+            for more information on tokenizers.
+        tokenize_kwargs: Keyword arguments to be passed to the tokenizer. Typical options are
+           `max_length`, `padding` and `truncation`. See https://huggingface.co/docs/tokenizers/
+           for more information on tokenizers. If `None` is passed, this defaults to
+           `{"padding": "max_length", max_length: 128, truncation: True}`.
         val_size: Fraction of the training data to be used for validation.
         seed: Seed used to fix random number generation.
     """
