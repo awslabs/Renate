@@ -207,9 +207,7 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
 
         avalanche_state = None
         if self._current_state_folder is not None:
-            avalanche_state_file = (
-                Path(self._current_state_folder) / defaults.AVALANCHE_CHECKPOINT_NAME
-            )
+            avalanche_state_file = defaults.avalanche_state_file(self._current_state_folder)
             if avalanche_state_file.exists():
                 avalanche_state = torch.load(avalanche_state_file)
                 if "val_memory_buffer" in avalanche_state:
@@ -241,7 +239,7 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
         state = benchmark.state_dict()
         if val_dataset_exists:
             state["val_memory_buffer"] = self._dummy_learner._val_memory_buffer.state_dict()
-        torch.save(state, Path(self._next_state_folder) / defaults.AVALANCHE_CHECKPOINT_NAME)
+        torch.save(state, defaults.avalanche_state_file(self._next_state_folder))
 
 
 class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):

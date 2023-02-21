@@ -146,6 +146,10 @@ def learner_state_file(state_folder: str):
     return os.path.join(state_folder, LEARNER_CHECKPOINT_NAME)
 
 
+def avalanche_state_file(state_folder: str):
+    return os.path.join(state_folder, AVALANCHE_CHECKPOINT_NAME)
+
+
 def metric_summary_file(logs_folder: str, special_str: str = ""):
     return os.path.join(logs_folder, f"metrics_summary{special_str}.csv")
 

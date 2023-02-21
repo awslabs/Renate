@@ -94,10 +94,10 @@ class VisionTransformer(RenateBenchmarkingModule):
             prediction_strategy=prediction_strategy,
             add_icarl_class_means=add_icarl_class_means,
         )
-        self._model = model
+        self._backbone = model
         if weights:
-            self._model.load_state_dict(weights.get_state_dict())
-        self._model.heads.head = nn.Identity()
+            self._backbone.load_state_dict(weights.get_state_dict())
+        self._backbone.heads.head = nn.Identity()
 
 
 class VisionTransformerCIFAR(VisionTransformer):

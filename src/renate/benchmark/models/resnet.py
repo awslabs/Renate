@@ -77,11 +77,11 @@ class ResNet(RenateBenchmarkingModule):
             prediction_strategy=prediction_strategy,
             add_icarl_class_means=add_icarl_class_means,
         )
-        self._model = model
+        self._backbone = model
         if cifar_stem:
-            self._model.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
-            self._model.maxpool = nn.Identity()
-        self._model.fc = nn.Identity()
+            self._backbone.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
+            self._backbone.maxpool = nn.Identity()
+        self._backbone.fc = nn.Identity()
 
         for m in self.modules():
             if hasattr(m, "reset_parameters"):

@@ -53,11 +53,7 @@ class RenateModule(torch.nn.Module, ABC):
         loss_fn: The loss function to be optimized during the training.
     """
 
-    def __init__(
-        self,
-        constructor_arguments: dict,
-        loss_fn: torch.nn.Module,
-    ):
+    def __init__(self, constructor_arguments: dict, loss_fn: torch.nn.Module):
         super(RenateModule, self).__init__()
         self._constructor_arguments = copy.deepcopy(constructor_arguments)
         self.loss_fn = loss_fn
@@ -105,7 +101,7 @@ class RenateModule(torch.nn.Module, ABC):
             x: The input tensor.
             task_id: The identifier of the task for which predictions are made.
         Returns:
-            The models' predictions.
+            The model's predictions.
         """
         pass
 

@@ -24,9 +24,6 @@ dev = [
     "pytest-cov~=4.0.0",
     "pytest-helpers-namespace~=2021.12.29",
     ]
-avalanche = [
-    "avalanche_lib<0.3.2",
-]
 
 [tool.setuptools.packages.find]
 where = ["src"]

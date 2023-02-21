@@ -70,4 +70,4 @@ class MultiLayerPerceptron(RenateBenchmarkingModule):
             if batch_normalization:
                 layers.append(nn.BatchNorm1d(hidden_size[i + 1]))
 
-        self._model = nn.Sequential(*layers)
+        self._backbone = nn.Sequential(*layers)

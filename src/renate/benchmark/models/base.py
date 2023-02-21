@@ -13,6 +13,23 @@ from renate.models.prediction_strategies import ICaRLClassificationStrategy, Pre
 
 # TODO: merge unit tests for the submodules
 class RenateBenchmarkingModule(RenateModule, ABC):
+    """Base class for all models provided by Renate.
+
+    This class ensures that each models works with all ModelUpdaters when using the benchmarking
+    feature of Renate. New models can extend this class or alternatively extend the RenateModule
+    and make sure they are compatible with the considered ModelUpdater.
+
+    Args:
+        embedding_size: Representation size of the model after the backbone.
+        num_outputs: The number of outputs of the model.
+        constructor_arguments: Arguments needed to instantiate the model.
+        loss_fn: The loss function to be optimized during the training.
+        prediction_strategy: By default a forward pass through the model. Some ModelUpdater must
+            be combined with specific prediction strategies to work as intended.
+        add_icarl_class_means: Specific parameters for iCaRL. Can be set to ``False`` if any other
+            ModelUpdater is used.
+    """
+
     def __init__(
         self,
         embedding_size: int,
@@ -49,9 +66,11 @@ class RenateBenchmarkingModule(RenateModule, ABC):
         return self.get_predictor(task_id)(x)
 
     def get_backbone(self, task_id: str = defaults.TASK_ID) -> nn.Module:
-        return self._model
+        """Returns the model without the prediction head."""
+        return self._backbone
 
     def get_predictor(self, task_id: str = defaults.TASK_ID) -> nn.Module:
+        """Returns the model without the backbone."""
         return self._tasks_params[task_id]
 
     def _add_task_params(self, task_id: str = defaults.TASK_ID) -> None:

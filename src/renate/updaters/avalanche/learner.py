@@ -24,7 +24,6 @@ class AvalancheLoaderMixin:
         self,
         avalanche_learner: BaseSGDTemplate,
         plugins: List[BasePlugin],
-        # evaluator: EvaluationPlugin,
         optimizer: Optimizer,
         max_epochs: int,
         device: torch.device,
@@ -32,9 +31,8 @@ class AvalancheLoaderMixin:
     ) -> None:
         """Updates settings of Avalanche learner after reloading."""
         avalanche_learner.plugins = remove_plugin(RenateCheckpointPlugin, avalanche_learner.plugins)
-        for plugin in plugins:  # + [evaluator]:
+        for plugin in plugins:
             avalanche_learner.plugins = replace_plugin(plugin, avalanche_learner.plugins)
-        # avalanche_learner.evaluator = evaluator
         avalanche_learner.model = self._model
         avalanche_learner.optimizer = optimizer
         avalanche_learner._criterion = self._model.loss_fn
@@ -49,7 +47,6 @@ class AvalancheLoaderMixin:
         optimizer: Optimizer,
         train_epochs: int,
         plugins: List[SupervisedPlugin],
-        # evaluator: EvaluationPlugin,
         device: torch.device,
         eval_every: int,
         **kwargs: Any,
@@ -134,7 +131,6 @@ class AvalancheICaRLLearner(ReplayLearner, AvalancheLoaderMixin):
         optimizer: Optimizer,
         train_epochs: int,
         plugins: List[SupervisedPlugin],
-        # evaluator: EvaluationPlugin,
         device: torch.device,
         eval_every: int,
     ) -> BaseSGDTemplate:
@@ -166,7 +162,6 @@ class AvalancheICaRLLearner(ReplayLearner, AvalancheLoaderMixin):
             eval_mb_size=self._batch_size,
             device=device,
             plugins=plugins,
-            # evaluator=evaluator,
             eval_every=-1,  # TODO: https://github.com/ContinualAI/avalanche/issues/1281
         )
         plugin_by_class(_ICaRLPlugin, icarl.plugins).class_means = self._model.class_means
