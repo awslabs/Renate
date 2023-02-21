@@ -504,7 +504,7 @@ def _execute_training_and_tuning_job_locally(
 ):
     """Executes the training job locally.
 
-    See renate.run.run_training_job for a description of arguments.
+    See renate.train.run_training_job for a description of arguments.
     """
     tune_hyperparameters = is_syne_tune_config_space(config_space)
     config_space["updater"] = updater
@@ -612,7 +612,7 @@ def submit_remote_job(
 ) -> str:
     """Executes the training job on SageMaker.
 
-    See renate.run.run_training_job for a description of arguments."""
+    See renate.train.run_training_job for a description of arguments."""
     tuning_script = str(Path(renate.__path__[0]) / "cli" / "run_remote_job.py")
     job_timestamp = defaults.current_timestamp()
     job_name = f"{job_name}-{job_timestamp}"

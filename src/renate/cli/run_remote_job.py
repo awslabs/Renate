@@ -3,7 +3,7 @@
 """
 This script is used to launch model run on SageMaker. Previously passed arguments on a different
 machine are loaded again and the update process is started with these parameters. Arguments expected
-are described in renate.run.execute_tuning_job.
+are described in renate.training.run_training_job.
 """
 import json
 
