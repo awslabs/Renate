@@ -12,19 +12,76 @@ from renate.memory import (
     ReservoirBuffer,
     SlidingWindowBuffer,
 )
+from renate.memory.buffer import _make_storage, _insert_data_point, _get_data_point
+
+
+class NestedTensorDataset(torch.utils.data.Dataset):
+    def __init__(self, nested_tensors):
+        self._nested_tensors = nested_tensors
+        self._length = self._get_len(nested_tensors)
+
+    def _get_len(self, nested_tensors, expected_length=None) -> int:
+        if isinstance(nested_tensors, torch.Tensor):
+            length = nested_tensors.size(0)
+            assert length == expected_length or expected_length is None
+            return length
+        elif isinstance(nested_tensors, tuple):
+            for t in nested_tensors:
+                expected_length = self._get_len(t, expected_length)
+            return expected_length
+        elif isinstance(nested_tensors, dict):
+            for t in nested_tensors.values():
+                expected_length = self._get_len(t, expected_length)
+            return expected_length
+        else:
+            raise TypeError(f"Expected nested dict/tuple of tensors, found {type(nested_tensors)}.")
+
+    def __len__(self):
+        return self._length
+
+    def __getitem__(self, idx):
+        return _get_data_point(self._nested_tensors, idx)
+
+
+@pytest.mark.parametrize("length", [1, 10])
+@pytest.mark.parametrize(
+    "data_point",
+    [
+        torch.tensor(1),
+        torch.zeros(10),
+        (torch.zeros(10, 10), torch.tensor(1)),
+        ({"x": torch.zeros(10, 10), "z": torch.tensor(1)}, torch.tensor(1)),
+    ],
+)
+def test_nested_tensor_storage(data_point, length):
+    """Ensures that creation/insertion/extraction works for different nested tensor structures."""
+    storage = _make_storage(data_point, length)
+    _insert_data_point(storage, 0, data_point)
+    _get_data_point(storage, 0)
 
 
 @pytest.mark.parametrize("buffer_cls", [ReservoirBuffer, SlidingWindowBuffer])
 @pytest.mark.parametrize("max_size", [1, 10, 100])
-@pytest.mark.parametrize("num_batches", [1, 10])
-@pytest.mark.parametrize("batch_size", [1, 10, 20])
-def test_buffer_respects_max_size(buffer_cls, max_size, num_batches, batch_size):
+@pytest.mark.parametrize("num_updates", [1, 10])
+@pytest.mark.parametrize(
+    "dataset",
+    [
+        torch.utils.data.TensorDataset(torch.empty(10, 2)),
+        torch.utils.data.TensorDataset(torch.empty(100, 2)),
+        torch.utils.data.TensorDataset(torch.empty(10, 2), torch.arange(10)),
+        torch.utils.data.TensorDataset(torch.empty(100, 2), torch.arange(100)),
+        NestedTensorDataset({"X": torch.empty(10, 2), "y": torch.arange(10)}),
+        NestedTensorDataset({"X": torch.empty(100, 2), "y": torch.arange(100)}),
+        NestedTensorDataset(({"X": torch.empty(10, 2), "z": torch.empty(10)}, torch.arange(10))),
+        NestedTensorDataset(({"X": torch.empty(100, 2), "z": torch.empty(100)}, torch.arange(100))),
+    ],
+)
+def test_buffer_respects_max_size(buffer_cls, max_size, num_updates, dataset):
     buffer = buffer_cls(max_size)
     assert len(buffer) == 0
-    for i in range(num_batches):
-        ds = torch.utils.data.TensorDataset(torch.randn(batch_size))
-        buffer.update(ds)
-        assert len(buffer) == min((i + 1) * batch_size, max_size)
+    for i in range(num_updates):
+        buffer.update(dataset)
+        assert len(buffer) == min((i + 1) * len(dataset), max_size)
 
 
 @pytest.mark.parametrize("buffer", [ReservoirBuffer(30), SlidingWindowBuffer(30)])
@@ -144,8 +201,7 @@ def test_buffer_get_state_dict(max_size):
         metadata = {"x": torch.ones(10, 10)}
         buffer.update(ds, metadata)
     state_dict = buffer.state_dict()
-    for key, value in state_dict["data_points"].items():
-        assert torch.all(torch.eq(buffer._data_points[key], value))
+    torch.all(torch.eq(buffer._data_points[0], state_dict["data_points"][0]))
 
     assert torch.all(torch.eq(buffer.metadata["x"], state_dict["metadata"]["x"]))
 
@@ -153,7 +209,7 @@ def test_buffer_get_state_dict(max_size):
         assert getattr(buffer, "_" + key) == state_dict[key]
     assert buffer.metadata == state_dict["metadata"]
     assert state_dict["size"] == max_size
-    assert len(state_dict["data_points"]["0"]) == max_size
+    assert len(state_dict["data_points"][0]) == max_size
 
 
 @pytest.mark.parametrize("buffer_type", [ReservoirBuffer, SlidingWindowBuffer])

@@ -104,6 +104,9 @@ LWF_TEMPERATURE = 2
 
 MEMORY_SIZE = 32
 
+# Benchmark datasets/models
+TOKENIZER_KWARGS = dict(padding="max_length", max_length=128, truncation=True)
+
 
 def scheduler(config_space: Dict[str, Any], mode: str, metric: str):
     return FIFOScheduler(

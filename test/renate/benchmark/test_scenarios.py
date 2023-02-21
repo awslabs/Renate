@@ -7,7 +7,7 @@ import pytest
 import torch
 from torchvision.transforms.functional import rotate
 
-from datasets import DummyTorchVisionDataModule, DummyTorchVisionDataModuleWithChunks
+from dummy_datasets import DummyTorchVisionDataModule, DummyTorchVisionDataModuleWithChunks
 from renate.benchmark.datasets.vision_datasets import TorchVisionDataModule
 from renate.benchmark.scenarios import (
     BenchmarkScenario,
