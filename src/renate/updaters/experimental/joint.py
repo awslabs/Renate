@@ -106,6 +106,7 @@ class JointModelUpdater(SingleTrainingLoopUpdater):
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
         seed: int = defaults.SEED,
+        deterministic_trainer: bool = False,
     ):
         learner_kwargs = {
             "optimizer": optimizer,
@@ -136,4 +137,5 @@ class JointModelUpdater(SingleTrainingLoopUpdater):
             logger=logger,
             accelerator=accelerator,
             devices=devices,
+            deterministic_trainer=deterministic_trainer,
         )

@@ -174,6 +174,7 @@ class ModelUpdater(abc.ABC):
         logger: Logger = defaults.LOGGER(**defaults.LOGGER_KWARGS),
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
+        deterministic_trainer: bool = False,
     ):
         self._learner_kwargs = learner_kwargs or {}
         self._model = model
@@ -231,6 +232,7 @@ class ModelUpdater(abc.ABC):
             )
         self._accelerator = accelerator
         self._devices = devices
+        self._deterministic_trainer = deterministic_trainer
 
     @abc.abstractmethod
     def update(
@@ -310,6 +312,7 @@ class ModelUpdater(abc.ABC):
             callbacks=callbacks,
             logger=self._logger,
             enable_progress_bar=False,
+            deterministic=self._deterministic_trainer,
         )
         trainer.fit(learner, train_loader, val_loader)
         self._num_epochs_trained = trainer.current_epoch
