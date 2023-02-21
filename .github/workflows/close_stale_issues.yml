@@ -1,4 +1,4 @@
-ame: Close inactive issues
+name: Close inactive issues
 on:
   schedule:
     - cron: "30 1 * * *"
