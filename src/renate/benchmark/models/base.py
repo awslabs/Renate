@@ -79,4 +79,6 @@ class RenateBenchmarkingModule(RenateModule, ABC):
 
     def get_params(self, task_id: str = defaults.TASK_ID) -> List[torch.nn.Parameter]:
         """Returns the list of parameters for the core model and a specific `task_id`."""
-        return list(self._model.parameters()) + list(self._tasks_params[task_id].parameters())
+        return list(self.get_backbone(task_id=task_id).parameters()) + list(
+            self.get_predictor(task_id=task_id).parameters()
+        )

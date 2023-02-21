@@ -194,7 +194,7 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
         avalanche_state = None
         if self._current_state_folder is not None:
             avalanche_state_file = defaults.avalanche_state_file(self._current_state_folder)
-            if avalanche_state_file.exists():
+            if Path(avalanche_state_file).exists():
                 avalanche_state = torch.load(avalanche_state_file)
                 if "val_memory_buffer" in avalanche_state:
                     self._dummy_learner._val_memory_buffer.load_state_dict(

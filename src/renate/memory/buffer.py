@@ -11,7 +11,6 @@ from torch.utils.data import Dataset
 from renate import defaults
 from renate.utils.pytorch import get_generator
 
-
 DataTuple = Tuple[torch.Tensor, ...]
 DataDict = Dict[Hashable, torch.Tensor]
 NestedTensors = Union[torch.Tensor, DataTuple, DataDict]
@@ -201,7 +200,12 @@ class DataBuffer(Dataset, ABC):
         self._target_transform = target_transform
 
     def to_tensors(self) -> Tuple[Tensor, ...]:
-        return (tensor[: self._size] for tensor in self._data_points.values())
+        """Converts buffer data into tuple of tensors. Used by AvalancheModelUpdater."""
+        if isinstance(self._data_points, dict):
+            return (tensor[: self._size] for tensor in self._data_points.values())
+        elif isinstance(self._data_points, tuple):
+            return (tensor[: self._size] for tensor in self._data_points)
+        return (self._data_points[: self._size],)
 
     def state_dict(self) -> Dict[str, Any]:
         """Returns the state of the buffer as a dictionary."""

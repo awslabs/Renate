@@ -12,7 +12,7 @@ from renate.memory import (
     ReservoirBuffer,
     SlidingWindowBuffer,
 )
-from renate.memory.buffer import _make_storage, _insert_data_point, _get_data_point
+from renate.memory.buffer import _get_data_point, _insert_data_point, _make_storage
 
 
 class NestedTensorDataset(torch.utils.data.Dataset):
