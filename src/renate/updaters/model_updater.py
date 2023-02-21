@@ -153,7 +153,8 @@ class ModelUpdater(abc.ABC):
             `accelerator`.
         deterministic_trainer: When set to True makes the output of the training deterministic.
             The value is passed to the trainer as described
-            `here <https://pytorch-lightning.readthedocs.io/en/stable/common/trainer.html#reproducibility>`_.
+            `here <https://pytorch-lightning.readthedocs.io/en/stable/common\
+            /trainer.html#reproducibility>`_.
     """
 
     def __init__(
