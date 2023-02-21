@@ -5,7 +5,7 @@ from typing import Optional, Union
 
 import torch
 
-from datasets import DummyTorchVisionDataModule
+from dummy_datasets import DummyTorchVisionDataModule
 from renate.benchmark.models.mlp import MultiLayerPerceptron
 from renate.benchmark.scenarios import ClassIncrementalScenario
 from renate.data.data_module import RenateDataModule
