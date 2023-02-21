@@ -2,14 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 import logging
 import math
-from typing import Dict, Hashable, List, Optional, Tuple, Union
+from typing import List, Optional
 
 import torch
 from torch.utils.data import Dataset, random_split
 
 from renate import defaults
-
-Inputs = Union[torch.Tensor, Tuple[torch.Tensor, ...], Dict[Hashable, torch.Tensor]]
+from renate.types import Inputs
 
 
 def reinitialize_model_parameters(model: torch.nn.Module) -> None:

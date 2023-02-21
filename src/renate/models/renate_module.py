@@ -7,6 +7,7 @@ from typing import Any, Callable, List, Optional, Set
 import torch
 
 from renate.models.layers import ContinualNorm
+from renate.types import Inputs
 
 
 class RenateModule(torch.nn.Module, ABC):
@@ -91,14 +92,15 @@ class RenateModule(torch.nn.Module, ABC):
         self.loss_fn = state["loss_fn"]
 
     @abstractmethod
-    def forward(self, x: torch.Tensor, task_id: Optional[str] = None) -> torch.Tensor:
+    def forward(self, x: Inputs, task_id: Optional[str] = None) -> torch.Tensor:
         """Performs a forward pass on the inputs and returns the predictions.
 
         This method accepts a task ID, which may be provided by some continual learning scenarios.
         As an examle, the task id may be used to switch between multiple output heads.
 
         Args:
-            x: The input tensor.
+            x: Input(s) to the model. Can be a single tensor, a tuple of tensor, or a dictionary
+                mapping strings to tensors.
             task_id: The identifier of the task for which predictions are made.
         """
         pass
@@ -138,14 +140,15 @@ class RenateModule(torch.nn.Module, ABC):
         self._add_task_params(task_id)
         self._tasks_params_ids.add(task_id)
 
-    def get_logits(self, x: torch.Tensor, task_id: Optional[str] = None) -> torch.Tensor:
+    def get_logits(self, x: Inputs, task_id: Optional[str] = None) -> torch.Tensor:
         """Returns the logits for a given pair of input and task id.
 
         By default, this method returns the output of the forward pass. This may be overwritten
         with custom behavior, if necessary.
 
         Args:
-            x: The input tensor.
+            x: Input(s) to the model. Can be a single tensor, a tuple of tensor, or a dictionary
+                mapping strings to tensors.
             task_id: The task id.
         """
         return self.forward(x, task_id)
@@ -224,7 +227,9 @@ class RenateWrapper(RenateModule):
 
     If you are using a torch model with fixed hyperparameters, you can use this wrapper to expose
     it as a ``RenateModule``. In this case, do _not_ use the ``from_state_dict`` method but
-    reinstantiate the model, wrap it, and call ``load_state_dict``.
+    reinstantiate the model, wrap it, and call ``load_state_dict``. If a tuple or a dictionary of
+    tensors is passed to the `RenateWrapper`'s forward function, it is unpacked before passing it
+    to the torch model's forward function.
 
     Example::
 
@@ -242,8 +247,15 @@ class RenateWrapper(RenateModule):
         super().__init__(constructor_arguments={}, loss_fn=loss_fn)
         self._model = model
 
-    def forward(self, x: torch.Tensor, task_id: Optional[str] = None) -> torch.Tensor:
-        return self._model(x)
+    def forward(self, x: Inputs, task_id: Optional[str] = None) -> torch.Tensor:
+        if isinstance(x, torch.Tensor):
+            return self._model(x)
+        elif isinstance(x, tuple):
+            return self._model(*x)
+        elif isinstance(x, dict):
+            return self._model(**x)
+        else:
+            raise TypeError(f"Expected tensor or tuple/dict of tensors; found {type(x)}.")
 
     @classmethod
     def from_state_dict(cls, state_dict):
