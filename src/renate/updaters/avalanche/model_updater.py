@@ -66,9 +66,7 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
         optimizer, scheduler = optimizer[0], scheduler[0]
         lr_scheduler_plugin = LRSchedulerPlugin(scheduler=scheduler)
         plugins = [lr_scheduler_plugin]
-        avalanche_learner = self._load_if_exists(
-            self._current_state_folder, self._metric, self._mode
-        )
+        avalanche_learner = self._load_if_exists(self._current_state_folder)
 
         checkpoint_plugin = None
         if self._next_state_folder is not None:
@@ -76,16 +74,12 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
                 RenateFileSystemCheckpointStorage(
                     directory=Path(self._next_state_folder),
                 ),
-                # metric=self._metric,
-                # mode=self._mode,
-                # map_location=self._devices TODO
             )
             plugins.append(checkpoint_plugin)
 
         if avalanche_learner is None:
             logger.warning("No updater state available. Updating from scratch.")
             return self._create_avalanche_learner(
-                # evaluator=evaluator,
                 checkpoint_plugin=checkpoint_plugin,
                 lr_scheduler_plugin=lr_scheduler_plugin,
                 optimizer=optimizer,
@@ -113,7 +107,6 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
 
     def _create_avalanche_learner(
         self,
-        # evaluator: EvaluationPlugin,
         checkpoint_plugin: RenateCheckpointPlugin,
         lr_scheduler_plugin: LRSchedulerPlugin,
         optimizer: Optimizer,
@@ -132,7 +125,6 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
             optimizer=optimizer,
             train_epochs=self._max_epochs,
             plugins=plugins,
-            # evaluator=evaluator,
             device=self._get_device(),
             eval_every=1,
         )
@@ -142,9 +134,7 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
         return avalanche_learner
 
     @staticmethod
-    def _load_if_exists(
-        current_state_folder: Optional[str], metric: str, mode: defaults.SUPPORTED_TUNING_MODE_TYPE
-    ) -> Optional[Naive]:
+    def _load_if_exists(current_state_folder: Optional[str]) -> Optional[Naive]:
         """Loads the Avalanche strategy if a state exists."""
 
         if current_state_folder is None:
@@ -153,9 +143,6 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
             RenateFileSystemCheckpointStorage(
                 directory=Path(current_state_folder),
             ),
-            # metric=metric,
-            # mode=mode,
-            # map_location=self._devices TODO
         )
         avalanche_learner, _ = checkpoint_plugin.load_checkpoint_if_exists()
         return avalanche_learner
@@ -167,7 +154,6 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
         task_id: Optional[str] = None,
     ) -> RenateModule:
         val_dataset_exists = val_dataset is not None
-        # self._learner.evaluator.loggers[0].report_val = val_dataset_exists
         benchmark = self._load_benchmark_if_exists(train_dataset, val_dataset)
         train_exp = benchmark.train_stream[0]
         self._learner.train(train_exp, eval_streams=[benchmark.test_stream])
