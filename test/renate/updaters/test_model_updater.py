@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import warnings
+from copy import deepcopy
 
 import pytest
 import torch
@@ -30,6 +31,39 @@ def test_simple_model_updater(tmpdir, provide_folder):
     y_hat_after_train = model(test_data, task_id=defaults.TASK_ID)
     assert y_hat_before_train.shape[0] == y_hat_after_train.shape[0]
     assert not torch.allclose(y_hat_before_train, y_hat_after_train)
+
+
+def test_deterministic_updater():
+    # The behavior is always deterministic on CPU but it can become non-deterministic on GPU
+    # When run on CPU this test never fails so it is only useful when tests are run on GPU
+    model1, train_dataset, test_data = pytest.helpers.get_renate_module_mlp_and_data(
+        num_inputs=10,
+        num_outputs=10,
+        hidden_size=32,
+        num_hidden_layers=3,
+        train_num_samples=10,
+        test_num_samples=5,
+    )
+
+    model2 = deepcopy(model1)
+
+    model_updater1 = pytest.helpers.get_simple_updater(
+        model1,
+        deterministic_trainer=True,
+    )
+
+    model_updater2 = pytest.helpers.get_simple_updater(
+        model2,
+        deterministic_trainer=True,
+    )
+
+    model_updater1.update(train_dataset, task_id=defaults.TASK_ID)
+    model_updater2.update(train_dataset, task_id=defaults.TASK_ID)
+
+    y_hat_1 = model1(test_data, task_id=defaults.TASK_ID)
+    y_hat_2 = model2(test_data, task_id=defaults.TASK_ID)
+
+    assert torch.allclose(y_hat_1, y_hat_2)
 
 
 @pytest.mark.parametrize("early_stopping_enabled", [True, False])

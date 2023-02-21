@@ -641,6 +641,7 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
         seed: int = defaults.SEED,
+        deterministic_trainer: bool = False,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
@@ -679,6 +680,7 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             logger=logger,
             accelerator=accelerator,
             devices=devices,
+            deterministic_trainer=deterministic_trainer,
         )
 
 
@@ -718,6 +720,7 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
         seed: int = defaults.SEED,
+        deterministic_trainer: bool = False,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
@@ -757,6 +760,7 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             logger=logger,
             accelerator=accelerator,
             devices=devices,
+            deterministic_trainer=deterministic_trainer,
         )
 
 
@@ -797,6 +801,7 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
         seed: int = defaults.SEED,
+        deterministic_trainer: bool = False,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
@@ -837,6 +842,7 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
             logger=logger,
             accelerator=accelerator,
             devices=devices,
+            deterministic_trainer=deterministic_trainer,
         )
 
 
@@ -880,6 +886,7 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
         seed: int = defaults.SEED,
+        deterministic_trainer: bool = False,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
@@ -923,6 +930,7 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             logger=logger,
             accelerator=accelerator,
             devices=devices,
+            deterministic_trainer=deterministic_trainer,
         )
 
 
@@ -972,6 +980,7 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
         seed: int = defaults.SEED,
+        deterministic_trainer: bool = False,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
@@ -1021,4 +1030,5 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             logger=logger,
             accelerator=accelerator,
             devices=devices,
+            deterministic_trainer=deterministic_trainer,
         )

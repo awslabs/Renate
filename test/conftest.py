@@ -299,6 +299,7 @@ def get_simple_updater(
     buffer_target_transform=None,
     early_stopping_enabled=False,
     metric=None,
+    deterministic_trainer=False,
 ):
     transforms_kwargs = {
         "train_transform": train_transform,
@@ -320,6 +321,7 @@ def get_simple_updater(
         logger=TEST_LOGGER(**TEST_LOGGER_KWARGS),
         early_stopping_enabled=early_stopping_enabled,
         metric=metric,
+        deterministic_trainer=deterministic_trainer,
         **transforms_kwargs,
     )
 
