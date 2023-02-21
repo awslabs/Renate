@@ -14,6 +14,7 @@ from renate import defaults
 from renate.data.datasets import _EnumeratedDataset
 from renate.memory.buffer import DataTuple, DataDict
 from renate.models import RenateModule
+from renate.types import Inputs
 from renate.updaters.learner import ReplayLearner
 from renate.updaters.learner_components.losses import (
     WeightedCLSLossComponent,
@@ -136,7 +137,7 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
             self._use_loss_normalization = args["loss_normalization"]
 
     def training_step(
-        self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor], batch_idx: int
+        self, batch: Tuple[torch.Tensor, Tuple[Inputs, torch.Tensor]], batch_idx: int
     ) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
         idx, (inputs, targets) = batch

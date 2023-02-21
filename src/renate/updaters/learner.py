@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import abc
-from typing import Any, Callable, Dict, Hashable, List, Literal, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -16,10 +16,9 @@ from renate.data.datasets import _TransformedDataset
 from renate.evaluation.metrics.utils import create_metrics
 from renate.memory import DataBuffer, InfiniteBuffer, ReservoirBuffer
 from renate.models import RenateModule
+from renate.types import Inputs
 from renate.utils.optimizer import create_optimizer, create_scheduler
 from renate.utils.pytorch import get_generator
-
-Inputs = Union[torch.Tensor, Tuple[torch.Tensor, ...], Dict[str, torch.Tensor]]
 
 
 class Learner(LightningModule, abc.ABC):
@@ -279,7 +278,7 @@ class Learner(LightningModule, abc.ABC):
             task_id = self._task_id
         return self._model(inputs, task_id=task_id)
 
-    def training_step(self, batch: List[torch.Tensor], batch_idx: int) -> STEP_OUTPUT:
+    def training_step(self, batch: Tuple[Inputs, torch.Tensor], batch_idx: int) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
         inputs, targets = batch
         outputs = self(inputs)
@@ -306,7 +305,7 @@ class Learner(LightningModule, abc.ABC):
         if not self._val_enabled:
             self._log_metrics()
 
-    def validation_step(self, batch: List[torch.Tensor], batch_idx: int) -> None:
+    def validation_step(self, batch: Tuple[Inputs, torch.Tensor], batch_idx: int) -> None:
         """PyTorch Lightning function to estimate validation metrics."""
         (inputs, targets), _ = batch
         outputs = self(inputs)

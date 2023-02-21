@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import copy
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, Optional, Tuple
 
 import torch
 import torchmetrics
@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader, Dataset
 from renate import defaults
 from renate.memory import DataBuffer
 from renate.models import RenateModule
+from renate.types import Inputs
 from renate.updaters.learner import Learner, ReplayLearner
 from renate.updaters.model_updater import ModelUpdater
 from renate.utils.pytorch import move_tensors_to_device, reinitialize_model_parameters
@@ -288,7 +289,9 @@ class RepeatedDistillationLearner(ReplayLearner):
         self._memory_buffer.metadata["logits"][: len(self._memory_buffer)] = logits
         return super().on_model_update_end(train_dataset, val_dataset, task_id)
 
-    def training_step(self, batch: List[torch.Tensor], batch_idx: int) -> STEP_OUTPUT:
+    def training_step(
+        self, batch: Tuple[Tuple[Inputs, torch.Tensor], Dict[str, torch.Tensor]], batch_idx: int
+    ) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
         (inputs, targets), metadata = batch
         outputs = self(inputs)

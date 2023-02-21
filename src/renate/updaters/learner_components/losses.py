@@ -2,16 +2,15 @@
 # SPDX-License-Identifier: Apache-2.0
 import copy
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Hashable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
 
 from renate.memory.buffer import DataDict, DataTuple
 from renate.models import RenateModule
+from renate.types import Inputs
 from renate.updaters.learner_components.component import Component
-
-Inputs = Union[torch.Tensor, Tuple[torch.Tensor, ...], Dict[Hashable, torch.Tensor]]
 
 
 class WeightedLossComponent(Component, ABC):
@@ -50,7 +49,7 @@ class WeightedLossComponent(Component, ABC):
     def loss(
         self,
         outputs_memory: torch.Tensor,
-        batch_memory: Tuple[DataTuple, DataDict],
+        batch_memory: Tuple[Tuple[Inputs, torch.Tensor], Dict[str, torch.Tensor]],
         intermediate_representation_memory: Optional[List[torch.Tensor]],
     ) -> torch.Tensor:
         if self.weight == 0:
@@ -65,7 +64,7 @@ class WeightedLossComponent(Component, ABC):
     def _loss(
         self,
         outputs_memory: torch.Tensor,
-        batch_memory: Tuple[DataTuple, DataDict],
+        batch_memory: Tuple[Tuple[Inputs, torch.Tensor], Dict[str, torch.Tensor]],
         intermediate_representation_memory: Optional[List[torch.Tensor]],
     ) -> torch.Tensor:
         pass
@@ -90,7 +89,7 @@ class WeightedCustomLossComponent(WeightedLossComponent):
     def _loss(
         self,
         outputs_memory: torch.Tensor,
-        batch_memory: Tuple[DataTuple, DataDict],
+        batch_memory: Tuple[Tuple[Inputs, torch.Tensor], Dict[str, torch.Tensor]],
         intermediate_representation_memory: Optional[List[torch.Tensor]],
     ) -> torch.Tensor:
         """Returns user-provided loss evaluated on memory batch."""
@@ -106,7 +105,7 @@ class WeightedMeanSquaredErrorLossComponent(WeightedLossComponent):
     def _loss(
         self,
         outputs_memory: torch.Tensor,
-        batch_memory: Tuple[DataTuple, DataDict],
+        batch_memory: Tuple[Tuple[Inputs, torch.Tensor], Dict[str, torch.Tensor]],
         intermediate_representation_memory: Optional[List[torch.Tensor]],
     ) -> torch.Tensor:
         """Mean-squared error between current and previous logits on memory."""
@@ -252,7 +251,7 @@ class WeightedPooledOutputDistillationLossComponent(WeightedLossComponent):
     def _loss(
         self,
         outputs_memory: torch.Tensor,
-        batch_memory: Tuple[DataTuple, DataDict],
+        batch_memory: Tuple[Tuple[Inputs, torch.Tensor], Dict[str, torch.Tensor]],
         intermediate_representation_memory: List[torch.Tensor],
     ) -> torch.Tensor:
         """Compute the pooled output with respect to current and cached intermediate outputs from
@@ -360,7 +359,7 @@ class WeightedCLSLossComponent(WeightedLossComponent):
     def _loss(
         self,
         outputs_memory: torch.Tensor,
-        batch_memory: Tuple[DataTuple, DataDict],
+        batch_memory: Tuple[Tuple[Inputs, torch.Tensor], Dict[str, torch.Tensor]],
         intermediate_representation_memory: Optional[List[torch.Tensor]],
     ) -> torch.Tensor:
         """Computes the consistency loss with respect to averaged plastic and stable models."""
