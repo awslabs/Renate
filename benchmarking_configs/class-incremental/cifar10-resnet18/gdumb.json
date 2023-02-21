@@ -1,0 +1,11 @@
+{
+    "updater": "GDumb",
+    "optimizer": "SGD",
+    "learning_rate": 0.01,
+    "momentum": 0.0,
+    "weight_decay": 0.0,
+    "batch_size": 32,
+    "max_epochs": 50,
+    "memory_batch_size": 32,
+    "memory_size": 2500
+}
