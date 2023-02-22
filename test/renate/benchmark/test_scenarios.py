@@ -12,6 +12,7 @@ from renate.benchmark.datasets.vision_datasets import TorchVisionDataModule
 from renate.benchmark.scenarios import (
     BenchmarkScenario,
     ClassIncrementalScenario,
+    IIDScenario,
     ImageRotationScenario,
     PermutationScenario,
 )
@@ -174,3 +175,24 @@ def test_benchmark_scenario():
         assert scenario.train_data() is not None
         assert scenario.val_data() is not None
         assert len(scenario.test_data()) == 3
+
+
+def test_iid_scenario():
+    """Tests that the IID scenario creates a non-overlapping split."""
+    data_module = DummyTorchVisionDataModule(val_size=0.3)
+    counter = {}
+    for i in range(3):
+        scenario = IIDScenario(
+            data_module=data_module,
+            num_tasks=3,
+            chunk_id=i,
+            seed=data_module._seed,
+        )
+        scenario.prepare_data()
+        scenario.setup()
+        for stage in ["train", "val"]:
+            scenario_data = getattr(scenario, f"{stage}_data")()
+            for j in range(len(scenario_data)):
+                x, y = scenario_data[j]
+                assert x not in counter
+                counter[x] = 1
