@@ -452,7 +452,8 @@ def _add_cls_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) -
             "beta": {
                 "type": float,
                 "default": defaults.CLS_BETA,
-                "help": f"Weight for the consistency memory loss term. Default: {defaults.CLS_BETA}.",
+                "help": "Weight for the consistency memory loss term. Default: "
+                f"{defaults.CLS_BETA}.",
             },
             "stable_model_update_weight": {
                 "type": float,
