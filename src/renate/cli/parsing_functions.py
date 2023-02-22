@@ -271,12 +271,14 @@ def _add_optimizer_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
             "optimizer": {
                 "type": str,
                 "default": defaults.OPTIMIZER,
-                "help": f"Optimizer used for training. Options: SGD or Adam. Default: {defaults.OPTIMIZER}.",
+                "help": "Optimizer used for training. Options: SGD or Adam. Default: "
+                f"{defaults.OPTIMIZER}.",
             },
             "learning_rate": {
                 "type": float,
                 "default": defaults.LEARNING_RATE,
-                "help": f"Learning rate used during model update. Default: {defaults.LEARNING_RATE}.",
+                "help": "Learning rate used during model update. Default: "
+                f"{defaults.LEARNING_RATE}.",
             },
             "learning_rate_scheduler": {
                 "type": str,
