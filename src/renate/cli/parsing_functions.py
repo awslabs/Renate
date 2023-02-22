@@ -643,26 +643,28 @@ def get_transforms_dict(
     return transforms
 
 
-def get_attribute_type(arg_spec: inspect.FullArgSpec, attribute_name: str) -> Type:
-    def raise_error(attr_type, attr_name):
-        raise TypeError(f"Type {attr_type} is not supported (Attribute {attr_name}).")
+def get_argument_type(arg_spec: inspect.FullArgSpec, argument_name: str) -> Type:
+    def raise_error(arg_type, arg_name):
+        raise TypeError(f"Type {arg_type} is not supported (argument {arg_name}).")
 
-    if hasattr(arg_spec.annotations[attribute_name], "__origin__"):
-        if arg_spec.annotations[attribute_name].__origin__ == Union:
-            if len(arg_spec.annotations[attribute_name].__args__) != 2 or arg_spec.annotations[
-                attribute_name
+    if argument_name not in arg_spec.annotations:
+        raise TypeError(f"Missing type annotation for argument {argument_name}.")
+    if hasattr(arg_spec.annotations[argument_name], "__origin__"):
+        if arg_spec.annotations[argument_name].__origin__ == Union:
+            if len(arg_spec.annotations[argument_name].__args__) != 2 or arg_spec.annotations[
+                argument_name
             ].__args__[1] != type(None):
-                raise_error(arg_spec.annotations[attribute_name], attribute_name)
-            attribute_type = arg_spec.annotations[attribute_name].__args__[0]
-        elif arg_spec.annotations[attribute_name].__origin__ in [list, tuple]:
-            attribute_type = arg_spec.annotations[attribute_name].__origin__
+                raise_error(arg_spec.annotations[argument_name], argument_name)
+            argument_type = arg_spec.annotations[argument_name].__args__[0]
+        elif arg_spec.annotations[argument_name].__origin__ in [list, tuple]:
+            argument_type = arg_spec.annotations[argument_name].__origin__
         else:
-            raise_error(arg_spec.annotations[attribute_name], attribute_name)
+            raise_error(arg_spec.annotations[argument_name], argument_name)
     else:
-        attribute_type = arg_spec.annotations[attribute_name]
-    if attribute_type not in [int, bool, float, str, list, tuple]:
-        raise_error(attribute_type, attribute_name)
-    return attribute_type
+        argument_type = arg_spec.annotations[argument_name]
+    if argument_type not in [int, bool, float, str, list, tuple]:
+        raise_error(argument_type, argument_name)
+    return argument_type
 
 
 def get_function_args(
@@ -671,7 +673,7 @@ def get_function_args(
     all_args: Dict[str, Dict[str, Any]],
     ignore_args: List[str],
 ) -> List[str]:
-    """Returns all attribute names of the function and appends new arguments to ``all_args``.
+    """Returns all argument names of the function and appends new arguments to ``all_args``.
 
     Args:
         config_module: Renate config file containing functions to access the model and data.
@@ -692,26 +694,26 @@ def get_function_args(
             arg_spec.args[len(arg_spec.args) - len(arg_spec.defaults) + i]: default
             for i, default in enumerate(arg_spec.defaults)
         }
-    for attribute_name in known_args:
-        attribute_type = get_attribute_type(arg_spec, attribute_name)
-        expected_type = all_args[attribute_name]["type"]
-        if attribute_type != expected_type:
+    for argument_name in known_args:
+        argument_type = get_argument_type(arg_spec, argument_name)
+        expected_type = all_args[argument_name]["type"]
+        if argument_type != expected_type:
             raise TypeError(
-                f"Types of `{attribute_name}` are not consistent. Defined as type `{attribute_type}`"
+                f"Types of `{argument_name}` are not consistent. Defined as type `{argument_type}`"
                 f" as well as `{expected_type}`."
             )
-        if attribute_name not in default_values:
-            all_args[attribute_name]["required"] = True
+        if argument_name not in default_values:
+            all_args[argument_name]["required"] = True
 
-    for attribute_name in new_args:
-        all_args[attribute_name] = {
-            "type": get_attribute_type(arg_spec, attribute_name),
+    for argument_name in new_args:
+        all_args[argument_name] = {
+            "type": get_argument_type(arg_spec, argument_name),
             "argument_group": CUSTOM_ARGS_GROUP,
         }
-        if attribute_name in default_values:
-            all_args[attribute_name]["default"] = default_values[attribute_name]
+        if argument_name in default_values:
+            all_args[argument_name]["default"] = default_values[argument_name]
         else:
-            all_args[attribute_name]["required"] = True
+            all_args[argument_name]["required"] = True
     return arg_spec.args
 
 
