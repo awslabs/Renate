@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import copy
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, Optional, Tuple
 
 import torch
 import torchmetrics
@@ -12,9 +12,10 @@ from torch.utils.data import DataLoader, Dataset
 from renate import defaults
 from renate.memory import DataBuffer
 from renate.models import RenateModule
+from renate.types import Inputs
 from renate.updaters.learner import Learner, ReplayLearner
 from renate.updaters.model_updater import ModelUpdater
-from renate.utils.pytorch import reinitialize_model_parameters
+from renate.utils.pytorch import move_tensors_to_device, reinitialize_model_parameters
 
 
 def double_distillation_loss(
@@ -62,11 +63,10 @@ def extract_logits(
     logits = []
     loader = DataLoader(dataset, batch_size, shuffle=False, drop_last=False, pin_memory=True)
     for batch in loader:
-        if isinstance(dataset, DataBuffer):
-            X = batch[0][0].to(next(model.parameters()).device)
-        else:
-            X = batch[0].to(next(model.parameters()).device)
-        logits.append(model.get_logits(X, task_id))
+        inputs = batch[0][0] if isinstance(dataset, DataBuffer) else batch[0]
+        device = next(model.parameters()).device
+        inputs = move_tensors_to_device(inputs, device)
+        logits.append(model.get_logits(inputs, task_id))
     return torch.cat(logits, dim=0)
 
 
@@ -109,8 +109,8 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
         test_target_transform: Optional[Callable] = None,
         buffer_transform: Optional[Callable] = None,
         buffer_target_transform: Optional[Callable] = None,
-        current_state_folder: Optional[str] = None,
-        next_state_folder: Optional[str] = None,
+        input_state_folder: Optional[str] = None,
+        output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
         metric: Optional[str] = None,
         mode: defaults.SUPPORTED_TUNING_MODE_TYPE = "min",
@@ -137,8 +137,8 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
             model=model,
             learner_class=RepeatedDistillationLearner,
             learner_kwargs=learner_kwargs,
-            current_state_folder=current_state_folder,
-            next_state_folder=next_state_folder,
+            input_state_folder=input_state_folder,
+            output_state_folder=output_state_folder,
             max_epochs=max_epochs,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
@@ -289,11 +289,13 @@ class RepeatedDistillationLearner(ReplayLearner):
         self._memory_buffer.metadata["logits"][: len(self._memory_buffer)] = logits
         return super().on_model_update_end(train_dataset, val_dataset, task_id)
 
-    def training_step(self, batch: List[torch.Tensor], batch_idx: int) -> STEP_OUTPUT:
+    def training_step(
+        self, batch: Tuple[Tuple[Inputs, torch.Tensor], Dict[str, torch.Tensor]], batch_idx: int
+    ) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
-        (X, y), metadata = batch
-        outputs = self._model(X)
+        (inputs, targets), metadata = batch
+        outputs = self(inputs)
         loss = double_distillation_loss(outputs, metadata["logits"]).mean()
-        self._update_metrics(outputs, y, prefix="train")
+        self._update_metrics(outputs, targets, prefix="train")
         self._loss_collections["train_losses"]["base_loss"](loss)
         return {"loss": loss, "outputs": outputs}

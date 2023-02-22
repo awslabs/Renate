@@ -11,14 +11,14 @@ from syne_tune.optimizer.schedulers import FIFOScheduler
 from syne_tune.optimizer.schedulers.transfer_learning import RUSHScheduler
 
 from renate import defaults
-from renate.tuning.tuning import (
+from renate.training.training import (
     RENATE_CONFIG_COLUMNS,
     _create_scheduler,
     _get_transfer_learning_task_evaluations,
     _load_tuning_history,
     _merge_tuning_history,
     _verify_validation_set_for_hpo_and_checkpointing,
-    execute_tuning_job,
+    run_training_job,
 )
 from renate.utils.syne_tune import is_syne_tune_config_space
 
@@ -53,12 +53,12 @@ def test_execute_tuning_job(tmpdir, num_chunks, val_size, raises, fixed_search_s
     for _ in range(num_chunks):
 
         def execute_job():
-            execute_tuning_job(
+            run_training_job(
                 updater="ER",
                 max_epochs=5,
                 config_file=config_file,
-                state_url=state_url,
-                next_state_url=tmpdir,
+                input_state_url=state_url,
+                output_state_url=tmpdir,
                 backend="local",
                 mode="max",
                 config_space={
@@ -95,7 +95,7 @@ def test_execute_tuning_job(tmpdir, num_chunks, val_size, raises, fixed_search_s
 def test_merge_tuning_history(
     data_old, data_new, expected_data_first_row, expected_data_second_row
 ):
-    """Test whether HPO tuning results are merged correctly.
+    """Test whether HPO results are merged correctly.
 
     Testing two cases:
         1. Old results exist and new ones are added.
@@ -369,5 +369,5 @@ def test_create_scheduler(tmpdir, scheduler, scheduler_kwargs, tuning_results_ex
         max_epochs=3,
         seed=0,
         scheduler_kwargs=scheduler_kwargs,
-        state_url=state_url,
+        input_state_url=state_url,
     )

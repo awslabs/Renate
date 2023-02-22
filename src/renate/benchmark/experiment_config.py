@@ -25,6 +25,7 @@ from renate.benchmark.models import (
 from renate.benchmark.scenarios import (
     BenchmarkScenario,
     ClassIncrementalScenario,
+    IIDScenario,
     ImageRotationScenario,
     PermutationScenario,
     Scenario,
@@ -130,6 +131,10 @@ def get_scenario(
         )
     if scenario_name == "BenchmarkScenario":
         return BenchmarkScenario(
+            data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed
+        )
+    if scenario_name == "IIDScenario":
+        return IIDScenario(
             data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed
         )
     if scenario_name == "ImageRotationScenario":

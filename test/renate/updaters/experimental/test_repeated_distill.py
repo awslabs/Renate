@@ -79,7 +79,7 @@ def test_dmc_model_updater(tmpdir, provide_folder):
         model,
         memory_size=50,
         max_epochs=1,
-        next_state_folder=defaults.next_state_folder(tmpdir) if provide_folder else None,
+        output_state_folder=defaults.output_state_folder(tmpdir) if provide_folder else None,
     )
     y_hat_before_train = model(test_data, task_id=defaults.TASK_ID)
     model_updater.update(train_dataset, task_id=defaults.TASK_ID)
@@ -97,13 +97,13 @@ def test_continuation_of_training_with_dmc_model_updater(tmpdir):
         train_num_samples=10,
         test_num_samples=5,
     )
-    state_url = defaults.current_state_folder(tmpdir)
+    state_url = defaults.input_state_folder(tmpdir)
     model_updater = RepeatedDistillationModelUpdater(
-        model, memory_size=50, max_epochs=1, next_state_folder=state_url
+        model, memory_size=50, max_epochs=1, output_state_folder=state_url
     )
     model = model_updater.update(train_dataset, task_id=defaults.TASK_ID)
     model_updater = RepeatedDistillationModelUpdater(
-        model, memory_size=50, max_epochs=1, current_state_folder=state_url
+        model, memory_size=50, max_epochs=1, input_state_folder=state_url
     )
     model_updater.update(train_dataset, task_id=defaults.TASK_ID)
 

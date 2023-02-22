@@ -118,12 +118,12 @@ def data_folder(working_directory: str):
     return os.path.join(working_directory, "data")
 
 
-def current_state_folder(working_directory: str):
-    return os.path.join(working_directory, "state")
+def input_state_folder(working_directory: str):
+    return os.path.join(working_directory, "input_state")
 
 
-def next_state_folder(working_directory: str):
-    return os.path.join(working_directory, "next_state")
+def output_state_folder(working_directory: str):
+    return os.path.join(working_directory, "output_state")
 
 
 def logs_folder(working_directory: str):
