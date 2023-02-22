@@ -24,8 +24,8 @@ from renate.evaluation.metrics.classification import (
     forgetting,
     forward_transfer,
 )
-from renate.tuning import execute_tuning_job
-from renate.tuning.tuning import submit_remote_job
+from renate.training import run_training_job
+from renate.training.training import submit_remote_job
 from renate.utils.file import (
     copy_to_uri,
     is_s3_uri,
@@ -248,13 +248,13 @@ def _execute_experiment_job_locally(
     logger.info("Start experiment.")
     seed_everything(seed)
 
-    state_url = defaults.current_state_folder(working_directory)
-    next_state_url = defaults.next_state_folder(working_directory)
+    input_state_url = defaults.input_state_folder(working_directory)
+    output_state_url = defaults.output_state_folder(working_directory)
     data_url = defaults.data_folder(working_directory)
-    model_url = defaults.model_file(state_url)
+    model_url = defaults.model_file(input_state_url)
     logs_url = defaults.logs_folder(working_directory)
 
-    for url in [state_url, next_state_url, logs_url]:
+    for url in [input_state_url, output_state_url, logs_url]:
         if os.path.exists(url):
             shutil.rmtree(url)
         Path(url).mkdir(parents=True, exist_ok=True)
@@ -301,7 +301,7 @@ def _execute_experiment_job_locally(
     for update_id in range(num_updates):
         logger.info(f"Starting Update {update_id + 1}/{num_updates}.")
         update_url = os.path.join(experiment_outputs_url, f"update_{update_id}")
-        execute_tuning_job(
+        run_training_job(
             mode=mode,
             config_space=config_space,
             metric=metric,
@@ -309,8 +309,8 @@ def _execute_experiment_job_locally(
             updater=config_space["updater"],
             max_epochs=config_space["max_epochs"],
             chunk_id=update_id,
-            state_url=state_url,
-            next_state_url=next_state_url,
+            input_state_url=input_state_url,
+            output_state_url=output_state_url,
             working_directory=working_directory,
             config_file=config_file,
             max_time=max_time,
@@ -324,8 +324,8 @@ def _execute_experiment_job_locally(
             accelerator=accelerator,
             devices=devices,
         )
-        move_to_uri(next_state_url, state_url)
-        copy_to_uri(state_url, update_url)
+        move_to_uri(output_state_url, input_state_url)
+        copy_to_uri(input_state_url, update_url)
         model = get_model(
             config_module, model_state_url=model_url, **get_model_fn_args(config_space)
         )

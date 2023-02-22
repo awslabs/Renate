@@ -286,8 +286,8 @@ def get_renate_vision_module_and_data(
 @pytest.helpers.register
 def get_simple_updater(
     model,
-    current_state_folder=None,
-    next_state_folder=None,
+    input_state_folder=None,
+    output_state_folder=None,
     learner_class=ExperienceReplayLearner,
     learner_kwargs={"memory_size": 10},
     max_epochs=5,
@@ -313,8 +313,8 @@ def get_simple_updater(
         model=model,
         learner_class=learner_class,
         learner_kwargs=learner_kwargs,
-        current_state_folder=current_state_folder,
-        next_state_folder=next_state_folder,
+        input_state_folder=input_state_folder,
+        output_state_folder=output_state_folder,
         max_epochs=max_epochs,
         accelerator="cpu",
         logger=TEST_LOGGER(**TEST_LOGGER_KWARGS),

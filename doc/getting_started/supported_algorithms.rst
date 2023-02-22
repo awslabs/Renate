@@ -3,7 +3,7 @@ Supported Algorithms
 
 Renate provides implementations of various continual learning methods. The following table provides
 an overview with links to the documentation, and a short description. When initiating model updates
-using Renate (e.g., using :py:func:`renate.tuning.tuning.execute_tuning_job`; see
+using Renate (e.g., using :py:func:`renate.training.training.run_training_job`; see
 :doc:`how_to_run_training`), a method may be selected using the shorthand provided below.
 
 .. list-table:: Supported Algorithms

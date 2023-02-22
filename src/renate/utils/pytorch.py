@@ -8,6 +8,7 @@ import torch
 from torch.utils.data import Dataset, random_split
 
 from renate import defaults
+from renate.types import Inputs
 
 
 def reinitialize_model_parameters(model: torch.nn.Module) -> None:
@@ -64,3 +65,25 @@ def _proportions_into_sizes(proportions: List[float], size: int) -> List[int]:
     sizes = [round(proportion * size) for proportion in proportions[:-1]]
     sizes.append(size - sum(sizes))
     return sizes
+
+
+def move_tensors_to_device(tensors: Inputs, device: torch.device) -> Inputs:
+    """Moves a collection of tensors to `device`.
+
+    The collection `tensors` can be a nested structure of tensors, tuples, lists, and dicts.
+    """
+    if isinstance(tensors, torch.Tensor):
+        return tensors.to(device)
+    elif isinstance(tensors, tuple):
+        return tuple(move_tensors_to_device(t, device) for t in tensors)
+    # We need to include lists here as well, since collate_fn sometimes turns tuples into lists.
+    # See https://github.com/pytorch/pytorch/issues/48419.
+    elif isinstance(tensors, list):
+        return [move_tensors_to_device(t, device) for t in tensors]
+    elif isinstance(tensors, dict):
+        return {key: move_tensors_to_device(t, device) for key, t in tensors.items()}
+    else:
+        raise TypeError(
+            "Expected `tensors` to be a nested structure of tensors, tuples, list and dict; "
+            f"discovered {type(tensors)}."
+        )

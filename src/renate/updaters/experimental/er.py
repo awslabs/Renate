@@ -14,6 +14,7 @@ from renate import defaults
 from renate.data.datasets import _EnumeratedDataset
 from renate.memory.buffer import DataTuple, DataDict
 from renate.models import RenateModule
+from renate.types import Inputs
 from renate.updaters.learner import ReplayLearner
 from renate.updaters.learner_components.losses import (
     WeightedCLSLossComponent,
@@ -25,6 +26,7 @@ from renate.updaters.learner_components.reinitialization import (
     ShrinkAndPerturbReinitializationComponent,
 )
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
+from renate.utils.pytorch import move_tensors_to_device
 
 
 class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
@@ -135,11 +137,11 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
             self._use_loss_normalization = args["loss_normalization"]
 
     def training_step(
-        self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor], batch_idx: int
+        self, batch: Tuple[torch.Tensor, Tuple[Inputs, torch.Tensor]], batch_idx: int
     ) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
-        idx, (X, y) = batch
-        step_output = super().training_step(batch=(X, y), batch_idx=batch_idx)
+        idx, (inputs, targets) = batch
+        step_output = super().training_step(batch=(inputs, targets), batch_idx=batch_idx)
         step_output["train_data_idx"] = idx
         step_output["loss"] *= self._loss_weight
 
@@ -153,8 +155,8 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
                 memory_sampled = False
                 if component.sample_new_memory_batch or batch_memory is None:
                     batch_memory = self._sample_from_buffer(device=step_output["loss"].device)
-                    (x_memory, _), metadata_memory = batch_memory
-                    outputs_memory = self(x_memory)
+                    (inputs_memory, _), metadata_memory = batch_memory
+                    outputs_memory = self(inputs_memory)
                     intermediate_representation_memory = (
                         self._model.get_intermediate_representation()
                     )
@@ -187,12 +189,7 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
         """Function to sample from the buffer, if buffer is populated."""
         if self._memory_loader is not None and len(self._memory_buffer) >= self._memory_batch_size:
             memory_batch = next(iter(self._memory_loader))
-            (x_memory, y_memory), metadata = memory_batch
-            x_memory, y_memory = x_memory.to(device), y_memory.to(device)
-            for key, value in metadata.items():
-                if isinstance(value, torch.Tensor):
-                    metadata[key] = value.to(device)
-            return (x_memory, y_memory), metadata
+            return move_tensors_to_device(memory_batch, device)
         else:
             return None
 
@@ -624,8 +621,8 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         momentum: float = defaults.MOMENTUM,
         weight_decay: float = defaults.WEIGHT_DECAY,
         batch_size: int = defaults.BATCH_SIZE,
-        current_state_folder: Optional[str] = None,
-        next_state_folder: Optional[str] = None,
+        input_state_folder: Optional[str] = None,
+        output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
@@ -663,8 +660,8 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             model,
             learner_class=ExperienceReplayLearner,
             learner_kwargs=learner_kwargs,
-            current_state_folder=current_state_folder,
-            next_state_folder=next_state_folder,
+            input_state_folder=input_state_folder,
+            output_state_folder=output_state_folder,
             max_epochs=max_epochs,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
@@ -701,8 +698,8 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         momentum: float = defaults.MOMENTUM,
         weight_decay: float = defaults.WEIGHT_DECAY,
         batch_size: int = defaults.BATCH_SIZE,
-        current_state_folder: Optional[str] = None,
-        next_state_folder: Optional[str] = None,
+        input_state_folder: Optional[str] = None,
+        output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
@@ -741,8 +738,8 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             model,
             learner_class=DarkExperienceReplayLearner,
             learner_kwargs=learner_kwargs,
-            current_state_folder=current_state_folder,
-            next_state_folder=next_state_folder,
+            input_state_folder=input_state_folder,
+            output_state_folder=output_state_folder,
             max_epochs=max_epochs,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
@@ -780,8 +777,8 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
         momentum: float = defaults.MOMENTUM,
         weight_decay: float = defaults.WEIGHT_DECAY,
         batch_size: int = defaults.BATCH_SIZE,
-        current_state_folder: Optional[str] = None,
-        next_state_folder: Optional[str] = None,
+        input_state_folder: Optional[str] = None,
+        output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
@@ -821,8 +818,8 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
             model,
             learner_class=PooledOutputDistillationExperienceReplayLearner,
             learner_kwargs=learner_kwargs,
-            current_state_folder=current_state_folder,
-            next_state_folder=next_state_folder,
+            input_state_folder=input_state_folder,
+            output_state_folder=output_state_folder,
             max_epochs=max_epochs,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
@@ -863,8 +860,8 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         momentum: float = defaults.MOMENTUM,
         weight_decay: float = defaults.WEIGHT_DECAY,
         batch_size: int = defaults.BATCH_SIZE,
-        current_state_folder: Optional[str] = None,
-        next_state_folder: Optional[str] = None,
+        input_state_folder: Optional[str] = None,
+        output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
@@ -907,8 +904,8 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             model,
             learner_class=CLSExperienceReplayLearner,
             learner_kwargs=learner_kwargs,
-            current_state_folder=current_state_folder,
-            next_state_folder=next_state_folder,
+            input_state_folder=input_state_folder,
+            output_state_folder=output_state_folder,
             max_epochs=max_epochs,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
@@ -955,8 +952,8 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         momentum: float = defaults.MOMENTUM,
         weight_decay: float = defaults.WEIGHT_DECAY,
         batch_size: int = defaults.BATCH_SIZE,
-        current_state_folder: Optional[str] = None,
-        next_state_folder: Optional[str] = None,
+        input_state_folder: Optional[str] = None,
+        output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
@@ -1005,8 +1002,8 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             model,
             learner_class=SuperExperienceReplayLearner,
             learner_kwargs=learner_kwargs,
-            current_state_folder=current_state_folder,
-            next_state_folder=next_state_folder,
+            input_state_folder=input_state_folder,
+            output_state_folder=output_state_folder,
             max_epochs=max_epochs,
             train_transform=train_transform,
             train_target_transform=train_target_transform,

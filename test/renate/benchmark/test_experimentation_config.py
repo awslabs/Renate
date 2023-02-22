@@ -16,6 +16,7 @@ from renate.benchmark.experiment_config import (
 from renate.benchmark.scenarios import (
     BenchmarkScenario,
     ClassIncrementalScenario,
+    IIDScenario,
     ImageRotationScenario,
     PermutationScenario,
 )
@@ -78,6 +79,13 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             3,
         ),
         (
+            "IIDScenario",
+            "MNIST",
+            {"data_module_fn_num_tasks": 3},
+            IIDScenario,
+            3,
+        ),
+        (
             "ImageRotationScenario",
             "MNIST",
             {"data_module_fn_degrees": "[0,90,180]"},
@@ -95,6 +103,7 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
     ),
     ids=[
         "class_incremental_image",
+        "iid",
         "rotation",
         "benchmark",
         "permutation",

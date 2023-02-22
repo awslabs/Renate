@@ -241,3 +241,26 @@ class PermutationScenario(TransformScenario):
             transform = Lambda(lambda x, p=permutation: x.flatten()[p].view(x.size()))
             transforms.append(transform)
         super().__init__(data_module, transforms, chunk_id, seed)
+
+
+class IIDScenario(Scenario):
+    """A scenario splitting datasets into random equally-sized chunks.
+
+    Args:
+        data_module: The source RenateDataModule for the the user data.
+        num_tasks: The total number of expected tasks for experimentation.
+        chunk_id: The data chunk to load in for the training or validation data.
+        seed: Seed used to fix random number generation.
+    """
+
+    def setup(self) -> None:
+        """Make assignments: val/train/test splits."""
+        self._data_module.setup()
+        proportions = [1 / self._num_tasks for _ in range(self._num_tasks)]
+        self._train_data = randomly_split_data(
+            self._data_module.train_data(), proportions, self._seed
+        )[self._chunk_id]
+        val_data = self._data_module.val_data()
+        if val_data:
+            self._val_data = randomly_split_data(val_data, proportions, self._seed)[self._chunk_id]
+        self._test_data = self._data_module.test_data()
