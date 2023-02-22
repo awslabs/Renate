@@ -15,6 +15,8 @@ from renate.cli.parsing_functions import (
 )
 from renate.utils.module import import_module
 
+config_module = import_module("config_module", "test/renate/renate_config_files/config.py")
+
 
 def test_get_argument_type():
     """Test if correct argument type is extracted from typed function."""
@@ -84,8 +86,6 @@ def test_get_function_args(all_args, ignore_args):
     }
     for arg in ignore_args:
         del expected_all_args[arg]
-
-    config_module = import_module("config_module", "renate/renate_config_files/config.py")
     args = get_function_args(
         config_module=config_module,
         function_name="data_module_fn",
@@ -105,7 +105,7 @@ def test_get_function_args_with_inconsistent_args():
             "required": True,
         }
     }
-    config_module = import_module("config_module", "renate/renate_config_files/config.py")
+
     with pytest.raises(
         TypeError,
         match=r"Types of `model_state_url` are not consistent. Defined as type `<class 'str'>` "
@@ -128,7 +128,6 @@ def test_get_function_args_prefers_required_true():
             "required": False,
         }
     }
-    config_module = import_module("config_module", "renate/renate_config_files/config.py")
     get_function_args(
         config_module=config_module,
         function_name="data_module_fn",
@@ -146,7 +145,6 @@ def test_get_fn_kwargs_helper_functions():
         "model_state_url": "home/model/state",
         "unused_config": 1,
     }
-    config_module = import_module("config_module", "renate/renate_config_files/config.py")
     data_module_kwargs = get_data_module_fn_kwargs(
         config_module=config_module, config_space=config_space
     )

@@ -394,95 +394,96 @@ def _add_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) -> No
     _add_base_experience_replay_arguments(arguments)
 
 
-def parse_dark_experience_replay_arguments(parser: argparse.Namespace) -> None:
+def parse_dark_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds Dark Experience Replay arguments."""
-    parser.add_argument(
-        "--alpha",
-        type=float,
-        default=defaults.DER_ALPHA,
-        help=f"Weight for logit regularization term. Default: {defaults.DER_ALPHA}.",
+    arguments.update(
+        {
+            "alpha": {
+                "type": float,
+                "default": defaults.DER_ALPHA,
+                "help": f"Weight for logit regularization term. Default: {defaults.DER_ALPHA}.",
+            },
+            "beta": {
+                "type": float,
+                "default": defaults.DER_BETA,
+                "help": f"Weight for memory loss term. Default: {defaults.DER_BETA}.",
+            },
+        }
     )
-    parser.add_argument(
-        "--beta",
-        type=float,
-        default=defaults.DER_ALPHA,
-        help=f"Weight for memory loss term. Default: {defaults.DER_BETA}.",
-    )
-    _add_base_experience_replay_arguments(parser)
+    _add_base_experience_replay_arguments(arguments)
 
 
-def parse_pod_experience_replay_arguments(parser: argparse.Namespace) -> None:
+def parse_pod_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds PODNet Experience Replay arguments."""
-    parser.add_argument(
-        "--alpha",
-        type=float,
-        default=defaults.POD_ALPHA,
-        help="Weight for intermediate representation regularization term. Default: "
-        f"{defaults.POD_ALPHA}.",
+    arguments.update(
+        {
+            "alpha": {
+                "type": float,
+                "default": defaults.POD_ALPHA,
+                "help": "Weight for intermediate representation regularization term. Default: "
+                f"{defaults.POD_ALPHA}.",
+            },
+            "distillation_type": {
+                "type": str,
+                "default": defaults.POD_DISTILLATION_TYPE,
+                "help": "Distillation type to apply with respect to the intermediate "
+                f"representation. Default: {defaults.POD_DISTILLATION_TYPE}.",
+            },
+            "normalize": {
+                "type": int,
+                "default": defaults.POD_NORMALIZE,
+                "help": "Whether to normalize both the current and cached features before computing"
+                f" the Frobenius norm. Default: {defaults.POD_NORMALIZE}.",
+            },
+        }
     )
-    parser.add_argument(
-        "--distillation_type",
-        type=str,
-        default=defaults.POD_DISTILLATION_TYPE,
-        help="Distillation type to apply with respect to the intermediate representation. "
-        f"Default: {defaults.POD_DISTILLATION_TYPE}.",
-    )
-    parser.add_argument(
-        "--normalize",
-        type=int,
-        default=defaults.POD_NORMALIZE,
-        help="Whether to normalize both the current and cached features before computing the "
-        "Frobenius norm. Default: {defaults.POD_NORMALIZE}.",
-    )
-    _add_base_experience_replay_arguments(parser)
+    _add_base_experience_replay_arguments(arguments)
 
 
-def parse_cls_experience_replay_arguments(parser: argparse.Namespace) -> None:
+def parse_cls_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds CLS Experience Replay arguments."""
-    parser.add_argument(
-        "--alpha",
-        type=float,
-        default=defaults.CLS_ALPHA,
-        help=f"Weight for the cross-entropy loss term. Default: {defaults.CLS_ALPHA}.",
+    arguments.update(
+        {
+            "alpha": {
+                "type": float,
+                "default": defaults.CLS_ALPHA,
+                "help": f"Weight for the cross-entropy loss term. Default: {defaults.CLS_ALPHA}.",
+            },
+            "beta": {
+                "type": float,
+                "default": defaults.CLS_BETA,
+                "help": f"Weight for the consistency memory loss term. Default: {defaults.CLS_BETA}.",
+            },
+            "stable_model_update_weight": {
+                "type": float,
+                "default": defaults.CLS_STABLE_MODEL_UPDATE_WEIGHT,
+                "help": "The starting weight for the exponential moving average to update the "
+                f"stable model. Default: {defaults.CLS_STABLE_MODEL_UPDATE_WEIGHT}.",
+            },
+            "plastic_model_update_weight": {
+                "type": float,
+                "default": defaults.CLS_PLASTIC_MODEL_UPDATE_WEIGHT,
+                "help": "The starting weight for the exponential moving average to update the "
+                f"plastic model. Default: {defaults.CLS_PLASTIC_MODEL_UPDATE_WEIGHT}.",
+            },
+            "stable_model_update_probability": {
+                "type": float,
+                "default": defaults.CLS_STABLE_MODEL_UPDATE_PROBABILITY,
+                "help": "Probability to update the stable model. Default: "
+                f"{defaults.CLS_STABLE_MODEL_UPDATE_PROBABILITY}.",
+            },
+            "plastic_model_update_probability": {
+                "type": float,
+                "default": defaults.CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,
+                "help": "Probability to update the plastic model. Default: "
+                f"{defaults.CLS_PLASTIC_MODEL_UPDATE_PROBABILITY}.",
+            },
+        }
     )
-    parser.add_argument(
-        "--beta",
-        type=float,
-        default=defaults.CLS_BETA,
-        help=f"Weight for the consistency memory loss term. Default: {defaults.CLS_BETA}.",
-    )
-    parser.add_argument(
-        "--stable_model_update_weight",
-        type=float,
-        default=defaults.CLS_STABLE_MODEL_UPDATE_WEIGHT,
-        help="The starting weight for the exponential moving average to update the stable model. "
-        f"Default: {defaults.CLS_STABLE_MODEL_UPDATE_WEIGHT}.",
-    )
-    parser.add_argument(
-        "--plastic_model_update_weight",
-        type=float,
-        default=defaults.CLS_PLASTIC_MODEL_UPDATE_WEIGHT,
-        help="The starting weight for the exponential moving average to update the plastic model. "
-        f"Default: {defaults.CLS_PLASTIC_MODEL_UPDATE_WEIGHT}.",
-    )
-    parser.add_argument(
-        "--stable_model_update_probability",
-        type=float,
-        default=defaults.CLS_STABLE_MODEL_UPDATE_PROBABILITY,
-        help="Probability to update the stable model. Default: "
-        f"{defaults.CLS_STABLE_MODEL_UPDATE_PROBABILITY}.",
-    )
-    parser.add_argument(
-        "--plastic_model_update_probability",
-        type=float,
-        default=defaults.CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,
-        help="Probability to update the plastic model. Default: "
-        f"{defaults.CLS_PLASTIC_MODEL_UPDATE_PROBABILITY}.",
-    )
-    _add_base_experience_replay_arguments(parser)
+    _add_base_experience_replay_arguments(arguments)
 
 
-def parse_super_experience_replay_arguments(parser: argparse.Namespace) -> None:
+def parse_super_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds Super Experience Replay arguments."""
     parser.add_argument(
         "--der_alpha",
@@ -566,7 +567,7 @@ def parse_super_experience_replay_arguments(parser: argparse.Namespace) -> None:
     _add_base_experience_replay_arguments(parser)
 
 
-def parse_rd_learner_arguments(parser: argparse.Namespace) -> None:
+def parse_rd_learner_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds Repeated Distill Learner arguments."""
     parser.add_argument(
         "--memory_size",
