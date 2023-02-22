@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import pytest
 import torch
-from torch.utils.data import Dataset, TensorDataset
 import transformers
+from torch.utils.data import Dataset, TensorDataset
 
 from renate.benchmark.datasets.nlp_datasets import HuggingfaceTextDataModule
 from renate.benchmark.datasets.vision_datasets import (
