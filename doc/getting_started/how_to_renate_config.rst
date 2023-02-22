@@ -67,7 +67,7 @@ such as data subsampling or splitting.
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 40-70
+    :lines: 41-71
 
 Transforms
 ==========
