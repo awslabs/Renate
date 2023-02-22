@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Hashable, Optional, Tuple, Union
 
 import torch
 from torch.utils.data import Dataset
@@ -10,41 +10,116 @@ from torch.utils.data import Dataset
 from renate import defaults
 from renate.utils.pytorch import get_generator
 
+
 DataTuple = Tuple[torch.Tensor, ...]
-DataDict = Dict[str, torch.Tensor]
+DataDict = Dict[Hashable, torch.Tensor]
+NestedTensors = Union[torch.Tensor, DataTuple, DataDict]
+Index = Union[int, slice]
+
+
+def _make_storage(data_point: NestedTensors, length: int) -> NestedTensors:
+    """Creates a nested tensor storage to store datapoints of sizes/shapes given by `data_point`.
+
+    `data_point` can be any nested structure (using `tuple` and `dict`) containing `torch.Tensor`s.
+    This function will return an equivalent nested structure with tensors of the same data type
+    and shape with an additional "batch dimension" of size `length`.
+
+    Args:
+        data_point: A nested structure of tensors.
+        length: Number of data points (like `data_point`) for which a storage will be allocated.
+
+    Returns:
+        A storage that can store `length` points like `data_point`.
+    """
+    if isinstance(data_point, torch.Tensor):
+        return torch.empty(size=(length, *data_point.size()), dtype=data_point.dtype)
+    elif isinstance(data_point, tuple):
+        return tuple(_make_storage(t, length) for t in data_point)
+    elif isinstance(data_point, dict):
+        return {key: _make_storage(t, length) for key, t in data_point.items()}
+    else:
+        raise TypeError(f"Expected nested tuple/dict of tensors, found {type(data_point)}.")
+
+
+def _get_data_point(storage: NestedTensors, idx: Index) -> NestedTensors:
+    """Retrieves a data point from a nested tensor storage.
+
+    Args:
+        storage: A storage for nested tensors, e.g., created using `make_storage`.
+        idx: An integer index or slice indicating the point(s) to extract.
+
+    Returns:
+        The extracted data point(s).
+    """
+    if isinstance(storage, torch.Tensor):
+        return storage[idx]
+    elif isinstance(storage, tuple):
+        return tuple(_get_data_point(t, idx) for t in storage)
+    elif isinstance(storage, dict):
+        return {key: _get_data_point(t, idx) for key, t in storage.items()}
+    else:
+        raise TypeError(f"Expected nested tuple/dict of tensors, found {type(storage)}.")
+
+
+def _insert_data_point(storage: NestedTensors, idx: Index, data_point: NestedTensors) -> None:
+    """Inserts a data point into a nested tensor storage.
+
+    Args:
+        storage: A storage for nested tensors, e.g., created using `make_storage`.
+        idx: An integer index or slice indicating where to insert the data point(s)
+        data_point: The data point(s) to insert, i.e., a nested tensor structure compatible with
+            `storage`. If `idx` is a slice, the tensors in `data_point` need to have a batch
+            dimension of corresponding length. If `idx` is an integer, they must not have a batch
+            dimension.
+    """
+    if isinstance(storage, torch.Tensor):
+        assert isinstance(data_point, torch.Tensor)
+        assert data_point.dtype is storage.dtype
+        storage[idx] = data_point
+    elif isinstance(storage, tuple):
+        assert isinstance(data_point, tuple)
+        assert len(data_point) == len(storage)
+        for i in range(len(storage)):
+            _insert_data_point(storage[i], idx, data_point[i])
+    elif isinstance(storage, dict):
+        assert isinstance(data_point, dict)
+        assert set(data_point.keys()) == set(storage.keys())
+        for key in storage:
+            _insert_data_point(storage[key], idx, data_point[key])
 
 
 class DataBuffer(Dataset, ABC):
     """A memory buffer storing data points.
 
-    The buffer functions as a torch dataset, i.e., it implements `__len__` and
-    `__getitem__`. Pytorch data loaders can be used to sample from or iterate
-    over the buffer.
+    The buffer functions as a torch dataset, i.e., it implements `__len__` and `__getitem__`.
+    Pytorch data loaders can be used to sample from or iterate over the buffer.
 
-    Extracting an element from the buffer will return a tuple,
-    `data_point, metadata = buffer[i]`, where `data_point` is the raw data point
-    and `metadata` is a dictionary containing associated metadata (identical
-    keys for all data points, possibly empty) and the index `idx` of the currently
-    sampled data sample, referring to the ordering inside of the buffer.
-    It is assumed that all passed in data are PyTorch tensors.
-    Metadata can be passed externally when calling `Buffer.update` and
-    additional fields of metadata might be added by some buffering methods, e.g.,
-    instance weights in coreset methods.
+    Data can be added to the buffer via `buffer.update(dataset, metadata)`. `dataset` is a
+    pytorch dataset expected to return an arbitrary nested `tuple`/`dict` structure containing
+    `torch.Tensor`s of _fixed_ size and data type. `metadata` is a dictionary mapping strings to
+    tensors for associated metadata. The logic to decide which data points remain in the buffer is
+    implemented by different subclasses.
 
-    Note that the buffer does not change the device placement of data passed to it.
-    Please ensure that the data passed to `DataBuffer.update` resides on the CPU.
+    Extracting an element from the buffer will return a nested tuple of the form
+    `data_point, metadata = buffer[i]`, where `data_point` is the raw data point  and `metadata` is
+    a dictionary containing associated metadata as well as field `idx` containing the index of the
+    data point in the buffer. Additional fields of metadata might be added by some buffering
+    methods, e.g., instance weights in coreset methods.
 
-    Note that, in order to apply transformations, the buffer assumes that the data points
-    are tuples of exactly 2 tensors i.e. `(x, y)` where `x` is the input and `y` is some target.
+    Note that the buffer does not change the device placement of data passed to it. Please ensure
+    that the data passed to `DataBuffer.update` resides on the CPU.
+
+    Note that, in order to apply transformations, the buffer assumes that the data points are tuples
+    of the form `(x, y)`. We apply `transform` to `inputs` and `target_transform` to `y`. Ensure
+    that the transforms accept the correct type, e.g., if `x` is a dictionary, `transform` needs to
+    operate on a dictionary.
 
     Args:
         max_size: Maximal size of the buffer.
-        storage_mode: How to store the data in the buffer. Currently, we only
-           support `in_memory`.
+        storage_mode: How to store the data in the buffer. Currently, we only support `in_memory`.
         seed: Seed for the random number generator used in the buffer.
-        transform: The transformation to be applied to the memory buffer data samples.
-        target_transform: The target transformation to be applied to the memory buffer target
-            samples.
+        transform: The transformation to be applied to the inputs "x" of points in the buffer.
+        target_transform: The transformation to be applied to target "y" of points in the buffer.
     """
 
     def __init__(
@@ -63,8 +138,8 @@ class DataBuffer(Dataset, ABC):
 
         self._count = 0
 
-        self._data_points: DataDict = {}
-        self.metadata: DataDict = {}
+        self._data_points = None
+        self.metadata = None
         self._size = 0
 
         self._transform = transform
@@ -74,73 +149,31 @@ class DataBuffer(Dataset, ABC):
         """Returns the number of data points in the buffer."""
         return self._size
 
-    def __getitem__(self, idx: int) -> Tuple[DataTuple, DataDict]:
+    def __getitem__(self, idx: int) -> Tuple[NestedTensors, DataDict]:
         """Retrieves a data point from the buffer."""
-        metadata = {key: value[idx] for key, value in self.metadata.items()}
-        metadata["idx"] = torch.tensor(idx, dtype=torch.long)
-        data = tuple(self._data_points[f"{i}"][idx] for i in range(len(self._data_points)))
-        if self._transform is not None or self._target_transform is not None:
-            x, y = data
+        metadata = _get_data_point(self.metadata, idx)
+        data = _get_data_point(self._data_points, idx)
+        if self._transform is None and self._target_transform is None:
+            return data, metadata
+        else:
+            inputs, targets = data
             if self._transform is not None:
-                x = self._transform(x)
+                inputs = self._transform(inputs)
             if self._target_transform is not None:
-                y = self._target_transform(y)
-            return (x, y), metadata
-        return data, metadata
+                targets = self._target_transform(targets)
+            return (inputs, targets), metadata
 
-    def _verify_metadata(self, metadata: DataDict, expected_length: int) -> None:
-        """Verifies that passed metadata is compatible with internal metadata."""
-        if len(self) == 0:
-            return
-
-        if set(self.metadata.keys()) != set(metadata.keys()):
-            raise KeyError(
-                f"Keys of provided metadata {list(metadata.keys())} do not match those present in ",
-                f"the buffer {list(self.metadata.keys())}.",
-            )
-
-        for key in metadata:
-            if not isinstance(metadata[key], torch.Tensor):
-                raise TypeError(
-                    f"Metadata needs to map to `torch.Tensor`, found {type(metadata[key])} at ",
-                    f"key {key}.",
-                )
-            if metadata[key].dtype != self.metadata[key].dtype:
-                raise TypeError(
-                    f"Provided metadata at key {key} is of type {metadata[key].dtype}. This does "
-                    f"not match type {self.metadata[key].dtype} already present in the buffer."
-                )
-            if metadata[key].size(0) != expected_length:
-                raise ValueError(
-                    f"Tensors in metadata dictionary need to be of size {expected_length} (size "
-                    "of the associated dataset) in dimension 0. Found size "
-                    f"{metadata[key].size()} at key {key}.",
-                )
-
-    def __setitem__(self, idx: int, data_and_metadata: Tuple[DataTuple, DataDict]) -> None:
+    def __setitem__(self, idx: int, data_and_metadata: Tuple[NestedTensors, DataDict]) -> None:
         """Replaces a data point in the buffer."""
         data, metadata = data_and_metadata
-        for i, d in enumerate(data):
-            self._data_points[f"{i}"][idx] = d
-        for key in metadata:
-            self.metadata[key][idx] = metadata[key]
+        _insert_data_point(self._data_points, idx, data)
+        _insert_data_point(self.metadata, idx, metadata)
 
-    def _append(self, data: DataTuple, metadata: DataDict) -> None:
+    def _append(self, data: NestedTensors, metadata: DataDict) -> None:
         """Appends a data point to the internal storage."""
-        for i, d in enumerate(data):
-            key = f"{i}"  # FIXME: choose a better naming for the keys of the data points
-            if key not in self._data_points:
-                self._data_points[key] = torch.empty(
-                    (self._max_size, *d.shape), dtype=d.dtype, device=d.device
-                )
-
-        for key in metadata:
-            if key not in self.metadata:
-                self.metadata[key] = torch.empty(
-                    (self._max_size, *metadata[key].shape),
-                    dtype=metadata[key].dtype,
-                    device=metadata[key].device,
-                )
+        if not len(self):
+            self._data_points = _make_storage(data, self._max_size)
+            self.metadata = _make_storage(metadata, self._max_size)
         self[self._size] = data, metadata
         self._size += 1
 
@@ -153,7 +186,6 @@ class DataBuffer(Dataset, ABC):
                 have size n in dimension 0, where `n = len(dataset)`.
         """
         metadata = metadata or {}
-        self._verify_metadata(metadata, expected_length=len(dataset))
         return self._update(dataset, metadata)
 
     @abstractmethod
@@ -204,22 +236,17 @@ class DataBuffer(Dataset, ABC):
         if not isinstance(state_dict["storage_mode"], str):
             raise TypeError("Invalid type for storage_mode, should be str.")
 
-        if not isinstance(state_dict["data_points"], dict):
-            raise TypeError("Invalid container for data points, should be a dictionary.")
-
-        if not isinstance(state_dict["metadata"], dict):
-            raise TypeError("Invalid container for metadata, should be a dictionary.")
+        if not (isinstance(state_dict["metadata"], dict) or state_dict["metadata"] is None):
+            raise TypeError("Invalid container for metadata, should be a dictionary or None.")
 
 
 class InfiniteBuffer(DataBuffer):
-    """A data buffer that supports infinite size.
+    """A data buffer that stores _all_ incoming data.
 
     Args:
-        storage_mode: How to store the data in the buffer. Currently, we only
-           support `in_memory`.
-        transform: The transformation to be applied to the memory buffer data samples.
-        target_transform: The target transformation to be applied to the memory buffer target
-            samples.
+        storage_mode: How to store the data in the buffer. Currently, we only support `in_memory`.
+        transform: The transformation to be applied to the inputs "x" of points in the buffer.
+        target_transform: The transformation to be applied to target "y" of points in the buffer.
     """
 
     def __init__(
@@ -231,25 +258,28 @@ class InfiniteBuffer(DataBuffer):
         super().__init__(
             storage_mode=storage_mode, transform=transform, target_transform=target_transform
         )
-        self._max_size = 1
+        self._max_size = 16
 
     def _update(self, dataset: Dataset, metadata: DataDict) -> None:
         for i in range(len(dataset)):
             self._append(dataset[i], {key: value[i] for key, value in metadata.items()})
 
-    def _append(self, data: DataTuple, metadata: DataDict) -> None:
+    def _append(self, data: NestedTensors, metadata: NestedTensors) -> None:
         """Appends a data point to the internal storage.
 
         Initializes a new buffer with twice the size if the current one is full.
         """
         super()._append(data, metadata)
         if self._size == self._max_size:
-            data_containers = [self._data_points, metadata]
-            for data_container in data_containers:
-                for key in data_container:
-                    data_container[key] = torch.cat(
-                        [data_container[key], torch.empty_like(data_container[key])], dim=0
-                    )
+            # Extend the size of the storage by a factor of 2.
+            current_data_points = self._data_points
+            self._data_points = _make_storage(
+                _get_data_point(current_data_points, 0), self._max_size * 2
+            )
+            _insert_data_point(self._data_points, slice(self._max_size), current_data_points)
+            current_metadata = self.metadata
+            self.metadata = _make_storage(_get_data_point(current_metadata, 0), self._max_size * 2)
+            _insert_data_point(self.metadata, slice(self._max_size), current_metadata)
             self._max_size *= 2
 
 
@@ -295,9 +325,8 @@ class GreedyClassBalancingBuffer(DataBuffer):
     Prabhu, Ameya, Philip HS Torr, and Puneet K. Dokania. "GDumb: A simple
     approach that questions our progress in continual learning." ECCV, 2020.
 
-    Note that, this implementation works only with respect to classification problems
-    and datasets, where we expect the data coming from the dataset to be organised
-    as `x,y` tuples where `x` is the input and `y` is an integer class index.
+    Note that, this implementation works only with for datasets returning `(x, y)` tuples, where we
+    expect `y` to be an integer class label.
     """
 
     def __init__(self, **kwargs: Any) -> None:
@@ -340,7 +369,7 @@ class GreedyClassBalancingBuffer(DataBuffer):
 
             self._count += 1
 
-    def _record_class_index(self, data: DataTuple, target_index: int) -> None:
+    def _record_class_index(self, data: NestedTensors, target_index: int) -> None:
         """Helper function to record the class membership in the mapping."""
         _, y = data
         if isinstance(y, torch.Tensor):
