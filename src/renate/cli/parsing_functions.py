@@ -365,17 +365,17 @@ def _add_base_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) 
     _add_replay_learner_arguments(arguments)
 
 
-def parse_gdumb_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+def _add_gdumb_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds GDumb arguments."""
     _add_replay_learner_arguments(arguments)
 
 
-def parse_joint_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+def _add_joint_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds Joint Learner arguments."""
     pass
 
 
-def parse_finetuning_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+def _add_finetuning_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds Fine Tuning arguments."""
     pass
 
@@ -394,7 +394,7 @@ def _add_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) -> No
     _add_base_experience_replay_arguments(arguments)
 
 
-def parse_dark_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+def _add_dark_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds Dark Experience Replay arguments."""
     arguments.update(
         {
@@ -413,7 +413,7 @@ def parse_dark_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]])
     _add_base_experience_replay_arguments(arguments)
 
 
-def parse_pod_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+def _add_pod_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds PODNet Experience Replay arguments."""
     arguments.update(
         {
@@ -440,7 +440,7 @@ def parse_pod_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) 
     _add_base_experience_replay_arguments(arguments)
 
 
-def parse_cls_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+def _add_cls_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds CLS Experience Replay arguments."""
     arguments.update(
         {
@@ -483,7 +483,7 @@ def parse_cls_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) 
     _add_base_experience_replay_arguments(arguments)
 
 
-def parse_super_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+def _add_super_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds Super Experience Replay arguments."""
     arguments.update(
         {
@@ -560,7 +560,7 @@ def parse_super_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]
     _add_base_experience_replay_arguments(arguments)
 
 
-def parse_rd_learner_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+def _add_rd_learner_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds Repeated Distill Learner arguments."""
     arguments.update(
         {
@@ -720,13 +720,13 @@ def get_function_args(
 
 parse_by_updater = {
     "ER": _add_experience_replay_arguments,
-    "DER": parse_dark_experience_replay_arguments,
-    "POD-ER": parse_pod_experience_replay_arguments,
-    "CLS-ER": parse_cls_experience_replay_arguments,
-    "Super-ER": parse_super_experience_replay_arguments,
-    "GDumb": parse_gdumb_arguments,
-    "Joint": parse_joint_arguments,
-    "FineTuning": parse_finetuning_arguments,
-    "RD": parse_rd_learner_arguments,
+    "DER": _add_dark_experience_replay_arguments,
+    "POD-ER": _add_pod_experience_replay_arguments,
+    "CLS-ER": _add_cls_experience_replay_arguments,
+    "Super-ER": _add_super_experience_replay_arguments,
+    "GDumb": _add_gdumb_arguments,
+    "Joint": _add_joint_arguments,
+    "FineTuning": _add_finetuning_arguments,
+    "RD": _add_rd_learner_arguments,
     "OfflineER": _add_replay_learner_arguments,
 }
