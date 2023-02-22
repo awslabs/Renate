@@ -330,7 +330,8 @@ def _add_replay_learner_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
             "memory_size": {
                 "type": int,
                 "default": defaults.MEMORY_SIZE,
-                "help": f"Memory size available for the memory buffer. Default: {defaults.MEMORY_SIZE}.",
+                "help": "Memory size available for the memory buffer. Default: "
+                f"{defaults.MEMORY_SIZE}.",
             },
             "memory_batch_size": {
                 "type": int,
