@@ -164,12 +164,12 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
             "help": "Location of python file containing model_fn and data_module_fn.",
             "argument_group": REQUIRED_ARGS_GROUP,
         },
-        "state_url": {
+        "input_state_url": {
             "type": str,
             "help": "Location of previous Renate state (if available).",
             "argument_group": RENATE_STATE_ARGS_GROUP,
         },
-        "next_state_url": {
+        "output_state_url": {
             "type": str,
             "help": "Location where to store the next Renate state.",
             "argument_group": RENATE_STATE_ARGS_GROUP,
@@ -485,95 +485,92 @@ def parse_cls_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) 
 
 def parse_super_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds Super Experience Replay arguments."""
-    parser.add_argument(
-        "--der_alpha",
-        type=float,
-        default=defaults.SER_DER_ALPHA,
-        help=f"Weight for logit regularization term. Default: {defaults.SER_DER_ALPHA}.",
+    arguments.update(
+        {
+            "der_alpha": {
+                "type": float,
+                "default": defaults.SER_DER_ALPHA,
+                "help": f"Weight for logit regularization term. Default: {defaults.SER_DER_ALPHA}.",
+            },
+            "der_beta": {
+                "type": float,
+                "default": defaults.SER_DER_BETA,
+                "help": f"Weight for memory loss term. Default: {defaults.SER_DER_BETA}.",
+            },
+            "sp_shrink_factor": {
+                "type": float,
+                "default": defaults.SER_SP_SHRINK_FACTOR,
+                "help": "Weight for logit regularization term. Default: "
+                f"{defaults.SER_SP_SHRINK_FACTOR}.",
+            },
+            "sp_sigma": {
+                "type": float,
+                "default": defaults.SER_SP_SIGMA,
+                "help": f"Weight for memory loss term. Default: {defaults.SER_SP_SIGMA}.",
+            },
+            "pod_alpha": {
+                "type": float,
+                "default": defaults.SER_POD_ALPHA,
+                "help": "Weight for intermediate representation regularization term. Default: "
+                f"{defaults.SER_POD_ALPHA}.",
+            },
+            "pod_distillation_type": {
+                "type": str,
+                "default": defaults.SER_POD_DISTILLATION_TYPE,
+                "help": "Distillation type to apply with respect to the intermediate "
+                f"intermediate representation. Default: {defaults.SER_POD_DISTILLATION_TYPE}.",
+            },
+            "pod_normalize": {
+                "type": int,
+                "default": defaults.SER_POD_NORMALIZE,
+                "help": "Whether to normalize both the current and cached features before "
+                f"computing the Frobenius norm. Default: {defaults.SER_POD_NORMALIZE}.",
+            },
+            "cls_alpha": {
+                "type": float,
+                "default": defaults.SER_CLS_ALPHA,
+                "help": f"Weight for the consistency loss term. Default: {defaults.SER_CLS_ALPHA}.",
+            },
+            "cls_stable_model_update_weight": {
+                "type": float,
+                "default": defaults.SER_CLS_STABLE_MODEL_UPDATE_WEIGHT,
+                "help": "The starting weight for the exponential moving average to update the "
+                f"stable model. Default: {defaults.SER_CLS_STABLE_MODEL_UPDATE_WEIGHT}.",
+            },
+            "cls_plastic_model_update_weight": {
+                "type": float,
+                "default": defaults.SER_CLS_PLASTIC_MODEL_UPDATE_WEIGHT,
+                "help": "The starting weight for the exponential moving average to update the "
+                f"plastic model. Default: {defaults.SER_CLS_PLASTIC_MODEL_UPDATE_WEIGHT}.",
+            },
+            "cls_stable_model_update_probability": {
+                "type": float,
+                "default": defaults.SER_CLS_STABLE_MODEL_UPDATE_PROBABILITY,
+                "help": "Probability to update the stable model. Default: "
+                f"{defaults.SER_CLS_STABLE_MODEL_UPDATE_PROBABILITY}.",
+            },
+            "cls_plastic_model_update_probability": {
+                "type": float,
+                "default": defaults.SER_CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,
+                "help": "Probability to update the plastic model. Default: "
+                f"{defaults.SER_CLS_PLASTIC_MODEL_UPDATE_PROBABILITY}.",
+            },
+        }
     )
-    parser.add_argument(
-        "--der_beta",
-        type=float,
-        default=defaults.SER_DER_ALPHA,
-        help=f"Weight for memory loss term. Default: {defaults.SER_DER_BETA}.",
-    )
-    parser.add_argument(
-        "--sp_shrink_factor",
-        type=float,
-        default=defaults.SER_SP_SHRINK_FACTOR,
-        help=f"Weight for logit regularization term. Default: {defaults.SER_SP_SHRINK_FACTOR}.",
-    )
-    parser.add_argument(
-        "--sp_sigma",
-        type=float,
-        default=defaults.SER_SP_SIGMA,
-        help=f"Weight for memory loss term. Default: {defaults.SER_SP_SIGMA}.",
-    )
-    parser.add_argument(
-        "--pod_alpha",
-        type=float,
-        default=defaults.SER_POD_ALPHA,
-        help="Weight for intermediate representation regularization term. Default: "
-        f"{defaults.SER_POD_ALPHA}.",
-    )
-    parser.add_argument(
-        "--pod_distillation_type",
-        type=str,
-        default=defaults.SER_POD_DISTILLATION_TYPE,
-        help="Distillation type to apply with respect to the intermediate representation. "
-        f"Default: {defaults.SER_POD_DISTILLATION_TYPE}.",
-    )
-    parser.add_argument(
-        "--pod_normalize",
-        type=int,
-        default=defaults.SER_POD_NORMALIZE,
-        help="Whether to normalize both the current and cached features before computing the "
-        f"Frobenius norm. Default: {defaults.SER_POD_NORMALIZE}.",
-    )
-    parser.add_argument(
-        "--cls_alpha",
-        type=float,
-        default=defaults.SER_CLS_ALPHA,
-        help=f"Weight for the consistency loss term. Default: {defaults.SER_CLS_ALPHA}.",
-    )
-    parser.add_argument(
-        "--cls_stable_model_update_weight",
-        type=float,
-        default=defaults.SER_CLS_STABLE_MODEL_UPDATE_WEIGHT,
-        help="The starting weight for the exponential moving average to update the stable model. "
-        f"Default: {defaults.SER_CLS_STABLE_MODEL_UPDATE_WEIGHT}.",
-    )
-    parser.add_argument(
-        "--cls_plastic_model_update_weight",
-        type=float,
-        default=defaults.SER_CLS_PLASTIC_MODEL_UPDATE_WEIGHT,
-        help="The starting weight for the exponential moving average to update the plastic model. "
-        f"Default: {defaults.SER_CLS_PLASTIC_MODEL_UPDATE_WEIGHT}.",
-    )
-    parser.add_argument(
-        "--cls_stable_model_update_probability",
-        type=float,
-        default=defaults.SER_CLS_STABLE_MODEL_UPDATE_PROBABILITY,
-        help="Probability to update the stable model. Default: "
-        f"{defaults.SER_CLS_STABLE_MODEL_UPDATE_PROBABILITY}.",
-    )
-    parser.add_argument(
-        "--cls_plastic_model_update_probability",
-        type=float,
-        default=defaults.SER_CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,
-        help="Probability to update the plastic model. Default: "
-        f"{defaults.SER_CLS_PLASTIC_MODEL_UPDATE_PROBABILITY}.",
-    )
-    _add_base_experience_replay_arguments(parser)
+    _add_base_experience_replay_arguments(arguments)
 
 
 def parse_rd_learner_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds Repeated Distill Learner arguments."""
-    parser.add_argument(
-        "--memory_size",
-        type=int,
-        default=defaults.MEMORY_SIZE,
-        help=f"Memory size available for the memory buffer. Default: {defaults.MEMORY_SIZE}.",
+    arguments.update(
+        {
+            "memory_size": {
+                "type": int,
+                "default": defaults.MEMORY_SIZE,
+                "help": f"Memory size available for the memory buffer. Default: "
+                f"{defaults.MEMORY_SIZE}.",
+            }
+        }
     )
 
 

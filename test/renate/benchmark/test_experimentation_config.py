@@ -81,7 +81,7 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         (
             "IIDScenario",
             "MNIST",
-            {"data_module_fn_num_tasks": 3},
+            {"num_tasks": 3},
             IIDScenario,
             3,
         ),

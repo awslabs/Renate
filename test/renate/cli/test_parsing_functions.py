@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import inspect
+from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 import pytest
@@ -15,7 +16,8 @@ from renate.cli.parsing_functions import (
 )
 from renate.utils.module import import_module
 
-config_module = import_module("config_module", "test/renate/renate_config_files/config.py")
+config_file = str(Path(__file__).parent.parent / "renate_config_files" / "config.py")
+config_module = import_module("config_module", config_file)
 
 
 def test_get_argument_type():
