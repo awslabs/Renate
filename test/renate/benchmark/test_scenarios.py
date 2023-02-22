@@ -196,3 +196,4 @@ def test_iid_scenario():
                 x, y = scenario_data[j]
                 assert x not in counter
                 counter[x] = 1
+        assert len(scenario.test_data()) == 3
