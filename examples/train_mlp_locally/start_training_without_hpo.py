@@ -1,4 +1,4 @@
-from renate.tuning import execute_tuning_job
+from renate.training import run_training_job
 
 
 config_space = {
@@ -18,7 +18,7 @@ config_space = {
 if __name__ == "__main__":
 
     # we run the first training job on the MNIST classes [0-4]
-    execute_tuning_job(
+    run_training_job(
         config_space=config_space,
         mode="max",
         metric="val_accuracy",
@@ -26,13 +26,16 @@ if __name__ == "__main__":
         max_epochs=50,
         chunk_id=0,  # this selects the first chunk of the dataset
         config_file="renate_config.py",
-        next_state_url="./state_dump_first_model/",  # this is where the model will be stored
-        backend="local",  # the training job will run on the local machine
+        # this is where the model will be stored
+        output_state_url="./state_dump_first_model/",
+        # the training job will run on the local machine
+        backend="local",
     )
 
-    # retrieve the model from `./state_dump_first_model/` if you want -- don't delete it
+    # retrieve the model from `./state_dump_first_model/` if you want
+    # do not delete the model, we are going to use it below
 
-    execute_tuning_job(
+    run_training_job(
         config_space=config_space,
         mode="max",
         metric="val_accuracy",
@@ -40,7 +43,9 @@ if __name__ == "__main__":
         max_epochs=50,
         chunk_id=1,  # this time we use the second chunk of the dataset
         config_file="renate_config.py",
-        state_url="./state_dump_first_model/",  # the output of the first training job is loaded
-        next_state_url="./state_dump_second_model/",  # the new model will be stored in this folder
+        # the output of the first training job is loaded
+        input_state_url="./state_dump_first_model/",
+        # the new model will be stored in this folder
+        output_state_url="./state_dump_second_model/",
         backend="local",
     )

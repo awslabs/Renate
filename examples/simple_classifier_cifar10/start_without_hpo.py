@@ -3,7 +3,7 @@
 
 from syne_tune.backend.sagemaker_backend.sagemaker_utils import get_execution_role
 
-from renate.tuning import execute_tuning_job
+from renate.training import run_training_job
 
 config_space = {
     "optimizer": "SGD",
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     AWS_ID = "0123456789"  # use your AWS account id here
     AWS_REGION = "us-west-2"  # use your AWS preferred region here
 
-    execute_tuning_job(
+    run_training_job(
         config_space=config_space,
         mode="max",
         metric="val_accuracy",
@@ -35,7 +35,7 @@ if __name__ == "__main__":
         requirements_file="requirements.txt",
         # replace the url below with a different one if you already ran it and you want to avoid
         # overwriting
-        next_state_url=f"s3://sagemaker-{AWS_REGION}-{AWS_ID}/renate-training-cifar10-1st-model/",
+        output_state_url=f"s3://sagemaker-{AWS_REGION}-{AWS_ID}/renate-training-cifar10-1st-model/",
         # uncomment the line below only if you already created a model with this script and you want
         # to update it
         # state_url=f"s3://sagemaker-{AWS_REGION}-{AWS_ID}/renate-training-cifar10-1st-model/",

@@ -7,8 +7,8 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import torch
 import torch.nn.functional as F
 
-from renate.memory.buffer import DataDict, DataTuple
 from renate.models import RenateModule
+from renate.types import Inputs
 from renate.updaters.learner_components.component import Component
 
 
@@ -48,7 +48,7 @@ class WeightedLossComponent(Component, ABC):
     def loss(
         self,
         outputs_memory: torch.Tensor,
-        batch_memory: Tuple[DataTuple, DataDict],
+        batch_memory: Tuple[Tuple[Inputs, torch.Tensor], Dict[str, torch.Tensor]],
         intermediate_representation_memory: Optional[List[torch.Tensor]],
     ) -> torch.Tensor:
         if self.weight == 0:
@@ -63,7 +63,7 @@ class WeightedLossComponent(Component, ABC):
     def _loss(
         self,
         outputs_memory: torch.Tensor,
-        batch_memory: Tuple[DataTuple, DataDict],
+        batch_memory: Tuple[Tuple[Inputs, torch.Tensor], Dict[str, torch.Tensor]],
         intermediate_representation_memory: Optional[List[torch.Tensor]],
     ) -> torch.Tensor:
         pass
@@ -88,12 +88,12 @@ class WeightedCustomLossComponent(WeightedLossComponent):
     def _loss(
         self,
         outputs_memory: torch.Tensor,
-        batch_memory: Tuple[DataTuple, DataDict],
+        batch_memory: Tuple[Tuple[Inputs, torch.Tensor], Dict[str, torch.Tensor]],
         intermediate_representation_memory: Optional[List[torch.Tensor]],
     ) -> torch.Tensor:
         """Returns user-provided loss evaluated on memory batch."""
-        (_, y_memory), _ = batch_memory
-        return self.weight * self._loss_fn(outputs_memory, y_memory)
+        (_, targets_memory), _ = batch_memory
+        return self.weight * self._loss_fn(outputs_memory, targets_memory)
 
 
 class WeightedMeanSquaredErrorLossComponent(WeightedLossComponent):
@@ -104,12 +104,12 @@ class WeightedMeanSquaredErrorLossComponent(WeightedLossComponent):
     def _loss(
         self,
         outputs_memory: torch.Tensor,
-        batch_memory: Tuple[DataTuple, DataDict],
+        batch_memory: Tuple[Tuple[Inputs, torch.Tensor], Dict[str, torch.Tensor]],
         intermediate_representation_memory: Optional[List[torch.Tensor]],
     ) -> torch.Tensor:
         """Mean-squared error between current and previous logits on memory."""
         logits = outputs_memory
-        (_, _), meta_data = batch_memory
+        _, meta_data = batch_memory
         previous_logits = meta_data["outputs"]
         return self.weight * F.mse_loss(logits, previous_logits, reduction="mean")
 
@@ -250,14 +250,14 @@ class WeightedPooledOutputDistillationLossComponent(WeightedLossComponent):
     def _loss(
         self,
         outputs_memory: torch.Tensor,
-        batch_memory: Tuple[DataTuple, DataDict],
+        batch_memory: Tuple[Tuple[Inputs, torch.Tensor], Dict[str, torch.Tensor]],
         intermediate_representation_memory: List[torch.Tensor],
     ) -> torch.Tensor:
         """Compute the pooled output with respect to current and cached intermediate outputs from
         memory.
         """
         loss = 0.0
-        (_, _), meta_data = batch_memory
+        _, meta_data = batch_memory
         for n in range(len(intermediate_representation_memory)):
             features = intermediate_representation_memory[n]
             features_memory = meta_data[f"intermediate_representation_{n}"]
@@ -358,27 +358,19 @@ class WeightedCLSLossComponent(WeightedLossComponent):
     def _loss(
         self,
         outputs_memory: torch.Tensor,
-        batch_memory: Tuple[DataTuple, DataDict],
+        batch_memory: Tuple[Tuple[Inputs, torch.Tensor], Dict[str, torch.Tensor]],
         intermediate_representation_memory: Optional[List[torch.Tensor]],
     ) -> torch.Tensor:
         """Computes the consistency loss with respect to averaged plastic and stable models."""
-        (x_memory, y_memory), _ = batch_memory
+        (inputs_memory, targets_memory), _ = batch_memory
         with torch.no_grad():
-            outputs_plastic = self._plastic_model(x_memory)
-            outputs_stable = self._stable_model(x_memory)
-
+            outputs_plastic = self._plastic_model(inputs_memory)
+            outputs_stable = self._plastic_model(inputs_memory)
             probs_plastic = F.softmax(outputs_plastic, dim=-1)
             probs_stable = F.softmax(outputs_stable, dim=-1)
-
-            label_mask = F.one_hot(y_memory, num_classes=outputs_stable.shape[-1]) > 0
+            label_mask = F.one_hot(targets_memory, num_classes=outputs_stable.shape[-1]) > 0
             idx = (probs_stable[label_mask] > probs_plastic[label_mask]).unsqueeze(1)
-
-            outputs = torch.where(
-                idx,
-                outputs_stable,
-                outputs_plastic,
-            )
-
+            outputs = torch.where(idx, outputs_stable, outputs_plastic)
         consistency_loss = F.mse_loss(outputs_memory, outputs.detach(), reduction="mean")
         return self.weight * consistency_loss
 

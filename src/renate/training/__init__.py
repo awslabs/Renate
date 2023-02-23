@@ -1,5 +1,5 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from renate.tuning.tuning import execute_tuning_job
+from renate.training.training import run_training_job
 
-__all__ = ["execute_tuning_job"]
+__all__ = ["run_training_job"]

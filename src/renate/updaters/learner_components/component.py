@@ -1,13 +1,13 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import abc
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
 
-from renate.memory.buffer import DataDict, DataTuple
 from renate.models import RenateModule
+from renate.types import Inputs
 
 
 class Component(nn.Module, abc.ABC):
@@ -27,7 +27,7 @@ class Component(nn.Module, abc.ABC):
     def loss(
         self,
         outputs_memory: torch.Tensor,
-        batch_memory: Tuple[DataTuple, DataDict],
+        batch_memory: Tuple[Tuple[Inputs, torch.Tensor], Dict[str, torch.Tensor]],
         intermediate_representation_memory: Optional[List[torch.Tensor]],
     ) -> torch.Tensor:
         """Computes some user-defined loss which is added to the main training loss in the training

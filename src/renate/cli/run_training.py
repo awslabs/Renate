@@ -34,10 +34,10 @@ class ModelUpdaterCLI:
     It will create following folder structure:
         args.working_dir
             data (filled by the DataModule)
-            state_dir (content provided in args.state_url is copied to this location)
+            input_state_dir (content provided in args.state_url is copied to this location)
                 learner.pkl
                 model.pt
-            next_state_dir (outcome of the model update)
+            output_state_dir (outcome of the model update)
                 learner.pkl
                 model.pt
 
@@ -65,12 +65,12 @@ class ModelUpdaterCLI:
 
         argument_group = parser.add_argument_group("Renate State")
         argument_group.add_argument(
-            "--state_url",
+            "--input_state_url",
             type=str,
             help="Location of previous Renate state (if available).",
         )
         argument_group.add_argument(
-            "--next_state_url",
+            "--output_state_url",
             type=str,
             help="Location where to store the next Renate state.",
         )
@@ -159,23 +159,25 @@ class ModelUpdaterCLI:
         )
         return parser
 
-    def _copy_state_to_working_directory(self, state_url: str, current_state_folder: str) -> None:
+    def _copy_state_to_working_directory(
+        self, input_state_url: str, input_state_folder: str
+    ) -> None:
         """Copies current state into the working directory.
 
-        If state is on s3, download directly from there to `current_state_folder`.
+        If state is on s3, download directly from there to `input_state_folder`.
         If state is already in local directory, copy to right folder unless it is already in the
-        right folder. If `current_state_folder` exists but `state_url` is not provided,
-        `current_state_folder` will be removed.
+        right folder. If `input_state_folder` exists but `input_state_url` is not provided,
+        `input_state_folder` will be removed.
         """
-        local_dir = maybe_download_from_s3(state_url, current_state_folder)
-        folder_downloaded_from_s3 = local_dir == current_state_folder
+        local_dir = maybe_download_from_s3(input_state_url, input_state_folder)
+        folder_downloaded_from_s3 = local_dir == input_state_folder
         if not folder_downloaded_from_s3:
-            if local_dir != current_state_folder:
-                shutil.rmtree(current_state_folder, ignore_errors=True)
+            if local_dir != input_state_folder:
+                shutil.rmtree(input_state_folder, ignore_errors=True)
                 if local_dir is not None:
                     shutil.copytree(
                         local_dir,
-                        current_state_folder,
+                        input_state_folder,
                         ignore=shutil.ignore_patterns("*.sagemaker-uploading"),
                         dirs_exist_ok=True,
                     )
@@ -183,14 +185,14 @@ class ModelUpdaterCLI:
     def _prepare_data_state_model(self, args: argparse.Namespace) -> None:
         """Assigns locations for data, state and model."""
         self._data_folder = defaults.data_folder(args.working_directory)
-        self._current_state_folder = defaults.current_state_folder(args.working_directory)
+        self._input_state_folder = defaults.input_state_folder(args.working_directory)
         working_directory = redirect_to_tmp(args.st_checkpoint_dir or args.working_directory)
-        self._next_state_folder = defaults.next_state_folder(working_directory)
-        self._current_model_file = defaults.model_file(self._current_state_folder)
-        self._next_model_file = defaults.model_file(self._next_state_folder)
-        self._copy_state_to_working_directory(args.state_url, self._current_state_folder)
-        if not Path(self._current_state_folder).is_dir():
-            self._current_state_folder = None
+        self._output_state_folder = defaults.output_state_folder(working_directory)
+        self._current_model_file = defaults.model_file(self._input_state_folder)
+        self._next_model_file = defaults.model_file(self._output_state_folder)
+        self._copy_state_to_working_directory(args.input_state_url, self._input_state_folder)
+        if not Path(self._input_state_folder).is_dir():
+            self._input_state_folder = None
         if not Path(self._current_model_file).is_file():
             self._current_model_file = None
 
@@ -227,8 +229,8 @@ class ModelUpdaterCLI:
 
         model_updater = model_updater_class(
             model=model,
-            current_state_folder=self._current_state_folder,
-            next_state_folder=self._next_state_folder,
+            input_state_folder=self._input_state_folder,
+            output_state_folder=self._output_state_folder,
             max_epochs=args.max_epochs,
             metric=args.metric,
             mode=args.mode,
@@ -246,8 +248,8 @@ class ModelUpdaterCLI:
             task_id=args.task_id,
         )
 
-        if args.next_state_url is not None:
-            move_to_uri(self._next_state_folder, args.next_state_url)
+        if args.output_state_url is not None:
+            move_to_uri(self._output_state_folder, args.output_state_url)
 
 
 if __name__ == "__main__":

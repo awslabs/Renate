@@ -1,6 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import torch
 import torchmetrics
@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from renate import defaults
 from renate.models import RenateModule
+from renate.types import Inputs
 from renate.updaters.learner import ReplayLearner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
 
@@ -86,7 +87,9 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         self._num_points_current_task = -1
         return super().on_model_update_end(train_dataset, val_dataset, task_id)
 
-    def training_step(self, batch: Dict[str, List[torch.Tensor]], batch_idx: int) -> STEP_OUTPUT:
+    def training_step(
+        self, batch: Dict[str, Tuple[Inputs, torch.Tensor]], batch_idx: int
+    ) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
         if self._loss_weight_new_data is None:
             alpha = self._num_points_current_task / (
@@ -94,15 +97,15 @@ class OfflineExperienceReplayLearner(ReplayLearner):
             )
         else:
             alpha = self._loss_weight_new_data
-        x, y = batch["current_task"]
-        outputs = self(x)
-        loss = self._model.loss_fn(outputs, y)
+        inputs, targets = batch["current_task"]
+        outputs = self(inputs)
+        loss = self._model.loss_fn(outputs, targets)
         self._loss_collections["train_losses"]["base_loss"](loss)
-        self._update_metrics(outputs, y, "train")
+        self._update_metrics(outputs, targets, "train")
         if "memory" in batch:
-            x_mem, y_mem = batch["memory"]
-            outputs_mem = self(x_mem)
-            loss_mem = self._model.loss_fn(outputs_mem, y_mem)
+            inputs_mem, targets_mem = batch["memory"]
+            outputs_mem = self(inputs_mem)
+            loss_mem = self._model.loss_fn(outputs_mem, targets_mem)
             self._loss_collections["train_losses"]["memory_loss"](loss_mem)
             loss = alpha * loss + (1.0 - alpha) * loss_mem
         return {"loss": loss}
@@ -136,8 +139,8 @@ class OfflineExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         momentum: float = defaults.MOMENTUM,
         weight_decay: float = defaults.WEIGHT_DECAY,
         batch_size: int = defaults.BATCH_SIZE,
-        current_state_folder: Optional[str] = None,
-        next_state_folder: Optional[str] = None,
+        input_state_folder: Optional[str] = None,
+        output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
@@ -172,8 +175,8 @@ class OfflineExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             model,
             learner_class=OfflineExperienceReplayLearner,
             learner_kwargs=learner_kwargs,
-            current_state_folder=current_state_folder,
-            next_state_folder=next_state_folder,
+            input_state_folder=input_state_folder,
+            output_state_folder=output_state_folder,
             max_epochs=max_epochs,
             train_transform=train_transform,
             train_target_transform=train_target_transform,

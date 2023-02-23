@@ -35,7 +35,7 @@ def test_avalanche_model_updater(tmpdir, provide_folder):
         test_num_samples=5,
     )
     model_updater = pytest.helpers.get_avalanche_updater(
-        model, next_state_folder=defaults.next_state_folder(tmpdir) if provide_folder else None
+        model, output_state_folder=defaults.output_state_folder(tmpdir) if provide_folder else None
     )
     y_hat_before_train = model(test_data, task_id=defaults.TASK_ID)
     model_updater.update(train_dataset, task_id=defaults.TASK_ID)
@@ -57,12 +57,12 @@ def test_continuation_of_training_with_avalanche_model_updater(tmpdir, learner_c
         test_num_samples=5,
         add_icarl_class_means=learner_class == AvalancheICaRLLearner,
     )
-    state_url = defaults.current_state_folder(tmpdir)
+    state_url = defaults.input_state_folder(tmpdir)
     model_updater = pytest.helpers.get_avalanche_updater(
         model,
         learner_class=learner_class,
         learner_kwargs=AVALANCHE_LEARNER_KWARGS[learner_class],
-        next_state_folder=state_url,
+        output_state_folder=state_url,
         max_epochs=2,
     )
     model = model_updater.update(train_dataset, task_id=defaults.TASK_ID)
@@ -70,7 +70,7 @@ def test_continuation_of_training_with_avalanche_model_updater(tmpdir, learner_c
         model,
         learner_class=learner_class,
         learner_kwargs=AVALANCHE_LEARNER_KWARGS[learner_class],
-        current_state_folder=state_url,
+        input_state_folder=state_url,
         max_epochs=2,
     )
     model_updater.update(train_dataset, task_id=defaults.TASK_ID)
@@ -89,7 +89,7 @@ def test_experience_replay_buffer_size(tmpdir, batch_size, memory_size, memory_b
         "batch_size": batch_size,
     }
     model_updater = ExperienceReplayAvalancheModelUpdater(
-        next_state_folder=Path(tmpdir) / "0",
+        output_state_folder=Path(tmpdir) / "0",
         model=model,
         **learner_kwargs,
         max_epochs=1,
@@ -108,8 +108,8 @@ def test_experience_replay_buffer_size(tmpdir, batch_size, memory_size, memory_b
         del replay_plugin
         _, dataset = get_model_and_dataset(dataset_size)
         model_updater = ExperienceReplayAvalancheModelUpdater(
-            current_state_folder=Path(tmpdir) / str(i),
-            next_state_folder=Path(tmpdir) / str(i + 1),
+            input_state_folder=Path(tmpdir) / str(i),
+            output_state_folder=Path(tmpdir) / str(i + 1),
             model=model,
             **learner_kwargs,
             max_epochs=1,

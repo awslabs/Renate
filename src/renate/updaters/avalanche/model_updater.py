@@ -66,13 +66,13 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
         optimizer, scheduler = optimizer[0], scheduler[0]
         lr_scheduler_plugin = LRSchedulerPlugin(scheduler=scheduler)
         plugins = [lr_scheduler_plugin]
-        avalanche_learner = self._load_if_exists(self._current_state_folder)
+        avalanche_learner = self._load_if_exists(self._input_state_folder)
 
         checkpoint_plugin = None
-        if self._next_state_folder is not None:
+        if self._output_state_folder is not None:
             checkpoint_plugin = RenateCheckpointPlugin(
                 RenateFileSystemCheckpointStorage(
-                    directory=Path(self._next_state_folder),
+                    directory=Path(self._output_state_folder),
                 ),
             )
             plugins.append(checkpoint_plugin)
@@ -161,11 +161,11 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
         if isinstance(self._learner, ICaRL):
             class_means = plugin_by_class(_ICaRLPlugin, self._learner.plugins).class_means
             self._model.class_means.data[:, :] = class_means
-        if self._next_state_folder is not None:
-            Path(self._next_state_folder).mkdir(
+        if self._output_state_folder is not None:
+            Path(self._output_state_folder).mkdir(
                 exist_ok=True, parents=True
             )  # TODO: remove when checkpointing is active
-            torch.save(self._model.state_dict(), defaults.model_file(self._next_state_folder))
+            torch.save(self._model.state_dict(), defaults.model_file(self._output_state_folder))
             self._save_avalanche_state(benchmark, val_dataset_exists)
         self._report(
             **{
@@ -192,8 +192,8 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
             train_dataset = AvalancheSubset(train_dataset)
 
         avalanche_state = None
-        if self._current_state_folder is not None:
-            avalanche_state_file = defaults.avalanche_state_file(self._current_state_folder)
+        if self._input_state_folder is not None:
+            avalanche_state_file = defaults.avalanche_state_file(self._input_state_folder)
             if Path(avalanche_state_file).exists():
                 avalanche_state = torch.load(avalanche_state_file)
                 if "val_memory_buffer" in avalanche_state:
@@ -225,7 +225,7 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
         state = benchmark.state_dict()
         if val_dataset_exists:
             state["val_memory_buffer"] = self._dummy_learner._val_memory_buffer.state_dict()
-        torch.save(state, defaults.avalanche_state_file(self._next_state_folder))
+        torch.save(state, defaults.avalanche_state_file(self._output_state_folder))
 
 
 class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
@@ -242,8 +242,8 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
         momentum: float = defaults.MOMENTUM,
         weight_decay: float = defaults.WEIGHT_DECAY,
         batch_size: int = defaults.BATCH_SIZE,
-        current_state_folder: Optional[str] = None,
-        next_state_folder: Optional[str] = None,
+        input_state_folder: Optional[str] = None,
+        output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
@@ -276,8 +276,8 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
             model,
             learner_class=AvalancheReplayLearner,
             learner_kwargs=learner_kwargs,
-            current_state_folder=current_state_folder,
-            next_state_folder=next_state_folder,
+            input_state_folder=input_state_folder,
+            output_state_folder=output_state_folder,
             max_epochs=max_epochs,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
@@ -307,8 +307,8 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
         momentum: float = defaults.MOMENTUM,
         weight_decay: float = defaults.WEIGHT_DECAY,
         batch_size: int = defaults.BATCH_SIZE,
-        current_state_folder: Optional[str] = None,
-        next_state_folder: Optional[str] = None,
+        input_state_folder: Optional[str] = None,
+        output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
@@ -340,8 +340,8 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
             model,
             learner_class=AvalancheEWCLearner,
             learner_kwargs=learner_kwargs,
-            current_state_folder=current_state_folder,
-            next_state_folder=next_state_folder,
+            input_state_folder=input_state_folder,
+            output_state_folder=output_state_folder,
             max_epochs=max_epochs,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
@@ -372,8 +372,8 @@ class LearningWithoutForgettingModelUpdater(AvalancheModelUpdater):
         momentum: float = defaults.MOMENTUM,
         weight_decay: float = defaults.WEIGHT_DECAY,
         batch_size: int = defaults.BATCH_SIZE,
-        current_state_folder: Optional[str] = None,
-        next_state_folder: Optional[str] = None,
+        input_state_folder: Optional[str] = None,
+        output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
@@ -406,8 +406,8 @@ class LearningWithoutForgettingModelUpdater(AvalancheModelUpdater):
             model,
             learner_class=AvalancheLwFLearner,
             learner_kwargs=learner_kwargs,
-            current_state_folder=current_state_folder,
-            next_state_folder=next_state_folder,
+            input_state_folder=input_state_folder,
+            output_state_folder=output_state_folder,
             max_epochs=max_epochs,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
@@ -438,8 +438,8 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
         momentum: float = defaults.MOMENTUM,
         weight_decay: float = defaults.WEIGHT_DECAY,
         batch_size: int = defaults.BATCH_SIZE,
-        current_state_folder: Optional[str] = None,
-        next_state_folder: Optional[str] = None,
+        input_state_folder: Optional[str] = None,
+        output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
@@ -472,8 +472,8 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
             model,
             learner_class=AvalancheICaRLLearner,
             learner_kwargs=learner_kwargs,
-            current_state_folder=current_state_folder,
-            next_state_folder=next_state_folder,
+            input_state_folder=input_state_folder,
+            output_state_folder=output_state_folder,
             max_epochs=max_epochs,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
