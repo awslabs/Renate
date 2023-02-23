@@ -100,6 +100,7 @@ class ModelUpdaterCLI:
         )
 
         args.early_stopping = args.early_stopping == "True"
+        args.deterministic_trainer = args.deterministic_trainer == "True"
 
         seed_everything(args.seed)
         self._prepare_data_state_model(args)
@@ -131,6 +132,7 @@ class ModelUpdaterCLI:
             accelerator=args.accelerator,
             devices=args.devices,
             early_stopping_enabled=args.early_stopping,
+            deterministic_trainer=args.deterministic_trainer,
             **learner_kwargs,
             **get_transforms_dict(config_module, args, function_args),
         )

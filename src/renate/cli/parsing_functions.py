@@ -232,6 +232,14 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
             f"{defaults.EARLY_STOPPING}.",
             "argument_group": OPTIONAL_ARGS_GROUP,
         },
+        "deterministic_trainer": {
+            "type": str,
+            "default": str(defaults.DETERMINISTIC_TRAINER),
+            "choices": ["True", "False"],
+            "help": "Enables deterministic training which may be slower. Default: "
+            f"{defaults.DETERMINISTIC_TRAINER}.",
+            "argument_group": OPTIONAL_ARGS_GROUP,
+        },
         "prepare_data": {
             "type": int,
             "default": 1,

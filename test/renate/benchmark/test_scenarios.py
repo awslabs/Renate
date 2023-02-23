@@ -15,6 +15,7 @@ from renate.benchmark.scenarios import (
     IIDScenario,
     ImageRotationScenario,
     PermutationScenario,
+    SoftSortingScenario,
 )
 from renate.utils.pytorch import randomly_split_data
 
@@ -197,3 +198,39 @@ def test_iid_scenario():
                 assert x not in counter
                 counter[x] = 1
         assert len(scenario.test_data()) == 3
+
+
+def test_soft_sorting_scenario():
+    """Tests the soft-sorting scenario.
+
+    Checks for a non-overlapping split and that the average value of the feature is decreasing.
+    """
+    data_module = DummyTorchVisionDataModule(val_size=0.3)
+    counter = {}
+    mean_values = {"train": [], "val": []}
+    for i in range(3):
+        scenario = SoftSortingScenario(
+            data_module=data_module,
+            num_tasks=3,
+            feature_idx=0,
+            exponent=10,
+            chunk_id=i,
+            seed=data_module._seed,
+        )
+        scenario.prepare_data()
+        scenario.setup()
+        for stage in ["train", "val"]:
+            scenario_data = getattr(scenario, f"{stage}_data")()
+            mean_value = 0.0
+            for j in range(len(scenario_data)):
+                x, y = scenario_data[j]
+                assert x not in counter
+                counter[x] = 1
+                mean_value += x[0].mean()
+            mean_value /= len(scenario_data)
+            mean_values[stage].append(mean_value)
+        assert len(scenario.test_data()) == 3
+
+    for stage in ["train", "val"]:
+        l = mean_values[stage]
+        assert all(l[i] > l[i + 1] for i in range(len(l) - 1))
