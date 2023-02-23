@@ -2,18 +2,17 @@
 # SPDX-License-Identifier: Apache-2.0
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Any, Callable, Dict, Hashable, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import torch
 from torch.utils.data import Dataset
 
 from renate import defaults
+from renate.types import NestedTensors
 from renate.utils.pytorch import get_generator
 
 
-DataTuple = Tuple[torch.Tensor, ...]
-DataDict = Dict[Hashable, torch.Tensor]
-NestedTensors = Union[torch.Tensor, DataTuple, DataDict]
+DataDict = Dict[str, torch.Tensor]
 Index = Union[int, slice]
 
 
@@ -149,7 +148,7 @@ class DataBuffer(Dataset, ABC):
         """Returns the number of data points in the buffer."""
         return self._size
 
-    def __getitem__(self, idx: int) -> Tuple[NestedTensors, DataDict]:
+    def __getitem__(self, idx: int) -> NestedTensors:
         """Retrieves a data point from the buffer."""
         metadata = _get_data_point(self.metadata, idx)
         data = _get_data_point(self._data_points, idx)

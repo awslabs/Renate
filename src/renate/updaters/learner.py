@@ -16,7 +16,7 @@ from renate.data.datasets import _TransformedDataset
 from renate.evaluation.metrics.utils import create_metrics
 from renate.memory import DataBuffer, InfiniteBuffer, ReservoirBuffer
 from renate.models import RenateModule
-from renate.types import Inputs
+from renate.types import NestedTensors
 from renate.utils.optimizer import create_optimizer, create_scheduler
 from renate.utils.pytorch import get_generator
 
@@ -272,13 +272,15 @@ class Learner(LightningModule, abc.ABC):
         """Called right before a model update terminates."""
         return self._model
 
-    def forward(self, inputs: Inputs, task_id: Optional[str] = None) -> torch.Tensor:
+    def forward(self, inputs: NestedTensors, task_id: Optional[str] = None) -> torch.Tensor:
         """Forward pass of the model."""
         if task_id is None:
             task_id = self._task_id
         return self._model(inputs, task_id=task_id)
 
-    def training_step(self, batch: Tuple[Inputs, torch.Tensor], batch_idx: int) -> STEP_OUTPUT:
+    def training_step(
+        self, batch: Tuple[NestedTensors, torch.Tensor], batch_idx: int
+    ) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
         inputs, targets = batch
         outputs = self(inputs)
@@ -305,7 +307,7 @@ class Learner(LightningModule, abc.ABC):
         if not self._val_enabled:
             self._log_metrics()
 
-    def validation_step(self, batch: Tuple[Inputs, torch.Tensor], batch_idx: int) -> None:
+    def validation_step(self, batch: Tuple[NestedTensors, torch.Tensor], batch_idx: int) -> None:
         """PyTorch Lightning function to estimate validation metrics."""
         (inputs, targets), _ = batch
         outputs = self(inputs)

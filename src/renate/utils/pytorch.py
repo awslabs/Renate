@@ -8,7 +8,7 @@ import torch
 from torch.utils.data import Dataset, random_split
 
 from renate import defaults
-from renate.types import Inputs
+from renate.types import NestedTensors
 
 
 def reinitialize_model_parameters(model: torch.nn.Module) -> None:
@@ -67,7 +67,7 @@ def _proportions_into_sizes(proportions: List[float], size: int) -> List[int]:
     return sizes
 
 
-def move_tensors_to_device(tensors: Inputs, device: torch.device) -> Inputs:
+def move_tensors_to_device(tensors: NestedTensors, device: torch.device) -> NestedTensors:
     """Moves a collection of tensors to `device`.
 
     The collection `tensors` can be a nested structure of tensors, tuples, lists, and dicts.
