@@ -324,7 +324,7 @@ class SoftSortingScenario(Scenario):
         idx_ordered = torch.multinomial(
             sampling_probs, num_samples=len(dataset), replacement=False, generator=rng
         )
-        split = torch.split(idx_ordered, split_size_or_sections=self._num_tasks)
+        split = torch.tensor_split(idx_ordered, self._num_tasks)
         return [Subset(dataset, idx) for idx in split]
 
     def setup(self) -> None:
