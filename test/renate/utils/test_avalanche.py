@@ -8,34 +8,29 @@ from torch.utils.data import Subset, TensorDataset
 
 from renate.utils.avalanche import (
     AvalancheBenchmarkWrapper,
-    AvalancheSubset,
     _plugin_index,
     plugin_by_class,
     remove_plugin,
     replace_plugin,
+    to_avalanche_dataset,
 )
 
 
-def test_avalanche_subset_class():
+def test_to_avalanche_dataset():
     expected_x = 6
     expected_y = 1
     tensor_dataset = TensorDataset(
         torch.tensor([5, expected_x, 7]), torch.tensor([0, expected_y, 2])
     )
-    dataset = AvalancheSubset(Subset(tensor_dataset, [1]))
-    assert type(dataset.x) == Tensor and dataset.x == expected_x
-    assert (
-        type(dataset.y) == list
-        and len(dataset.y) == 1
-        and dataset.y[0] == expected_y
-        and type(dataset.y[0]) == int
-    )
-    assert dataset._targets is None
-    assert (
-        dataset.targets == dataset._targets
-        and dataset.targets == expected_y
-        and type(dataset.targets) == Tensor
-    )
+    dataset = to_avalanche_dataset(Subset(tensor_dataset, [1]))
+    assert dataset._inputs[0].item() == expected_x
+    assert type(dataset._targets) == list
+    assert len(dataset._targets) == 1
+    assert dataset._targets[0] == expected_y
+    assert type(dataset._targets[0]) == int
+    assert dataset.targets.item() == dataset._targets[0]
+    assert dataset.targets == expected_y
+    assert type(dataset.targets) == Tensor
     x, y = dataset[0]
     assert x == expected_x and y == expected_y
     assert len(dataset) == 1
