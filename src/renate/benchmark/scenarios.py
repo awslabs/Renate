@@ -263,4 +263,4 @@ class IIDScenario(Scenario):
         val_data = self._data_module.val_data()
         if val_data:
             self._val_data = randomly_split_data(val_data, proportions, self._seed)[self._chunk_id]
-        self._test_data = self._data_module.test_data()
+        self._test_data = [self._data_module.test_data() for _ in range(self._num_tasks)]
