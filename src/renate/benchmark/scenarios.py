@@ -284,9 +284,11 @@ class SoftSortingScenario(Scenario):
     Args:
         data_module: The source RenateDataModule for the the user data.
         num_tasks: The total number of expected tasks for experimentation.
-        feature_idx: Index of the feature by which to sort. If the `x` has more than one dimension,
-            this indexes dimension 0 while additional dimensions will be averaged out. Hence, for
-            images, we sort by mean color channel value.
+        feature_idx: Index of the feature by which to sort. This index refers to the input features
+            `x` of a single data point, i.e., no batch dimension. If the tensor `x` has more than
+            one dimension, this indexes along the 0-dim while additional dimensions will be averaged
+            out. Hence, for images, `feature_idx` refers to a color channel and we sort by mean
+            color channel value.
         exponent: Exponent used when computing sampling probabilties. The larger `exponent`, the
             more pronounced the sorting effect.
         chunk_id: The data chunk to load in for the training or validation data.
