@@ -163,6 +163,15 @@ class ExperimentCLI:
             help="Name of the SageMaker job.",
         )
 
+        argument_group.add_argument(
+            "--deterministic_trainer",
+            type=str,
+            default=str(defaults.DETERMINISTIC_TRAINER),
+            choices=["True", "False"],
+            help="When True forces the trainer to be deterministic. Default: "
+            f"{defaults.DETERMINISTIC_TRAINER}.",
+        )
+
         args = parser.parse_args()
 
         execute_experiment_job(
