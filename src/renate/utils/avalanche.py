@@ -1,55 +1,50 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 from collections import Counter
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import torch
 from avalanche.benchmarks import dataset_benchmark
 from avalanche.core import BasePlugin
 from torch import Tensor
-from torch.utils.data import DataLoader, Dataset, Subset
+from torch.utils.data import DataLoader, Dataset
 
 from renate.data.datasets import _TransformedDataset
+from renate.memory import DataBuffer
+from renate.types import Inputs
 
 
-class AvalancheSubset(Dataset):
-    """Helper class to use dataset subsets with Avalanche.
+class AvalancheDataset(Dataset):
+    """A Dataset consumable by Avalanche updaters."""
 
-    Since Avalanche does not support the Subset class, this class is used to convert subsets.
-    Furthermore, some Avalanche updaters (e.g. iCaRL) directly access the targets attribute.
-
-    Args:
-        subset: The subset dataset that is converted.
-    """
-
-    def __init__(self, subset: Subset):
-        super().__init__()
-        x_data, y_data = [], []
-        data_loader = DataLoader(subset)
-        for x, y in data_loader:
-            x_data.append(x)
-            y_data.append(y.item())
-        self.x: Tensor = torch.cat(x_data)
-        self.y: List[int] = y_data
-        self._targets: Optional[Tensor] = None
-
-    @property
-    def targets(self) -> Tensor:
-        """Access to the dataset targets.
-
-        Since not every Avalanche updater requires this attribute, we only create it when
-        requested.
-        """
-        if self._targets is not None:
-            return self._targets
-        self._targets = torch.tensor(self.y, dtype=torch.long)
-        return self._targets
-
-    def __getitem__(self, idx: int) -> Tuple[Tensor, int]:
-        return self.x[idx], self.y[idx]
+    def __init__(self, inputs: Inputs, targets: List[int]):
+        self._inputs = inputs
+        self._targets = targets
+        self.targets = torch.tensor(targets, dtype=torch.long)
 
     def __len__(self) -> int:
-        return len(self.y)
+        return len(self._targets)
+
+    def __getitem__(self, idx) -> Tuple[Tensor, Tensor]:
+        return self._inputs[idx], self._targets[idx]
+
+
+def to_avalanche_dataset(dataset: Union[Dataset, DataBuffer]) -> AvalancheDataset:
+    """Converts a DataBuffer od Dataset into an Avalanche-compatible Dataset."""
+    x_data, y_data = [], []
+    if isinstance(dataset, DataBuffer):
+        for i, ((x, y), _) in enumerate(dataset):
+            if i == len(dataset):
+                break
+            x_data.append(x)
+            y_data.append(y)
+    else:
+        for (x, y) in dataset:
+            x_data.append(x)
+            if not isinstance(y, int):
+                y = y.item()
+            y_data.append(y)
+    return AvalancheDataset(x_data, y_data)
 
 
 class AvalancheBenchmarkWrapper:

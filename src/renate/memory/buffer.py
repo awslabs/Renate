@@ -5,7 +5,6 @@ from collections import defaultdict
 from typing import Any, Callable, Dict, Hashable, Optional, Tuple, Union
 
 import torch
-from torch import Tensor
 from torch.utils.data import Dataset
 
 from renate import defaults
@@ -198,14 +197,6 @@ class DataBuffer(Dataset, ABC):
         """Update the transformations applied to the data."""
         self._transform = transform
         self._target_transform = target_transform
-
-    def to_tensors(self) -> Tuple[Tensor, ...]:
-        """Converts buffer data into tuple of tensors. Used by AvalancheModelUpdater."""
-        if isinstance(self._data_points, dict):
-            return (tensor[: self._size] for tensor in self._data_points.values())
-        elif isinstance(self._data_points, tuple):
-            return (tensor[: self._size] for tensor in self._data_points)
-        return (self._data_points[: self._size],)
 
     def state_dict(self) -> Dict[str, Any]:
         """Returns the state of the buffer as a dictionary."""

@@ -12,10 +12,9 @@ from avalanche.training.supervised.icarl import _ICaRLPlugin
 from avalanche.training.templates import BaseSGDTemplate
 from syne_tune import Reporter
 from torch.optim import Optimizer
-from torch.utils.data import Dataset, Subset, TensorDataset
+from torch.utils.data import Dataset
 
 from renate import defaults
-from renate.data.datasets import _TransformedDataset
 from renate.models import RenateModule
 from renate.updaters.avalanche.learner import (
     AvalancheEWCLearner,
@@ -31,7 +30,7 @@ from renate.updaters.avalanche.plugins import (
 )
 from renate.updaters.learner import Learner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
-from renate.utils.avalanche import AvalancheBenchmarkWrapper, AvalancheSubset
+from renate.utils.avalanche import AvalancheBenchmarkWrapper, to_avalanche_dataset
 
 logger = logging.getLogger(__name__)
 
@@ -182,14 +181,7 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
     def _load_benchmark_if_exists(
         self, train_dataset: Dataset, val_dataset: Optional[Dataset] = None
     ) -> AvalancheBenchmarkWrapper:
-        if isinstance(train_dataset, _TransformedDataset):
-            x_data, y_data = [], []
-            for x, y in train_dataset:
-                x_data.append(x)
-                y_data.append(y)
-            train_dataset = TensorDataset(torch.stack(x_data), torch.stack(y_data))
-        if isinstance(train_dataset, Subset):
-            train_dataset = AvalancheSubset(train_dataset)
+        train_dataset = to_avalanche_dataset(train_dataset)
 
         avalanche_state = None
         if self._input_state_folder is not None:
@@ -202,11 +194,9 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
                     )
         if val_dataset is not None:
             self._dummy_learner._val_memory_buffer.update(val_dataset)
-            val_memory_dataset = TensorDataset(*self._dummy_learner._val_memory_buffer.to_tensors())
+            val_memory_dataset = to_avalanche_dataset(self._dummy_learner._val_memory_buffer)
         else:
-            val_memory_dataset = TensorDataset(*train_dataset[:2])
-            if isinstance(self, ICaRLModelUpdater):  # FIXME: fix problem to remove this exception
-                raise RuntimeError("ICaRLModelUpdater requires validation data.")
+            val_memory_dataset = to_avalanche_dataset(train_dataset)
 
         benchmark = AvalancheBenchmarkWrapper(
             train_dataset=train_dataset,

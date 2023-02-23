@@ -40,8 +40,8 @@ config_file = str(Path(__file__).parent.parent / "renate_config_files" / "config
         "training-single-config-without-val",
     ],
 )
-@pytest.mark.parametrize("updater", ("ER", "Avalanche-ER"))
-def test_execute_tuning_job(
+@pytest.mark.parametrize("updater", ("ER", "Avalanche-iCaRL"))
+def test_run_training_job(
     tmpdir, num_chunks, val_size, raises, fixed_search_space, scheduler, updater
 ):
     """Simply running tuning job to check if anything fails.
