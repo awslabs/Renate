@@ -256,11 +256,77 @@ class IIDScenario(Scenario):
     def setup(self) -> None:
         """Make assignments: val/train/test splits."""
         self._data_module.setup()
-        proportions = [1 / self._num_tasks for _ in range(self._num_tasks)]
-        self._train_data = randomly_split_data(
-            self._data_module.train_data(), proportions, self._seed
-        )[self._chunk_id]
+        self._split_and_assign_train_and_val_data()
+        self._test_data = [self._data_module.test_data()]
+
+
+class SoftSortingScenario(Scenario):
+    """A scenario that _softly_ sorts a dataset by the value of a feature, then creates chunks.
+
+    This extracts a feature value for each data point (see `feature_idx`) and computes sampling
+    probabilities as `p = feature_values ** exponent`. An ordering of the data points is then
+    sampled from a corresponding multinomial distribution without replacement, resulting in a
+    "soft" sorting, where data points with large feature values tend to appear earlier. The ordered
+    dataset is then split into `num_tasks` chunks.
+
+    The larger `exponent`, the more pronounced the sorting effect.
+
+    This assumes that `dataset[i]` returns a tuple `(x, y)` where `x` is a tensor of features.
+
+    Args:
+        data_module: The source RenateDataModule for the the user data.
+        num_tasks: The total number of expected tasks for experimentation.
+        feature_idx: Index of the feature by which to sort. If the input `x` is multi-dimensional,
+            this indexes the first dimension of the input while additional dimensions will be
+            averaged out. E.g., for RGB image data, this will use channel mean values.
+        exponent: Exponent used when computing sampling probabilties. The higher the exponent, the
+            more pronounced the sorting effect. Very large values will result in (deterministic)
+            sorting.
+        chunk_id: The data chunk to load in for the training or validation data.
+        seed: Seed used to fix random number generation.
+    """
+
+    def __init__(
+        self,
+        data_module: RenateDataModule,
+        num_tasks: int,
+        feature_idx: int,
+        exponent: int,
+        chunk_id: int,
+        seed: int = defaults.SEED,
+    ) -> None:
+        super().__init__(data_module, num_tasks, chunk_id, seed)
+        self._feature_idx = feature_idx
+        self._exponent = exponent
+
+    def _get_features(self, dataset: Dataset) -> torch.Tensor:
+        features = torch.empty(len(dataset))
+        for i in range(len(dataset)):
+            features[i] = dataset[i][self._feature_idx].mean()
+        return features
+
+    def _compute_sampling_probs(self, features: torch.Tensor) -> torch.Tensor:
+        # Use log-sum-exp trick.
+        tmp = self._exponent * torch.log(features)
+        log_probs = tmp - torch.logsumexp(tmp, dim=0)
+        return torch.exp(log_probs)
+
+    def _split(self, dataset: Dataset) -> Dataset:
+        features = self._get_features(dataset)
+        sampling_probs = self._compute_sampling_probs(features)
+        rng = get_generator(self._seed)
+        idx_ordered = torch.multinomial(
+            sampling_probs, num_samples=len(dataset), replacement=False, generator=rng
+        )
+        split = torch.split(idx_ordered, split_size_or_sections=self._num_tasks)
+        return [Subset(dataset, idx) for idx in split]
+
+    def setup(self) -> None:
+        self._data_module.setup()
+        train_data = self._data_module.train_data()
+        self._train_data = self._split(train_data)[self._chunk_id]
         val_data = self._data_module.val_data()
         if val_data:
-            self._val_data = randomly_split_data(val_data, proportions, self._seed)[self._chunk_id]
-        self._test_data = self._data_module.test_data()
+            self._val_data = self._split(val_data)[self._chunk_id]
+        test_data = self._data_module.test_data()
+        self._test_data = self._split(test_data)

@@ -30,6 +30,7 @@ from renate.benchmark.scenarios import (
     ImageRotationScenario,
     PermutationScenario,
     Scenario,
+    SoftSortingScenario,
 )
 from renate.data.data_module import RenateDataModule
 from renate.models import RenateModule
@@ -101,6 +102,8 @@ def get_scenario(
     class_groupings: Optional[List[List[int]]] = None,
     degrees: Optional[List[int]] = None,
     input_dim: Optional[Union[List[int], Tuple[int], int]] = None,
+    feature_idx: Optional[int] = None,
+    exponent: Optional[int] = None,
 ) -> Scenario:
     """Function to create scenario based on name and arguments.
 
@@ -111,9 +114,11 @@ def get_scenario(
         seed: A random seed to fix the created scenario.
         num_tasks: The total number of expected tasks for experimentation.
         class_groupings: Used for scenario `ClassIncrementalScenario`. Partitions classes into
-            different chunks
+            different chunks.
         degrees: Used for scenario `ImageRotationScenario`. Rotations applied for each chunk.
         input_dim: Used for scenario `PermutationScenario`. Input dimensionality.
+        feature_idx: Used for scenario `SoftSortingScenario`. Index of feature to sort by.
+        exponent: Used for secnario `SoftSortingScenario`. Exponent for soft sorting.
 
     Returns:
         An instance of the requested scenario.
@@ -150,6 +155,15 @@ def get_scenario(
             chunk_id=chunk_id,
             seed=seed,
         )
+    if scenario_name == "SoftSortingScenario":
+        return SoftSortingScenario(
+            data_module=data_module,
+            num_tasks=num_tasks,
+            feature_idx=feature_idx,
+            exponent=exponent,
+            chunk_id=chunk_id,
+            seed=seed,
+        )
     raise ValueError(f"Unknown scenario `{scenario_name}`.")
 
 
@@ -164,6 +178,8 @@ def data_module_fn(
     data_module_fn_class_groupings: Optional[str] = None,
     data_module_fn_degrees: Optional[str] = None,
     data_module_fn_input_dim: Optional[str] = None,
+    data_module_fn_feature_idx: Optional[str] = None,
+    data_module_fn_exponent: Optional[str] = None,
 ):
     data_module = get_data_module(
         data_path=str(data_path),
@@ -179,6 +195,10 @@ def data_module_fn(
         data_module_fn_degrees = ast.literal_eval(data_module_fn_degrees)
     if data_module_fn_input_dim is not None:
         data_module_fn_input_dim = ast.literal_eval(data_module_fn_input_dim)
+    if data_module_fn_feature_idx is not None:
+        data_module_fn_feature_idx = ast.literal_eval(data_module_fn_feature_idx)
+    if data_module_fn_exponent is not None:
+        data_module_fn_exponent = ast.literal_eval(data_module_fn_exponent)
     return get_scenario(
         scenario_name=data_module_fn_scenario_name,
         data_module=data_module,
@@ -188,6 +208,8 @@ def data_module_fn(
         class_groupings=data_module_fn_class_groupings,
         degrees=data_module_fn_degrees,
         input_dim=data_module_fn_input_dim,
+        feature_idx=data_module_fn_feature_idx,
+        exponent=data_module_fn_exponent,
     )
 
 
