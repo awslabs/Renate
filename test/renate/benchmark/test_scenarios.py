@@ -197,6 +197,7 @@ def test_iid_scenario():
                 x, y = scenario_data[j]
                 assert x not in counter
                 counter[x] = 1
+        assert len(scenario.test_data()) == 3
 
 
 def test_soft_sorting_scenario():
@@ -220,3 +221,4 @@ def test_soft_sorting_scenario():
                 x, y = scenario_data[j]
                 assert x not in counter
                 counter[x] = 1
+        assert len(scenario.test_data()) == 3

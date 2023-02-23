@@ -256,8 +256,14 @@ class IIDScenario(Scenario):
     def setup(self) -> None:
         """Make assignments: val/train/test splits."""
         self._data_module.setup()
-        self._split_and_assign_train_and_val_data()
-        self._test_data = [self._data_module.test_data()]
+        proportions = [1 / self._num_tasks for _ in range(self._num_tasks)]
+        self._train_data = randomly_split_data(
+            self._data_module.train_data(), proportions, self._seed
+        )[self._chunk_id]
+        val_data = self._data_module.val_data()
+        if val_data:
+            self._val_data = randomly_split_data(val_data, proportions, self._seed)[self._chunk_id]
+        self._test_data = [self._data_module.test_data() for _ in range(self._num_tasks)]
 
 
 class SoftSortingScenario(Scenario):
