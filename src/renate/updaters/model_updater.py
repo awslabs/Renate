@@ -178,7 +178,7 @@ class ModelUpdater(abc.ABC):
         logger: Logger = defaults.LOGGER(**defaults.LOGGER_KWARGS),
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
-        deterministic_trainer: bool = False,
+        deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
         self._learner_kwargs = learner_kwargs or {}
         self._model = model
