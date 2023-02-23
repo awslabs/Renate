@@ -520,7 +520,7 @@ def _execute_training_and_tuning_job_locally(
     config_space["seed"] = seed
     config_space["accelerator"] = accelerator
     config_space["devices"] = devices
-    config_space["deterministric_trainer"] = deterministic_trainer
+    config_space["deterministic_trainer"] = deterministic_trainer
     if input_state_url is not None:
         config_space["input_state_url"] = input_state_url
 
