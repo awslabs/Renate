@@ -145,5 +145,3 @@ def metric_summary_file(logs_folder: str, special_str: str = ""):
 
 def hpo_file(state_folder: str):
     return os.path.join(state_folder, "hpo.csv")
-
-    return None
