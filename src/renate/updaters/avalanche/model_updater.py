@@ -133,14 +133,14 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
         return avalanche_learner
 
     @staticmethod
-    def _load_if_exists(current_state_folder: Optional[str]) -> Optional[Naive]:
+    def _load_if_exists(input_state_folder: Optional[str]) -> Optional[Naive]:
         """Loads the Avalanche strategy if a state exists."""
 
-        if current_state_folder is None:
+        if input_state_folder is None:
             return None
         checkpoint_plugin = RenateCheckpointPlugin(
             RenateFileSystemCheckpointStorage(
-                directory=Path(current_state_folder),
+                directory=Path(input_state_folder),
             ),
         )
         avalanche_learner, _ = checkpoint_plugin.load_checkpoint_if_exists()
