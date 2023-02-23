@@ -270,24 +270,25 @@ class SoftSortingScenario(Scenario):
     """A scenario that _softly_ sorts a dataset by the value of a feature, then creates chunks.
 
     This extracts a feature value for each data point (see `feature_idx`) and computes sampling
-    probabilities as `p = feature_values ** exponent`. An ordering of the data points is then
-    sampled from a corresponding multinomial distribution without replacement, resulting in a
-    "soft" sorting, where data points with large feature values tend to appear earlier. The ordered
-    dataset is then split into `num_tasks` chunks.
+    probabilities proportional to `feature_value ** exponent`. An ordering of the data points is
+    then sampled from a corresponding multinomial distribution without replacement. This results in
+    a "soft" sorting, where data points with large feature values tend to appear earlier. The
+    ordered dataset is then split into `num_tasks` chunks.
 
-    The larger `exponent`, the more pronounced the sorting effect.
+    The larger `exponent`, the more pronounced the sorting effect. Very large values will result in
+    (deterministic) sorting.
 
-    This assumes that `dataset[i]` returns a tuple `(x, y)` where `x` is a tensor of features.
+    This scenario assumes that `dataset[i]` returns a tuple `(x, y)` with a tensor `x` containing
+    the features.
 
     Args:
         data_module: The source RenateDataModule for the the user data.
         num_tasks: The total number of expected tasks for experimentation.
-        feature_idx: Index of the feature by which to sort. If the input `x` is multi-dimensional,
-            this indexes the first dimension of the input while additional dimensions will be
-            averaged out. E.g., for RGB image data, this will use channel mean values.
-        exponent: Exponent used when computing sampling probabilties. The higher the exponent, the
-            more pronounced the sorting effect. Very large values will result in (deterministic)
-            sorting.
+        feature_idx: Index of the feature by which to sort. If the `x` has more than one dimension,
+            this indexes dimension 0 while additional dimensions will be averaged out. Hence, for
+            images, we sort by mean color channel value.
+        exponent: Exponent used when computing sampling probabilties. The larger `exponent`, the
+            more pronounced the sorting effect.
         chunk_id: The data chunk to load in for the training or validation data.
         seed: Seed used to fix random number generation.
     """
