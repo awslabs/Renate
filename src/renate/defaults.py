@@ -26,6 +26,7 @@ EMA_MEMORY_UPDATE_GAMMA = 1.0
 VALIDATION_SIZE = 0.0
 LOSS_NORMALIZATION = 1
 EARLY_STOPPING = False
+DETERMINISTIC_TRAINER = False
 
 ACCELERATOR = "auto"
 SUPPORTED_ACCELERATORS = ["auto", "cpu", "gpu", "tpu"]
@@ -144,3 +145,5 @@ def metric_summary_file(logs_folder: str, special_str: str = ""):
 
 def hpo_file(state_folder: str):
     return os.path.join(state_folder, "hpo.csv")
+
+    return None

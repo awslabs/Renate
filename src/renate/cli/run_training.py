@@ -157,6 +157,16 @@ class ModelUpdaterCLI:
             type=str,
             help="Location for checkpoints.",
         )
+
+        argument_group.add_argument(
+            "--deterministic_trainer",
+            type=str,
+            default=str(defaults.DETERMINISTIC_TRAINER),
+            choices=["True", "False"],
+            help="When True forces the trainer to be deterministic. Default: "
+            f"{defaults.DETERMINISTIC_TRAINER}.",
+        )
+
         return parser
 
     def _copy_state_to_working_directory(
@@ -238,6 +248,7 @@ class ModelUpdaterCLI:
             accelerator=args.accelerator,
             devices=args.devices,
             early_stopping_enabled=bool(args.early_stopping),
+            deterministic_trainer=bool(args.deterministic_trainer),
             **learner_kwargs,
             **get_transforms_kwargs(config_module, args),
         )

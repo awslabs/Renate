@@ -145,6 +145,7 @@ def execute_experiment_job(
     seed: int = defaults.SEED,
     accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
     devices: int = defaults.DEVICES,
+    deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     job_name: str = defaults.JOB_NAME,
 ) -> None:
     """Executes the experiment job.
@@ -197,6 +198,7 @@ def execute_experiment_job(
             n_workers=n_workers,
             accelerator=accelerator,
             devices=devices,
+            deterministic_trainer=deterministic_trainer,
             seed=seed,
         )
     _execute_experiment_job_remotely(
@@ -215,6 +217,7 @@ def execute_experiment_job(
         n_workers=n_workers,
         accelerator=accelerator,
         devices=devices,
+        deterministic_trainer=deterministic_trainer,
         seed=seed,
         requirements_file=requirements_file,
         role=role,
@@ -240,6 +243,7 @@ def _execute_experiment_job_locally(
     max_num_trials_completed: int,
     max_num_trials_finished: int,
     n_workers: int,
+    deterministic_trainer: bool,
 ) -> None:
     """Runs an experiment, combining hyperparameter tuning and model for multiple updates.
 
@@ -323,6 +327,7 @@ def _execute_experiment_job_locally(
             seed=seed,
             accelerator=accelerator,
             devices=devices,
+            deterministic_trainer=deterministic_trainer,
         )
         move_to_uri(output_state_url, input_state_url)
         copy_to_uri(input_state_url, update_url)
