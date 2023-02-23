@@ -213,6 +213,7 @@ class ModelUpdaterCLI:
 
         args = argparse.Namespace(**vars(known_args), **additional_args)
         args.early_stopping = args.early_stopping == "True"
+        args.deterministic_trainer = args.deterministic_trainer == "True"
 
         seed_everything(args.seed)
         self._prepare_data_state_model(args)
