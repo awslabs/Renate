@@ -145,7 +145,7 @@ def execute_experiment_job(
     seed: int = defaults.SEED,
     accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
     devices: int = defaults.DEVICES,
-    deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+    deterministic_trainer: bool = True,
     job_name: str = defaults.JOB_NAME,
 ) -> None:
     """Executes the experiment job.
@@ -174,6 +174,8 @@ def execute_experiment_job(
         seed: Seed of the experiment job.
         accelerator: Type of accelerator to use.
         devices: Number of devices to use.
+        deterministic_trainer: When true the Trainer adopts a deterministic behaviour also on GPU.
+            In this function this parameter is set to True by default.
         job_name: Name of the experiment job.
     """
     assert (
