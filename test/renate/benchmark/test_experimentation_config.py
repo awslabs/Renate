@@ -105,9 +105,9 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             "SoftSortingScenario",
             "MNIST",
             {
-                "data_module_fn_num_tasks": "5",
-                "data_module_fn_feature_idx": "0",
-                "data_module_fn_exponent": "10",
+                "num_tasks": "5",
+                "feature_idx": "0",
+                "exponent": "10",
             },
             SoftSortingScenario,
             5,
