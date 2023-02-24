@@ -115,10 +115,11 @@ class DataBuffer(Dataset):
     def get_metadata(self, key: str) -> Dict[str, torch.Tensor]:
         return self._metadata[key][: len(self)]
 
-    def set_metadata(self, key: str, values: torch.Tensor):
+    def set_metadata(self, key: str, values: torch.Tensor) -> None:
         if values.size(0) != len(self):
             raise ValueError()
-        self._add_metadata_like({key: values})
+        if key not in self._metadata:
+            self._add_metadata_like({key: values})
         self._metadata[key][: len(self)] = values.cpu()
 
     def set_transforms(
