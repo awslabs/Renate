@@ -1,5 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+import copy
 import os
 from collections import defaultdict
 
@@ -13,6 +14,21 @@ from renate.memory.buffer_v2 import (
     ReservoirBuffer,
     SlidingWindowBuffer,
 )
+
+
+def nested_tensors_equal(t1, t2):
+    if type(t1) is not type(t2):
+        return False
+    if isinstance(t1, torch.Tensor):
+        return torch.equal(t1, t2)
+    if isinstance(t1, tuple):
+        if len(t1) != len(t2):
+            return False
+        return all(nested_tensors_equal(t1_, t2_) for t1_, t2_ in zip(t1, t2))
+    if isinstance(t1, dict):
+        if set(t1.keys()) != set(t2.keys()):
+            return False
+        return all(nested_tensors_equal(t1[key], t2[key]) for key in t1.keys())
 
 
 @pytest.mark.parametrize("buffer_cls", [ReservoirBuffer, SlidingWindowBuffer])
@@ -240,3 +256,29 @@ def test_buffer_same_size_on_disk_after_updates(tmpdir, max_size, buffer_cls):
         assert disk_size == os.path.getsize(os.path.join(tmpdir, "buffer.pt"))
     else:
         assert disk_size < os.path.getsize(os.path.join(tmpdir, "buffer.pt"))
+
+
+@pytest.mark.parametrize("buffer_cls", [ReservoirBuffer, SlidingWindowBuffer])
+@pytest.mark.parametrize("max_size", [10, 100])
+@pytest.mark.parametrize("num_updates", [0, 1, 2])
+@pytest.mark.parametrize(
+    "dataset",
+    [
+        torch.utils.data.TensorDataset(torch.empty(10, 2)),
+        torch.utils.data.TensorDataset(torch.empty(10, 2), torch.arange(10)),
+        NestedTensorDataset({"X": torch.empty(10, 2), "y": torch.arange(10)}),
+        NestedTensorDataset(({"X": torch.empty(10, 2), "z": torch.empty(10)}, torch.arange(10))),
+    ],
+)
+@pytest.mark.parametrize("metadata", [None, {"a": torch.arange(10), "b": torch.zeros(10, 2)}])
+def test_load_and_save_buffer(tmpdir, buffer_cls, max_size, num_updates, dataset, metadata):
+    """Tests loading an saving of the buffer state."""
+    buffer = buffer_cls(max_size)
+    for i in range(num_updates):
+        buffer.update(dataset, metadata)
+    elements_before = [copy.deepcopy(buffer[i]) for i in range(len(buffer))]
+    buffer.save(tmpdir)
+    del buffer
+    buffer = buffer_cls.load(tmpdir)
+    for i in range(len(buffer)):
+        assert nested_tensors_equal(buffer[i], elements_before[i])

@@ -58,13 +58,19 @@ class ImageDataset(Dataset):
 
 
 class NestedTensorDataset(Dataset):
-    """A dataset of nested tensors."""
+    """A dataset of nested tensors.
+
+    Args:
+        nested_tensors: A nested tuple/dict structure of tensors. Tensors need to be of equal size
+            along the batch dimension.
+    """
 
     def __init__(self, nested_tensors: NestedTensors):
         self._nested_tensors = nested_tensors
         self._length = self._get_len(nested_tensors)
 
-    def _get_len(self, nested_tensors, expected_length=None) -> int:
+    def _get_len(self, nested_tensors: NestedTensors, expected_length: Optional[int] = None) -> int:
+        """Extracts length of the dataset and checks for consistent length."""
         if isinstance(nested_tensors, torch.Tensor):
             length = nested_tensors.size(0)
             assert length == expected_length or expected_length is None
@@ -81,9 +87,11 @@ class NestedTensorDataset(Dataset):
             raise TypeError(f"Expected nested dict/tuple of tensors, found {type(nested_tensors)}.")
 
     def __len__(self):
+        """Returns the number of data points in the dataset."""
         return self._length
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> NestedTensors:
+        """Returns an element of the dataset."""
         return _get_data_point(self._nested_tensors, idx)
 
 

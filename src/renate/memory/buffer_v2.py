@@ -151,10 +151,10 @@ class DataBuffer(Dataset):
     def save(self, target_dir: str) -> None:
         storage = Storage(target_dir, length=len(self), shapes=self._shapes, dtypes=self._dtypes)
         for i in range(len(self)):
-            storage[i] = self[i]
+            storage[i] = self[i][0]  # Without metadata
         self._datasets = [storage]
         self._indices = {i: (0, i) for i in range(len(self))}
-        torch.save(os.path.join(target_dir, "state_dict.pt"), self.state_dict())
+        torch.save(self.state_dict(), os.path.join(target_dir, "state_dict.pt"))
 
     @classmethod
     def load(cls, source_dir: str):
