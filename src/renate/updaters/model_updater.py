@@ -204,6 +204,7 @@ class ModelUpdater(abc.ABC):
             )
             early_stopping_enabled = False
 
+        self._input_state_folder = input_state_folder
         self._output_state_folder = output_state_folder
         self._metric = metric
         self._mode = mode
@@ -224,11 +225,7 @@ class ModelUpdater(abc.ABC):
         if issubclass(learner_class, ReplayLearner):
             self._transforms_kwargs["buffer_transform"] = self._buffer_transform
             self._transforms_kwargs["buffer_target_transform"] = self._buffer_target_transform
-        self._learner = self._load_learner(learner_class, self._learner_kwargs)
-        assert self._learner.is_logged_metric(metric), f"Target metric `{metric}` is not logged."
         self._max_epochs = max_epochs
-        self._logger = logger
-        self._num_epochs_trained = 0
         if accelerator not in defaults.SUPPORTED_ACCELERATORS:
             raise ValueError(
                 f"Accelerator {accelerator} not supported. "
@@ -236,6 +233,10 @@ class ModelUpdater(abc.ABC):
             )
         self._accelerator = accelerator
         self._devices = devices
+        self._learner = self._load_learner(learner_class, self._learner_kwargs)
+        assert self._learner.is_logged_metric(metric), f"Target metric `{metric}` is not logged."
+        self._logger = logger
+        self._num_epochs_trained = 0
         self._deterministic_trainer = deterministic_trainer
 
     @abc.abstractmethod

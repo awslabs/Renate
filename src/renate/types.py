@@ -4,5 +4,4 @@ from typing import Dict, Tuple, Union
 
 import torch
 
-
 NestedTensors = Union[torch.Tensor, Tuple[torch.Tensor, ...], Dict[str, torch.Tensor]]

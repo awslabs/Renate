@@ -19,7 +19,7 @@ from renate.updaters.learner import Learner, ReplayLearner
 
 def get_model_and_learner_and_learner_kwargs(
     learner_class: Type[Learner],
-) -> Tuple[RenateModule, Dict[str, Any]]:
+) -> Tuple[RenateModule, Learner, Dict[str, Any]]:
     learner_kwargs = LEARNER_KWARGS[learner_class]
     model = pytest.helpers.get_renate_module_mlp(
         num_inputs=1, num_outputs=1, hidden_size=1, num_hidden_layers=1

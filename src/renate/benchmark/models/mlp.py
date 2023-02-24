@@ -1,15 +1,14 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
-import torch
 import torch.nn as nn
 
-from renate.defaults import TASK_ID
-from renate.models import RenateModule
+from renate.benchmark.models.base import RenateBenchmarkingModule
+from renate.models.prediction_strategies import PredictionStrategy
 
 
-class MultiLayerPerceptron(RenateModule):
+class MultiLayerPerceptron(RenateBenchmarkingModule):
     """A simple Multi Layer Perceptron with hidden layers, activation and Batch Normalization if
     enabled.
 
@@ -24,6 +23,10 @@ class MultiLayerPerceptron(RenateModule):
             hidden layers.
         batch_normalization: Whether to use Batch Normalization after the activation. By default the
             Batch Normalization tracks the running statistics.
+        prediction_strategy: Continual learning strategies may alter the prediction at train or test
+            time.
+        add_icarl_class_means: If ``True``, additional parameters used only by the
+            ``ICaRLModelUpdater`` are added. Only required when using that updater.
     """
 
     def __init__(
@@ -35,17 +38,23 @@ class MultiLayerPerceptron(RenateModule):
         loss: nn.Module = nn.CrossEntropyLoss(),
         activation: str = "ReLU",
         batch_normalization: bool = False,
+        prediction_strategy: Optional[PredictionStrategy] = None,
+        add_icarl_class_means: bool = True,
     ) -> None:
+        embedding_size = hidden_size if type(hidden_size) == int else hidden_size[-1]
         super().__init__(
+            embedding_size=embedding_size,
+            num_outputs=num_outputs,
             constructor_arguments={
                 "num_inputs": num_inputs,
-                "num_outputs": num_outputs,
                 "num_hidden_layers": num_hidden_layers,
                 "hidden_size": hidden_size,
                 "activation": activation,
                 "batch_normalization": batch_normalization,
             },
             loss_fn=loss,
+            prediction_strategy=prediction_strategy,
+            add_icarl_class_means=add_icarl_class_means,
         )
         if isinstance(hidden_size, int):
             hidden_size = [hidden_size for _ in range(num_hidden_layers + 1)]
@@ -61,24 +70,4 @@ class MultiLayerPerceptron(RenateModule):
             if batch_normalization:
                 layers.append(nn.BatchNorm1d(hidden_size[i + 1]))
 
-        self._last_hidden_size = hidden_size[-1]
-        self._num_outputs = num_outputs
-
-        self._model = nn.Sequential(*layers)
-        self._tasks_params: nn.ModuleDict = nn.ModuleDict()
-        self.add_task_params(TASK_ID)
-
-    def forward(self, x: torch.Tensor, task_id: str = TASK_ID) -> torch.Tensor:
-        """Performs a forward pass on the inputs and returns the predictions."""
-        return self._tasks_params[task_id](self._model(x))
-
-    def _add_task_params(self, task_id: str = TASK_ID) -> None:
-        """Adds new parameters associated to a specific task to the model."""
-        self._tasks_params[task_id] = nn.Linear(
-            self._last_hidden_size,
-            self._num_outputs,
-        )
-
-    def get_params(self, task_id: str = TASK_ID) -> List[nn.Parameter]:
-        """Returns the list of parameters for the core model and a specific `task_id`."""
-        return list(self._model.parameters()) + list(self._tasks_params[task_id].parameters())
+        self._backbone = nn.Sequential(*layers)
