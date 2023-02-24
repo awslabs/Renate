@@ -148,7 +148,7 @@ class DataBuffer(Dataset, ABC):
         """Returns the number of data points in the buffer."""
         return self._size
 
-    def __getitem__(self, idx: int) -> NestedTensors:
+    def __getitem__(self, idx: int) -> Tuple[NestedTensors, DataDict]:
         """Retrieves a data point from the buffer."""
         metadata = _get_data_point(self.metadata, idx)
         data = _get_data_point(self._data_points, idx)
