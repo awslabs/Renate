@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 from abc import ABC
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import torch
 from torch import nn
@@ -82,3 +82,14 @@ class RenateBenchmarkingModule(RenateModule, ABC):
         return list(self.get_backbone(task_id=task_id).parameters()) + list(
             self.get_predictor(task_id=task_id).parameters()
         )
+
+    def get_extra_state(self) -> Any:
+        """Get the constructor_arguments, loss and task ids necessary to reconstruct the model."""
+        extra_state = super().get_extra_state()
+        extra_state["prediction_strategy"] = self._prediction_strategy
+        return extra_state
+
+    def set_extra_state(self, state: Any):
+        """Extract the content of the ``_extra_state`` and set the related values in the module."""
+        super().set_extra_state(state)
+        self._prediction_strategy = state["prediction_strategy"]
