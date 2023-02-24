@@ -19,6 +19,7 @@ from renate.benchmark.scenarios import (
     IIDScenario,
     ImageRotationScenario,
     PermutationScenario,
+    SoftSortingScenario,
 )
 
 
@@ -100,6 +101,17 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             PermutationScenario,
             3,
         ),
+        (
+            "SoftSortingScenario",
+            "MNIST",
+            {
+                "data_module_fn_num_tasks": "5",
+                "data_module_fn_feature_idx": "0",
+                "data_module_fn_exponent": "10",
+            },
+            SoftSortingScenario,
+            5,
+        ),
     ),
     ids=[
         "class_incremental_image",
@@ -107,6 +119,7 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         "rotation",
         "benchmark",
         "permutation",
+        "soft_sorting",
     ],
 )
 @pytest.mark.parametrize("val_size", (0, 0.5), ids=["no_val", "val"])
