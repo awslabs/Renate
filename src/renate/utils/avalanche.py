@@ -11,13 +11,13 @@ from torch.utils.data import DataLoader, Dataset
 
 from renate.data.datasets import _TransformedDataset
 from renate.memory import DataBuffer
-from renate.types import Inputs
+from renate.types import NestedTensors
 
 
 class AvalancheDataset(Dataset):
     """A Dataset consumable by Avalanche updaters."""
 
-    def __init__(self, inputs: Inputs, targets: List[int]):
+    def __init__(self, inputs: NestedTensors, targets: List[int]):
         self._inputs = inputs
         self._targets = targets
         self.targets = torch.tensor(targets, dtype=torch.long)
