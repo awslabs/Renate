@@ -248,6 +248,7 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
         seed: int = defaults.SEED,
+        deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
@@ -313,6 +314,7 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
         seed: int = defaults.SEED,
+        deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
         learner_kwargs = {
             "optimizer": optimizer,
@@ -378,6 +380,7 @@ class LearningWithoutForgettingModelUpdater(AvalancheModelUpdater):
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
         seed: int = defaults.SEED,
+        deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
         learner_kwargs = {
             "optimizer": optimizer,
@@ -444,6 +447,7 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
         seed: int = defaults.SEED,
+        deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
