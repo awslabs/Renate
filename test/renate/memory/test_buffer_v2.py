@@ -73,7 +73,7 @@ def test_batching_with_metadata(buffer):
 
 
 @pytest.mark.parametrize("buffer", [ReservoirBuffer(30), SlidingWindowBuffer(30)])
-def test_get_metadata(buffer):
+def test_get_and_set_metadata(buffer):
     X = torch.randn(100, 3)
     y = torch.randint(0, 10, size=(100,))
     ds = torch.utils.data.TensorDataset(X, y)
@@ -81,10 +81,15 @@ def test_get_metadata(buffer):
     buffer.update(ds, metadata)
 
     foo_values = buffer.get_metadata("foo")
-
     assert isinstance(foo_values, torch.Tensor)
     assert foo_values.size() == (len(buffer),)
     assert torch.all(foo_values == 1.0)
+
+    buffer.set_metadata("foo", 2 * torch.ones(len(buffer)))
+    foo_values = buffer.get_metadata("foo")
+    assert isinstance(foo_values, torch.Tensor)
+    assert foo_values.size() == (len(buffer),)
+    assert torch.all(foo_values == 2.0)
 
 
 @pytest.mark.parametrize("buffer", [ReservoirBuffer(30), SlidingWindowBuffer(30)])
