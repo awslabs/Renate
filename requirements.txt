@@ -11,3 +11,4 @@ torchmetrics~=0.10.3
 torchdata>=0.4.0, <0.5.2
 torchtext>=0.13.0, <0.14.2
 torchvision>=0.13.0, <0.14.2
+tabulate<0.9.1
