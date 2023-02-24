@@ -151,6 +151,10 @@ class ModelUpdater(abc.ABC):
         devices: Devices used by PyTorch Lightning to train the model. If the devices flag is not
             defined, it will assume devices to be "auto" and fetch the `auto_device_count` from the
             `accelerator`.
+        deterministic_trainer: When set to True makes the output of the training deterministic.
+            The value is passed to the trainer as described
+            `here <https://pytorch-lightning.readthedocs.io/en/stable/common\
+            /trainer.html#reproducibility>`_.
     """
 
     def __init__(
@@ -174,6 +178,7 @@ class ModelUpdater(abc.ABC):
         logger: Logger = defaults.LOGGER(**defaults.LOGGER_KWARGS),
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
+        deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
         self._learner_kwargs = learner_kwargs or {}
         self._model = model
@@ -231,6 +236,7 @@ class ModelUpdater(abc.ABC):
             )
         self._accelerator = accelerator
         self._devices = devices
+        self._deterministic_trainer = deterministic_trainer
 
     @abc.abstractmethod
     def update(
@@ -310,6 +316,7 @@ class ModelUpdater(abc.ABC):
             callbacks=callbacks,
             logger=self._logger,
             enable_progress_bar=False,
+            deterministic=self._deterministic_trainer,
         )
         trainer.fit(learner, train_loader, val_loader)
         self._num_epochs_trained = trainer.current_epoch

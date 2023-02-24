@@ -120,6 +120,7 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
         logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None,
         seed: Optional[int] = None,
         early_stopping_enabled=False,
+        deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
@@ -153,6 +154,7 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
             devices=devices,
             early_stopping_enabled=early_stopping_enabled,
             logged_metrics=logged_metrics,
+            deterministic_trainer=deterministic_trainer,
         )
 
     def update(
