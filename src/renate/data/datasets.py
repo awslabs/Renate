@@ -8,6 +8,9 @@ from PIL import Image
 from torch import Tensor
 from torch.utils.data import Dataset
 
+from renate.memory.storage import _get_data_point
+from renate.types import NestedTensors
+
 
 class ImageDataset(Dataset):
     """Dataset class for image datasets where the images are loaded as raw images.
@@ -52,6 +55,36 @@ class ImageDataset(Dataset):
         if self.target_transform:
             target = self.target_transform(target)
         return image, target.long()
+
+
+class NestedTensorDataset(Dataset):
+    """A dataset of nested tensors."""
+
+    def __init__(self, nested_tensors: NestedTensors):
+        self._nested_tensors = nested_tensors
+        self._length = self._get_len(nested_tensors)
+
+    def _get_len(self, nested_tensors, expected_length=None) -> int:
+        if isinstance(nested_tensors, torch.Tensor):
+            length = nested_tensors.size(0)
+            assert length == expected_length or expected_length is None
+            return length
+        elif isinstance(nested_tensors, tuple):
+            for t in nested_tensors:
+                expected_length = self._get_len(t, expected_length)
+            return expected_length
+        elif isinstance(nested_tensors, dict):
+            for t in nested_tensors.values():
+                expected_length = self._get_len(t, expected_length)
+            return expected_length
+        else:
+            raise TypeError(f"Expected nested dict/tuple of tensors, found {type(nested_tensors)}.")
+
+    def __len__(self):
+        return self._length
+
+    def __getitem__(self, idx):
+        return _get_data_point(self._nested_tensors, idx)
 
 
 class _TransformedDataset(Dataset):
