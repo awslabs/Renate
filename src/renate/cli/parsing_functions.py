@@ -737,5 +737,5 @@ parse_by_updater = {
     "Joint": _add_joint_arguments,
     "FineTuning": _add_finetuning_arguments,
     "RD": _add_rd_learner_arguments,
-    "OfflineER": _add_replay_learner_arguments,
+    "Offline-ER": _add_replay_learner_arguments,
 }
