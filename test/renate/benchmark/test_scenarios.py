@@ -200,10 +200,7 @@ def test_iid_scenario():
         assert len(scenario.test_data()) == 3
 
 
-@pytest.mark.parametrize(
-    "feature_idx",
-    (0, 1),
-)
+@pytest.mark.parametrize("feature_idx", (0, 1))
 def test_feature_sorting_scenario(feature_idx):
     """Tests the FeatureSortingScenario.
 
