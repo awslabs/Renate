@@ -279,11 +279,12 @@ def test_buffer_same_size_on_disk_after_updates(tmpdir, max_size, buffer_cls):
 def test_load_and_save_buffer(tmpdir, buffer_cls, max_size, num_updates, dataset, metadata):
     """Tests loading an saving of the buffer state."""
     buffer = buffer_cls(max_size)
-    for i in range(num_updates):
-        buffer.update(dataset, metadata)
-    elements_before = [copy.deepcopy(buffer[i]) for i in range(len(buffer))]
-    buffer.save(tmpdir)
-    del buffer
-    buffer = buffer_cls.load(tmpdir)
-    for i in range(len(buffer)):
-        assert nested_tensors_equal(buffer[i], elements_before[i])
+    for _ in range(2):
+        for _ in range(num_updates):
+            buffer.update(dataset, metadata)
+        elements_before = [copy.deepcopy(buffer[i]) for i in range(len(buffer))]
+        buffer.save(tmpdir)
+        del buffer
+        buffer = buffer_cls.load(tmpdir)
+        for j in range(len(buffer)):
+            assert nested_tensors_equal(buffer[j], elements_before[j])

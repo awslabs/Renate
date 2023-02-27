@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 from collections import defaultdict
+import copy
 import os
 from typing import Callable, Dict, Optional
 
@@ -8,7 +9,7 @@ import torch
 from torch.utils.data import Dataset
 
 from renate import defaults
-from renate.memory.storage import get_nested_tensor_schema, Storage
+from renate.memory.storage import MemoryMappedTensorStorage
 from renate.types import NestedTensors
 from renate.utils.pytorch import get_generator
 
@@ -62,8 +63,7 @@ class DataBuffer(Dataset):
         self._count = 0
         self._datasets = []
         self._indices = {}
-        self._dtypes = None
-        self._shapes = None
+        self._data_point_prototype = None
         self._metadata = {}
 
     def __len__(self) -> int:
@@ -82,7 +82,7 @@ class DataBuffer(Dataset):
         metadata = metadata or {}
         self._check_metadata_internal_consistency(metadata, expected_length=len(dataset))
         if not len(self):
-            self._shapes, self._dtypes = get_nested_tensor_schema(dataset[0])
+            self._data_point_prototype = copy.deepcopy(dataset[0])
             self._add_metadata_like(metadata)
         else:
             self._check_metadata_compatibility(metadata)
@@ -135,8 +135,7 @@ class DataBuffer(Dataset):
             "seed": self._seed,
             "count": self._count,
             "indices": self._indices,
-            "dtypes": self._dtypes,
-            "shapes": self._shapes,
+            "data_point_prototype": self._data_point_prototype,
             "metadata": self._metadata,
         }
 
@@ -145,16 +144,20 @@ class DataBuffer(Dataset):
         self._seed = state_dict["seed"]
         self._count = state_dict["count"]
         self._indices = state_dict["indices"]
-        self._dtypes = state_dict["dtypes"]
-        self._shapes = state_dict["shapes"]
+        self._data_point_prototype = state_dict["data_point_prototype"]
         self._metadata = state_dict["metadata"]
 
     def save(self, target_dir: str) -> None:
-        storage = Storage(target_dir, length=len(self), shapes=self._shapes, dtypes=self._dtypes)
-        for i in range(len(self)):
-            storage[i] = self[i][0]  # Without metadata
-        self._datasets = [storage]
-        self._indices = {i: (0, i) for i in range(len(self))}
+        if len(self):
+            storage = MemoryMappedTensorStorage(
+                target_dir,
+                data_point=self._data_point_prototype,
+                length=len(self),
+            )
+            for i in range(len(self)):
+                storage[i] = self[i][0]  # Drop metadata.
+            self._datasets = [storage]
+            self._indices = {i: (0, i) for i in range(len(self))}
         torch.save(self.state_dict(), os.path.join(target_dir, "state_dict.pt"))
 
     @classmethod
@@ -162,11 +165,14 @@ class DataBuffer(Dataset):
         new_buffer = cls.__new__(cls)
         state_dict = torch.load(os.path.join(source_dir, "state_dict.pt"))
         new_buffer.load_state_dict(state_dict)
-        storage = Storage(
-            source_dir, length=len(new_buffer), shapes=new_buffer._shapes, dtypes=new_buffer._dtypes
-        )
-        new_buffer._datasets = [storage]
         new_buffer._rng = get_generator(new_buffer._seed)
+        if len(new_buffer):
+            storage = MemoryMappedTensorStorage(
+                source_dir,
+                data_point=new_buffer._data_point_prototype,
+                length=len(new_buffer),
+            )
+            new_buffer._datasets = [storage]
         return new_buffer
 
     def _add_metadata_like(self, metadata: DataDict):

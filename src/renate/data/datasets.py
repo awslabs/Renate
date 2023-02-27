@@ -8,7 +8,6 @@ from PIL import Image
 from torch import Tensor
 from torch.utils.data import Dataset
 
-from renate.memory.storage import _get_data_point
 from renate.types import NestedTensors
 
 
@@ -90,9 +89,20 @@ class NestedTensorDataset(Dataset):
         """Returns the number of data points in the dataset."""
         return self._length
 
+    @staticmethod
+    def _get(storage: NestedTensors, idx: int) -> NestedTensors:
+        if isinstance(storage, torch.Tensor):
+            return storage[idx]
+        elif isinstance(storage, tuple):
+            return tuple(NestedTensorDataset._get(t, idx) for t in storage)
+        elif isinstance(storage, dict):
+            return {key: NestedTensorDataset._get(t, idx) for key, t in storage.items()}
+        else:
+            raise TypeError(f"Expected nested tuple/dict of tensors, found {type(storage)}.")
+
     def __getitem__(self, idx: int) -> NestedTensors:
-        """Returns an element of the dataset."""
-        return _get_data_point(self._nested_tensors, idx)
+        """Read the item stored at index `idx`."""
+        return self._get(self._nested_tensors, idx)
 
 
 class _TransformedDataset(Dataset):
