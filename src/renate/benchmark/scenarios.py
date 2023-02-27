@@ -356,7 +356,7 @@ class FeatureSortingScenario(_SortingScenario):
         return [x[0][self._feature_idx].mean().item() for x, _ in dataset]
 
 
-class HueSortingScenario(_SortingScenario):
+class HueShiftScenario(_SortingScenario):
     """A scenario that sorts an image dataset by the hue value, then creates chunks.
 
     All images are sorted by hue value and divided into ``num_tasks`` tasks.

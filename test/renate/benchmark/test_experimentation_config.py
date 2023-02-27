@@ -16,10 +16,11 @@ from renate.benchmark.experiment_config import (
 from renate.benchmark.scenarios import (
     BenchmarkScenario,
     ClassIncrementalScenario,
+    FeatureSortingScenario,
+    HueShiftScenario,
     IIDScenario,
     ImageRotationScenario,
     PermutationScenario,
-    SoftSortingScenario,
 )
 
 
@@ -102,15 +103,25 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             3,
         ),
         (
-            "SoftSortingScenario",
+            "FeatureSortingScenario",
             "MNIST",
             {
                 "data_module_fn_num_tasks": "5",
                 "data_module_fn_feature_idx": "0",
-                "data_module_fn_exponent": "10",
+                "data_module_fn_randomness": "0.3",
             },
-            SoftSortingScenario,
+            FeatureSortingScenario,
             5,
+        ),
+        (
+            "HueShiftScenario",
+            "CIFAR10",
+            {
+                "data_module_fn_num_tasks": "3",
+                "data_module_fn_randomness": "0.5",
+            },
+            HueShiftScenario,
+            3,
         ),
     ),
     ids=[
@@ -119,7 +130,8 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         "rotation",
         "benchmark",
         "permutation",
-        "soft_sorting",
+        "feature_sorting",
+        "hue_shift",
     ],
 )
 @pytest.mark.parametrize("val_size", (0, 0.5), ids=["no_val", "val"])
