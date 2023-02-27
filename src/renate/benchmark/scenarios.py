@@ -6,6 +6,7 @@ from typing import Callable, List, Tuple, Union
 import numpy as np
 import torch
 from torch.utils.data import Dataset, Subset
+from torchvision import transforms
 from torchvision.transforms import Lambda, RandomRotation
 
 from renate import defaults
@@ -305,29 +306,27 @@ class SoftSortingScenario(Scenario):
         seed: int = defaults.SEED,
     ) -> None:
         super().__init__(data_module, num_tasks, chunk_id, seed)
-        self._feature_idx = feature_idx
-        self._exponent = exponent
+        self._randomness = exponent
+        assert 0 <= self._randomness <= 1
 
     def _get_features(self, dataset: Dataset) -> torch.Tensor:
         features = torch.empty(len(dataset))
-        for i in range(len(dataset)):
-            features[i] = dataset[i][self._feature_idx].mean()
+        to_pil_image = transforms.ToPILImage()
+        for i, (image, _) in enumerate(dataset):
+            count, value = np.histogram(
+                np.array(to_pil_image(image).convert("HSV"))[:, :, 0].reshape(-1), bins=100
+            )
+            features[i] = value[np.argmax(count)]
         return features
-
-    def _compute_sampling_probs(self, features: torch.Tensor) -> torch.Tensor:
-        # Use log-sum-exp trick.
-        tmp = self._exponent * torch.log(features)
-        log_probs = tmp - torch.logsumexp(tmp, dim=0)
-        return torch.exp(log_probs)
 
     def _split(self, dataset: Dataset) -> Dataset:
         features = self._get_features(dataset)
-        sampling_probs = self._compute_sampling_probs(features)
-        rng = get_generator(self._seed)
-        idx_ordered = torch.multinomial(
-            sampling_probs, num_samples=len(dataset), replacement=False, generator=rng
-        )
-        split = torch.tensor_split(idx_ordered, self._num_tasks)
+        idx_ordered = [x for _, x in sorted(zip(features.numpy(), np.arange(len(dataset))))]
+        rng = np.random.RandomState(seed=self._seed)
+        for _ in range(int(self._randomness * len(dataset) / 2)):
+            i, j = rng.randint(len(dataset), size=2)
+            idx_ordered[i], idx_ordered[j] = idx_ordered[j], idx_ordered[i]
+        split = torch.tensor_split(torch.tensor(idx_ordered), self._num_tasks)
         return [Subset(dataset, idx) for idx in split]
 
     def setup(self) -> None:
