@@ -96,12 +96,14 @@ class RenateModule(torch.nn.Module, ABC):
         """Performs a forward pass on the inputs and returns the predictions.
 
         This method accepts a task ID, which may be provided by some continual learning scenarios.
-        As an examle, the task id may be used to switch between multiple output heads.
+        As an example, the task id may be used to switch between multiple output heads.
 
         Args:
             x: Input(s) to the model. Can be a single tensor, a tuple of tensor, or a dictionary
                 mapping strings to tensors.
             task_id: The identifier of the task for which predictions are made.
+        Returns:
+            The model's predictions.
         """
         pass
 
@@ -165,7 +167,7 @@ class RenateModule(torch.nn.Module, ABC):
 
         Args:
             num_groups: Number of groups when considering the group normalization in continual
-                normalizeion
+                normalization.
         """
 
         def _replace(module):

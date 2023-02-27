@@ -96,6 +96,13 @@ SER_CLS_STABLE_MODEL_UPDATE_PROBABILITY = 0.7
 SER_CLS_PLASTIC_MODEL_UPDATE_WEIGHT = 0.999
 SER_CLS_PLASTIC_MODEL_UPDATE_PROBABILITY = 0.9
 
+# EWC
+EWC_LAMBDA = 0.4
+
+# LwF
+LWF_ALPHA = 1
+LWF_TEMPERATURE = 2
+
 MEMORY_SIZE = 32
 
 # Benchmark datasets/models
@@ -135,8 +142,16 @@ def model_file(state_folder: str):
     return os.path.join(state_folder, "model.ckpt")
 
 
+LEARNER_CHECKPOINT_NAME = "learner.ckpt"
+AVALANCHE_CHECKPOINT_NAME = "avalanche.ckpt"
+
+
 def learner_state_file(state_folder: str):
-    return os.path.join(state_folder, "learner.ckpt")
+    return os.path.join(state_folder, LEARNER_CHECKPOINT_NAME)
+
+
+def avalanche_state_file(state_folder: str):
+    return os.path.join(state_folder, AVALANCHE_CHECKPOINT_NAME)
 
 
 def metric_summary_file(logs_folder: str, special_str: str = ""):

@@ -2,16 +2,15 @@
 # SPDX-License-Identifier: Apache-2.0
 from typing import List, Optional, Type, Union
 
-import torch
 import torch.nn as nn
 from torchvision.models.resnet import BasicBlock, Bottleneck
 from torchvision.models.resnet import ResNet as _ResNet
 
-from renate.defaults import TASK_ID
-from renate.models import RenateModule
+from renate.benchmark.models.base import RenateBenchmarkingModule
+from renate.models.prediction_strategies import PredictionStrategy
 
 
-class ResNet(RenateModule):
+class ResNet(RenateBenchmarkingModule):
     """ResNet model base class.
 
     TODO: Fix citation
@@ -30,6 +29,10 @@ class ResNet(RenateModule):
         norm_layer: What kind of normalization layer to use, following convolutions.
         cifar_stem: Whether to use a stem for CIFAR-sized images.
         loss: Loss function to be used for training.
+        prediction_strategy: Continual learning strategies may alter the prediction at train or test
+            time.
+        add_icarl_class_means: If ``True``, additional parameters used only by the
+            ``ICaRLModelUpdater`` are added. Only required when using that updater.
     """
 
     def __init__(
@@ -44,23 +47,10 @@ class ResNet(RenateModule):
         norm_layer: Type[nn.Module] = nn.BatchNorm2d,
         cifar_stem: bool = True,
         loss: nn.Module = nn.CrossEntropyLoss(),
+        prediction_strategy: Optional[PredictionStrategy] = None,
+        add_icarl_class_means: bool = True,
     ) -> None:
-        RenateModule.__init__(
-            self,
-            constructor_arguments={
-                "block": block,
-                "layers": layers,
-                "num_outputs": num_outputs,
-                "zero_init_residual": zero_init_residual,
-                "groups": groups,
-                "width_per_group": width_per_group,
-                "replace_stride_with_dilation": replace_stride_with_dilation,
-                "norm_layer": norm_layer,
-                "cifar_stem": cifar_stem,
-            },
-            loss_fn=loss,
-        )
-        self._model = _ResNet(
+        model = _ResNet(
             block=block,
             layers=layers,
             num_classes=num_outputs,
@@ -70,32 +60,32 @@ class ResNet(RenateModule):
             replace_stride_with_dilation=replace_stride_with_dilation,
             norm_layer=norm_layer,
         )
+        super().__init__(
+            embedding_size=model.fc.in_features,
+            num_outputs=num_outputs,
+            constructor_arguments={
+                "block": block,
+                "layers": layers,
+                "zero_init_residual": zero_init_residual,
+                "groups": groups,
+                "width_per_group": width_per_group,
+                "replace_stride_with_dilation": replace_stride_with_dilation,
+                "norm_layer": norm_layer,
+                "cifar_stem": cifar_stem,
+            },
+            loss_fn=loss,
+            prediction_strategy=prediction_strategy,
+            add_icarl_class_means=add_icarl_class_means,
+        )
+        self._backbone = model
         if cifar_stem:
-            self._model.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
-            self._model.maxpool = nn.Identity()
-
-        self._last_hidden_size = self._model.fc.in_features
-        self._num_outputs = num_outputs
-        self._model.fc = nn.Identity()
-        self._tasks_params: nn.ModuleDict = nn.ModuleDict()
-        self.add_task_params(TASK_ID)
+            self._backbone.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
+            self._backbone.maxpool = nn.Identity()
+        self._backbone.fc = nn.Identity()
 
         for m in self.modules():
             if hasattr(m, "reset_parameters"):
                 m.reset_parameters()
-
-    def forward(self, x: torch.Tensor, task_id: str = TASK_ID) -> torch.Tensor:
-        """Performs a forward pass on the inputs and returns the predictions."""
-        x = self._model(x)
-        return self._tasks_params[task_id](x)
-
-    def _add_task_params(self, task_id: str = TASK_ID) -> None:
-        """Adds new parameters associated to a specific task to the model."""
-        self._tasks_params[task_id] = nn.Linear(self._last_hidden_size, self._num_outputs)
-
-    def get_params(self, task_id: str = TASK_ID) -> List[nn.Parameter]:
-        """Returns the list of parameters for the core model and a specific `task_id`."""
-        return list(self._model.parameters()) + list(self._tasks_params[task_id].parameters())
 
 
 class ResNet18CIFAR(ResNet):

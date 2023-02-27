@@ -34,6 +34,7 @@ from renate.benchmark.scenarios import (
 )
 from renate.data.data_module import RenateDataModule
 from renate.models import RenateModule
+from renate.models.prediction_strategies import ICaRLClassificationStrategy
 
 models = {
     "MultiLayerPerceptron": MultiLayerPerceptron,
@@ -54,6 +55,7 @@ models = {
 
 def model_fn(
     model_state_url: Optional[Union[Path, str]] = None,
+    model_fn_updater: Optional[str] = None,
     model_fn_model_name: Optional[str] = None,
     model_fn_num_inputs: Optional[str] = None,
     model_fn_num_outputs: Optional[str] = None,
@@ -65,12 +67,16 @@ def model_fn(
         raise ValueError(f"Unknown model `{model_fn_model_name}`")
     model_class = models[model_fn_model_name]
     model_kwargs = {}
+    if model_fn_updater == "Avalanche-iCaRL":
+        model_kwargs["prediction_strategy"] = ICaRLClassificationStrategy()
     if model_fn_model_name == "MultiLayerPerceptron":
-        model_kwargs = {
-            "num_inputs": int(model_fn_num_inputs),
-            "num_hidden_layers": int(model_fn_num_hidden_layers),
-            "hidden_size": ast.literal_eval(model_fn_hidden_size),
-        }
+        model_kwargs.update(
+            {
+                "num_inputs": int(model_fn_num_inputs),
+                "num_hidden_layers": int(model_fn_num_hidden_layers),
+                "hidden_size": ast.literal_eval(model_fn_hidden_size),
+            }
+        )
     if model_fn_num_outputs is not None:
         model_kwargs["num_outputs"] = int(model_fn_num_outputs)
     if model_state_url is None:

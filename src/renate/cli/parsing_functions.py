@@ -8,6 +8,12 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 from syne_tune.optimizer.scheduler import TrialScheduler
 
 from renate import defaults
+from renate.updaters.avalanche.model_updater import (
+    ElasticWeightConsolidationModelUpdater,
+    ExperienceReplayAvalancheModelUpdater,
+    ICaRLModelUpdater,
+    LearningWithoutForgettingModelUpdater,
+)
 from renate.updaters.experimental.er import (
     CLSExperienceReplayModelUpdater,
     DarkExperienceReplayModelUpdater,
@@ -81,7 +87,7 @@ def get_updater_and_learner_kwargs(
             "pod_normalize",
         ]
         updater_class = SuperExperienceReplayModelUpdater
-    elif args.updater == "OfflineER":
+    elif args.updater == "Offline-ER":
         learner_args = learner_args + ["loss_weight_new_data", "memory_size", "memory_batch_size"]
         updater_class = OfflineExperienceReplayModelUpdater
     elif args.updater == "RD":
@@ -96,6 +102,18 @@ def get_updater_and_learner_kwargs(
     elif args.updater == "FineTuning":
         learner_args = learner_args
         updater_class = FineTuningModelUpdater
+    elif args.updater == "Avalanche-ER":
+        learner_args = learner_args + ["memory_size", "memory_batch_size"]
+        updater_class = ExperienceReplayAvalancheModelUpdater
+    elif args.updater == "Avalanche-EWC":
+        learner_args = learner_args + ["ewc_lambda"]
+        updater_class = ElasticWeightConsolidationModelUpdater
+    elif args.updater == "Avalanche-LwF":
+        learner_args = learner_args + ["alpha", "temperature"]
+        updater_class = LearningWithoutForgettingModelUpdater
+    elif args.updater == "Avalanche-iCaRL":
+        learner_args = learner_args + ["memory_size", "memory_batch_size"]
+        updater_class = ICaRLModelUpdater
     if updater_class is None:
         raise ValueError(f"Unknown learner {args.updater}.")
     learner_kwargs = {arg: value for arg, value in vars(args).items() if arg in learner_args}
@@ -453,6 +471,32 @@ def parse_rd_learner_arguments(parser: argparse.Namespace) -> None:
     )
 
 
+def parse_avalanche_ewc_learner_arguments(parser: argparse.Namespace) -> None:
+    """A helper function that adds EWC arguments."""
+    parser.add_argument(
+        "--ewc_lambda",
+        type=float,
+        default=defaults.EWC_LAMBDA,
+        help=f"EWC regularization hyperparameter. Default: {defaults.EWC_LAMBDA}.",
+    )
+
+
+def parse_avalanche_lwf_learner_arguments(parser: argparse.Namespace) -> None:
+    """A helper function that adds LwF arguments."""
+    parser.add_argument(
+        "--alpha",
+        type=float,
+        default=defaults.LWF_ALPHA,
+        help=f"Distillation loss weight. Default: {defaults.LWF_ALPHA}.",
+    )
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=defaults.LWF_TEMPERATURE,
+        help=f"Temperature of the softmax function. Default: {defaults.LWF_TEMPERATURE}.",
+    )
+
+
 def _get_args_by_prefix(
     args: Union[argparse.Namespace, Dict[str, str]], prefix: str
 ) -> Dict[str, str]:
@@ -520,5 +564,9 @@ parse_by_updater = {
     "Joint": parse_joint_arguments,
     "FineTuning": parse_finetuning_arguments,
     "RD": parse_rd_learner_arguments,
-    "OfflineER": parse_replay_learner_arguments,
+    "Offline-ER": parse_replay_learner_arguments,
+    "Avalanche-ER": parse_experience_replay_arguments,
+    "Avalanche-EWC": parse_avalanche_ewc_learner_arguments,
+    "Avalanche-LwF": parse_avalanche_lwf_learner_arguments,
+    "Avalanche-iCaRL": parse_experience_replay_arguments,
 }

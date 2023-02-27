@@ -4,7 +4,7 @@ import torch
 
 import pytest
 
-from renate.memory.storage import get_nested_tensor_schema, Storage
+from renate.memory.storage import MemoryMappedTensorStorage
 
 
 def nested_tensors_equal(t1, t2):
@@ -35,13 +35,12 @@ def nested_tensors_equal(t1, t2):
 )
 def test_storage(tmpdir, length, data_point):
     """Tests the memory-mapped tensor storage for different nested tensor structures."""
-    shapes, dtypes = get_nested_tensor_schema(data_point)
-    storage = Storage(tmpdir, length, shapes, dtypes)
+    storage = MemoryMappedTensorStorage(tmpdir, data_point, length)
     for i in range(length):
         storage[i] = data_point
 
     del storage
-    storage = Storage(tmpdir, length, shapes, dtypes)
+    storage = MemoryMappedTensorStorage(tmpdir, data_point, length)
 
     for i in range(length):
         assert nested_tensors_equal(storage[i], data_point)

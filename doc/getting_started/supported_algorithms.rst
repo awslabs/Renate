@@ -21,7 +21,7 @@ using Renate (e.g., using :py:func:`renate.training.training.run_training_job`; 
    * - ``"Super-ER"``
      - :py:class:`SuperExperienceReplayLearner <renate.updaters.experimental.er.SuperExperienceReplayLearner>`
      - An experimental method combining various of the ER variants listed above.
-   * - ``"OfflineER"``
+   * - ``"Offline-ER"``
      - :py:class:`OfflineExperienceReplayLearner <renate.updaters.experimental.offline_er.OfflineExperienceReplayLearner>`
      - An offline version of experience replay, where the rehearsal memory is only updated at the end of training.
    * - ``"RD"``

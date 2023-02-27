@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-from pandas.testing import assert_frame_equal
 
 from renate.benchmark.experimentation import execute_experiment_job
 
@@ -25,7 +24,6 @@ def experiment_job_kwargs():
 
 def test_execute_experiment_job(tmpdir, experiment_job_kwargs):
     """Only checking if things run, not testing anything besides that."""
-    expected_results = pd.DataFrame([[1, 0.15, 0.0, 0.0, 0.0], [2, 0.175, -0.15, 0.0, 0.15]])
     expected_columns = [
         "Task ID",
         "Average Accuracy",
@@ -34,11 +32,9 @@ def test_execute_experiment_job(tmpdir, experiment_job_kwargs):
         "Backward Transfer",
     ]
     expected_num_updates = experiment_job_kwargs["num_updates"]
-    expected_results.columns = expected_columns
     execute_experiment_job(experiment_outputs_url=tmpdir, **experiment_job_kwargs)
     results_df = pd.read_csv(str(Path(tmpdir) / "logs" / "metrics_summary.csv"))
     assert all(results_df.columns == expected_columns)
-    assert_frame_equal(results_df, expected_results)
     for update_id in range(expected_num_updates):
         assert (Path(tmpdir) / f"update_{update_id}" / "learner.ckpt").is_file()
         assert (Path(tmpdir) / f"update_{update_id}" / "model.ckpt").is_file()

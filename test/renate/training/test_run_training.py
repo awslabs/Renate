@@ -30,8 +30,8 @@ config_file = str(Path(__file__).parent.parent / "renate_config_files" / "config
     [
         (2, 0.9, False, False, "rush"),
         (1, 0.0, True, False, "rush"),
-        (1, 0.9, False, True, None),
-        (1, 0.0, False, True, None),
+        (2, 0.9, False, True, None),
+        (2, 0.0, False, True, None),
     ],
     ids=[
         "transfer-hpo-with-val",
@@ -40,7 +40,10 @@ config_file = str(Path(__file__).parent.parent / "renate_config_files" / "config
         "training-single-config-without-val",
     ],
 )
-def test_execute_tuning_job(tmpdir, num_chunks, val_size, raises, fixed_search_space, scheduler):
+@pytest.mark.parametrize("updater", ("ER", "Avalanche-iCaRL"))
+def test_run_training_job(
+    tmpdir, num_chunks, val_size, raises, fixed_search_space, scheduler, updater
+):
     """Simply running tuning job to check if anything fails.
 
     Case 1: Standard HPO setup with transfer learning in second step.
@@ -54,7 +57,7 @@ def test_execute_tuning_job(tmpdir, num_chunks, val_size, raises, fixed_search_s
 
         def execute_job():
             run_training_job(
-                updater="ER",
+                updater=updater,
                 max_epochs=5,
                 config_file=config_file,
                 input_state_url=state_url,
