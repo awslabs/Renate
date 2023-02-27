@@ -267,7 +267,8 @@ class _SortingScenario(Scenario):
     Args:
         data_module: The source RenateDataModule for the the user data.
         num_tasks: The total number of expected tasks for experimentation.
-        randomness: A value between 0 and 1. 0 means no random swapping, 1 means random ordering.
+        randomness: A value between 0 and 1. For a dataset with ``N`` data points,
+            ``0.5 * N * randomness`` random pairs are swapped.
         chunk_id: The data chunk to load in for the training or validation data.
         seed: Seed used to fix random number generation.
     """
@@ -316,7 +317,7 @@ class FeatureSortingScenario(_SortingScenario):
     """A scenario that _softly_ sorts a dataset by the value of a feature, then creates chunks.
 
     This scenario sorts the data according to a feature value (see `feature_idx`) and randomly
-    swaps data positions based on the setting of ``randomness`` (see `feature_idx`).
+    swaps data positions based on the degree of randomness (see `randomness`).
 
     This scenario assumes that `dataset[i]` returns a tuple `(x, y)` with a tensor `x` containing
     the features.
@@ -329,7 +330,8 @@ class FeatureSortingScenario(_SortingScenario):
             one dimension, this indexes along the 0-dim while additional dimensions will be averaged
             out. Hence, for images, `feature_idx` refers to a color channel and we sort by mean
             color channel value.
-        randomness: A value between 0 and 1. 0 means no random swapping, 1 means random ordering.
+        randomness: A value between 0 and 1. For a dataset with ``N`` data points,
+            ``0.5 * N * randomness`` random pairs are swapped.
         chunk_id: The data chunk to load in for the training or validation data.
         seed: Seed used to fix random number generation.
     """
@@ -360,9 +362,8 @@ class HueShiftScenario(_SortingScenario):
     """A scenario that sorts an image dataset by the hue value, then creates chunks.
 
     All images are sorted by hue value and divided into ``num_tasks`` tasks.
-    ``randomness`` is a value between 0 and 1 and controls the number of random permutations applied
-    to the sorting. A value of 0 means the data is sorted, a value of 1 means that the data is
-    unsorted.
+    ``randomness`` is a value between 0 and 1 and controls the number of random swaps applied
+    to the sorting.
 
     This scenario assumes that `dataset[i]` returns a tuple `(x, y)` with a tensor `x` containing
     an RGB image.
