@@ -12,9 +12,9 @@ from torch.utils.data import DataLoader, Dataset, Subset
 
 from renate import defaults
 from renate.data.datasets import _EnumeratedDataset
-from renate.memory.buffer import DataDict, DataTuple
+from renate.memory.buffer import DataDict
 from renate.models import RenateModule
-from renate.types import Inputs
+from renate.types import NestedTensors
 from renate.updaters.learner import ReplayLearner
 from renate.updaters.learner_components.losses import (
     WeightedCLSLossComponent,
@@ -137,7 +137,7 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
             self._use_loss_normalization = args["loss_normalization"]
 
     def training_step(
-        self, batch: Tuple[torch.Tensor, Tuple[Inputs, torch.Tensor]], batch_idx: int
+        self, batch: Tuple[torch.Tensor, Tuple[NestedTensors, torch.Tensor]], batch_idx: int
     ) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
         idx, (inputs, targets) = batch
@@ -185,7 +185,7 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
 
         return step_output
 
-    def _sample_from_buffer(self, device: torch.device) -> Optional[Tuple[DataTuple, DataDict]]:
+    def _sample_from_buffer(self, device: torch.device) -> Optional[Tuple[NestedTensors, DataDict]]:
         """Function to sample from the buffer, if buffer is populated."""
         if self._memory_loader is not None and len(self._memory_buffer) >= self._memory_batch_size:
             memory_batch = next(iter(self._memory_loader))

@@ -25,14 +25,16 @@ from renate.benchmark.models import (
 from renate.benchmark.scenarios import (
     BenchmarkScenario,
     ClassIncrementalScenario,
+    FeatureSortingScenario,
+    HueShiftScenario,
     IIDScenario,
     ImageRotationScenario,
     PermutationScenario,
     Scenario,
-    SoftSortingScenario,
 )
 from renate.data.data_module import RenateDataModule
 from renate.models import RenateModule
+from renate.models.prediction_strategies import ICaRLClassificationStrategy
 
 models = {
     "MultiLayerPerceptron": MultiLayerPerceptron,
@@ -53,6 +55,7 @@ models = {
 
 def model_fn(
     model_state_url: Optional[str] = None,
+    updater: Optional[str] = None,
     model_name: Optional[str] = None,
     num_inputs: Optional[str] = None,
     num_outputs: Optional[str] = None,
@@ -64,6 +67,8 @@ def model_fn(
         raise ValueError(f"Unknown model `{model_name}`")
     model_class = models[model_name]
     model_kwargs = {}
+    if updater == "Avalanche-iCaRL":
+        model_kwargs["prediction_strategy"] = ICaRLClassificationStrategy()
     if model_name == "MultiLayerPerceptron":
         model_kwargs = {
             "num_inputs": int(num_inputs),
@@ -102,7 +107,7 @@ def get_scenario(
     degrees: Optional[List[int]] = None,
     input_dim: Optional[Union[List[int], Tuple[int], int]] = None,
     feature_idx: Optional[int] = None,
-    exponent: Optional[int] = None,
+    randomness: Optional[float] = None,
 ) -> Scenario:
     """Function to create scenario based on name and arguments.
 
@@ -117,7 +122,7 @@ def get_scenario(
         degrees: Used for scenario `ImageRotationScenario`. Rotations applied for each chunk.
         input_dim: Used for scenario `PermutationScenario`. Input dimensionality.
         feature_idx: Used for scenario `SoftSortingScenario`. Index of feature to sort by.
-        exponent: Used for secnario `SoftSortingScenario`. Exponent for soft sorting.
+        randomness: Used for all `_SortingScenario`. Randomness strength in [0, 1].
 
     Returns:
         An instance of the requested scenario.
@@ -154,12 +159,20 @@ def get_scenario(
             chunk_id=chunk_id,
             seed=seed,
         )
-    if scenario_name == "SoftSortingScenario":
-        return SoftSortingScenario(
+    if scenario_name == "FeatureSortingScenario":
+        return FeatureSortingScenario(
             data_module=data_module,
             num_tasks=num_tasks,
             feature_idx=feature_idx,
-            exponent=exponent,
+            randomness=randomness,
+            chunk_id=chunk_id,
+            seed=seed,
+        )
+    if scenario_name == "HueShiftScenario":
+        return HueShiftScenario(
+            data_module=data_module,
+            num_tasks=num_tasks,
+            randomness=randomness,
             chunk_id=chunk_id,
             seed=seed,
         )
@@ -178,7 +191,7 @@ def data_module_fn(
     degrees: Optional[str] = None,
     input_dim: Optional[str] = None,
     feature_idx: Optional[str] = None,
-    exponent: Optional[str] = None,
+    randomness: Optional[str] = None,
 ):
     data_module = get_data_module(
         data_path=data_path,
@@ -195,9 +208,9 @@ def data_module_fn(
     if input_dim is not None:
         input_dim = ast.literal_eval(input_dim)
     if feature_idx is not None:
-        feature_idx = ast.literal_eval(feature_idx)
-    if exponent is not None:
-        exponent = ast.literal_eval(exponent)
+        feature_idx = int(feature_idx)
+    if randomness is not None:
+        randomness = float(randomness)
     return get_scenario(
         scenario_name=scenario_name,
         data_module=data_module,
@@ -208,7 +221,7 @@ def data_module_fn(
         degrees=degrees,
         input_dim=input_dim,
         feature_idx=feature_idx,
-        exponent=exponent,
+        randomness=randomness,
     )
 
 

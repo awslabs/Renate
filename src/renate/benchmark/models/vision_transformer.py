@@ -3,16 +3,15 @@
 from functools import partial
 from typing import Any, Callable, List, Optional
 
-import torch
 import torch.nn as nn
 from torchvision.models.vision_transformer import ConvStemConfig, WeightsEnum
 from torchvision.models.vision_transformer import VisionTransformer as _VisionTransformer
 
-from renate.defaults import TASK_ID
-from renate.models import RenateModule
+from renate.benchmark.models.base import RenateBenchmarkingModule
+from renate.models.prediction_strategies import PredictionStrategy
 
 
-class VisionTransformer(RenateModule):
+class VisionTransformer(RenateBenchmarkingModule):
     """Vision Transformer base model.
 
     TODO: Fix citation
@@ -36,6 +35,10 @@ class VisionTransformer(RenateModule):
         conv_stem_configs: List of ConvStemConfig. Each ConvStemConfig corresponds to a
             convolutional stem.
         loss: Loss function.
+        prediction_strategy: Continual learning strategies may alter the prediction at train or test
+            time.
+        add_icarl_class_means: If ``True``, additional parameters used only by the
+            ``ICaRLModelUpdater`` are added. Only required when using that updater.
     """
 
     def __init__(
@@ -54,26 +57,10 @@ class VisionTransformer(RenateModule):
         conv_stem_configs: Optional[List[ConvStemConfig]] = None,
         weights: Optional[WeightsEnum] = None,
         loss: nn.Module = nn.CrossEntropyLoss(),
+        prediction_strategy: Optional[PredictionStrategy] = None,
+        add_icarl_class_means: bool = True,
     ) -> None:
-        RenateModule.__init__(
-            self,
-            constructor_arguments={
-                "image_size": image_size,
-                "patch_size": patch_size,
-                "num_layers": num_layers,
-                "num_heads": num_heads,
-                "hidden_dim": hidden_dim,
-                "mlp_dim": mlp_dim,
-                "dropout": dropout,
-                "attention_dropout": attention_dropout,
-                "num_outputs": num_outputs,
-                "representation_size": representation_size,
-                "norm_layer": norm_layer,
-                "conv_stem_configs": conv_stem_configs,
-            },
-            loss_fn=loss,
-        )
-        self._model = _VisionTransformer(
+        model = _VisionTransformer(
             image_size=image_size,
             patch_size=patch_size,
             num_layers=num_layers,
@@ -87,27 +74,30 @@ class VisionTransformer(RenateModule):
             norm_layer=norm_layer,
             conv_stem_configs=conv_stem_configs,
         )
+        super().__init__(
+            embedding_size=model.heads.head.in_features,
+            num_outputs=num_outputs,
+            constructor_arguments={
+                "image_size": image_size,
+                "patch_size": patch_size,
+                "num_layers": num_layers,
+                "num_heads": num_heads,
+                "hidden_dim": hidden_dim,
+                "mlp_dim": mlp_dim,
+                "dropout": dropout,
+                "attention_dropout": attention_dropout,
+                "representation_size": representation_size,
+                "norm_layer": norm_layer,
+                "conv_stem_configs": conv_stem_configs,
+            },
+            loss_fn=loss,
+            prediction_strategy=prediction_strategy,
+            add_icarl_class_means=add_icarl_class_means,
+        )
+        self._backbone = model
         if weights:
-            self._model.load_state_dict(weights.get_state_dict())
-
-        self._last_hidden_size = self._model.heads.head.in_features
-        self._num_outputs = num_outputs
-        self._model.heads.head = nn.Identity()
-        self._tasks_params: nn.ModuleDict = nn.ModuleDict()
-        self.add_task_params(TASK_ID)
-
-    def forward(self, x: torch.Tensor, task_id: str = TASK_ID) -> torch.Tensor:
-        """Performs a forward pass on the inputs and returns the predictions."""
-        x = self._model(x)
-        return self._tasks_params[task_id](x)
-
-    def _add_task_params(self, task_id: str = TASK_ID) -> None:
-        """Adds new parameters associated to a specific task to the model."""
-        self._tasks_params[task_id] = nn.Linear(self._last_hidden_size, self._num_outputs)
-
-    def get_params(self, task_id: str = TASK_ID) -> List[nn.Parameter]:
-        """Returns the list of parameters for the core model and a specific `task_id`."""
-        return list(self._model.parameters()) + list(self._tasks_params[task_id].parameters())
+            self._backbone.load_state_dict(weights.get_state_dict())
+        self._backbone.heads.head = nn.Identity()
 
 
 class VisionTransformerCIFAR(VisionTransformer):

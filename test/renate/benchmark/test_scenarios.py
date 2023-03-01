@@ -12,10 +12,10 @@ from renate.benchmark.datasets.vision_datasets import TorchVisionDataModule
 from renate.benchmark.scenarios import (
     BenchmarkScenario,
     ClassIncrementalScenario,
+    FeatureSortingScenario,
     IIDScenario,
     ImageRotationScenario,
     PermutationScenario,
-    SoftSortingScenario,
 )
 from renate.utils.pytorch import randomly_split_data
 
@@ -200,20 +200,21 @@ def test_iid_scenario():
         assert len(scenario.test_data()) == 3
 
 
-def test_soft_sorting_scenario():
-    """Tests the soft-sorting scenario.
+@pytest.mark.parametrize("feature_idx", (0, 1))
+def test_feature_sorting_scenario(feature_idx):
+    """Tests the FeatureSortingScenario.
 
-    Checks for a non-overlapping split and that the average value of the feature is decreasing.
+    Checks for increasing feature values across chunks.
     """
     data_module = DummyTorchVisionDataModule(val_size=0.3)
-    counter = {}
-    mean_values = {"train": [], "val": []}
+    num_tasks = 3
+    max_value = {"train": -float("inf"), "val": -float("inf")}
     for i in range(3):
-        scenario = SoftSortingScenario(
+        scenario = FeatureSortingScenario(
             data_module=data_module,
-            num_tasks=3,
-            feature_idx=0,
-            exponent=10,
+            num_tasks=num_tasks,
+            feature_idx=feature_idx,
+            randomness=0,
             chunk_id=i,
             seed=data_module._seed,
         )
@@ -221,16 +222,9 @@ def test_soft_sorting_scenario():
         scenario.setup()
         for stage in ["train", "val"]:
             scenario_data = getattr(scenario, f"{stage}_data")()
-            mean_value = 0.0
-            for j in range(len(scenario_data)):
-                x, y = scenario_data[j]
-                assert x not in counter
-                counter[x] = 1
-                mean_value += x[0].mean()
-            mean_value /= len(scenario_data)
-            mean_values[stage].append(mean_value)
-        assert len(scenario.test_data()) == 3
-
-    for stage in ["train", "val"]:
-        l = mean_values[stage]
-        assert all(l[i] > l[i + 1] for i in range(len(l) - 1))
+            features = [x[0, feature_idx].mean().item() for x, _ in scenario_data]
+            chunk_min = min(features)
+            chunk_max = max(features)
+            assert max_value[stage] <= chunk_min
+            max_value[stage] = chunk_max
+        assert len(scenario.test_data()) == num_tasks

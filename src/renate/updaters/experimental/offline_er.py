@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from renate import defaults
 from renate.models import RenateModule
-from renate.types import Inputs
+from renate.types import NestedTensors
 from renate.updaters.learner import ReplayLearner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
 
@@ -88,7 +88,7 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         return super().on_model_update_end(train_dataset, val_dataset, task_id)
 
     def training_step(
-        self, batch: Dict[str, Tuple[Inputs, torch.Tensor]], batch_idx: int
+        self, batch: Dict[str, Tuple[NestedTensors, torch.Tensor]], batch_idx: int
     ) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
         if self._loss_weight_new_data is None:

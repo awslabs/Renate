@@ -7,6 +7,12 @@ from types import ModuleType
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 from renate import defaults
+from renate.updaters.avalanche.model_updater import (
+    ElasticWeightConsolidationModelUpdater,
+    ExperienceReplayAvalancheModelUpdater,
+    ICaRLModelUpdater,
+    LearningWithoutForgettingModelUpdater,
+)
 from renate.updaters.experimental.er import (
     CLSExperienceReplayModelUpdater,
     DarkExperienceReplayModelUpdater,
@@ -95,7 +101,7 @@ def get_updater_and_learner_kwargs(
             "pod_normalize",
         ]
         updater_class = SuperExperienceReplayModelUpdater
-    elif args.updater == "OfflineER":
+    elif args.updater == "Offline-ER":
         learner_args = learner_args + ["loss_weight_new_data", "memory_size", "memory_batch_size"]
         updater_class = OfflineExperienceReplayModelUpdater
     elif args.updater == "RD":
@@ -110,6 +116,18 @@ def get_updater_and_learner_kwargs(
     elif args.updater == "FineTuning":
         learner_args = learner_args
         updater_class = FineTuningModelUpdater
+    elif args.updater == "Avalanche-ER":
+        learner_args = learner_args + ["memory_size", "memory_batch_size"]
+        updater_class = ExperienceReplayAvalancheModelUpdater
+    elif args.updater == "Avalanche-EWC":
+        learner_args = learner_args + ["ewc_lambda"]
+        updater_class = ElasticWeightConsolidationModelUpdater
+    elif args.updater == "Avalanche-LwF":
+        learner_args = learner_args + ["alpha", "temperature"]
+        updater_class = LearningWithoutForgettingModelUpdater
+    elif args.updater == "Avalanche-iCaRL":
+        learner_args = learner_args + ["memory_size", "memory_batch_size"]
+        updater_class = ICaRLModelUpdater
     if updater_class is None:
         raise ValueError(f"Unknown learner {args.updater}.")
     learner_kwargs = {arg: value for arg, value in vars(args).items() if arg in learner_args}
@@ -583,6 +601,39 @@ def _add_rd_learner_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     )
 
 
+def _add_avalanche_ewc_learner_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+    """A helper function that adds EWC arguments."""
+    arguments.update(
+        {
+            "ewc_lambda": {
+                "type": float,
+                "default": defaults.EWC_LAMBDA,
+                "help": f"EWC regularization hyperparameter. Default: {defaults.EWC_LAMBDA}.",
+            }
+        }
+    )
+
+
+def _add_avalanche_lwf_learner_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+    """A helper function that adds LwF arguments."""
+    arguments.update(
+        {
+            "alpha": {
+                "type": float,
+                "default": defaults.LWF_ALPHA,
+                "help": f"Distillation loss weight. Default: {defaults.LWF_ALPHA}.",
+            }
+        },
+        {
+            "temperature": {
+                "type": float,
+                "default": defaults.LWF_TEMPERATURE,
+                "help": f"Temperature of the softmax function. Default: {defaults.LWF_TEMPERATURE}.",
+            }
+        },
+    )
+
+
 def get_function_kwargs(args: argparse.Namespace, function_args: Dict[str, Any]) -> Dict[str, Any]:
     """Returns the kwargs for a function with defined arguments based on provided values.
 
@@ -738,4 +789,8 @@ parse_by_updater = {
     "FineTuning": _add_finetuning_arguments,
     "RD": _add_rd_learner_arguments,
     "Offline-ER": _add_replay_learner_arguments,
+    "Avalanche-ER": _add_experience_replay_arguments,
+    "Avalanche-EWC": _add_avalanche_ewc_learner_arguments,
+    "Avalanche-LwF": _add_avalanche_lwf_learner_arguments,
+    "Avalanche-iCaRL": _add_experience_replay_arguments,
 }

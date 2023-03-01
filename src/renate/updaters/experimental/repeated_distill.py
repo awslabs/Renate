@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader, Dataset
 from renate import defaults
 from renate.memory import DataBuffer
 from renate.models import RenateModule
-from renate.types import Inputs
+from renate.types import NestedTensors
 from renate.updaters.learner import Learner, ReplayLearner
 from renate.updaters.model_updater import ModelUpdater
 from renate.utils.pytorch import move_tensors_to_device, reinitialize_model_parameters
@@ -292,7 +292,9 @@ class RepeatedDistillationLearner(ReplayLearner):
         return super().on_model_update_end(train_dataset, val_dataset, task_id)
 
     def training_step(
-        self, batch: Tuple[Tuple[Inputs, torch.Tensor], Dict[str, torch.Tensor]], batch_idx: int
+        self,
+        batch: Tuple[Tuple[NestedTensors, torch.Tensor], Dict[str, torch.Tensor]],
+        batch_idx: int,
     ) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
         (inputs, targets), metadata = batch

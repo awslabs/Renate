@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader, Dataset
 from renate import defaults
 from renate.memory import InfiniteBuffer
 from renate.models import RenateModule
-from renate.types import Inputs
+from renate.types import NestedTensors
 from renate.updaters.learner import Learner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
 from renate.utils.pytorch import reinitialize_model_parameters
@@ -75,7 +75,9 @@ class JointLearner(Learner):
         return train_loader, val_loader
 
     def training_step(
-        self, batch: Tuple[Tuple[Inputs, torch.Tensor], Dict[str, torch.Tensor]], batch_idx: int
+        self,
+        batch: Tuple[Tuple[NestedTensors, torch.Tensor], Dict[str, torch.Tensor]],
+        batch_idx: int,
     ) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
         batch, _ = batch
