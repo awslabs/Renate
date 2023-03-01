@@ -628,7 +628,8 @@ def _add_avalanche_lwf_learner_arguments(arguments: Dict[str, Dict[str, Any]]) -
             "temperature": {
                 "type": float,
                 "default": defaults.LWF_TEMPERATURE,
-                "help": f"Temperature of the softmax function. Default: {defaults.LWF_TEMPERATURE}.",
+                "help": "Temperature of the softmax function. Default: "
+                f"{defaults.LWF_TEMPERATURE}.",
             }
         },
     )
