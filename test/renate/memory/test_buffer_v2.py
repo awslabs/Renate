@@ -37,14 +37,14 @@ def nested_tensors_equal(t1, t2):
 @pytest.mark.parametrize(
     "dataset",
     [
-        torch.utils.data.TensorDataset(torch.empty(10, 2)),
-        torch.utils.data.TensorDataset(torch.empty(100, 2)),
-        torch.utils.data.TensorDataset(torch.empty(10, 2), torch.arange(10)),
-        torch.utils.data.TensorDataset(torch.empty(100, 2), torch.arange(100)),
-        NestedTensorDataset({"X": torch.empty(10, 2), "y": torch.arange(10)}),
-        NestedTensorDataset({"X": torch.empty(100, 2), "y": torch.arange(100)}),
-        NestedTensorDataset(({"X": torch.empty(10, 2), "z": torch.empty(10)}, torch.arange(10))),
-        NestedTensorDataset(({"X": torch.empty(100, 2), "z": torch.empty(100)}, torch.arange(100))),
+        torch.utils.data.TensorDataset(torch.randn(10, 2)),
+        torch.utils.data.TensorDataset(torch.randn(100, 2)),
+        torch.utils.data.TensorDataset(torch.randn(10, 2), torch.arange(10)),
+        torch.utils.data.TensorDataset(torch.randn(100, 2), torch.arange(100)),
+        NestedTensorDataset({"X": torch.randn(10, 2), "y": torch.arange(10)}),
+        NestedTensorDataset({"X": torch.randn(100, 2), "y": torch.arange(100)}),
+        NestedTensorDataset(({"X": torch.randn(10, 2), "z": torch.randn(10)}, torch.arange(10))),
+        NestedTensorDataset(({"X": torch.randn(100, 2), "z": torch.randn(100)}, torch.arange(100))),
     ],
 )
 def test_buffer_respects_max_size(buffer_cls, max_size, num_updates, dataset):
@@ -269,10 +269,10 @@ def test_buffer_same_size_on_disk_after_updates(tmpdir, max_size, buffer_cls):
 @pytest.mark.parametrize(
     "dataset",
     [
-        torch.utils.data.TensorDataset(torch.empty(10, 2)),
-        torch.utils.data.TensorDataset(torch.empty(10, 2), torch.arange(10)),
-        NestedTensorDataset({"X": torch.empty(10, 2), "y": torch.arange(10)}),
-        NestedTensorDataset(({"X": torch.empty(10, 2), "z": torch.empty(10)}, torch.arange(10))),
+        torch.utils.data.TensorDataset(torch.randn(10, 2)),
+        torch.utils.data.TensorDataset(torch.randon(10, 2), torch.arange(10)),
+        NestedTensorDataset({"X": torch.randn(10, 2), "y": torch.arange(10)}),
+        NestedTensorDataset(({"X": torch.randn(10, 2), "z": torch.randn(10)}, torch.arange(10))),
     ],
 )
 @pytest.mark.parametrize("metadata", [None, {"a": torch.arange(10), "b": torch.zeros(10, 2)}])
