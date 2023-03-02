@@ -2,7 +2,6 @@ from renate.tuning import execute_tuning_job
 from renate.tuning.config_spaces import config_space
 
 if __name__ == "__main__":
-
     # we run the first training job on the MNIST classes [0-4]
     execute_tuning_job(
         config_space=config_space("RD"),  # getting the default search space

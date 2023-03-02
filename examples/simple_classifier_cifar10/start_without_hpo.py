@@ -1,6 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-
+import boto3
 from syne_tune.backend.sagemaker_backend.sagemaker_utils import get_execution_role
 
 from renate.tuning import execute_tuning_job
@@ -19,8 +19,7 @@ config_space = {
 }
 
 if __name__ == "__main__":
-
-    AWS_ID = "0123456789"  # use your AWS account id here
+    AWS_ID = boto3.client("sts").get_caller_identity().get("Account")
     AWS_REGION = "us-west-2"  # use your AWS preferred region here
 
     execute_tuning_job(

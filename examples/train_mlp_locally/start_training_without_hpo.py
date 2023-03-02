@@ -16,7 +16,6 @@ config_space = {
 }
 
 if __name__ == "__main__":
-
     # we run the first training job on the MNIST classes [0-4]
     execute_tuning_job(
         config_space=config_space,
