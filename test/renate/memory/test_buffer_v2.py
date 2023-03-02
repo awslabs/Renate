@@ -270,7 +270,7 @@ def test_buffer_same_size_on_disk_after_updates(tmpdir, max_size, buffer_cls):
     "dataset",
     [
         torch.utils.data.TensorDataset(torch.randn(10, 2)),
-        torch.utils.data.TensorDataset(torch.randon(10, 2), torch.arange(10)),
+        torch.utils.data.TensorDataset(torch.randn(10, 2), torch.arange(10)),
         NestedTensorDataset({"X": torch.randn(10, 2), "y": torch.arange(10)}),
         NestedTensorDataset(({"X": torch.randn(10, 2), "z": torch.randn(10)}, torch.arange(10))),
     ],
