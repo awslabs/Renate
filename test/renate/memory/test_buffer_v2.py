@@ -18,15 +18,18 @@ from renate.memory.buffer_v2 import (
 
 def nested_tensors_equal(t1, t2):
     if type(t1) is not type(t2):
+        print("Type mismatch")
         return False
     if isinstance(t1, torch.Tensor):
         return torch.allclose(t1, t2)
     if isinstance(t1, tuple):
         if len(t1) != len(t2):
+            print("Tuple length mismatch")
             return False
         return all(nested_tensors_equal(t1_, t2_) for t1_, t2_ in zip(t1, t2))
     if isinstance(t1, dict):
         if set(t1.keys()) != set(t2.keys()):
+            print("Dict key mismatch")
             return False
         return all(nested_tensors_equal(t1[key], t2[key]) for key in t1.keys())
 
