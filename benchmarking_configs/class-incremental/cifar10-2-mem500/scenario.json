@@ -1,11 +1,9 @@
 {
-    "data_module_fn_dataset_name": "CIFAR10",
-    "transform_dataset_name": "CIFAR10",
-    "model_fn_num_outputs": 10,
-    "data_module_fn_val_size": 0.05,
-    "data_module_fn_scenario_name": "ClassIncrementalScenario",
-    "data_module_fn_class_groupings": "[[0,5],[1,6],[2,7],[3,8],[4,9]]",
-    "data_module_fn_num_tasks": 5,
-    "model_fn_model_name": "ResNet18CIFAR",
-    "num_tasks": 5
+    "dataset_name": "CIFAR10",
+    "num_outputs": 10,
+    "val_size": 0.05,
+    "scenario_name": "ClassIncrementalScenario",
+    "class_groupings": "[[0,5],[1,6],[2,7],[3,8],[4,9]]",
+    "num_tasks": 5,
+    "model_name": "ResNet18CIFAR"
 }

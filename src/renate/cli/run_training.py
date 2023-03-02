@@ -3,19 +3,17 @@
 import argparse
 import logging
 import shutil
+import sys
 from pathlib import Path
 
 from pytorch_lightning import seed_everything
 
 from renate import defaults
 from renate.cli.parsing_functions import (
-    get_data_module_fn_args,
-    get_model_fn_args,
-    get_transforms_kwargs,
+    get_function_kwargs,
+    get_transforms_dict,
     get_updater_and_learner_kwargs,
-    parse_by_updater,
-    parse_hyperparameters,
-    parse_unknown_args,
+    parse_arguments,
 )
 from renate.utils.file import maybe_download_from_s3, move_to_uri
 from renate.utils.module import get_and_setup_data_module, get_metrics, get_model, import_module
@@ -40,124 +38,7 @@ class ModelUpdaterCLI:
             output_state_dir (outcome of the model update)
                 learner.pkl
                 model.pt
-
-    All the arguments whose names start with 'model_fn_' or 'data_module_fn_' will be passed to the
-    model function (`model_fn`) and the data module function (`data_module_fn`) respectively.
     """
-
-    def _create_parser(self) -> argparse.ArgumentParser:
-        parser = argparse.ArgumentParser()
-
-        argument_group = parser.add_argument_group("Required Parameters")
-        argument_group.add_argument(
-            "--updater",
-            type=str,
-            required=True,
-            choices=list(parse_by_updater),
-            help="Select the type of model update strategy.",
-        )
-        argument_group.add_argument(
-            "--config_file",
-            type=str,
-            required=True,
-            help="Location of python file containing model_fn and data_module_fn.",
-        )
-
-        argument_group = parser.add_argument_group("Renate State")
-        argument_group.add_argument(
-            "--input_state_url",
-            type=str,
-            help="Location of previous Renate state (if available).",
-        )
-        argument_group.add_argument(
-            "--output_state_url",
-            type=str,
-            help="Location where to store the next Renate state.",
-        )
-
-        argument_group = parser.add_argument_group("Hyperparameters")
-        parse_hyperparameters(argument_group)
-
-        argument_group = parser.add_argument_group("Optional Arguments")
-        argument_group.add_argument(
-            "--max_epochs",
-            type=int,
-            default=defaults.MAX_EPOCHS,
-            help=f"Number of epochs trained at most. Default: {defaults.MAX_EPOCHS}",
-        )
-        argument_group.add_argument(
-            "--task_id",
-            type=str,
-            default=defaults.TASK_ID,
-            help="Task ID matching the current dataset. If you do not distinguish between "
-            "different tasks, ignore this"
-            f" argument. Default: {defaults.TASK_ID}.",
-        )
-        argument_group.add_argument(
-            "--chunk_id",
-            type=int,
-            default=defaults.CHUNK_ID,
-            help=f"The chunk ID specifying which data chunk to load in case of a benchmark"
-            f"scenario. Default: {defaults.CHUNK_ID}.",
-        )
-        argument_group.add_argument(
-            "--metric",
-            type=str,
-            help="Metric monitored during training to save checkpoints.",
-        )
-        argument_group.add_argument(
-            "--mode",
-            choices=defaults.SUPPORTED_TUNING_MODE,
-            default="min",
-            help="Indicate whether a smaller `metric` is better (`min`) or a larger (`max`).",
-        )
-        argument_group.add_argument(
-            "--working_directory",
-            type=str,
-            default=defaults.WORKING_DIRECTORY,
-            help="Folder used by Renate to store files temporarily. Default: "
-            f"{defaults.WORKING_DIRECTORY}.",
-        )
-        argument_group.add_argument(
-            "--seed",
-            type=int,
-            default=defaults.SEED,
-            help=f"Seed used for this job. Default: {defaults.SEED}.",
-        )
-        argument_group.add_argument(
-            "--accelerator",
-            type=str,
-            default=defaults.ACCELERATOR,
-            help=f"Accelerator used for this job. Default: {defaults.ACCELERATOR}.",
-        )
-        argument_group.add_argument(
-            "--devices",
-            type=int,
-            default=defaults.DEVICES,
-            help=f"Devices used for this job. Default: {defaults.DEVICES} device.",
-        )
-        argument_group.add_argument(
-            "--early_stopping",
-            type=str,
-            default=str(defaults.EARLY_STOPPING),
-            choices=["True", "False"],
-            help="Enables the early stopping of the optimization. Default: "
-            f"{defaults.EARLY_STOPPING}.",
-        )
-
-        argument_group = parser.add_argument_group("DO NOT CHANGE")
-        argument_group.add_argument(
-            "--prepare_data",
-            type=int,
-            default=1,
-            help="Whether to call DataModule.prepare_data(). Default: 1.",
-        )
-        argument_group.add_argument(
-            "--st_checkpoint_dir",
-            type=str,
-            help="Location for checkpoints.",
-        )
-        return parser
 
     def _copy_state_to_working_directory(
         self, input_state_url: str, input_state_folder: str
@@ -197,30 +78,43 @@ class ModelUpdaterCLI:
             self._current_model_file = None
 
     def run(self):
-        parser = self._create_parser()
-        known_args, unknown_args_list = parser.parse_known_args()
-        additional_args = parse_unknown_args(unknown_args_list)
+        config_module = None
+        for i, arg_value in enumerate(sys.argv):
+            if arg_value == "--config_file":
+                config_module = import_module("config_module", sys.argv[i + 1])
+                break
+        if config_module is None:
+            raise RuntimeError("The following argument is required: --config_file")
+        args, function_args = parse_arguments(
+            config_module=config_module,
+            function_names=[
+                "model_fn",
+                "data_module_fn",
+                "train_transform",
+                "test_transform",
+                "buffer_transform",
+                "metrics_fn",
+                "scheduler_fn",
+            ],
+            ignore_args=["data_path", "model_state_url"],
+        )
 
-        args = argparse.Namespace(**vars(known_args), **additional_args)
         args.early_stopping = args.early_stopping == "True"
+        args.deterministic_trainer = args.deterministic_trainer == "True"
 
         seed_everything(args.seed)
         self._prepare_data_state_model(args)
-        config_module = import_module("config_module", args.config_file)
 
         data_module = get_and_setup_data_module(
             config_module,
             data_path=self._data_folder,
             prepare_data=args.prepare_data,
-            chunk_id=args.chunk_id,
-            seed=args.seed,
-            **get_data_module_fn_args(args),
+            **get_function_kwargs(args=args, function_args=function_args["data_module_fn"]),
         )
-
         model = get_model(
             config_module,
             model_state_url=self._current_model_file,
-            **get_model_fn_args(args),
+            **get_function_kwargs(args=args, function_args=function_args["model_fn"]),
         )
 
         metrics = get_metrics(config_module)
@@ -237,9 +131,10 @@ class ModelUpdaterCLI:
             logged_metrics=metrics,
             accelerator=args.accelerator,
             devices=args.devices,
-            early_stopping_enabled=bool(args.early_stopping),
+            early_stopping_enabled=args.early_stopping,
+            deterministic_trainer=args.deterministic_trainer,
             **learner_kwargs,
-            **get_transforms_kwargs(config_module, args),
+            **get_transforms_dict(config_module, args, function_args),
         )
 
         model_updater.update(

@@ -31,7 +31,7 @@ from syne_tune.util import experiment_path
 
 import renate
 from renate import defaults
-from renate.cli.parsing_functions import get_data_module_fn_args
+from renate.cli.parsing_functions import get_data_module_fn_kwargs
 from renate.utils.file import move_to_uri
 from renate.utils.module import get_and_prepare_data_module, import_module
 from renate.utils.syne_tune import (
@@ -90,6 +90,7 @@ def run_training_job(
     seed: int = defaults.SEED,
     accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
     devices: int = defaults.DEVICES,
+    deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     job_name: str = defaults.JOB_NAME,
 ) -> Optional[Tuner]:
     """Starts updating the model including hyperparameter optimization.
@@ -131,6 +132,7 @@ def run_training_job(
         seed: Seed used for ensuring reproducibility.
         accelerator: Type of accelerator to use.
         devices: Number of devices to use.
+        deterministic_trainer: When true the Trainer adopts a deterministic behaviour also on GPU.
         job_name: Prefix for the name of the SageMaker training job.
     """
     assert (
@@ -163,6 +165,7 @@ def run_training_job(
             seed=seed,
             accelerator=accelerator,
             devices=devices,
+            deterministic_trainer=deterministic_trainer,
         )
     submit_remote_job(
         input_state_url=input_state_url,
@@ -193,6 +196,7 @@ def run_training_job(
         seed=seed,
         accelerator=accelerator,
         devices=devices,
+        deterministic_trainer=deterministic_trainer,
         job_name=job_name,
     )
 
@@ -418,9 +422,7 @@ def _verify_validation_set_for_hpo_and_checkpointing(
     data_module = get_and_prepare_data_module(
         config_module,
         data_path=defaults.data_folder(working_directory),
-        chunk_id=chunk_id,
-        seed=seed,
-        **get_data_module_fn_args(config_space),
+        **get_data_module_fn_kwargs(config_module, config_space),
     )
     data_module.setup()
     val_exists = data_module.val_data() is not None
@@ -501,6 +503,7 @@ def _execute_training_and_tuning_job_locally(
     seed: int,
     accelerator: str,
     devices: int,
+    deterministic_trainer: bool,
 ):
     """Executes the training job locally.
 
@@ -517,6 +520,7 @@ def _execute_training_and_tuning_job_locally(
     config_space["seed"] = seed
     config_space["accelerator"] = accelerator
     config_space["devices"] = devices
+    config_space["deterministic_trainer"] = deterministic_trainer
     if input_state_url is not None:
         config_space["input_state_url"] = input_state_url
 
@@ -602,7 +606,7 @@ def _execute_training_and_tuning_job_locally(
 
 
 def submit_remote_job(
-    source_dir: str,
+    source_dir: Union[str, None],
     role: str,
     instance_type: str,
     instance_count: int,

@@ -7,7 +7,7 @@ from typing import Any, Callable, List, Optional, Set
 import torch
 
 from renate.models.layers import ContinualNorm
-from renate.types import Inputs
+from renate.types import NestedTensors
 
 
 class RenateModule(torch.nn.Module, ABC):
@@ -92,16 +92,18 @@ class RenateModule(torch.nn.Module, ABC):
         self.loss_fn = state["loss_fn"]
 
     @abstractmethod
-    def forward(self, x: Inputs, task_id: Optional[str] = None) -> torch.Tensor:
+    def forward(self, x: NestedTensors, task_id: Optional[str] = None) -> torch.Tensor:
         """Performs a forward pass on the inputs and returns the predictions.
 
         This method accepts a task ID, which may be provided by some continual learning scenarios.
-        As an examle, the task id may be used to switch between multiple output heads.
+        As an example, the task id may be used to switch between multiple output heads.
 
         Args:
             x: Input(s) to the model. Can be a single tensor, a tuple of tensor, or a dictionary
                 mapping strings to tensors.
             task_id: The identifier of the task for which predictions are made.
+        Returns:
+            The model's predictions.
         """
         pass
 
@@ -140,7 +142,7 @@ class RenateModule(torch.nn.Module, ABC):
         self._add_task_params(task_id)
         self._tasks_params_ids.add(task_id)
 
-    def get_logits(self, x: Inputs, task_id: Optional[str] = None) -> torch.Tensor:
+    def get_logits(self, x: NestedTensors, task_id: Optional[str] = None) -> torch.Tensor:
         """Returns the logits for a given pair of input and task id.
 
         By default, this method returns the output of the forward pass. This may be overwritten
@@ -165,7 +167,7 @@ class RenateModule(torch.nn.Module, ABC):
 
         Args:
             num_groups: Number of groups when considering the group normalization in continual
-                normalizeion
+                normalization.
         """
 
         def _replace(module):
@@ -247,7 +249,7 @@ class RenateWrapper(RenateModule):
         super().__init__(constructor_arguments={}, loss_fn=loss_fn)
         self._model = model
 
-    def forward(self, x: Inputs, task_id: Optional[str] = None) -> torch.Tensor:
+    def forward(self, x: NestedTensors, task_id: Optional[str] = None) -> torch.Tensor:
         if isinstance(x, torch.Tensor):
             return self._model(x)
         elif isinstance(x, tuple):

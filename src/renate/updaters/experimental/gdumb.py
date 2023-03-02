@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader, Dataset
 from renate import defaults
 from renate.memory import GreedyClassBalancingBuffer
 from renate.models import RenateModule
-from renate.types import Inputs
+from renate.types import NestedTensors
 from renate.updaters.learner import Learner, ReplayLearner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
 from renate.utils.pytorch import reinitialize_model_parameters
@@ -78,7 +78,9 @@ class GDumbLearner(ReplayLearner):
         return train_loader, val_loader
 
     def training_step(
-        self, batch: Tuple[Tuple[Inputs, torch.Tensor], Dict[str, torch.Tensor]], batch_idx: int
+        self,
+        batch: Tuple[Tuple[NestedTensors, torch.Tensor], Dict[str, torch.Tensor]],
+        batch_idx: int,
     ) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
         batch, _ = batch
@@ -116,6 +118,7 @@ class GDumbModelUpdater(SingleTrainingLoopUpdater):
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
         seed: int = defaults.SEED,
+        deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
@@ -150,4 +153,5 @@ class GDumbModelUpdater(SingleTrainingLoopUpdater):
             logger=logger,
             accelerator=accelerator,
             devices=devices,
+            deterministic_trainer=deterministic_trainer,
         )

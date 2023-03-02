@@ -30,8 +30,8 @@ config_file = str(Path(__file__).parent.parent / "renate_config_files" / "config
     [
         (2, 0.9, False, False, "rush"),
         (1, 0.0, True, False, "rush"),
-        (1, 0.9, False, True, None),
-        (1, 0.0, False, True, None),
+        (2, 0.9, False, True, None),
+        (2, 0.0, False, True, None),
     ],
     ids=[
         "transfer-hpo-with-val",
@@ -40,7 +40,10 @@ config_file = str(Path(__file__).parent.parent / "renate_config_files" / "config
         "training-single-config-without-val",
     ],
 )
-def test_execute_tuning_job(tmpdir, num_chunks, val_size, raises, fixed_search_space, scheduler):
+@pytest.mark.parametrize("updater", ("ER", "Avalanche-iCaRL"))
+def test_run_training_job(
+    tmpdir, num_chunks, val_size, raises, fixed_search_space, scheduler, updater
+):
     """Simply running tuning job to check if anything fails.
 
     Case 1: Standard HPO setup with transfer learning in second step.
@@ -54,7 +57,7 @@ def test_execute_tuning_job(tmpdir, num_chunks, val_size, raises, fixed_search_s
 
         def execute_job():
             run_training_job(
-                updater="ER",
+                updater=updater,
                 max_epochs=5,
                 config_file=config_file,
                 input_state_url=state_url,
@@ -63,7 +66,7 @@ def test_execute_tuning_job(tmpdir, num_chunks, val_size, raises, fixed_search_s
                 mode="max",
                 config_space={
                     "learning_rate": 0.1 if fixed_search_space else loguniform(10e-5, 0.1),
-                    "data_module_fn_val_size": val_size,
+                    "val_size": val_size,
                 },
                 metric="val_accuracy",
                 max_time=15,
@@ -129,7 +132,7 @@ def test_verify_validation_set_for_hpo_and_checkpointing(tmpdir, val_size, tune_
     If a validation set exists, the `config_space` must be changed such that the right metric and
     mode for checkpointing and hyperparameter optimization is used.
     """
-    config_space = {"data_module_fn_val_size": val_size}
+    config_space = {"val_size": val_size}
     expected_metric = "val_accuracy"
     expected_mode: defaults.SUPPORTED_TUNING_MODE_TYPE = "max"
 

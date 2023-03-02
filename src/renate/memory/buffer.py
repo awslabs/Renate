@@ -2,18 +2,17 @@
 # SPDX-License-Identifier: Apache-2.0
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Any, Callable, Dict, Hashable, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import torch
 from torch.utils.data import Dataset
 
 from renate import defaults
+from renate.types import NestedTensors
 from renate.utils.pytorch import get_generator
 
 
-DataTuple = Tuple[torch.Tensor, ...]
-DataDict = Dict[Hashable, torch.Tensor]
-NestedTensors = Union[torch.Tensor, DataTuple, DataDict]
+DataDict = Dict[str, torch.Tensor]
 Index = Union[int, slice]
 
 

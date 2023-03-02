@@ -4,25 +4,21 @@ from typing import Callable, Optional, Union
 import torch
 from torchvision.transforms import transforms
 
-from renate.benchmark.models.mlp import MultiLayerPerceptron
-
-from renate.models import RenateModule
-
 from renate import defaults
 from renate.benchmark.datasets.vision_datasets import TorchVisionDataModule
+from renate.benchmark.models.mlp import MultiLayerPerceptron
 from renate.benchmark.scenarios import ClassIncrementalScenario, Scenario
+from renate.models import RenateModule
 
 
-def data_module_fn(
-    data_path: Union[Path, str], chunk_id: int, seed: int = defaults.SEED
-) -> Scenario:
+def data_module_fn(data_path: str, chunk_id: int, seed: int = defaults.SEED) -> Scenario:
     """Returns a class-incremental scenario instance.
 
     The transformations passed to prepare the input data are required to convert the data to
     PyTorch tensors.
     """
     data_module = TorchVisionDataModule(
-        str(data_path),
+        data_path,
         dataset_name="MNIST",
         val_size=0.1,
         seed=seed,

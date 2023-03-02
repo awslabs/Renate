@@ -56,9 +56,9 @@ in the :py:func:`~renate.training.training.run_training_job` function to make su
   the best model if a validation set is provided, otherwise do not pass these arguments.
 * :code:`updater`: the name of the algorithm to be used for updating the model. See :doc:`supported_algorithms` for more info.
 * :code:`max_epochs`: the maximum number of training epochs.
-* :code:`state_url`: this is the location at which the state of learner and the model to be updated are made available.
+* :code:`input_state_url`: this is the location at which the state of learner and the model to be updated are made available.
   If this argument is not passed, the model will be trained from scratch.
-* :code:`next_state_url`: this is the location at which the output of the training job (e.g., model, state) will be stored.
+* :code:`output_state_url`: this is the location at which the output of the training job (e.g., model, state) will be stored.
 * :code:`backend`: when set to :code:`local` will run the training job on the local machine
 
 In both cases the urls can point to local folders or S3 locations.
@@ -137,6 +137,6 @@ It also possible to define more aspects of the HPO process:
 * specify one of the stopping criteria available, for example :code:`max_time` stops the tuning job after a certain amount of time.
 
 After defining these arguments it will be sufficient to run the script and wait :)
-The output will be available in the location specified in :code:`next_state_url`.
+The output will be available in the location specified in :code:`output_state_url`.
 
 We provide an example of training on SageMaker with HPO at :doc:`../examples/train_classifier_sagemaker`.

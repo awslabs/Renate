@@ -1,12 +1,10 @@
 {
-    "data_module_fn_dataset_name": "CIFAR10",
-    "transform_dataset_name": "CIFAR10",
-    "model_fn_num_outputs": 10,
-    "data_module_fn_val_size": 0.05,
-    "data_module_fn_scenario_name": "SoftSortingScenario",
-    "data_module_fn_feature_idx": "0",
-    "data_module_fn_exponent": "10",
-    "data_module_fn_num_tasks": 5,
-    "model_fn_model_name": "ResNet18CIFAR",
+    "dataset_name": "CIFAR10",
+    "num_outputs": 10,
+    "val_size": 0.05,
+    "scenario_name": "SoftSortingScenario",
+    "feature_idx": "0",
+    "randomness": "0.5",
+    "model_name": "ResNet18CIFAR",
     "num_tasks": 5
 }
