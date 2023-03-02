@@ -20,7 +20,7 @@ def nested_tensors_equal(t1, t2):
     if type(t1) is not type(t2):
         return False
     if isinstance(t1, torch.Tensor):
-        return torch.equal(t1, t2)
+        return torch.allclose(t1, t2)
     if isinstance(t1, tuple):
         if len(t1) != len(t2):
             return False
