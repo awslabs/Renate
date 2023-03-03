@@ -47,7 +47,7 @@
 | src/renate/updaters/learner.py                                    |      180 |        1 |     99% |       154 |
 | src/renate/updaters/learner\_components/\_\_init\_\_.py           |        0 |        0 |    100% |           |
 | src/renate/updaters/learner\_components/component.py              |       27 |        1 |     96% |        42 |
-| src/renate/updaters/learner\_components/losses.py                 |      155 |       69 |     55% |55, 69, 111-114, 188, 192-193, 202-240, 243-244, 247-248, 259-265, 365-384, 396-400, 405-418, 423-428, 431-436, 439-444, 447-452 |
+| src/renate/updaters/learner\_components/losses.py                 |      155 |       69 |     55% |55, 69, 111-114, 188, 192-193, 202-240, 243-244, 247-248, 259-265, 365-383, 395-399, 404-417, 422-427, 430-435, 438-443, 446-451 |
 | src/renate/updaters/learner\_components/reinitialization.py       |       33 |       10 |     70% |17, 55-59, 62-65, 68-69 |
 | src/renate/updaters/model\_updater.py                             |      127 |        1 |     99% |       228 |
 | src/renate/utils/\_\_init\_\_.py                                  |        0 |        0 |    100% |           |
