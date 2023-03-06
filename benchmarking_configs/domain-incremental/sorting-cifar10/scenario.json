@@ -2,7 +2,7 @@
     "dataset_name": "CIFAR10",
     "num_outputs": 10,
     "val_size": 0.05,
-    "scenario_name": "SoftSortingScenario",
+    "scenario_name": "SortingScenario",
     "feature_idx": "0",
     "randomness": "0.5",
     "model_name": "ResNet18CIFAR",
