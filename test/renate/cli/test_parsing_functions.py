@@ -75,19 +75,66 @@ def test_get_argument_type():
     ids=("No all_args, no ignore_args", "no all_args", "all_args"),
 )
 def test_get_function_args(all_args, ignore_args):
-    expected_args = ["data_path", "chunk_id", "val_size", "seed", "use_scenario", "class_groupings"]
+    expected_args = [
+        "data_path",
+        "chunk_id",
+        "val_size",
+        "seed",
+        "use_scenario",
+        "class_groupings",
+        "optional_tuple",
+        "optional_float",
+    ]
     expected_all_args = {
         **all_args,
         **{
-            "data_path": {"type": str, "argument_group": CUSTOM_ARGS_GROUP, "required": True},
-            "chunk_id": {"type": int, "argument_group": CUSTOM_ARGS_GROUP, "default": None},
-            "val_size": {"type": str, "argument_group": CUSTOM_ARGS_GROUP, "default": "0.0"},
-            "seed": {"type": int, "argument_group": CUSTOM_ARGS_GROUP, "default": 0},
-            "use_scenario": {"type": str, "argument_group": CUSTOM_ARGS_GROUP, "default": "False"},
+            "data_path": {
+                "type": str,
+                "argument_group": CUSTOM_ARGS_GROUP,
+                "required": True,
+                "true_type": str,
+            },
+            "chunk_id": {
+                "type": int,
+                "argument_group": CUSTOM_ARGS_GROUP,
+                "default": None,
+                "true_type": int,
+            },
+            "val_size": {
+                "type": float,
+                "argument_group": CUSTOM_ARGS_GROUP,
+                "default": 0.0,
+                "true_type": float,
+            },
+            "seed": {
+                "type": int,
+                "argument_group": CUSTOM_ARGS_GROUP,
+                "default": 0,
+                "true_type": int,
+            },
+            "use_scenario": {
+                "type": str,
+                "argument_group": CUSTOM_ARGS_GROUP,
+                "default": "False",
+                "true_type": bool,
+            },
             "class_groupings": {
                 "type": str,
                 "argument_group": CUSTOM_ARGS_GROUP,
                 "default": "((0,1),(2,3,4))",
+                "true_type": tuple,
+            },
+            "optional_tuple": {
+                "type": str,
+                "argument_group": CUSTOM_ARGS_GROUP,
+                "default": None,
+                "true_type": tuple,
+            },
+            "optional_float": {
+                "type": float,
+                "argument_group": CUSTOM_ARGS_GROUP,
+                "default": None,
+                "true_type": float,
             },
         },
     }
@@ -100,9 +147,6 @@ def test_get_function_args(all_args, ignore_args):
         ignore_args=ignore_args,
     )
     assert args == expected_args
-    print("all_args:", all_args)
-    print()
-    print("expected", expected_all_args)
     assert all_args == expected_all_args
 
 

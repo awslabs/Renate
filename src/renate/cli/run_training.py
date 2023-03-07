@@ -99,9 +99,6 @@ class ModelUpdaterCLI:
             ignore_args=["data_path", "model_state_url"],
         )
 
-        args.early_stopping = args.early_stopping == "True"
-        args.deterministic_trainer = args.deterministic_trainer == "True"
-
         seed_everything(args.seed)
         self._prepare_data_state_model(args)
 

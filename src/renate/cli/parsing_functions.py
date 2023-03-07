@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import argparse
+import ast
 import inspect
 import sys
 from types import ModuleType
@@ -137,7 +138,19 @@ def get_updater_and_learner_kwargs(
 def parse_arguments(
     config_module: ModuleType, function_names: List[str], ignore_args: List[str]
 ) -> Tuple[argparse.Namespace, Dict[str, Any]]:
+    """Parses all input arguments.
 
+    Combines standard arguments with custom arguments in functions of Renate config.
+
+    Args:
+        config_module: Module containing function of which we extract arguments.
+        function_names: List of function names in module for which extract arguments.
+        ignore_args: List of arguments to be ignored since they are not passed via CLI.
+    Returns:
+        First return value are the passed arguments where strings are converted to Booleans, lists
+        and tuples. Second return value is a dictionary containing the arguments that will be passed
+        to all functions specified in ``function_names``.
+    """
     arguments = _standard_arguments()
     _add_hyperparameter_arguments(arguments)
     function_args = {}
@@ -160,19 +173,21 @@ def parse_arguments(
                     **{
                         key: value
                         for key, value in argument_kwargs.items()
-                        if key != "argument_group"
+                        if key != "argument_group" and key != "true_type"
                     },
                 )
-                print(
-                    argument_name,
-                    {
-                        key: value
-                        for key, value in argument_kwargs.items()
-                        if key != "argument_group"
-                    },
-                )
-
-    return parser.parse_args(), function_args
+    args = parser.parse_args()
+    args_dict = vars(args)
+    for argument_name, argument_kwargs in arguments.items():
+        if args_dict[argument_name] == "None":
+            args_dict[argument_name] = None
+        if args_dict[argument_name] is None:
+            continue
+        if argument_kwargs.get("true_type") == bool:
+            args_dict[argument_name] = args_dict[argument_name] == "True"
+        elif argument_kwargs.get("true_type") in [list, tuple]:
+            args_dict[argument_name] = ast.literal_eval(args_dict[argument_name])
+    return args, function_args
 
 
 def _standard_arguments() -> Dict[str, Dict[str, Any]]:
@@ -258,6 +273,7 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
             "help": "Enables the early stopping of the optimization. Default: "
             f"{defaults.EARLY_STOPPING}.",
             "argument_group": OPTIONAL_ARGS_GROUP,
+            "true_type": bool,
         },
         "deterministic_trainer": {
             "type": str,
@@ -266,12 +282,15 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
             "help": "Enables deterministic training which may be slower. Default: "
             f"{defaults.DETERMINISTIC_TRAINER}.",
             "argument_group": OPTIONAL_ARGS_GROUP,
+            "true_type": bool,
         },
         "prepare_data": {
-            "type": int,
-            "default": 1,
-            "help": "Whether to call DataModule.prepare_data(). Default: 1.",
+            "type": str,
+            "default": "True",
+            "choices": ["True", "False"],
+            "help": "Whether to call DataModule.prepare_data(). Default: True.",
             "argument_group": DO_NOT_CHANGE_GROUP,
+            "true_type": bool,
         },
         "st_checkpoint_dir": {
             "type": str,
@@ -715,6 +734,8 @@ def get_transforms_dict(
 
 
 def get_argument_type(arg_spec: inspect.FullArgSpec, argument_name: str) -> Type:
+    """Returns the type of the argument with ``argument_name``."""
+
     def raise_error(arg_type, arg_name):
         raise TypeError(f"Type {arg_type} is not supported (argument {arg_name}).")
 
@@ -726,7 +747,15 @@ def get_argument_type(arg_spec: inspect.FullArgSpec, argument_name: str) -> Type
                 argument_name
             ].__args__[1] != type(None):
                 raise_error(arg_spec.annotations[argument_name], argument_name)
-            argument_type = arg_spec.annotations[argument_name].__args__[0]
+            if hasattr(arg_spec.annotations[argument_name].__args__[0], "__origin__"):
+                if arg_spec.annotations[argument_name].__args__[0].__origin__ in [list, tuple]:
+                    argument_type = arg_spec.annotations[argument_name].__args__[0].__origin__
+                else:
+                    raise_error(arg_spec.annotations[argument_name], argument_name)
+            else:
+                argument_type = arg_spec.annotations[argument_name].__args__[0]
+            if arg_spec.annotations[argument_name].__origin__ in [list, tuple]:
+                argument_type = arg_spec.annotations[argument_name].__origin__
         elif arg_spec.annotations[argument_name].__origin__ in [list, tuple]:
             argument_type = arg_spec.annotations[argument_name].__origin__
         else:
@@ -736,6 +765,11 @@ def get_argument_type(arg_spec: inspect.FullArgSpec, argument_name: str) -> Type
     if argument_type not in [int, bool, float, str, list, tuple]:
         raise_error(argument_type, argument_name)
     return argument_type
+
+
+def _to_dense_str(value: Union[bool, List, Tuple]) -> str:
+    """Converts a variable to string without empty spaces."""
+    return str(value).replace(" ", "")
 
 
 def get_function_args(
@@ -785,8 +819,8 @@ def get_function_args(
         }
         if argument_name in default_values:
             default_value = default_values[argument_name]
-            if true_type in [bool, list, tuple]:
-                default_value = to_dense_str(default_value)
+            if true_type in [bool, list, tuple] and default_value is not None:
+                default_value = _to_dense_str(default_value)
             all_args[argument_name]["default"] = default_value
         else:
             all_args[argument_name]["required"] = True

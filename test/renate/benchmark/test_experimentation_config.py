@@ -35,7 +35,7 @@ def test_model_fn(model_name, expected_model_class):
         num_inputs=1 if model_name == "MultiLayerPerceptron" else None,
         num_outputs=1 if model_name == "MultiLayerPerceptron" else None,
         num_hidden_layers=1 if model_name == "MultiLayerPerceptron" else None,
-        hidden_size="1" if model_name == "MultiLayerPerceptron" else None,
+        hidden_size=1 if model_name == "MultiLayerPerceptron" else None,
     )
     assert isinstance(model, expected_model_class)
 
@@ -76,7 +76,7 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         (
             "ClassIncrementalScenario",
             "CIFAR10",
-            {"class_groupings": "[[0,1],[2,3,4],[5,6]]"},
+            {"class_groupings": ((0, 1), (2, 3, 4), (5, 6))},
             ClassIncrementalScenario,
             3,
         ),
@@ -90,15 +90,15 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         (
             "ImageRotationScenario",
             "MNIST",
-            {"degrees": "[0,90,180]"},
+            {"degrees": (0, 90, 180)},
             ImageRotationScenario,
             3,
         ),
-        ("BenchmarkScenario", "CLEAR10", {"num_tasks": "5"}, BenchmarkScenario, 5),
+        ("BenchmarkScenario", "CLEAR10", {"num_tasks": 5}, BenchmarkScenario, 5),
         (
             "PermutationScenario",
             "MNIST",
-            {"num_tasks": "3", "input_dim": "(1,28,28)"},
+            {"num_tasks": 3, "input_dim": (1, 28, 28)},
             PermutationScenario,
             3,
         ),
@@ -106,9 +106,9 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             "FeatureSortingScenario",
             "MNIST",
             {
-                "num_tasks": "5",
-                "feature_idx": "0",
-                "randomness": "0.3",
+                "num_tasks": 5,
+                "feature_idx": 0,
+                "randomness": 0.3,
             },
             FeatureSortingScenario,
             5,
@@ -116,10 +116,7 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         (
             "HueShiftScenario",
             "CIFAR10",
-            {
-                "num_tasks": "3",
-                "randomness": "0.5",
-            },
+            {"num_tasks": 3, "randomness": 0.5},
             HueShiftScenario,
             3,
         ),
@@ -155,7 +152,12 @@ def test_data_module_fn(
     )
     assert isinstance(scenario, expected_scenario_class)
     if expected_scenario_class == ClassIncrementalScenario:
-        assert str(scenario._class_groupings).replace(" ", "") == scenario_kwargs["class_groupings"]
+        assert scenario._class_groupings == scenario_kwargs["class_groupings"]
+    elif expected_scenario_class == FeatureSortingScenario:
+        scenario._feature_idx = scenario_kwargs["feature_idx"]
+        scenario._randomness = scenario_kwargs["randomness"]
+    elif expected_scenario_class == HueShiftScenario:
+        scenario._randomness = scenario_kwargs["randomness"]
     assert scenario._num_tasks == expected_num_tasks
 
 

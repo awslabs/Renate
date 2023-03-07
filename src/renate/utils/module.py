@@ -92,7 +92,7 @@ def get_and_prepare_data_module(config_module: ModuleType, **kwargs: Any) -> Ren
 
 def get_and_setup_data_module(
     config_module: ModuleType,
-    prepare_data: int,
+    prepare_data: bool,
     **kwargs: Any,
 ) -> RenateDataModule:
     """Creates data module and possibly calls the prepare_data function needed for setup"""

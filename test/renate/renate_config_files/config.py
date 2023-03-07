@@ -21,10 +21,12 @@ def model_fn(model_state_url: Optional[str] = None) -> RenateModule:
 def data_module_fn(
     data_path: str,
     chunk_id: Optional[int] = None,
-    val_size: str = "0.0",
+    val_size: float = 0.0,
     seed: int = 0,
-    use_scenario: str = "False",
+    use_scenario: bool = False,
     class_groupings: Tuple[Tuple[int]] = ((0, 1), (2, 3, 4)),
+    optional_tuple: Optional[Tuple[float]] = None,
+    optional_float: Optional[float] = None,
 ) -> RenateDataModule:
     data_module = DummyTorchVisionDataModule(transform=None, val_size=float(val_size), seed=seed)
     if use_scenario == "True":
