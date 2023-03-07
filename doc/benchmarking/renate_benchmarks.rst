@@ -28,29 +28,20 @@ The benchmark will be configured by :code:`config_space`.
 Models
 ======
 
-You can select the model by assigning the corresponding name to :code:`config_space["model_fn_model_name"]`.
+You can select the model by assigning the corresponding name to :code:`config_space["model_name"]`.
 For example, to use a ResNet-18 model, you use
 
 .. code-block:: python
 
-    config_space["model_fn_model_name"] = "ResNet18"
+    config_space["model_name"] = "ResNet18"
 
-When using the model :py:class:`~renate.benchmark.models.mlp.MultiLayerPerceptron`,
-additional information needs to be provided.
-You need to define input and output size as well as depth and width of the network.
+Each model may have independent arguments.
+The ResNet-18 model requires to define the number of outputs.
 
 .. code-block:: python
 
-    config_space["model_fn_num_inputs"] = 32*32*3     # Number of inputs
-    config_space["model_fn_num_outputs"] = 10         # Number of outputs
-    config_space["model_fn_num_hidden_layers"] = 2    # Number of hidden layers
-    config_space["model_fn_hidden_size"] = "[16,16]"  # Hidden layer 1 and 2 have size 16
+    config_space["num_outputs"] = 10
 
-.. warning::
-    All additional arguments passed to :py:class:`~renate.benchmark.models.mlp.MultiLayerPerceptron` will be
-    converted to string and eventually converted back.
-    These strings must not contain any whitespaces. Since a Python lists or tuples automatically contain whitespaces,
-    they have to manually passed as strings without whitespaces.
 
 The full list of models and model names including a short description is provided in the following table.
 
@@ -59,32 +50,49 @@ The full list of models and model names including a short description is provide
 
     * - Model Name
       - Description
-    * - MultiLayerPerceptron
+      - Additional Inputs
+    * - `~renate.benchmark.models.mlp.MultiLayerPerceptron`
       - Neural network consisting of a sequence of dense layers.
-    * - ResNet18
+      - * ``num_inputs``: Input dimensionality of data.
+        * ``num_outputs``: Output dimensionality, for classification the number of classes.
+        * ``num_hidden_layers``: Number of hidden layers.
+        * ``hidden_size``: Size of hidden layers, can be ``int`` or ``Tuple[int]``.
+    * - `~renate.benchmark.models.resnet.ResNet18`
       - 18 layer `ResNet <https://arxiv.org/abs/1512.03385>`_ CNN architecture
-    * - ResNet34
+      - * ``num_outputs``: Output dimensionality, for classification the number of classes.
+    * - `~renate.benchmark.models.resnet.ResNet34`
       - 34 layer `ResNet <https://arxiv.org/abs/1512.03385>`_ CNN architecture
-    * - ResNet50
+      - * ``num_outputs``: Output dimensionality, for classification the number of classes.
+    * - `~renate.benchmark.models.resnet.ResNet50`
       - 50 layer `ResNet <https://arxiv.org/abs/1512.03385>`_ CNN architecture
-    * - ResNet18CIFAR
+      - * ``num_outputs``: Output dimensionality, for classification the number of classes.
+    * - `~renate.benchmark.models.resnet.ResNet18CIFAR`
       - 18 layer `ResNet <https://arxiv.org/abs/1512.03385>`_ CNN architecture for small image sizes (approx 32x32)
-    * - ResNet34CIFAR
+      - * ``num_outputs``: Output dimensionality, for classification the number of classes.
+    * - `~renate.benchmark.models.resnet.ResNet34CIFAR`
       - 34 layer `ResNet <https://arxiv.org/abs/1512.03385>`_ CNN architecture for small image sizes (approx 32x32)
-    * - ResNet50CIFAR
+      - * ``num_outputs``: Output dimensionality, for classification the number of classes.
+    * - `~renate.benchmark.models.resnet.ResNet50CIFAR`
       - 50 layer `ResNet <https://arxiv.org/abs/1512.03385>`_ CNN architecture for small image sizes (approx 32x32)
-    * - VisionTransformerCIFAR
+      - * ``num_outputs``: Output dimensionality, for classification the number of classes.
+    * - `~renate.benchmark.models.vision_transformer.VisionTransformerCIFAR`
       - Base `Vision Transformer <https://arxiv.org/abs/2010.11929>`_ architecture for images of size 32x32 with patch size 4.
-    * - VisionTransformerB16
+      - * ``num_outputs``: Output dimensionality, for classification the number of classes.
+    * - `~renate.benchmark.models.vision_transformer.VisionTransformerB16`
       - Base `Vision Transformer <https://arxiv.org/abs/2010.11929>`_ architecture for images of size 224x224 with patch size 16.
-    * - VisionTransformerB32
+      - * ``num_outputs``: Output dimensionality, for classification the number of classes.
+    * - `~renate.benchmark.models.vision_transformer.VisionTransformerB32`
       - Base `Vision Transformer <https://arxiv.org/abs/2010.11929>`_ architecture for images of size 224x224 with patch size 32.
-    * - VisionTransformerL16
+      - * ``num_outputs``: Output dimensionality, for classification the number of classes.
+    * - `~renate.benchmark.models.vision_transformer.VisionTransformerL16`
       - Large `Vision Transformer <https://arxiv.org/abs/2010.11929>`_ architecture for images of size 224x224 with patch size 16.
-    * - VisionTransformerL32
+      - * ``num_outputs``: Output dimensionality, for classification the number of classes.
+    * - `~renate.benchmark.models.vision_transformer.VisionTransformerL32`
       - Large `Vision Transformer <https://arxiv.org/abs/2010.11929>`_ architecture for images of size 224x224 with patch size 32.
-    * - VisionTransformerH14
+      - * ``num_outputs``: Output dimensionality, for classification the number of classes.
+    * - `~renate.benchmark.models.vision_transformer.VisionTransformerH14`
       - Huge `Vision Transformer <https://arxiv.org/abs/2010.11929>`_ architecture for images of size 224x224 with patch size 14.
+      - * ``num_outputs``: Output dimensionality, for classification the number of classes.
 
 
 .. _benchmarking-renate-benchmarks-datasets:
@@ -92,16 +100,13 @@ The full list of models and model names including a short description is provide
 Datasets
 ========
 
-Similarly, you select the dataset by assigning the corresponding name to :code:`config_space["data_module_fn_dataset_name"]`.
-To use the matching preprocessing, the same value needs to be applied to :code:`config_space["transform_dataset_name"]`.
+Similarly, you select the dataset by assigning the corresponding name to :code:`config_space["dataset_name"]`.
 For example, to use the CIFAR-10 dataset with 10% of the data used for validation, you use
 
 .. code-block:: python
 
-    dataset_name = "CIFAR10"
-    config_space["data_module_fn_dataset_name"] = dataset_name
-    config_space["transform_dataset_name"] = dataset_name
-    config_space["data_module_fn_val_size"] = 0.1
+    config_space["dataset_name"] = "CIFAR10"
+    config_space["val_size"] = 0.1
 
 The following table contains the list of supported datasets.
 

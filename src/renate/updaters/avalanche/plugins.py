@@ -39,8 +39,6 @@ class RenateCheckpointPlugin(CheckpointPlugin):
     def __init__(
         self,
         storage: RenateFileSystemCheckpointStorage,
-        # metric: str,
-        # mode: defaults.SUPPORTED_TUNING_MODE_TYPE,
         map_location: Optional[Union[str, torch.device, Dict[str, str]]] = None,
     ):
         super().__init__(storage=storage, map_location=map_location)
