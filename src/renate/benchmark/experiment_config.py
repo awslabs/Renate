@@ -186,12 +186,12 @@ def data_module_fn(
     scenario_name: str,
     dataset_name: str,
     val_size: str = "0.0",
-    num_tasks: Optional[str] = None,
+    num_tasks: Optional[int] = None,
     class_groupings: Optional[str] = None,
-    degrees: Optional[str] = None,
-    input_dim: Optional[str] = None,
-    feature_idx: Optional[str] = None,
-    randomness: Optional[str] = None,
+    degrees: Optional[Tuple[int]] = None,
+    input_dim: Optional[Tuple[int]] = None,
+    feature_idx: Optional[int] = None,
+    randomness: Optional[float] = None,
 ):
     data_module = get_data_module(
         data_path=data_path,
@@ -200,7 +200,7 @@ def data_module_fn(
         seed=seed,
     )
     if num_tasks is not None:
-        num_tasks = int(num_tasks)
+        num_tasks = num_tasks
     if class_groupings is not None:
         class_groupings = ast.literal_eval(class_groupings)
     if degrees is not None:
@@ -208,9 +208,9 @@ def data_module_fn(
     if input_dim is not None:
         input_dim = ast.literal_eval(input_dim)
     if feature_idx is not None:
-        feature_idx = int(feature_idx)
+        feature_idx = feature_idx
     if randomness is not None:
-        randomness = float(randomness)
+        randomness = randomness
     return get_scenario(
         scenario_name=scenario_name,
         data_module=data_module,

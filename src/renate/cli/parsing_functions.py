@@ -163,6 +163,15 @@ def parse_arguments(
                         if key != "argument_group"
                     },
                 )
+                print(
+                    argument_name,
+                    {
+                        key: value
+                        for key, value in argument_kwargs.items()
+                        if key != "argument_group"
+                    },
+                )
+
     return parser.parse_args(), function_args
 
 
@@ -768,12 +777,17 @@ def get_function_args(
             all_args[argument_name]["required"] = True
 
     for argument_name in new_args:
+        true_type = get_argument_type(arg_spec, argument_name)
         all_args[argument_name] = {
-            "type": get_argument_type(arg_spec, argument_name),
+            "type": str if true_type in [bool, list, tuple] else true_type,
             "argument_group": CUSTOM_ARGS_GROUP,
+            "true_type": true_type,
         }
         if argument_name in default_values:
-            all_args[argument_name]["default"] = default_values[argument_name]
+            default_value = default_values[argument_name]
+            if true_type in [bool, list, tuple]:
+                default_value = to_dense_str(default_value)
+            all_args[argument_name]["default"] = default_value
         else:
             all_args[argument_name]["required"] = True
     return arg_spec.args

@@ -1,6 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Optional
+from typing import Optional, Tuple
 
 import torch
 
@@ -24,12 +24,13 @@ def data_module_fn(
     val_size: str = "0.0",
     seed: int = 0,
     use_scenario: str = "False",
+    class_groupings: Tuple[Tuple[int]] = ((0, 1), (2, 3, 4)),
 ) -> RenateDataModule:
     data_module = DummyTorchVisionDataModule(transform=None, val_size=float(val_size), seed=seed)
     if use_scenario == "True":
         return ClassIncrementalScenario(
             data_module=data_module,
             chunk_id=chunk_id,
-            class_groupings=[[0, 1], [2, 3, 4]],
+            class_groupings=class_groupings,
         )
     return data_module

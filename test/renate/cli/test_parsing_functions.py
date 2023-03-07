@@ -75,7 +75,7 @@ def test_get_argument_type():
     ids=("No all_args, no ignore_args", "no all_args", "all_args"),
 )
 def test_get_function_args(all_args, ignore_args):
-    expected_args = ["data_path", "chunk_id", "val_size", "seed", "use_scenario"]
+    expected_args = ["data_path", "chunk_id", "val_size", "seed", "use_scenario", "class_groupings"]
     expected_all_args = {
         **all_args,
         **{
@@ -84,6 +84,11 @@ def test_get_function_args(all_args, ignore_args):
             "val_size": {"type": str, "argument_group": CUSTOM_ARGS_GROUP, "default": "0.0"},
             "seed": {"type": int, "argument_group": CUSTOM_ARGS_GROUP, "default": 0},
             "use_scenario": {"type": str, "argument_group": CUSTOM_ARGS_GROUP, "default": "False"},
+            "class_groupings": {
+                "type": str,
+                "argument_group": CUSTOM_ARGS_GROUP,
+                "default": "((0,1),(2,3,4))",
+            },
         },
     }
     for arg in ignore_args:
@@ -95,6 +100,9 @@ def test_get_function_args(all_args, ignore_args):
         ignore_args=ignore_args,
     )
     assert args == expected_args
+    print("all_args:", all_args)
+    print()
+    print("expected", expected_all_args)
     assert all_args == expected_all_args
 
 
