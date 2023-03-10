@@ -767,7 +767,7 @@ def get_argument_type(arg_spec: inspect.FullArgSpec, argument_name: str) -> Type
     return argument_type
 
 
-def _to_dense_str(value: Union[bool, List, Tuple]) -> str:
+def to_dense_str(value: Union[bool, List, Tuple]) -> str:
     """Converts a variable to string without empty spaces."""
     return str(value).replace(" ", "")
 
@@ -820,7 +820,7 @@ def get_function_args(
         if argument_name in default_values:
             default_value = default_values[argument_name]
             if true_type in [bool, list, tuple] and default_value is not None:
-                default_value = _to_dense_str(default_value)
+                default_value = to_dense_str(default_value)
             all_args[argument_name]["default"] = default_value
         else:
             all_args[argument_name]["required"] = True

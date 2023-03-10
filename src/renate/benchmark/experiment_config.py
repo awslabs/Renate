@@ -198,18 +198,6 @@ def data_module_fn(
         val_size=val_size,
         seed=seed,
     )
-    if num_tasks is not None:
-        num_tasks = num_tasks
-    if class_groupings is not None:
-        class_groupings = class_groupings
-    if degrees is not None:
-        degrees = degrees
-    if input_dim is not None:
-        input_dim = input_dim
-    if feature_idx is not None:
-        feature_idx = feature_idx
-    if randomness is not None:
-        randomness = randomness
     return get_scenario(
         scenario_name=scenario_name,
         data_module=data_module,

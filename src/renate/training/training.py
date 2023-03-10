@@ -31,7 +31,7 @@ from syne_tune.util import experiment_path
 
 import renate
 from renate import defaults
-from renate.cli.parsing_functions import _to_dense_str, get_data_module_fn_kwargs
+from renate.cli.parsing_functions import to_dense_str, get_data_module_fn_kwargs
 from renate.utils.file import move_to_uri
 from renate.utils.module import get_and_prepare_data_module, import_module
 from renate.utils.syne_tune import (
@@ -143,7 +143,7 @@ def run_training_job(
     ), f"Backend {backend} is not in {defaults.SUPPORTED_BACKEND}."
     for key, value in config_space.items():
         if isinstance(value, (bool, list, tuple)):
-            config_space[key] = _to_dense_str(value)
+            config_space[key] = to_dense_str(value)
     if backend == "local":
         return _execute_training_and_tuning_job_locally(
             input_state_url=input_state_url,
