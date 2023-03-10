@@ -102,7 +102,7 @@ def get_scenario(
     chunk_id: int,
     seed: int,
     num_tasks: Optional[int] = None,
-    class_groupings: Optional[List[List[int]]] = None,
+    class_groupings: Optional[Tuple[Tuple[int]]] = None,
     degrees: Optional[List[int]] = None,
     input_dim: Optional[Union[List[int], Tuple[int], int]] = None,
     feature_idx: Optional[int] = None,

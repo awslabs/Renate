@@ -13,6 +13,7 @@ from renate.cli.parsing_functions import (
     get_data_module_fn_kwargs,
     get_function_args,
     get_model_fn_kwargs,
+    to_dense_str,
 )
 from renate.utils.module import import_module
 
@@ -84,6 +85,7 @@ def test_get_function_args(all_args, ignore_args):
         "class_groupings",
         "optional_tuple",
         "optional_float",
+        "list_param",
     ]
     expected_all_args = {
         **all_args,
@@ -135,6 +137,12 @@ def test_get_function_args(all_args, ignore_args):
                 "argument_group": CUSTOM_ARGS_GROUP,
                 "default": None,
                 "true_type": float,
+            },
+            "list_param": {
+                "type": str,
+                "argument_group": CUSTOM_ARGS_GROUP,
+                "default": "[1,2]",
+                "true_type": list,
             },
         },
     }
@@ -194,14 +202,25 @@ def test_get_function_args_prefers_required_true():
 def test_get_fn_kwargs_helper_functions():
     """Tests whether the different helper functions correctly create kwargs given a dictionary
     and the Python function."""
-    config_space = {
+    expected_data_module_kwargs = {
         "data_path": "home/data/path",
+        "class_groupings": ((1, 2), (3, 4)),
+        "use_scenario": False,
+        "optional_float": None,
+    }
+    config_space = {
+        "data_path": expected_data_module_kwargs["data_path"],
         "model_state_url": "home/model/state",
         "unused_config": 1,
+        "class_groupings": to_dense_str(expected_data_module_kwargs["class_groupings"]),
+        "use_scenario": to_dense_str(expected_data_module_kwargs["use_scenario"]),
+        "optional_float": to_dense_str(expected_data_module_kwargs["optional_float"]),
     }
     data_module_kwargs = get_data_module_fn_kwargs(
-        config_module=config_module, config_space=config_space
+        config_module=config_module, config_space=config_space, cast_arguments=True
     )
-    assert data_module_kwargs == {"data_path": config_space["data_path"]}
-    model_kwargs = get_model_fn_kwargs(config_module=config_module, config_space=config_space)
+    assert data_module_kwargs == expected_data_module_kwargs
+    model_kwargs = get_model_fn_kwargs(
+        config_module=config_module, config_space=config_space, cast_arguments=True
+    )
     assert model_kwargs == {"model_state_url": config_space["model_state_url"]}

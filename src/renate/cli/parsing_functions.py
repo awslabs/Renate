@@ -135,6 +135,19 @@ def get_updater_and_learner_kwargs(
     return updater_class, learner_kwargs
 
 
+def _cast_arguments(arguments: Dict[str, Dict[str, Any]], args_dict: Dict[str, str]) -> None:
+    """Casts all values in args_dict to the value specified in arguments."""
+    for argument_name, argument_kwargs in arguments.items():
+        if args_dict[argument_name] == "None":
+            args_dict[argument_name] = None
+        if args_dict[argument_name] is None:
+            continue
+        if argument_kwargs.get("true_type") == bool:
+            args_dict[argument_name] = args_dict[argument_name] == "True"
+        elif argument_kwargs.get("true_type") in [list, tuple]:
+            args_dict[argument_name] = ast.literal_eval(args_dict[argument_name])
+
+
 def parse_arguments(
     config_module: ModuleType, function_names: List[str], ignore_args: List[str]
 ) -> Tuple[argparse.Namespace, Dict[str, Any]]:
@@ -177,16 +190,7 @@ def parse_arguments(
                     },
                 )
     args = parser.parse_args()
-    args_dict = vars(args)
-    for argument_name, argument_kwargs in arguments.items():
-        if args_dict[argument_name] == "None":
-            args_dict[argument_name] = None
-        if args_dict[argument_name] is None:
-            continue
-        if argument_kwargs.get("true_type") == bool:
-            args_dict[argument_name] = args_dict[argument_name] == "True"
-        elif argument_kwargs.get("true_type") in [list, tuple]:
-            args_dict[argument_name] = ast.literal_eval(args_dict[argument_name])
+    _cast_arguments(arguments=arguments, args_dict=vars(args))
     return args, function_args
 
 
@@ -673,17 +677,25 @@ def get_function_kwargs(args: argparse.Namespace, function_args: Dict[str, Any])
     return {key: value for key, value in vars(args).items() if key in function_args}
 
 
-def get_data_module_fn_kwargs(config_module, config_space: Dict[str, Any]) -> Dict[str, Any]:
+def get_data_module_fn_kwargs(
+    config_module, config_space: Dict[str, Any], cast_arguments: Optional[bool] = False
+) -> Dict[str, Any]:
     """Returns the kwargs for a ``data_module_fn`` with defined arguments based on config_space."""
-    return _get_function_kwargs_helper(config_module, config_space, "data_module_fn", ["data_path"])
+    return _get_function_kwargs_helper(
+        config_module, config_space, "data_module_fn", ["data_path"], cast_arguments
+    )
 
 
-def get_model_fn_kwargs(config_module, config_space: Dict[str, Any]) -> Dict[str, Any]:
+def get_model_fn_kwargs(
+    config_module, config_space: Dict[str, Any], cast_arguments: Optional[bool] = False
+) -> Dict[str, Any]:
     """Returns the kwargs for a ``model_fn`` with defined arguments based on config_space."""
-    return _get_function_kwargs_helper(config_module, config_space, "model_fn", [])
+    return _get_function_kwargs_helper(config_module, config_space, "model_fn", [], cast_arguments)
 
 
-def get_transforms_kwargs(config_module, config_space: Dict[str, Any]) -> Dict[str, Callable]:
+def get_transforms_kwargs(
+    config_module, config_space: Dict[str, Any], cast_arguments: Optional[bool] = False
+) -> Dict[str, Callable]:
     """Returns the transforms based on config_space."""
     transform_fn_names = [
         "train_transform",
@@ -697,17 +709,28 @@ def get_transforms_kwargs(config_module, config_space: Dict[str, Any]) -> Dict[s
     for transform_fn_name in transform_fn_names:
         if hasattr(config_module, transform_fn_name):
             transforms[transform_fn_name] = getattr(config_module, transform_fn_name)(
-                **_get_function_kwargs_helper(config_module, config_space, transform_fn_name, [])
+                **_get_function_kwargs_helper(
+                    config_module, config_space, transform_fn_name, [], cast_arguments
+                )
             )
     return transforms
 
 
 def _get_function_kwargs_helper(
-    config_module, config_space: Dict[str, Any], function_name: str, ignore_args: List[str]
+    config_module,
+    config_space: Dict[str, Any],
+    function_name: str,
+    ignore_args: List[str],
+    cast_arguments: Optional[bool] = False,
 ) -> Dict[str, Any]:
     """Returns kwargs for function based on its interface."""
-    function_args = get_function_args(config_module, function_name, {}, ignore_args)
-    return {key: value for key, value in config_space.items() if key in function_args}
+    all_args = {}
+    function_args = get_function_args(config_module, function_name, all_args, ignore_args)
+    filtered_args = {key: value for key, value in config_space.items() if key in function_args}
+    if cast_arguments:
+        filtered_all_args = {key: value for key, value in all_args.items() if key in filtered_args}
+        _cast_arguments(arguments=filtered_all_args, args_dict=filtered_args)
+    return filtered_args
 
 
 def get_transforms_dict(

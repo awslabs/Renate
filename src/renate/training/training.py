@@ -425,7 +425,7 @@ def _verify_validation_set_for_hpo_and_checkpointing(
     data_module = get_and_prepare_data_module(
         config_module,
         data_path=defaults.data_folder(working_directory),
-        **get_data_module_fn_kwargs(config_module, config_space),
+        **get_data_module_fn_kwargs(config_module, config_space, cast_arguments=True),
     )
     data_module.setup()
     val_exists = data_module.val_data() is not None

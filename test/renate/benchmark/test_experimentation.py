@@ -13,7 +13,7 @@ def experiment_job_kwargs():
     return {
         "backend": "local",
         "config_file": str(Path(__file__).parent.parent / "renate_config_files" / "config.py"),
-        "config_space": {"updater": "ER", "use_scenario": "True", "max_epochs": 5},
+        "config_space": {"updater": "ER", "use_scenario": True, "max_epochs": 5},
         "mode": "max",
         "metric": "val_accuracy",
         "num_updates": 2,

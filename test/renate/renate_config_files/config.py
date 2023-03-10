@@ -27,6 +27,7 @@ def data_module_fn(
     class_groupings: Tuple[Tuple[int]] = ((0, 1), (2, 3, 4)),
     optional_tuple: Optional[Tuple[float]] = None,
     optional_float: Optional[float] = None,
+    list_param: list = [1, 2],
 ) -> RenateDataModule:
     data_module = DummyTorchVisionDataModule(transform=None, val_size=float(val_size), seed=seed)
     if use_scenario == "True":
