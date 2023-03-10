@@ -26,7 +26,7 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          role-to-assume: ${{ secrets.PROD_AWS_INTEG_TEST_ROLE_ARN }}
+          role-to-assume: ${{ secrets.PROD_AWS_END_TO_END_TEST_ROLE_ARN }}
           role-session-name: integtestsession
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
       - name: Stop all left-over training jobs
