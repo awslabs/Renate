@@ -32,7 +32,7 @@ using Renate (e.g., using :py:func:`renate.training.training.run_training_job`; 
      - A strong baseline that trains the model from scratch on a memory, which is maintained using a greedy class-balancing strategy. [`Paper <https://www.ecva.net/papers/eccv_2020/papers_ECCV/papers/123470511.pdf>`__]
    * - ``"Joint"``
      - :py:class:`JointLearner <renate.updaters.experimental.joint.JointLearner>`
-     - Retraining from scratch on all data seen so far. Used as an "upper bound" in experiments, inefficient for practical use.
+     - This method retrains a randomly initialized model each time from scratch on all data seen so far. Used as "upper bound" in experiments, inefficient for practical use.
    * - ``"FineTuning"``
-     - :py:class:`Learner <renate.updaters.experimental.learner.Learner>`
-     - Fine-tuning the existing model using the new data without any sort of mitigation for forgetting. Users as "lower bound" baseline in the experiments.
+     - :py:class:`Learner <renate.updaters.learner.Learner>`
+     - A simple method which trains the current model on only the new data without any sort of mitigation for forgetting. Used as "lower bound" baseline in experiments.

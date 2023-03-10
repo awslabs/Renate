@@ -141,7 +141,7 @@ Scenarios
 
 A scenario defines how the dataset is split into several data partitions.
 While running the benchmark, the model is trained sequentially on each data partition.
-The scenario can be selected by setting :code:`config_space["data_module_fn_scenario_name"]` accordingly.
+The scenario can be selected by setting :code:`config_space["scenario_name"]` accordingly.
 Each scenario might have specific settings which require additional changes of :code:`config_space`.
 We will describe those settings in the table below.
 
@@ -150,11 +150,8 @@ The first part contains all instances with classes 1 and 2, the second with clas
 
 .. code-block:: python
 
-    config_space["data_module_fn_scenario_name"] = "ClassIncrementalScenario"
-    config_space["data_module_fn_class_groupings"] = "[[1,2],[3,4]]"
-
-.. warning::
-    As already explained in more detail above, lists and tuples must be passed as strings without whitespaces.
+    config_space["scenario_name"] = "ClassIncrementalScenario"
+    config_space["class_groupings"] = ((1, 2), (3, 4))
 
 .. list-table:: Renate Scenario Overview
     :widths: 15 35 35
@@ -165,17 +162,38 @@ The first part contains all instances with classes 1 and 2, the second with clas
       - Settings
     * - :py:class:`~renate.benchmark.scenarios.BenchmarkScenario`
       - Used in combination only with CLEAR-10 or CLEAR-100.
-      - * :code:`data_module_fn_num_tasks`: Number of data partitions.
+      - * :code:`num_tasks`: Number of data partitions.
     * - :py:class:`~renate.benchmark.scenarios.ClassIncrementalScenario`
       - Creates data partitions by splitting the data according to class labels.
-      - * :code:`data_module_fn_class_groupings`: List of list containing the class labels.
-    * - :py:class:`~renate.benchmark.scenarios.PermutationScenario`
-      - Creates data partitions by randomly permuting the input features.
-      - * :code:`data_module_fn_num_tasks`: Number of data partitions.
-        * :code:`data_module_fn_input_dim`: Data dimensionality (tuple or int as string).
+      - * :code:`class_groupings`: Tuple of tuples containing the class labels, e.g., ``((1, ), (2, 3, 4))``.
+    * - :py:class:`~renate.benchmark.scenarios.FeatureSortingScenario`
+      - Splits data into different tasks after sorting the data according to a specific feature.
+        Can be used for image data as well. In that case channels are selected and we select according to
+        average channel value.
+        Random permutations may be applied to have a less strict sorting.
+      - * :code:`num_tasks`: Number of data partitions.
+        * :code:`feature_idx`: The feature index used for sorting.
+        * :code:`randomness`: After sorting, ``0.5 * N * randomness`` random pairs in the sequence are swapped where
+          ``N`` is the number of data points. This must be a value between 0 and 1. This allows for creating less strict
+          sorted scenarios.
+    * - :py:class:`~renate.benchmark.scenarios.HueShiftScenario`
+      - A specific scenario only for image data. Very similar to
+        :py:class:`~renate.benchmark.scenarios.FeatureSortingScenario` but this scenario sorts according to the hue
+        value of an image. Sorting can be less strict by applying random permutations.
+      - * :code:`num_tasks`: Number of data partitions.
+        * :code:`randomness`: After sorting, ``0.5 * N * randomness`` random pairs in the sequence are swapped where
+          ``N`` is the number of data points. This must be a value between 0 and 1. This allows for creating less strict
+          sorted scenarios.
+    * - :py:class:`~renate.benchmark.scenarios.IIDScenario`
+      - Divides the dataset uniformly at random into equally-sized partitions.
+      - * :code:`num_tasks`: Number of data partitions.
     * - :py:class:`~renate.benchmark.scenarios.ImageRotationScenario`
       - Creates data partitions by rotating the images by different angles.
-      - * :code:`data_module_fn_degrees`: Tuple of degrees as string.
+      - * :code:`degrees`: Tuple of degrees, e.g., ``(45, 90, 180)``.
+    * - :py:class:`~renate.benchmark.scenarios.PermutationScenario`
+      - Creates data partitions by randomly permuting the input features.
+      - * :code:`num_tasks`: Number of data partitions.
+        * :code:`input_dim`: Data dimensionality (tuple or int as string).
 
 Example: Class-incremental Learning on CIFAR-10
 ===============================================
@@ -189,3 +207,4 @@ Dark Experience Replay++ is used as the updating method with a memory buffer siz
 and the experiment is repeated 10 times.
 
 .. literalinclude:: ../../examples/benchmarking/class_incremental_learning_cifar10_der.py
+    :lines: 3-

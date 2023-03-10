@@ -1,7 +1,7 @@
 Create Custom Benchmarks
 ************************
 
-There are several reasons to create a custom benchmark.
+There are several reasons to create a *custom* benchmark.
 For example, you want to use your own dataset, your own model, your own scenario or
 your own data splits.
 Creating a benchmark config file is very similar to creating the
@@ -9,9 +9,14 @@ Creating a benchmark config file is very similar to creating the
 It is not required to build it from scratch but can be build on top of
 :py:mod:`~renate.benchmark.experiment_config` in case you want to reuse parts of the
 Renate benchmarks.
-The main difference is that the object returned by the :code:`model_fn` needs to
-follow a slightly different interface.
 
+
+Your Own Function Arguments
+===========================
+Benchmarking still relies on the functions :code:`model_fn` and :code:`data_module_fn`. You can add further
+arguments as long as you use typing and data of type ``bool``, ``float``, ``int``, ``str``, ``list``, and ``tuple``.
+A more detailed explanation is provided in the
+:ref:`Renate config chapter <getting_started/how_to_renate_config:custom function arguments>`.
 
 Your Own Model
 ==============
@@ -35,12 +40,12 @@ with your data module as follows.
 .. code-block:: python
 
     def data_module_fn(
-        data_path: Union[Path, str], chunk_id: int, seed: int
+        data_path: Union[Path, str], chunk_id: int, seed: int, class_groupings: Tuple[Tuple[int]]
     ):
         data_module = CustomDataModule(data_path=data_path, seed=seed)
         return ClassIncrementalScenario(
             data_module=data_module,
-            class_groupings=[[0, 1], [2, 3]],
+            class_groupings=class_groupings,
             chunk_id=chunk_id,
         )
 
@@ -57,8 +62,9 @@ If you want to use a custom scenario, create your own class extending
 You will need to implement :py:meth:`~renate.benchmark.scenarios.Scenario.prepare_data()`
 such that it assigns the right subset of your data to :code:`self._train_data` and
 :code:`self._val_data` based on :code:`self._chunk_id`.
-By default, your model will be evaluated on the entire test data after each update step.
-If you want to change that, please override :py:meth:`~renate.benchmark.scenarios.Scenario.test_data()`
-as well.
-Please check the implementation of :py:class:`~renate.benchmark.scenarios.TransformScenario`
-for an example.
+Assign a list of datasets to :code:`self._test_data` where each entry of the list corresponds to one
+:code:`self._chunk_id`.
+At each update step, your model will be evaluated on the test datasets up to :code:`self._chunk_id`.
+You can modify this behavior to assign different values to :code:`self._test_data`.
+Please check the implementation of :py:class:`~renate.benchmark.scenarios.IIDScenario`
+for a simple example.

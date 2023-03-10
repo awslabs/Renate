@@ -29,7 +29,7 @@ method, which automatically handles model hyperparameters.
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 12-37
+    :lines: 13-39
 
 If you are using a torch model with **no or fixed hyperparameters**, you can use
 :py:class:`~renate.models.renate_module.RenateWrapper`.
@@ -41,7 +41,7 @@ method, but simply reinstantiate your model and call :code:`load_state_dict`.
     :caption: Example
 
     def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule:
-        my_torch_model = torch.nn.Linear(28*28, 10)  # Instantiate your torch model.
+        my_torch_model = torch.nn.Linear(28 * 28, 10)  # Instantiate your torch model.
         model = RenateWrapper(my_torch_model)
         if model_state_url is not None:
             state_dict = torch.load(str(model_state_url))
@@ -67,7 +67,7 @@ such as data subsampling or splitting.
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 41-71
+    :lines: 42-72
 
 Transforms
 ==========
@@ -112,5 +112,49 @@ These are optional as well but, if omitted, Renate will use :code:`train_transfo
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 74-
+    :lines: 75-
 
+Custom Function Arguments
+=========================
+In many cases, the standard arguments passed to all functions described above are not sufficient.
+More arguments can be added by simply adding them to the interface (with some limitations).
+We will demonstrate this at the example of :code:`data_module_fn` but the same rules apply to all other functions
+introduced in this chapter.
+
+Let us assume we already have a config file in which we implemented a simple linear model:
+
+.. code-block:: python
+
+    def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule:
+        my_torch_model = torch.nn.Linear(28 * 28, 10)
+        model = RenateWrapper(my_torch_model)
+        if model_state_url is not None:
+            state_dict = torch.load(str(model_state_url))
+            model.load_state_dict(state_dict)
+        return model
+
+However, we have different datasets and each of them has different input and output dimensions.
+The natural change would be to change it to something like
+
+.. code-block:: python
+
+    def model_fn(num_inputs: int, num_outputs: int, model_state_url: Optional[Union[Path, str]] = None) -> RenateModule:
+        my_torch_model = torch.nn.Linear(num_inputs, num_outputs)
+        model = RenateWrapper(my_torch_model)
+        if model_state_url is not None:
+            state_dict = torch.load(str(model_state_url))
+            model.load_state_dict(state_dict)
+        return model
+
+And in fact, this is exactly how it works. However, there are few limitations:
+
+* Typing is required.
+* Only types allowed: ``bool``, ``float``, ``int``, ``str``, ``list``, and ``tuple``.
+  (typing with ``List``, ``Tuple`` or ``Optional`` is okay)
+
+How to set the actual values, will be discussed in
+:ref:`the next chapter <getting_started/how_to_run_training:custom function arguments>`.
+
+.. note::
+    You can use an argument with the same name in the different functions as long as they have the same typing.
+    The same value will provided to them.
