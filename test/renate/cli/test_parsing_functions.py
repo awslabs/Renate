@@ -54,9 +54,10 @@ def test_get_argument_type():
         "no_annotation_param": r"Missing type annotation for argument no_annotation_param.",
     }
     if sys.version_info.minor >= 9:
-        expected_errors[
-            "optional_dict_param"
-        ] = r"Type typing.Optional\[typing.Dict\[str, str\]\] is not supported \(argument optional_dict_param\)."
+        expected_errors["optional_dict_param"] = (
+            r"Type typing.Optional\[typing.Dict\[str, str\]\] is not supported "
+            r"\(argument optional_dict_param\)."
+        )
     for argument_name, expected_type in expected_types.items():
         assert get_argument_type(arg_spec=arg_spec, argument_name=argument_name) == expected_type
 
