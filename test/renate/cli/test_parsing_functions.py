@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import inspect
+import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -52,6 +53,10 @@ def test_get_argument_type():
         r"supported \(argument optional_dict_param\).",
         "no_annotation_param": r"Missing type annotation for argument no_annotation_param.",
     }
+    if sys.version_info.minor >= 9:
+        expected_errors[
+            "optional_dict_param"
+        ] = r"Type typing.Optional\[typing.Dict\[str, str\]\] is not supported \(argument optional_dict_param\)."
     for argument_name, expected_type in expected_types.items():
         assert get_argument_type(arg_spec=arg_spec, argument_name=argument_name) == expected_type
 
