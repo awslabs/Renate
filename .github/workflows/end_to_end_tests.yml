@@ -21,7 +21,7 @@ env:
 
 jobs:
   stop_all_training_jobs: 
-    runs-on: ubuntu-latest
+    runs-on: Renate_ubuntu-latest_16-core
     steps:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
