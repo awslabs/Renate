@@ -1,0 +1,48 @@
+name: End-to-end Tests
+
+# Tests in this file can be invoked manually. We run them before every release.
+# These tests can invoke AWS services from our integ test account.
+
+on:
+  workflow_dispatch:
+  # pull_request: # Uncomment if you want to manually run the end-to-end tests against a new PR that you're drafting
+  #   branches:   # Uncomment if you want to manually run the end-to-end tests against a new PR that you're drafting
+  #     - main    # Uncomment if you want to manually run the end-to-end tests against a new PR that you're drafting
+
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read  # This is required for actions/checkout
+
+env:
+  AWS_DEFAULT_REGION: us-west-2
+  AWS_ROLE: ${{ secrets.PROD_AWS_END_TO_END_TEST_ROLE_ARN }}
+
+jobs:
+  stop_all_training_jobs: 
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.PROD_AWS_INTEG_TEST_ROLE_ARN }}
+          role-session-name: integtestsession
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+      - name: Stop all left-over training jobs
+        run: |
+          aws sagemaker list-training-jobs --status-equals InProgress > running_jobs.json
+          jq -c '.[][]["TrainingJobName"]' running_jobs.json | while read i; do
+            jobName=`echo $i | cut -d "\"" -f 2`
+            echo "stopping training job $jobName"
+            aws sagemaker stop-training-job --training-job-name $jobName
+            sleep 5
+          done
+  
+  # add more jobs to run in parallel following the pattern established below:
+  class_incremental_learning_cifar10_der:
+    needs: stop_all_training_jobs
+    uses: ./.github/workflows/run_renate.yml
+    with:
+      script-path: examples/benchmarking/temp_donotmerge.py
+      requires-aws-credentials: true
+    secrets: inherit
