@@ -14,8 +14,9 @@ on:
       - main
       - dev
 
+# add more tests following the pattern below: 
 jobs:
-  class_incremental_learning_cifar10_der:
-    uses: ./.github/workflows/run_renate.yml
-    with:
-      script-path: examples/benchmarking/temp_donotmerge.py
+  # NAME_OF_YOUR_TEST_HERE:
+  #   uses: ./.github/workflows/run_renate.yml
+  #   with:
+  #     script-path: PATH_TO_YOUR_TEST.py
