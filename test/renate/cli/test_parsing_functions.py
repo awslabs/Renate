@@ -33,6 +33,7 @@ def test_get_argument_type():
         list_of_float_lists: List[List[float]],
         no_annotation_param,
         optional_str_param: Optional[str] = None,
+        optional_dict_param: Optional[Dict[str, str]] = None,
     ):
         pass
 
@@ -47,6 +48,8 @@ def test_get_argument_type():
     expected_errors = {
         "dict_param": r"Type typing.Dict\[str, int\] is not supported \(argument dict_param\).",
         "union_param": r"Type typing.Union\[str, int\] is not supported \(argument union_param\).",
+        "optional_dict_param": r"Type typing.Union\[typing.Dict\[str, str\], NoneType\] is not "
+        r"supported \(argument optional_dict_param\).",
         "no_annotation_param": r"Missing type annotation for argument no_annotation_param.",
     }
     for argument_name, expected_type in expected_types.items():

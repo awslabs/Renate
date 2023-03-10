@@ -29,8 +29,8 @@ def data_module_fn(
     optional_float: Optional[float] = None,
     list_param: list = [1, 2],
 ) -> RenateDataModule:
-    data_module = DummyTorchVisionDataModule(transform=None, val_size=float(val_size), seed=seed)
-    if use_scenario == "True":
+    data_module = DummyTorchVisionDataModule(transform=None, val_size=val_size, seed=seed)
+    if use_scenario:
         return ClassIncrementalScenario(
             data_module=data_module,
             chunk_id=chunk_id,
