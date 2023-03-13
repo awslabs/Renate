@@ -137,7 +137,6 @@ def get_updater_and_learner_kwargs(
 def parse_arguments(
     config_module: ModuleType, function_names: List[str], ignore_args: List[str]
 ) -> Tuple[argparse.Namespace, Dict[str, Any]]:
-
     arguments = _standard_arguments()
     _add_hyperparameter_arguments(arguments)
     function_args = {}

@@ -18,11 +18,11 @@ dynamic = ["version", "readme", "dependencies"]
 
 [project.optional-dependencies]
 dev = [
-    "black~=22.12.0",
+    "black==23.1.0",
     # PyTest Dependencies
-    "pytest~=7.2.0",
-    "pytest-cov~=4.0.0",
-    "pytest-helpers-namespace~=2021.12.29",
+    "pytest==7.2.2",
+    "pytest-cov==4.0.0",
+    "pytest-helpers-namespace==2021.12.29",
     ]
 
 [tool.setuptools.packages.find]

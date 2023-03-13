@@ -19,7 +19,6 @@ config_space = {
 }
 
 if __name__ == "__main__":
-
     AWS_ID = "0123456789"  # use your AWS account id here
     AWS_REGION = "us-west-2"  # use your AWS preferred region here
 

@@ -12,7 +12,6 @@ configuration = {
 }
 
 if __name__ == "__main__":
-
     run_training_job(
         config_space=configuration,
         mode="max",
