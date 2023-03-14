@@ -39,7 +39,7 @@ def to_avalanche_dataset(dataset: Union[Dataset, DataBuffer]) -> AvalancheDatase
             x_data.append(x)
             y_data.append(y)
     else:
-        for (x, y) in dataset:
+        for x, y in dataset:
             x_data.append(x)
             if not isinstance(y, int):
                 y = y.item()

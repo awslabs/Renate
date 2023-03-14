@@ -443,14 +443,13 @@ def _create_scheduler(
     config_space: Dict[str, Any],
     metric: str,
     mode: defaults.SUPPORTED_TUNING_MODE_TYPE,
-    max_epochs: int,
     seed: int,
     scheduler_kwargs: Optional[Dict[str, Any]] = None,
     input_state_url: Optional[str] = None,
 ) -> TrialScheduler:
     scheduler_kwargs = scheduler_kwargs or {}
     if isinstance(scheduler, str):
-        hyperband_scheduler_kwargs = {"max_t": max_epochs, "resource_attr": "epoch"}
+        hyperband_scheduler_kwargs = {"max_resource_attr": "max_epochs", "resource_attr": "epoch"}
         scheduler_classes = {
             "asha": {"scheduler": ASHA, "scheduler_kwargs": hyperband_scheduler_kwargs},
             "bo": {"scheduler": FIFOScheduler, "scheduler_kwargs": {"searcher": "bayesopt"}},
@@ -557,7 +556,6 @@ def _execute_training_and_tuning_job_locally(
             config_space=config_space,
             metric=metric,
             mode=mode,
-            max_epochs=max_epochs,
             seed=seed,
             scheduler_kwargs=scheduler_kwargs,
             input_state_url=input_state_url,
