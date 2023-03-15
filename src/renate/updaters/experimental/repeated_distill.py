@@ -288,7 +288,7 @@ class RepeatedDistillationLearner(ReplayLearner):
         """Called right before a model update terminates."""
         # Update the logits in memory using the newly consolidated model.
         logits = extract_logits(self._model, self._memory_buffer, self._batch_size)
-        self._memory_buffer.metadata["logits"][: len(self._memory_buffer)] = logits
+        self._memory_buffer.set_metadata("logits", logits)
         return super().on_model_update_end(train_dataset, val_dataset, task_id)
 
     def training_step(

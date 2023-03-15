@@ -71,7 +71,7 @@ class RenateModelCheckpoint(ModelCheckpoint):
     def __init__(
         self,
         model: RenateModule,
-        input_state_folder: str,
+        output_state_folder: str,
         val_enabled: bool,
         metric: Optional[str] = None,
         mode: defaults.SUPPORTED_TUNING_MODE_TYPE = "min",
@@ -84,7 +84,7 @@ class RenateModelCheckpoint(ModelCheckpoint):
             save_last = True
         learner_checkpoint_filename = Path(defaults.learner_state_file("")).stem
         super().__init__(
-            dirpath=input_state_folder,
+            dirpath=output_state_folder,
             filename=learner_checkpoint_filename,
             every_n_epochs=every_n_epochs,
             monitor=metric,
@@ -93,10 +93,10 @@ class RenateModelCheckpoint(ModelCheckpoint):
             save_weights_only=True,
         )
         self._model = model
-        self._input_state_folder = input_state_folder
+        self._output_state_folder = output_state_folder
         self.CHECKPOINT_NAME_LAST = learner_checkpoint_filename
         # Delete old checkpoint if exists
-        Path(defaults.learner_state_file(self._input_state_folder)).unlink(missing_ok=True)
+        Path(defaults.learner_state_file(self._output_state_folder)).unlink(missing_ok=True)
         # FIXME: Hack to make sure Syne Tune is called after checkpointing.
         # Details: https://github.com/Lightning-AI/lightning/issues/15026
         # If fixed, remove on_train_epoch_end, on_validation_epoch_end, val_enabled, remove line
@@ -120,6 +120,32 @@ class RenateModelCheckpoint(ModelCheckpoint):
         super().on_validation_epoch_end(trainer=trainer, pl_module=pl_module)
         if self._syne_tune_callback is not None:
             self._syne_tune_callback.on_validation_epoch_end(trainer=trainer, pl_module=pl_module)
+
+    def _load_best_checkpoint_and_save(self, trainer: Trainer, pl_module: LightningModule) -> None:
+        self._model.load_state_dict(torch.load(defaults.model_file(self.dirpath)))
+        learner_state_path = Path(defaults.learner_state_file(self._output_state_folder))
+        if learner_state_path.exists():
+            pl_module.load_state_dict(
+                self._model, torch.load(learner_state_path)["state_dict"]
+            )  # Load state!!! FIX
+        print(f"#datasets before: {len(pl_module._val_memory_buffer._datasets)}")
+        if hasattr(pl_module, "_memory_buffer"):
+            print(f"#datasets before: {len(pl_module._memory_buffer._datasets)}")
+        pl_module.save(self._output_state_folder)
+        print(f"#datasets after: {len(pl_module._val_memory_buffer._datasets)}")
+        if hasattr(pl_module, "_memory_buffer"):
+            print(f"#datasets after: {len(pl_module._memory_buffer._datasets)}")
+        self._save_checkpoint(trainer, learner_state_path)
+
+    def on_exception(
+        self, trainer: Trainer, pl_module: LightningModule, exception: BaseException
+    ) -> None:
+        super().on_exception(trainer, pl_module, exception)
+        self._load_best_checkpoint_and_save(trainer, pl_module)
+
+    def on_fit_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
+        super().on_fit_end(trainer, pl_module)
+        self._load_best_checkpoint_and_save(trainer, pl_module)
 
 
 class ModelUpdater(abc.ABC):
@@ -269,6 +295,7 @@ class ModelUpdater(abc.ABC):
             )
         learner = learner_class.__new__(learner_class)
         learner.load_state_dict(self._model, torch.load(self._learner_state_file)["state_dict"])
+        learner.load(self._input_state_folder)
         learner.set_transforms(**self._transforms_kwargs)
         learner.set_logged_metrics(self._logged_metrics)
         learner.update_hyperparameters(learner_kwargs)
@@ -287,7 +314,7 @@ class ModelUpdater(abc.ABC):
         if self._output_state_folder is not None:
             model_checkpoint_callback = RenateModelCheckpoint(
                 model=self._model,
-                input_state_folder=self._output_state_folder,
+                output_state_folder=self._output_state_folder,
                 metric=self._metric,
                 mode=self._mode,
                 val_enabled=val_loader is not None,
