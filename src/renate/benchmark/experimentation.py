@@ -15,6 +15,7 @@ import renate.defaults as defaults
 from renate.cli.parsing_functions import (
     get_data_module_fn_kwargs,
     get_model_fn_kwargs,
+    get_scheduler_kwargs,
     get_transforms_kwargs,
 )
 from renate.evaluation.metrics.classification import (
@@ -265,6 +266,7 @@ def _execute_experiment_job_locally(
         Path(url).mkdir(parents=True, exist_ok=True)
 
     config_module = import_module("config_module", config_file)
+    scheduler, scheduler_kwargs = get_scheduler_kwargs(config_module)
     model_fn_kwargs = get_model_fn_kwargs(config_module, config_space)
     logger.info(f"Loading model {model_fn_kwargs.get('model_name', '')}")
     model = get_model(config_module, **model_fn_kwargs)
@@ -322,6 +324,8 @@ def _execute_experiment_job_locally(
             max_num_trials_completed=max_num_trials_completed,
             max_num_trials_finished=max_num_trials_finished,
             n_workers=n_workers,
+            scheduler=scheduler,
+            scheduler_kwargs=scheduler_kwargs,
             seed=seed,
             accelerator=accelerator,
             devices=devices,

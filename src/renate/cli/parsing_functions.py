@@ -7,6 +7,8 @@ import sys
 from types import ModuleType
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
+from syne_tune.optimizer.scheduler import TrialScheduler
+
 from renate import defaults
 from renate.updaters.avalanche.model_updater import (
     ElasticWeightConsolidationModelUpdater,
@@ -848,6 +850,16 @@ def get_function_args(
         else:
             all_args[argument_name]["required"] = True
     return arg_spec.args
+
+
+def get_scheduler_kwargs(
+    config_module: ModuleType,
+) -> Tuple[Optional[Type[TrialScheduler]], Optional[Dict[str, Any]]]:
+    """Creates and returns scheduler type and kwargs for the HPO scheduler."""
+    scheduler_fn_name = "scheduler_fn"
+    if scheduler_fn_name in vars(config_module):
+        return getattr(config_module, scheduler_fn_name)()
+    return None, None
 
 
 parse_by_updater = {
