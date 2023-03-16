@@ -137,8 +137,17 @@ def get_updater_and_learner_kwargs(
     return updater_class, learner_kwargs
 
 
-def _cast_arguments(arguments: Dict[str, Dict[str, Any]], args_dict: Dict[str, str]) -> None:
-    """Casts all values in args_dict to the value specified in arguments."""
+def _cast_arguments_to_true_types(
+    arguments: Dict[str, Dict[str, Any]], args_dict: Dict[str, str]
+) -> None:
+    """Casts all values in args_dict to the value specified in arguments.
+
+    Booleans, lists, None, and tuples are passed as a string to the script and argsparse will not
+    convert them for us. After detecting the true types according to typing (typing is saved in
+    ``arguments``), we now explicitly cast our arguments.
+    After this step, ``args`` as a results of argparse.parse will contain the correct types and no
+    further typecasting is required.
+    """
     for argument_name, argument_kwargs in arguments.items():
         if args_dict[argument_name] == "None":
             args_dict[argument_name] = None
@@ -192,7 +201,7 @@ def parse_arguments(
                     },
                 )
     args = parser.parse_args()
-    _cast_arguments(arguments=arguments, args_dict=vars(args))
+    _cast_arguments_to_true_types(arguments=arguments, args_dict=vars(args))
     return args, function_args
 
 
@@ -731,7 +740,7 @@ def _get_function_kwargs_helper(
     filtered_args = {key: value for key, value in config_space.items() if key in function_args}
     if cast_arguments:
         filtered_all_args = {key: value for key, value in all_args.items() if key in filtered_args}
-        _cast_arguments(arguments=filtered_all_args, args_dict=filtered_args)
+        _cast_arguments_to_true_types(arguments=filtered_all_args, args_dict=filtered_args)
     return filtered_args
 
 
