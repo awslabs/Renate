@@ -1,10 +1,13 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import argparse
+import ast
 import inspect
 import sys
 from types import ModuleType
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
+
+from syne_tune.optimizer.scheduler import TrialScheduler
 
 from renate import defaults
 from renate.updaters.avalanche.model_updater import (
@@ -134,10 +137,44 @@ def get_updater_and_learner_kwargs(
     return updater_class, learner_kwargs
 
 
+def _cast_arguments_to_true_types(
+    arguments: Dict[str, Dict[str, Any]], args_dict: Dict[str, str]
+) -> None:
+    """Casts all values in args_dict to the value specified in arguments.
+
+    Booleans, lists, None, and tuples are passed as a string to the script and argsparse will not
+    convert them for us. After detecting the true types according to typing (typing is saved in
+    ``arguments``), we now explicitly cast our arguments.
+    After this step, ``args`` as a results of argparse.parse will contain the correct types and no
+    further typecasting is required.
+    """
+    for argument_name, argument_kwargs in arguments.items():
+        if args_dict[argument_name] == "None":
+            args_dict[argument_name] = None
+        if args_dict[argument_name] is None:
+            continue
+        if argument_kwargs.get("true_type") == bool:
+            args_dict[argument_name] = args_dict[argument_name] == "True"
+        elif argument_kwargs.get("true_type") in [list, tuple]:
+            args_dict[argument_name] = ast.literal_eval(args_dict[argument_name])
+
+
 def parse_arguments(
     config_module: ModuleType, function_names: List[str], ignore_args: List[str]
 ) -> Tuple[argparse.Namespace, Dict[str, Any]]:
+    """Parses all input arguments.
 
+    Combines standard arguments with custom arguments in functions of Renate config.
+
+    Args:
+        config_module: Module containing function of which we extract arguments.
+        function_names: List of function names in module for which extract arguments.
+        ignore_args: List of arguments to be ignored since they are not passed via CLI.
+    Returns:
+        First return value are the passed arguments where strings are converted to Booleans, lists
+        and tuples. Second return value is a dictionary containing the arguments that will be passed
+        to all functions specified in ``function_names``.
+    """
     arguments = _standard_arguments()
     _add_hyperparameter_arguments(arguments)
     function_args = {}
@@ -160,10 +197,12 @@ def parse_arguments(
                     **{
                         key: value
                         for key, value in argument_kwargs.items()
-                        if key != "argument_group"
+                        if key != "argument_group" and key != "true_type"
                     },
                 )
-    return parser.parse_args(), function_args
+    args = parser.parse_args()
+    _cast_arguments_to_true_types(arguments=arguments, args_dict=vars(args))
+    return args, function_args
 
 
 def _standard_arguments() -> Dict[str, Dict[str, Any]]:
@@ -249,6 +288,7 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
             "help": "Enables the early stopping of the optimization. Default: "
             f"{defaults.EARLY_STOPPING}.",
             "argument_group": OPTIONAL_ARGS_GROUP,
+            "true_type": bool,
         },
         "deterministic_trainer": {
             "type": str,
@@ -257,12 +297,15 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
             "help": "Enables deterministic training which may be slower. Default: "
             f"{defaults.DETERMINISTIC_TRAINER}.",
             "argument_group": OPTIONAL_ARGS_GROUP,
+            "true_type": bool,
         },
         "prepare_data": {
-            "type": int,
-            "default": 1,
-            "help": "Whether to call DataModule.prepare_data(). Default: 1.",
+            "type": str,
+            "default": "True",
+            "choices": ["True", "False"],
+            "help": "Whether to call DataModule.prepare_data(). Default: True.",
             "argument_group": DO_NOT_CHANGE_GROUP,
+            "true_type": bool,
         },
         "st_checkpoint_dir": {
             "type": str,
@@ -645,17 +688,25 @@ def get_function_kwargs(args: argparse.Namespace, function_args: Dict[str, Any])
     return {key: value for key, value in vars(args).items() if key in function_args}
 
 
-def get_data_module_fn_kwargs(config_module, config_space: Dict[str, Any]) -> Dict[str, Any]:
+def get_data_module_fn_kwargs(
+    config_module, config_space: Dict[str, Any], cast_arguments: Optional[bool] = False
+) -> Dict[str, Any]:
     """Returns the kwargs for a ``data_module_fn`` with defined arguments based on config_space."""
-    return _get_function_kwargs_helper(config_module, config_space, "data_module_fn", ["data_path"])
+    return _get_function_kwargs_helper(
+        config_module, config_space, "data_module_fn", ["data_path"], cast_arguments
+    )
 
 
-def get_model_fn_kwargs(config_module, config_space: Dict[str, Any]) -> Dict[str, Any]:
+def get_model_fn_kwargs(
+    config_module, config_space: Dict[str, Any], cast_arguments: Optional[bool] = False
+) -> Dict[str, Any]:
     """Returns the kwargs for a ``model_fn`` with defined arguments based on config_space."""
-    return _get_function_kwargs_helper(config_module, config_space, "model_fn", [])
+    return _get_function_kwargs_helper(config_module, config_space, "model_fn", [], cast_arguments)
 
 
-def get_transforms_kwargs(config_module, config_space: Dict[str, Any]) -> Dict[str, Callable]:
+def get_transforms_kwargs(
+    config_module, config_space: Dict[str, Any], cast_arguments: Optional[bool] = False
+) -> Dict[str, Callable]:
     """Returns the transforms based on config_space."""
     transform_fn_names = [
         "train_transform",
@@ -669,17 +720,28 @@ def get_transforms_kwargs(config_module, config_space: Dict[str, Any]) -> Dict[s
     for transform_fn_name in transform_fn_names:
         if hasattr(config_module, transform_fn_name):
             transforms[transform_fn_name] = getattr(config_module, transform_fn_name)(
-                **_get_function_kwargs_helper(config_module, config_space, transform_fn_name, [])
+                **_get_function_kwargs_helper(
+                    config_module, config_space, transform_fn_name, [], cast_arguments
+                )
             )
     return transforms
 
 
 def _get_function_kwargs_helper(
-    config_module, config_space: Dict[str, Any], function_name: str, ignore_args: List[str]
+    config_module,
+    config_space: Dict[str, Any],
+    function_name: str,
+    ignore_args: List[str],
+    cast_arguments: Optional[bool] = False,
 ) -> Dict[str, Any]:
     """Returns kwargs for function based on its interface."""
-    function_args = get_function_args(config_module, function_name, {}, ignore_args)
-    return {key: value for key, value in config_space.items() if key in function_args}
+    all_args = {}
+    function_args = get_function_args(config_module, function_name, all_args, ignore_args)
+    filtered_args = {key: value for key, value in config_space.items() if key in function_args}
+    if cast_arguments:
+        filtered_all_args = {key: value for key, value in all_args.items() if key in filtered_args}
+        _cast_arguments_to_true_types(arguments=filtered_all_args, args_dict=filtered_args)
+    return filtered_args
 
 
 def get_transforms_dict(
@@ -706,6 +768,8 @@ def get_transforms_dict(
 
 
 def get_argument_type(arg_spec: inspect.FullArgSpec, argument_name: str) -> Type:
+    """Returns the type of the argument with ``argument_name``."""
+
     def raise_error(arg_type, arg_name):
         raise TypeError(f"Type {arg_type} is not supported (argument {arg_name}).")
 
@@ -717,7 +781,15 @@ def get_argument_type(arg_spec: inspect.FullArgSpec, argument_name: str) -> Type
                 argument_name
             ].__args__[1] != type(None):
                 raise_error(arg_spec.annotations[argument_name], argument_name)
-            argument_type = arg_spec.annotations[argument_name].__args__[0]
+            if hasattr(arg_spec.annotations[argument_name].__args__[0], "__origin__"):
+                if arg_spec.annotations[argument_name].__args__[0].__origin__ in [list, tuple]:
+                    argument_type = arg_spec.annotations[argument_name].__args__[0].__origin__
+                else:
+                    raise_error(arg_spec.annotations[argument_name], argument_name)
+            else:
+                argument_type = arg_spec.annotations[argument_name].__args__[0]
+            if arg_spec.annotations[argument_name].__origin__ in [list, tuple]:
+                argument_type = arg_spec.annotations[argument_name].__origin__
         elif arg_spec.annotations[argument_name].__origin__ in [list, tuple]:
             argument_type = arg_spec.annotations[argument_name].__origin__
         else:
@@ -727,6 +799,11 @@ def get_argument_type(arg_spec: inspect.FullArgSpec, argument_name: str) -> Type
     if argument_type not in [int, bool, float, str, list, tuple]:
         raise_error(argument_type, argument_name)
     return argument_type
+
+
+def to_dense_str(value: Union[bool, List, Tuple]) -> str:
+    """Converts a variable to string without empty spaces."""
+    return str(value).replace(" ", "")
 
 
 def get_function_args(
@@ -768,15 +845,30 @@ def get_function_args(
             all_args[argument_name]["required"] = True
 
     for argument_name in new_args:
+        true_type = get_argument_type(arg_spec, argument_name)
         all_args[argument_name] = {
-            "type": get_argument_type(arg_spec, argument_name),
+            "type": str if true_type in [bool, list, tuple] else true_type,
             "argument_group": CUSTOM_ARGS_GROUP,
+            "true_type": true_type,
         }
         if argument_name in default_values:
-            all_args[argument_name]["default"] = default_values[argument_name]
+            default_value = default_values[argument_name]
+            if true_type in [bool, list, tuple] and default_value is not None:
+                default_value = to_dense_str(default_value)
+            all_args[argument_name]["default"] = default_value
         else:
             all_args[argument_name]["required"] = True
     return arg_spec.args
+
+
+def get_scheduler_kwargs(
+    config_module: ModuleType,
+) -> Tuple[Optional[Type[TrialScheduler]], Optional[Dict[str, Any]]]:
+    """Creates and returns scheduler type and kwargs for the HPO scheduler."""
+    scheduler_fn_name = "scheduler_fn"
+    if scheduler_fn_name in vars(config_module):
+        return getattr(config_module, scheduler_fn_name)()
+    return None, None
 
 
 parse_by_updater = {

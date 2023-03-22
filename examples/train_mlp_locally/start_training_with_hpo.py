@@ -1,8 +1,9 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
 from renate.training import run_training_job
 from renate.utils.config_spaces import config_space
 
 if __name__ == "__main__":
-
     # we run the first training job on the MNIST classes [0-4]
     run_training_job(
         config_space=config_space("RD"),  # getting the default search space

@@ -31,7 +31,7 @@ from syne_tune.util import experiment_path
 
 import renate
 from renate import defaults
-from renate.cli.parsing_functions import get_data_module_fn_kwargs
+from renate.cli.parsing_functions import to_dense_str, get_data_module_fn_kwargs
 from renate.utils.file import move_to_uri
 from renate.utils.module import get_and_prepare_data_module, import_module
 from renate.utils.syne_tune import (
@@ -141,6 +141,9 @@ def run_training_job(
     assert (
         backend in defaults.SUPPORTED_BACKEND
     ), f"Backend {backend} is not in {defaults.SUPPORTED_BACKEND}."
+    for key, value in config_space.items():
+        if isinstance(value, (bool, list, tuple)):
+            config_space[key] = to_dense_str(value)
     if backend == "local":
         return _execute_training_and_tuning_job_locally(
             input_state_url=input_state_url,
@@ -422,7 +425,7 @@ def _verify_validation_set_for_hpo_and_checkpointing(
     data_module = get_and_prepare_data_module(
         config_module,
         data_path=defaults.data_folder(working_directory),
-        **get_data_module_fn_kwargs(config_module, config_space),
+        **get_data_module_fn_kwargs(config_module, config_space, cast_arguments=True),
     )
     data_module.setup()
     val_exists = data_module.val_data() is not None
@@ -443,14 +446,13 @@ def _create_scheduler(
     config_space: Dict[str, Any],
     metric: str,
     mode: defaults.SUPPORTED_TUNING_MODE_TYPE,
-    max_epochs: int,
     seed: int,
     scheduler_kwargs: Optional[Dict[str, Any]] = None,
     input_state_url: Optional[str] = None,
 ) -> TrialScheduler:
     scheduler_kwargs = scheduler_kwargs or {}
     if isinstance(scheduler, str):
-        hyperband_scheduler_kwargs = {"max_t": max_epochs, "resource_attr": "epoch"}
+        hyperband_scheduler_kwargs = {"max_resource_attr": "max_epochs", "resource_attr": "epoch"}
         scheduler_classes = {
             "asha": {"scheduler": ASHA, "scheduler_kwargs": hyperband_scheduler_kwargs},
             "bo": {"scheduler": FIFOScheduler, "scheduler_kwargs": {"searcher": "bayesopt"}},
@@ -513,7 +515,7 @@ def _execute_training_and_tuning_job_locally(
     config_space["updater"] = updater
     config_space["max_epochs"] = max_epochs
     config_space["config_file"] = config_file
-    config_space["prepare_data"] = 0
+    config_space["prepare_data"] = False
     config_space["chunk_id"] = chunk_id
     config_space["task_id"] = task_id
     config_space["working_directory"] = working_directory
@@ -557,7 +559,6 @@ def _execute_training_and_tuning_job_locally(
             config_space=config_space,
             metric=metric,
             mode=mode,
-            max_epochs=max_epochs,
             seed=seed,
             scheduler_kwargs=scheduler_kwargs,
             input_state_url=input_state_url,

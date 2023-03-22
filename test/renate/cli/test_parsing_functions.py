@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import inspect
+import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -13,6 +14,7 @@ from renate.cli.parsing_functions import (
     get_data_module_fn_kwargs,
     get_function_args,
     get_model_fn_kwargs,
+    to_dense_str,
 )
 from renate.utils.module import import_module
 
@@ -32,6 +34,7 @@ def test_get_argument_type():
         list_of_float_lists: List[List[float]],
         no_annotation_param,
         optional_str_param: Optional[str] = None,
+        optional_dict_param: Optional[Dict[str, str]] = None,
     ):
         pass
 
@@ -46,8 +49,15 @@ def test_get_argument_type():
     expected_errors = {
         "dict_param": r"Type typing.Dict\[str, int\] is not supported \(argument dict_param\).",
         "union_param": r"Type typing.Union\[str, int\] is not supported \(argument union_param\).",
+        "optional_dict_param": r"Type typing.Union\[typing.Dict\[str, str\], NoneType\] is not "
+        r"supported \(argument optional_dict_param\).",
         "no_annotation_param": r"Missing type annotation for argument no_annotation_param.",
     }
+    if sys.version_info.minor >= 9:
+        expected_errors["optional_dict_param"] = (
+            r"Type typing.Optional\[typing.Dict\[str, str\]\] is not supported "
+            r"\(argument optional_dict_param\)."
+        )
     for argument_name, expected_type in expected_types.items():
         assert get_argument_type(arg_spec=arg_spec, argument_name=argument_name) == expected_type
 
@@ -75,15 +85,74 @@ def test_get_argument_type():
     ids=("No all_args, no ignore_args", "no all_args", "all_args"),
 )
 def test_get_function_args(all_args, ignore_args):
-    expected_args = ["data_path", "chunk_id", "val_size", "seed", "use_scenario"]
+    expected_args = [
+        "data_path",
+        "chunk_id",
+        "val_size",
+        "seed",
+        "use_scenario",
+        "class_groupings",
+        "optional_tuple",
+        "optional_float",
+        "list_param",
+    ]
     expected_all_args = {
         **all_args,
         **{
-            "data_path": {"type": str, "argument_group": CUSTOM_ARGS_GROUP, "required": True},
-            "chunk_id": {"type": int, "argument_group": CUSTOM_ARGS_GROUP, "default": None},
-            "val_size": {"type": str, "argument_group": CUSTOM_ARGS_GROUP, "default": "0.0"},
-            "seed": {"type": int, "argument_group": CUSTOM_ARGS_GROUP, "default": 0},
-            "use_scenario": {"type": str, "argument_group": CUSTOM_ARGS_GROUP, "default": "False"},
+            "data_path": {
+                "type": str,
+                "argument_group": CUSTOM_ARGS_GROUP,
+                "required": True,
+                "true_type": str,
+            },
+            "chunk_id": {
+                "type": int,
+                "argument_group": CUSTOM_ARGS_GROUP,
+                "default": None,
+                "true_type": int,
+            },
+            "val_size": {
+                "type": float,
+                "argument_group": CUSTOM_ARGS_GROUP,
+                "default": 0.0,
+                "true_type": float,
+            },
+            "seed": {
+                "type": int,
+                "argument_group": CUSTOM_ARGS_GROUP,
+                "default": 0,
+                "true_type": int,
+            },
+            "use_scenario": {
+                "type": str,
+                "argument_group": CUSTOM_ARGS_GROUP,
+                "default": "False",
+                "true_type": bool,
+            },
+            "class_groupings": {
+                "type": str,
+                "argument_group": CUSTOM_ARGS_GROUP,
+                "default": "((0,1),(2,3,4))",
+                "true_type": tuple,
+            },
+            "optional_tuple": {
+                "type": str,
+                "argument_group": CUSTOM_ARGS_GROUP,
+                "default": None,
+                "true_type": tuple,
+            },
+            "optional_float": {
+                "type": float,
+                "argument_group": CUSTOM_ARGS_GROUP,
+                "default": None,
+                "true_type": float,
+            },
+            "list_param": {
+                "type": str,
+                "argument_group": CUSTOM_ARGS_GROUP,
+                "default": "[1,2]",
+                "true_type": list,
+            },
         },
     }
     for arg in ignore_args:
@@ -142,14 +211,25 @@ def test_get_function_args_prefers_required_true():
 def test_get_fn_kwargs_helper_functions():
     """Tests whether the different helper functions correctly create kwargs given a dictionary
     and the Python function."""
-    config_space = {
+    expected_data_module_kwargs = {
         "data_path": "home/data/path",
+        "class_groupings": ((1, 2), (3, 4)),
+        "use_scenario": False,
+        "optional_float": None,
+    }
+    config_space = {
+        "data_path": expected_data_module_kwargs["data_path"],
         "model_state_url": "home/model/state",
         "unused_config": 1,
+        "class_groupings": to_dense_str(expected_data_module_kwargs["class_groupings"]),
+        "use_scenario": to_dense_str(expected_data_module_kwargs["use_scenario"]),
+        "optional_float": to_dense_str(expected_data_module_kwargs["optional_float"]),
     }
     data_module_kwargs = get_data_module_fn_kwargs(
-        config_module=config_module, config_space=config_space
+        config_module=config_module, config_space=config_space, cast_arguments=True
     )
-    assert data_module_kwargs == {"data_path": config_space["data_path"]}
-    model_kwargs = get_model_fn_kwargs(config_module=config_module, config_space=config_space)
+    assert data_module_kwargs == expected_data_module_kwargs
+    model_kwargs = get_model_fn_kwargs(
+        config_module=config_module, config_space=config_space, cast_arguments=True
+    )
     assert model_kwargs == {"model_state_url": config_space["model_state_url"]}

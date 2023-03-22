@@ -1,6 +1,5 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-import ast
 from typing import List, Optional, Tuple, Union
 
 import torch
@@ -57,10 +56,10 @@ def model_fn(
     model_state_url: Optional[str] = None,
     updater: Optional[str] = None,
     model_name: Optional[str] = None,
-    num_inputs: Optional[str] = None,
-    num_outputs: Optional[str] = None,
-    num_hidden_layers: Optional[str] = None,
-    hidden_size: Optional[str] = None,
+    num_inputs: Optional[int] = None,
+    num_outputs: Optional[int] = None,
+    num_hidden_layers: Optional[int] = None,
+    hidden_size: Optional[Tuple[int]] = None,
 ) -> RenateModule:
     """Returns a model instance."""
     if model_name not in models:
@@ -71,12 +70,12 @@ def model_fn(
         model_kwargs["prediction_strategy"] = ICaRLClassificationStrategy()
     if model_name == "MultiLayerPerceptron":
         model_kwargs = {
-            "num_inputs": int(num_inputs),
-            "num_hidden_layers": int(num_hidden_layers),
-            "hidden_size": ast.literal_eval(hidden_size),
+            "num_inputs": num_inputs,
+            "num_hidden_layers": num_hidden_layers,
+            "hidden_size": hidden_size,
         }
     if num_outputs is not None:
-        model_kwargs["num_outputs"] = int(num_outputs)
+        model_kwargs["num_outputs"] = num_outputs
     if model_state_url is None:
         model = model_class(**model_kwargs)
     else:
@@ -103,7 +102,7 @@ def get_scenario(
     chunk_id: int,
     seed: int,
     num_tasks: Optional[int] = None,
-    class_groupings: Optional[List[List[int]]] = None,
+    class_groupings: Optional[Tuple[Tuple[int]]] = None,
     degrees: Optional[List[int]] = None,
     input_dim: Optional[Union[List[int], Tuple[int], int]] = None,
     feature_idx: Optional[int] = None,
@@ -185,32 +184,20 @@ def data_module_fn(
     seed: int,
     scenario_name: str,
     dataset_name: str,
-    val_size: str = "0.0",
-    num_tasks: Optional[str] = None,
-    class_groupings: Optional[str] = None,
-    degrees: Optional[str] = None,
-    input_dim: Optional[str] = None,
-    feature_idx: Optional[str] = None,
-    randomness: Optional[str] = None,
+    val_size: float = 0.0,
+    num_tasks: Optional[int] = None,
+    class_groupings: Optional[Tuple[Tuple[int]]] = None,
+    degrees: Optional[Tuple[int]] = None,
+    input_dim: Optional[Tuple[int]] = None,
+    feature_idx: Optional[int] = None,
+    randomness: Optional[float] = None,
 ):
     data_module = get_data_module(
         data_path=data_path,
         dataset_name=dataset_name,
-        val_size=float(val_size),
+        val_size=val_size,
         seed=seed,
     )
-    if num_tasks is not None:
-        num_tasks = int(num_tasks)
-    if class_groupings is not None:
-        class_groupings = ast.literal_eval(class_groupings)
-    if degrees is not None:
-        degrees = ast.literal_eval(degrees)
-    if input_dim is not None:
-        input_dim = ast.literal_eval(input_dim)
-    if feature_idx is not None:
-        feature_idx = int(feature_idx)
-    if randomness is not None:
-        randomness = float(randomness)
     return get_scenario(
         scenario_name=scenario_name,
         data_module=data_module,
