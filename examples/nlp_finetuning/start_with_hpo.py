@@ -13,7 +13,7 @@ config_space = {
     "weight_decay": 0.0,
     "learning_rate": loguniform(1e-4, 1e-1),
     "alpha": uniform(0.0, 1.0),
-    "batch_size": choice([32, 64, 128, 256]),
+    "batch_size": choice([16, 32]),
     "memory_batch_size": 32,
     "memory_size": 1000,
     "loss_normalization": 0,
@@ -44,7 +44,7 @@ if __name__ == "__main__":
         role=get_execution_role(),
         instance_count=1,
         instance_type="ml.g4dn.xlarge",
-        max_num_trials_finished=100,
+        max_num_trials_finished=20,
         scheduler="asha",  # run ASHA to optimize our hyperparameters
         # if you use a big instance with multiple GPUs you can multiple workers evaluating
         # configuration in parallel
