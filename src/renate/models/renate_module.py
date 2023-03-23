@@ -259,8 +259,7 @@ class RenateWrapper(RenateModule):
         else:
             raise TypeError(f"Expected tensor or tuple/dict of tensors; found {type(x)}.")
 
-        if isinstance(outputs, tuple):
-            assert len(outputs) == 1
+        if isinstance(outputs, tuple) and len(outputs) == 1:
             return outputs[0]
         else:
             return outputs
