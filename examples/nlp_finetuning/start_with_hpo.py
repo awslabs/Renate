@@ -4,7 +4,7 @@
 from syne_tune.backend.sagemaker_backend.sagemaker_utils import get_execution_role
 from syne_tune.config_space import choice, loguniform, uniform
 
-from renate.tuning import execute_tuning_job
+from renate.training import run_training_job
 
 config_space = {
     "optimizer": "SGD",
@@ -20,23 +20,22 @@ config_space = {
 }
 
 if __name__ == "__main__":
-
     AWS_ID = "0123456789"  # use your AWS account id here
     AWS_REGION = "us-west-2"  # use your AWS preferred region here
 
-    execute_tuning_job(
+    run_training_job(
         config_space=config_space,
         mode="max",
         metric="val_accuracy",
         updater="ER",  # we train with Experience Replay
-        max_epochs=50,
+        max_epochs=5,
         # we select the first chunk of our dataset, you will probably not need this in practice
         chunk_id=0,
         config_file="renate_config.py",
-        requirements_file="requirements.txt",
+        requirements_file="../../requirements.txt",
         # replace the url below with a different one if you already ran it and you want to avoid
         # overwriting
-        next_state_url=f"s3://sagemaker-{AWS_REGION}-{AWS_ID}/renate-training-nlp-finetuning/",
+        output_state_url=f"s3://sagemaker-{AWS_REGION}-{AWS_ID}/renate-training-nlp-finetuning/",
         # uncomment the line below only if you already created a model with this script and you want
         # to update it
         # state_url=f"s3://sagemaker-{AWS_REGION}-{AWS_ID}/renate-training-nlp-finetuning/",
@@ -49,5 +48,5 @@ if __name__ == "__main__":
         # if you use a big instance with multiple GPUs you can multiple workers evaluating
         # configuration in parallel
         # n_workers=4,
-        job_name="job-name",
+        job_name="renate-training-nlp-finetuning",
     )
