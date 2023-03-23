@@ -14,7 +14,7 @@ from renate.models.renate_module import RenateWrapper
 
 
 def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule:
-    """Returns a model instance."""
+    """Returns a DistilBert classification model."""
     transformer_model = transformers.DistilBertForSequenceClassification.from_pretrained(
         "distilbert-base-uncased", num_labels=2, return_dict=False
     )
@@ -28,7 +28,7 @@ def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule
 def data_module_fn(
     data_path: Union[Path, str], chunk_id: int, seed: int = defaults.SEED
 ) -> Scenario:
-    """Returns a class-incremental scenario instance."""
+    """Returns one of two movie review datasets, depending on `chunk_id`."""
     tokenizer = transformers.DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
     assert 0 <= chunk_id <= 1
     dataset_name = "imdb" if chunk_id else "rotten_tomatoes"
