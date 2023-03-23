@@ -30,19 +30,15 @@ def data_module_fn(
 ) -> Scenario:
     """Returns a class-incremental scenario instance."""
     tokenizer = transformers.DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
+    assert 0 <= chunk_id <= 1
+    dataset_name = "imdb" if chunk_id else "rotten_tomatoes"
     data_module = HuggingfaceTextDataModule(
         str(data_path),
-        dataset_name="rotten_tomatoes",
+        dataset_name=dataset_name,
         tokenizer=tokenizer,
         val_size=0.2,
         seed=seed,
     )
-    # class_incremental_scenario = ClassIncrementalScenario(
-    #     data_module=data_module,
-    #     class_groupings=[[0, 1], [2, 3]],
-    #     chunk_id=chunk_id,
-    # )
-    # return class_incremental_scenario
     return data_module
 
 
