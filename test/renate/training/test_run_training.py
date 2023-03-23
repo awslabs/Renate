@@ -11,14 +11,14 @@ from syne_tune.optimizer.schedulers import FIFOScheduler
 from syne_tune.optimizer.schedulers.transfer_learning import RUSHScheduler
 
 from renate import defaults
-from renate.tuning.tuning import (
+from renate.training.training import (
     RENATE_CONFIG_COLUMNS,
     _create_scheduler,
     _get_transfer_learning_task_evaluations,
     _load_tuning_history,
     _merge_tuning_history,
     _verify_validation_set_for_hpo_and_checkpointing,
-    execute_tuning_job,
+    run_training_job,
 )
 from renate.utils.syne_tune import is_syne_tune_config_space
 
@@ -30,8 +30,8 @@ config_file = str(Path(__file__).parent.parent / "renate_config_files" / "config
     [
         (2, 0.9, False, False, "rush"),
         (1, 0.0, True, False, "rush"),
-        (1, 0.9, False, True, None),
-        (1, 0.0, False, True, None),
+        (2, 0.9, False, True, None),
+        (2, 0.0, False, True, None),
     ],
     ids=[
         "transfer-hpo-with-val",
@@ -40,7 +40,10 @@ config_file = str(Path(__file__).parent.parent / "renate_config_files" / "config
         "training-single-config-without-val",
     ],
 )
-def test_execute_tuning_job(tmpdir, num_chunks, val_size, raises, fixed_search_space, scheduler):
+@pytest.mark.parametrize("updater", ("ER", "Avalanche-iCaRL"))
+def test_run_training_job(
+    tmpdir, num_chunks, val_size, raises, fixed_search_space, scheduler, updater
+):
     """Simply running tuning job to check if anything fails.
 
     Case 1: Standard HPO setup with transfer learning in second step.
@@ -53,17 +56,17 @@ def test_execute_tuning_job(tmpdir, num_chunks, val_size, raises, fixed_search_s
     for _ in range(num_chunks):
 
         def execute_job():
-            execute_tuning_job(
-                updater="ER",
+            run_training_job(
+                updater=updater,
                 max_epochs=5,
                 config_file=config_file,
-                state_url=state_url,
-                next_state_url=tmpdir,
+                input_state_url=state_url,
+                output_state_url=tmpdir,
                 backend="local",
                 mode="max",
                 config_space={
                     "learning_rate": 0.1 if fixed_search_space else loguniform(10e-5, 0.1),
-                    "data_module_fn_val_size": val_size,
+                    "val_size": val_size,
                 },
                 metric="val_accuracy",
                 max_time=15,
@@ -95,7 +98,7 @@ def test_execute_tuning_job(tmpdir, num_chunks, val_size, raises, fixed_search_s
 def test_merge_tuning_history(
     data_old, data_new, expected_data_first_row, expected_data_second_row
 ):
-    """Test whether HPO tuning results are merged correctly.
+    """Test whether HPO results are merged correctly.
 
     Testing two cases:
         1. Old results exist and new ones are added.
@@ -129,7 +132,7 @@ def test_verify_validation_set_for_hpo_and_checkpointing(tmpdir, val_size, tune_
     If a validation set exists, the `config_space` must be changed such that the right metric and
     mode for checkpointing and hyperparameter optimization is used.
     """
-    config_space = {"data_module_fn_val_size": val_size}
+    config_space = {"val_size": val_size}
     expected_metric = "val_accuracy"
     expected_mode: defaults.SUPPORTED_TUNING_MODE_TYPE = "max"
 
@@ -343,8 +346,8 @@ def test_load_tuning_history_when_no_previous_history_exists(tmpdir, use_dir):
         ("asha", None),
         ("rush", None),
         (FIFOScheduler, None),
-        (ASHA, {"max_t": 3, "resource_attr": "epoch"}),
-        (RUSHScheduler, {"max_t": 3, "resource_attr": "epoch"}),
+        (ASHA, {"max_resource_attr": "max_epochs", "resource_attr": "epoch"}),
+        (RUSHScheduler, {"max_resource_attr": "max_epochs", "resource_attr": "epoch"}),
     ],
     ids=["str_random", "str_asha", "str_rush", "class_random", "class_asha", "class_rush"],
 )
@@ -363,11 +366,10 @@ def test_create_scheduler(tmpdir, scheduler, scheduler_kwargs, tuning_results_ex
         tuning_results.to_csv(defaults.hpo_file(state_url), index=False)
     _create_scheduler(
         scheduler=scheduler,
-        config_space={"lr": 0.01},
+        config_space={"lr": 0.01, "max_epochs": 3},
         metric="val_loss",
         mode="min",
-        max_epochs=3,
         seed=0,
         scheduler_kwargs=scheduler_kwargs,
-        state_url=state_url,
+        input_state_url=state_url,
     )

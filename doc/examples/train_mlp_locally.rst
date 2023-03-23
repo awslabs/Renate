@@ -27,6 +27,7 @@ augmentation, and several other purposes. More details on how to write a
 configuration file are available in :doc:`../getting_started/how_to_renate_config`.
 
 .. literalinclude:: ../../examples/train_mlp_locally/renate_config.py
+    :lines: 3-
 
 Training
 ========
@@ -45,6 +46,7 @@ to the previously saved state using :code:`state_url`, as done in our example.
 More details about running training jobs are available in :doc:`../getting_started/how_to_run_training`.
 
 .. literalinclude:: ../../examples/train_mlp_locally/start_training_without_hpo.py
+    :lines: 3-
 
 Results
 =======

@@ -23,8 +23,8 @@ class FineTuningModelUpdater(SingleTrainingLoopUpdater):
         momentum: float = defaults.MOMENTUM,
         weight_decay: float = defaults.WEIGHT_DECAY,
         batch_size: int = defaults.BATCH_SIZE,
-        current_state_folder: Optional[str] = None,
-        next_state_folder: Optional[str] = None,
+        input_state_folder: Optional[str] = None,
+        output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
@@ -38,6 +38,7 @@ class FineTuningModelUpdater(SingleTrainingLoopUpdater):
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
         seed: int = defaults.SEED,
+        deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
         learner_kwargs = {
             "optimizer": optimizer,
@@ -54,8 +55,8 @@ class FineTuningModelUpdater(SingleTrainingLoopUpdater):
             model,
             learner_class=Learner,
             learner_kwargs=learner_kwargs,
-            current_state_folder=current_state_folder,
-            next_state_folder=next_state_folder,
+            input_state_folder=input_state_folder,
+            output_state_folder=output_state_folder,
             max_epochs=max_epochs,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
@@ -68,4 +69,5 @@ class FineTuningModelUpdater(SingleTrainingLoopUpdater):
             logger=logger,
             accelerator=accelerator,
             devices=devices,
+            deterministic_trainer=deterministic_trainer,
         )

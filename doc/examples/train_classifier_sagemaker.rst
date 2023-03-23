@@ -26,6 +26,7 @@ normalize and augment the dataset. More transformations can be added if needed,
 details on how to write a configuration file are available in :doc:`../getting_started/how_to_renate_config`.
 
 .. literalinclude:: ../../examples/simple_classifier_cifar10/renate_config.py
+    :lines: 3-
 
 Training
 ========
@@ -47,6 +48,7 @@ The description of the other arguments and a high level overview of how to run a
 training jobs are available in :doc:`../getting_started/how_to_run_training`.
 
 .. literalinclude:: ../../examples/simple_classifier_cifar10/start_with_hpo.py
+    :lines: 3-
 
 Once the training job terminates, the output will be available in the S3 bucket indicated
 in :code:`next_state_url`. For more information about how to interpret the output, see
@@ -57,7 +59,7 @@ after the first training job has been executed, it is possible to re-train the m
 on the second chunk of the dataset that we left intentionally untouched during
 the first training process.
 
-To do this, it is sufficient to modifying the arguments passed to the :code:`execute_tuning_job` function.
+To do this, it is sufficient to modifying the arguments passed to the :py:func:`~renate.training.training.run_training_job` function.
 In particular:
 
 1. select the second part of the datasets by setting :code:`chunk-id = 1`.

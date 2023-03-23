@@ -3,7 +3,7 @@ Supported Algorithms
 
 Renate provides implementations of various continual learning methods. The following table provides
 an overview with links to the documentation, and a short description. When initiating model updates
-using Renate (e.g., using :py:func:`renate.tuning.tuning.execute_tuning_job`; see
+using Renate (e.g., using :py:func:`renate.training.training.run_training_job`; see
 :doc:`how_to_run_training`), a method may be selected using the shorthand provided below.
 
 .. list-table:: Supported Algorithms
@@ -21,7 +21,7 @@ using Renate (e.g., using :py:func:`renate.tuning.tuning.execute_tuning_job`; se
    * - ``"Super-ER"``
      - :py:class:`SuperExperienceReplayLearner <renate.updaters.experimental.er.SuperExperienceReplayLearner>`
      - An experimental method combining various of the ER variants listed above.
-   * - ``"OfflineER"``
+   * - ``"Offline-ER"``
      - :py:class:`OfflineExperienceReplayLearner <renate.updaters.experimental.offline_er.OfflineExperienceReplayLearner>`
      - An offline version of experience replay, where the rehearsal memory is only updated at the end of training.
    * - ``"RD"``
@@ -32,7 +32,7 @@ using Renate (e.g., using :py:func:`renate.tuning.tuning.execute_tuning_job`; se
      - A strong baseline that trains the model from scratch on a memory, which is maintained using a greedy class-balancing strategy. [`Paper <https://www.ecva.net/papers/eccv_2020/papers_ECCV/papers/123470511.pdf>`__]
    * - ``"Joint"``
      - :py:class:`JointLearner <renate.updaters.experimental.joint.JointLearner>`
-     - Retraining from scratch on all data seen so far. Used as an "upper bound" in experiments, inefficient for practical use.
+     - This method retrains a randomly initialized model each time from scratch on all data seen so far. Used as "upper bound" in experiments, inefficient for practical use.
    * - ``"FineTuning"``
-     - :py:class:`Learner <renate.updaters.experimental.learner.Learner>`
-     - Fine-tuning the existing model using the new data without any sort of mitigation for forgetting. Users as "lower bound" baseline in the experiments.
+     - :py:class:`Learner <renate.updaters.learner.Learner>`
+     - A simple method which trains the current model on only the new data without any sort of mitigation for forgetting. Used as "lower bound" baseline in experiments.

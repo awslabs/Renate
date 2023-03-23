@@ -1,38 +1,39 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Tuple
 
 import torch
 
-from datasets import DummyTorchVisionDataModule
+from dummy_datasets import DummyTorchVisionDataModule
 from renate.benchmark.models.mlp import MultiLayerPerceptron
 from renate.benchmark.scenarios import ClassIncrementalScenario
 from renate.data.data_module import RenateDataModule
 from renate.models import RenateModule
 
 
-def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule:
+def model_fn(model_state_url: Optional[str] = None) -> RenateModule:
     if model_state_url is None:
         return MultiLayerPerceptron(5 * 5, 10, 0, 64)
-    state_dict = torch.load(str(model_state_url))
+    state_dict = torch.load(model_state_url)
     return MultiLayerPerceptron.from_state_dict(state_dict)
 
 
 def data_module_fn(
-    data_path: Union[Path, str],
+    data_path: str,
     chunk_id: Optional[int] = None,
-    data_module_fn_val_size: str = "0.0",
+    val_size: float = 0.0,
     seed: int = 0,
-    data_module_fn_use_scenario: str = "False",
+    use_scenario: bool = False,
+    class_groupings: Tuple[Tuple[int]] = ((0, 1), (2, 3, 4)),
+    optional_tuple: Optional[Tuple[float]] = None,
+    optional_float: Optional[float] = None,
+    list_param: list = [1, 2],
 ) -> RenateDataModule:
-    data_module = DummyTorchVisionDataModule(
-        transform=None, val_size=float(data_module_fn_val_size), seed=seed
-    )
-    if data_module_fn_use_scenario == "True":
+    data_module = DummyTorchVisionDataModule(transform=None, val_size=val_size, seed=seed)
+    if use_scenario:
         return ClassIncrementalScenario(
             data_module=data_module,
             chunk_id=chunk_id,
-            class_groupings=[[0, 1], [2, 3, 4]],
+            class_groupings=class_groupings,
         )
     return data_module

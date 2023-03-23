@@ -1,6 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import torch
 import torchmetrics
@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader, Dataset
 from renate import defaults
 from renate.memory import InfiniteBuffer
 from renate.models import RenateModule
+from renate.types import NestedTensors
 from renate.updaters.learner import Learner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
 from renate.utils.pytorch import reinitialize_model_parameters
@@ -73,7 +74,11 @@ class JointLearner(Learner):
         reinitialize_model_parameters(self._model)
         return train_loader, val_loader
 
-    def training_step(self, batch: List[torch.Tensor], batch_idx: int) -> STEP_OUTPUT:
+    def training_step(
+        self,
+        batch: Tuple[Tuple[NestedTensors, torch.Tensor], Dict[str, torch.Tensor]],
+        batch_idx: int,
+    ) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
         batch, _ = batch
         return super().training_step(batch=batch, batch_idx=batch_idx)
@@ -91,8 +96,8 @@ class JointModelUpdater(SingleTrainingLoopUpdater):
         momentum: float = defaults.MOMENTUM,
         weight_decay: float = defaults.WEIGHT_DECAY,
         batch_size: int = defaults.BATCH_SIZE,
-        current_state_folder: Optional[str] = None,
-        next_state_folder: Optional[str] = None,
+        input_state_folder: Optional[str] = None,
+        output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
@@ -106,6 +111,7 @@ class JointModelUpdater(SingleTrainingLoopUpdater):
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
         seed: int = defaults.SEED,
+        deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
         learner_kwargs = {
             "optimizer": optimizer,
@@ -122,8 +128,8 @@ class JointModelUpdater(SingleTrainingLoopUpdater):
             model,
             learner_class=JointLearner,
             learner_kwargs=learner_kwargs,
-            current_state_folder=current_state_folder,
-            next_state_folder=next_state_folder,
+            input_state_folder=input_state_folder,
+            output_state_folder=output_state_folder,
             max_epochs=max_epochs,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
@@ -136,4 +142,5 @@ class JointModelUpdater(SingleTrainingLoopUpdater):
             logger=logger,
             accelerator=accelerator,
             devices=devices,
+            deterministic_trainer=deterministic_trainer,
         )

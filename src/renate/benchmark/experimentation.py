@@ -13,8 +13,8 @@ from pytorch_lightning import seed_everything
 import renate
 import renate.defaults as defaults
 from renate.cli.parsing_functions import (
-    get_data_module_fn_args,
-    get_model_fn_args,
+    get_data_module_fn_kwargs,
+    get_model_fn_kwargs,
     get_scheduler_kwargs,
     get_transforms_kwargs,
 )
@@ -24,8 +24,8 @@ from renate.evaluation.metrics.classification import (
     forgetting,
     forward_transfer,
 )
-from renate.tuning import execute_tuning_job
-from renate.tuning.tuning import submit_remote_job
+from renate.training import run_training_job
+from renate.training.training import submit_remote_job
 from renate.utils.file import (
     copy_to_uri,
     is_s3_uri,
@@ -145,6 +145,7 @@ def execute_experiment_job(
     seed: int = defaults.SEED,
     accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
     devices: int = defaults.DEVICES,
+    deterministic_trainer: bool = True,
     job_name: str = defaults.JOB_NAME,
 ) -> None:
     """Executes the experiment job.
@@ -173,6 +174,8 @@ def execute_experiment_job(
         seed: Seed of the experiment job.
         accelerator: Type of accelerator to use.
         devices: Number of devices to use.
+        deterministic_trainer: When true the Trainer adopts a deterministic behaviour also on GPU.
+            In this function this parameter is set to True by default.
         job_name: Name of the experiment job.
     """
     assert (
@@ -197,6 +200,7 @@ def execute_experiment_job(
             n_workers=n_workers,
             accelerator=accelerator,
             devices=devices,
+            deterministic_trainer=deterministic_trainer,
             seed=seed,
         )
     _execute_experiment_job_remotely(
@@ -215,6 +219,7 @@ def execute_experiment_job(
         n_workers=n_workers,
         accelerator=accelerator,
         devices=devices,
+        deterministic_trainer=deterministic_trainer,
         seed=seed,
         requirements_file=requirements_file,
         role=role,
@@ -240,6 +245,7 @@ def _execute_experiment_job_locally(
     max_num_trials_completed: int,
     max_num_trials_finished: int,
     n_workers: int,
+    deterministic_trainer: bool,
 ) -> None:
     """Runs an experiment, combining hyperparameter tuning and model for multiple updates.
 
@@ -248,30 +254,30 @@ def _execute_experiment_job_locally(
     logger.info("Start experiment.")
     seed_everything(seed)
 
-    state_url = defaults.current_state_folder(working_directory)
-    next_state_url = defaults.next_state_folder(working_directory)
+    input_state_url = defaults.input_state_folder(working_directory)
+    output_state_url = defaults.output_state_folder(working_directory)
     data_url = defaults.data_folder(working_directory)
-    model_url = defaults.model_file(state_url)
+    model_url = defaults.model_file(input_state_url)
     logs_url = defaults.logs_folder(working_directory)
 
-    for url in [state_url, next_state_url, logs_url]:
+    for url in [input_state_url, output_state_url, logs_url]:
         if os.path.exists(url):
             shutil.rmtree(url)
         Path(url).mkdir(parents=True, exist_ok=True)
 
     config_module = import_module("config_module", config_file)
     scheduler, scheduler_kwargs = get_scheduler_kwargs(config_module)
-    model_fn_args = get_model_fn_args(config_space)
-    logger.info(f"Loading model {model_fn_args.get('model_fn_model_name', '')}")
-    model = get_model(config_module, **model_fn_args)
-    data_module_fn_args = get_data_module_fn_args(config_space)
-    logger.info(f"Prepare dataset {data_module_fn_args.get('data_module_fn_dataset_name', '')}")
+    model_fn_kwargs = get_model_fn_kwargs(config_module, config_space)
+    logger.info(f"Loading model {model_fn_kwargs.get('model_name', '')}")
+    model = get_model(config_module, **model_fn_kwargs)
+    data_module_fn_kwargs = get_data_module_fn_kwargs(config_module, config_space)
+    logger.info(f"Prepare dataset {data_module_fn_kwargs.get('dataset_name', '')}")
     data_module = get_and_prepare_data_module(
         config_module,
         data_path=data_url,
         chunk_id=defaults.CHUNK_ID,
         seed=seed,
-        **data_module_fn_args,
+        **data_module_fn_kwargs,
     )
     data_module.setup()
     assert num_updates == len(
@@ -301,7 +307,7 @@ def _execute_experiment_job_locally(
     for update_id in range(num_updates):
         logger.info(f"Starting Update {update_id + 1}/{num_updates}.")
         update_url = os.path.join(experiment_outputs_url, f"update_{update_id}")
-        execute_tuning_job(
+        run_training_job(
             mode=mode,
             config_space=config_space,
             metric=metric,
@@ -309,8 +315,8 @@ def _execute_experiment_job_locally(
             updater=config_space["updater"],
             max_epochs=config_space["max_epochs"],
             chunk_id=update_id,
-            state_url=state_url,
-            next_state_url=next_state_url,
+            input_state_url=input_state_url,
+            output_state_url=output_state_url,
             working_directory=working_directory,
             config_file=config_file,
             max_time=max_time,
@@ -323,11 +329,14 @@ def _execute_experiment_job_locally(
             seed=seed,
             accelerator=accelerator,
             devices=devices,
+            deterministic_trainer=deterministic_trainer,
         )
-        move_to_uri(next_state_url, state_url)
-        copy_to_uri(state_url, update_url)
+        move_to_uri(output_state_url, input_state_url)
+        copy_to_uri(input_state_url, update_url)
         model = get_model(
-            config_module, model_state_url=model_url, **get_model_fn_args(config_space)
+            config_module,
+            model_state_url=model_url,
+            **get_model_fn_kwargs(config_module, config_space),
         )
 
         evaluate_and_record_results(

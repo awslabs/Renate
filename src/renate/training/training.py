@@ -31,7 +31,7 @@ from syne_tune.util import experiment_path
 
 import renate
 from renate import defaults
-from renate.cli.parsing_functions import get_data_module_fn_args
+from renate.cli.parsing_functions import to_dense_str, get_data_module_fn_kwargs
 from renate.utils.file import move_to_uri
 from renate.utils.module import get_and_prepare_data_module, import_module
 from renate.utils.syne_tune import (
@@ -56,11 +56,11 @@ RENATE_CONFIG_COLUMNS = [
     "devices",
     "metric",
     "mode",
-    "state_url",
+    "input_state_url",
 ]
 
 
-def execute_tuning_job(
+def run_training_job(
     mode: defaults.SUPPORTED_TUNING_MODE_TYPE,
     config_space: Dict[str, Any],
     metric: str,
@@ -69,8 +69,8 @@ def execute_tuning_job(
     max_epochs: int = defaults.MAX_EPOCHS,
     task_id: str = defaults.TASK_ID,
     chunk_id: int = defaults.CHUNK_ID,
-    state_url: Optional[str] = None,
-    next_state_url: Optional[str] = None,
+    input_state_url: Optional[str] = None,
+    output_state_url: Optional[str] = None,
     working_directory: Optional[str] = defaults.WORKING_DIRECTORY,
     source_dir: Optional[str] = None,
     config_file: Optional[str] = None,
@@ -90,6 +90,7 @@ def execute_tuning_job(
     seed: int = defaults.SEED,
     accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
     devices: int = defaults.DEVICES,
+    deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     job_name: str = defaults.JOB_NAME,
 ) -> Optional[Tuner]:
     """Starts updating the model including hyperparameter optimization.
@@ -105,8 +106,8 @@ def execute_tuning_job(
         max_epochs: Maximum number of epochs the model is trained.
         task_id: Unique identifier for the current task.
         chunk_id: Unique identifier for the current data chunk.
-        state_url: Path to the Renate model state.
-        next_state_url: Path where Renate model state will be stored.
+        input_state_url: Path to the Renate model state.
+        output_state_url: Path where Renate model state will be stored.
         working_directory: Path to the working directory.
         source_dir: (SageMaker backend only) Root directory which will be moved to SageMaker.
         config_file: File containing the definition of `model_fn` and `data_module_fn`.
@@ -131,7 +132,8 @@ def execute_tuning_job(
         seed: Seed used for ensuring reproducibility.
         accelerator: Type of accelerator to use.
         devices: Number of devices to use.
-        job_name: Name of the tuning job.
+        deterministic_trainer: When true the Trainer adopts a deterministic behaviour also on GPU.
+        job_name: Prefix for the name of the SageMaker training job.
     """
     assert (
         mode in defaults.SUPPORTED_TUNING_MODE
@@ -139,10 +141,13 @@ def execute_tuning_job(
     assert (
         backend in defaults.SUPPORTED_BACKEND
     ), f"Backend {backend} is not in {defaults.SUPPORTED_BACKEND}."
+    for key, value in config_space.items():
+        if isinstance(value, (bool, list, tuple)):
+            config_space[key] = to_dense_str(value)
     if backend == "local":
-        return _execute_tuning_job_locally(
-            state_url=state_url,
-            next_state_url=next_state_url,
+        return _execute_training_and_tuning_job_locally(
+            input_state_url=input_state_url,
+            output_state_url=output_state_url,
             working_directory=working_directory,
             config_file=config_file,
             mode=mode,
@@ -163,10 +168,11 @@ def execute_tuning_job(
             seed=seed,
             accelerator=accelerator,
             devices=devices,
+            deterministic_trainer=deterministic_trainer,
         )
     submit_remote_job(
-        state_url=state_url,
-        next_state_url=next_state_url,
+        input_state_url=input_state_url,
+        output_state_url=output_state_url,
         working_directory=working_directory,
         config_file=config_file,
         mode=mode,
@@ -193,6 +199,7 @@ def execute_tuning_job(
         seed=seed,
         accelerator=accelerator,
         devices=devices,
+        deterministic_trainer=deterministic_trainer,
         job_name=job_name,
     )
 
@@ -200,11 +207,11 @@ def execute_tuning_job(
 def _prepare_remote_job(
     tmp_dir: str, requirements_file: Optional[str], **job_kwargs: Any
 ) -> List[str]:
-    """Prepares a SageMaker tuning job."""
+    """Prepares a SageMaker job."""
     dependencies = list(renate.__path__ + [job_kwargs["config_file"]])
 
-    if "state_url" in job_kwargs and job_kwargs["state_url"] is None:
-        del job_kwargs["state_url"]
+    if "input_state_url" in job_kwargs and job_kwargs["input_state_url"] is None:
+        del job_kwargs["input_state_url"]
     job_kwargs["config_file"] = os.path.basename(job_kwargs["config_file"])
     job_kwargs["config_space"] = config_space_to_dict(job_kwargs["config_space"])
 
@@ -227,7 +234,7 @@ def _get_transfer_learning_task_evaluations(
     metric: str,
     max_epochs: int,
 ) -> Optional[TransferLearningTaskEvaluations]:
-    """Converts data frame with tuning results of a single update step into
+    """Converts data frame with training results of a single update step into
     `TransferLearningTaskEvaluations`.
 
     Args:
@@ -294,13 +301,13 @@ def _get_transfer_learning_task_evaluations(
 
 
 def _load_tuning_history(
-    state_url: str, config_space: Dict[str, Any], metric: str
+    input_state_url: str, config_space: Dict[str, Any], metric: str
 ) -> Dict[str, TransferLearningTaskEvaluations]:
     """Loads the tuning history in a list where each entry of the list is the tuning history of one
     update.
 
     Args:
-        state_url: Location of state. Will check at this location of a tuning history exists.
+        input_state_url: Location of state. Will check at this location of a tuning history exists.
         config_space: The configuration space defines which parts of the tuning history to load.
         metric: Only the defined metric of the tuning history will be loaded.
     Returns:
@@ -308,9 +315,9 @@ def _load_tuning_history(
         `config_space`. The list contains an instance of `TransferLearningTaskEvaluations` for each
         update that contains matching data.
     """
-    if state_url is None or not Path(defaults.hpo_file(state_url)).exists():
+    if input_state_url is None or not Path(defaults.hpo_file(input_state_url)).exists():
         return {}
-    tuning_results = pd.read_csv(defaults.hpo_file(state_url))
+    tuning_results = pd.read_csv(defaults.hpo_file(input_state_url))
     hyperparameter_names = [
         hyperparameter for hyperparameter in tuning_results if hyperparameter.startswith("config_")
     ]
@@ -337,7 +344,7 @@ def _load_tuning_history(
 def _merge_tuning_history(
     new_tuning_results: pd.DataFrame, old_tuning_results: Optional[pd.DataFrame] = None
 ) -> pd.DataFrame:
-    """Merges old tuning history with tuning results from current chunk.
+    """Merges old tuning history with training results from current chunk.
 
     `update_id` identifies the update step in the csv file. This allows creating the metadata
         required for transfer hyperparameter optimization.
@@ -353,12 +360,12 @@ def _teardown_tuning_job(
     backend: LocalBackend,
     config_space: Dict[str, Union[Domain, int, float, str]],
     job_name: str,
-    state_url: Optional[str] = None,
-    next_state_url: Optional[str] = None,
+    input_state_url: Optional[str] = None,
+    output_state_url: Optional[str] = None,
 ) -> None:
     """Update lifelong hyperparameter optimization results, save state and clean up disk."""
     experiment_folder = redirect_to_tmp(str(experiment_path(job_name)))
-    if next_state_url is not None:
+    if output_state_url is not None:
         experiment = load_experiment(job_name)
         try:
             best_trial_id = experiment.best_config()["trial_id"]
@@ -375,18 +382,18 @@ def _teardown_tuning_job(
                 + "\n\nLogs (stdout):\n\n{}".format("".join(backend.stdout(0)))
                 + "\n\nLogs (stderr):\n\n{}".format("".join(backend.stderr(0)))
             )
-        next_state_folder = defaults.next_state_folder(
+        output_state_folder = defaults.output_state_folder(
             f"{experiment_folder}/{best_trial_id}/checkpoints"
         )
         old_tuning_results = (
-            pd.read_csv(defaults.hpo_file(state_url))
-            if state_url is not None and os.path.exists(defaults.hpo_file(state_url))
+            pd.read_csv(defaults.hpo_file(input_state_url))
+            if input_state_url is not None and os.path.exists(defaults.hpo_file(input_state_url))
             else None
         )
         tuning_results = _merge_tuning_history(experiment.results, old_tuning_results)
-        tuning_results.to_csv(defaults.hpo_file(next_state_folder), index=False)
-        move_to_uri(next_state_folder, next_state_url)
-        logger.info(f"Renate state is available at {next_state_url}.")
+        tuning_results.to_csv(defaults.hpo_file(output_state_folder), index=False)
+        move_to_uri(output_state_folder, output_state_url)
+        logger.info(f"Renate state is available at {output_state_url}.")
     shutil.rmtree(experiment_folder, ignore_errors=True)
     shutil.rmtree(experiment_path(job_name), ignore_errors=True)
 
@@ -418,9 +425,7 @@ def _verify_validation_set_for_hpo_and_checkpointing(
     data_module = get_and_prepare_data_module(
         config_module,
         data_path=defaults.data_folder(working_directory),
-        chunk_id=chunk_id,
-        seed=seed,
-        **get_data_module_fn_args(config_space),
+        **get_data_module_fn_kwargs(config_module, config_space, cast_arguments=True),
     )
     data_module.setup()
     val_exists = data_module.val_data() is not None
@@ -441,14 +446,13 @@ def _create_scheduler(
     config_space: Dict[str, Any],
     metric: str,
     mode: defaults.SUPPORTED_TUNING_MODE_TYPE,
-    max_epochs: int,
     seed: int,
     scheduler_kwargs: Optional[Dict[str, Any]] = None,
-    state_url: Optional[str] = None,
+    input_state_url: Optional[str] = None,
 ) -> TrialScheduler:
     scheduler_kwargs = scheduler_kwargs or {}
     if isinstance(scheduler, str):
-        hyperband_scheduler_kwargs = {"max_t": max_epochs, "resource_attr": "epoch"}
+        hyperband_scheduler_kwargs = {"max_resource_attr": "max_epochs", "resource_attr": "epoch"}
         scheduler_classes = {
             "asha": {"scheduler": ASHA, "scheduler_kwargs": hyperband_scheduler_kwargs},
             "bo": {"scheduler": FIFOScheduler, "scheduler_kwargs": {"searcher": "bayesopt"}},
@@ -462,7 +466,7 @@ def _create_scheduler(
         scheduler = scheduler_classes[scheduler]["scheduler"]
     if "transfer_learning_evaluations" in inspect.getfullargspec(scheduler.__init__).args:
         scheduler_kwargs["transfer_learning_evaluations"] = _load_tuning_history(
-            state_url=state_url, config_space=config_space, metric=metric
+            input_state_url=input_state_url, config_space=config_space, metric=metric
         )
         if scheduler_kwargs["transfer_learning_evaluations"]:
             logger.info(
@@ -478,9 +482,9 @@ def _create_scheduler(
     )
 
 
-def _execute_tuning_job_locally(
-    state_url: Optional[str],
-    next_state_url: Optional[str],
+def _execute_training_and_tuning_job_locally(
+    input_state_url: Optional[str],
+    output_state_url: Optional[str],
     working_directory: Optional[str],
     config_file: str,
     mode: defaults.SUPPORTED_TUNING_MODE_TYPE,
@@ -501,24 +505,26 @@ def _execute_tuning_job_locally(
     seed: int,
     accelerator: str,
     devices: int,
+    deterministic_trainer: bool,
 ):
-    """Executes the tuning job locally.
+    """Executes the training job locally.
 
-    See renate.tuning.execute_tuning_job for a description of arguments.
+    See renate.train.run_training_job for a description of arguments.
     """
     tune_hyperparameters = is_syne_tune_config_space(config_space)
     config_space["updater"] = updater
     config_space["max_epochs"] = max_epochs
     config_space["config_file"] = config_file
-    config_space["prepare_data"] = 1
+    config_space["prepare_data"] = False
     config_space["chunk_id"] = chunk_id
     config_space["task_id"] = task_id
     config_space["working_directory"] = working_directory
     config_space["seed"] = seed
     config_space["accelerator"] = accelerator
     config_space["devices"] = devices
-    if state_url is not None:
-        config_space["state_url"] = state_url
+    config_space["deterministic_trainer"] = deterministic_trainer
+    if input_state_url is not None:
+        config_space["input_state_url"] = input_state_url
 
     metric, mode = _verify_validation_set_for_hpo_and_checkpointing(
         config_space=config_space,
@@ -553,10 +559,9 @@ def _execute_tuning_job_locally(
             config_space=config_space,
             metric=metric,
             mode=mode,
-            max_epochs=max_epochs,
             seed=seed,
             scheduler_kwargs=scheduler_kwargs,
-            state_url=state_url,
+            input_state_url=input_state_url,
         )
     logging_callback = (
         TuningLoggerCallback(mode=mode, metric=metric)
@@ -592,8 +597,8 @@ def _execute_tuning_job_locally(
         backend=backend,
         config_space=config_space,
         job_name=tuner.name,
-        state_url=state_url,
-        next_state_url=next_state_url,
+        input_state_url=input_state_url,
+        output_state_url=output_state_url,
     )
 
     logger.info("Renate update completed successfully.")
@@ -602,7 +607,7 @@ def _execute_tuning_job_locally(
 
 
 def submit_remote_job(
-    source_dir: str,
+    source_dir: Union[str, None],
     role: str,
     instance_type: str,
     instance_count: int,
@@ -610,9 +615,9 @@ def submit_remote_job(
     job_name: str,
     **job_kwargs: Any,
 ) -> str:
-    """Executes the tuning job on SageMaker.
+    """Executes the training job on SageMaker.
 
-    See renate.tuning.execute_tuning_job for a description of arguments."""
+    See renate.train.run_training_job for a description of arguments."""
     tuning_script = str(Path(renate.__path__[0]) / "cli" / "run_remote_job.py")
     job_timestamp = defaults.current_timestamp()
     job_name = f"{job_name}-{job_timestamp}"

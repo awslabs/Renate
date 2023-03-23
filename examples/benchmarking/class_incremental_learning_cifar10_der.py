@@ -1,11 +1,8 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
 from renate.benchmark.experimentation import execute_experiment_job, experiment_config_file
 
 
-def to_dense_str(value):
-    return str(value).replace(" ", "")
-
-
-dataset_name = "CIFAR10"
 config_space = {
     "updater": "DER",
     "optimizer": "SGD",
@@ -20,12 +17,11 @@ config_space = {
     "max_epochs": 50,
     "loss_normalization": 0,
     "loss_weight": 1.0,
-    "model_fn_model_name": "ResNet18CIFAR",
-    "data_module_fn_scenario_name": "ClassIncrementalScenario",
-    "data_module_fn_dataset_name": dataset_name,
-    "data_module_fn_val_size": 0,
-    "data_module_fn_class_groupings": to_dense_str([[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]]),
-    "transform_dataset_name": dataset_name,
+    "model_name": "ResNet18CIFAR",
+    "scenario_name": "ClassIncrementalScenario",
+    "dataset_name": "CIFAR10",
+    "val_size": 0,
+    "class_groupings": ((0, 1), (2, 3), (4, 5), (6, 7), (8, 9)),
 }
 
 for seed in range(10):

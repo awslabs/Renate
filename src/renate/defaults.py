@@ -26,6 +26,7 @@ EMA_MEMORY_UPDATE_GAMMA = 1.0
 VALIDATION_SIZE = 0.0
 LOSS_NORMALIZATION = 1
 EARLY_STOPPING = False
+DETERMINISTIC_TRAINER = False
 
 ACCELERATOR = "auto"
 SUPPORTED_ACCELERATORS = ["auto", "cpu", "gpu", "tpu"]
@@ -95,7 +96,17 @@ SER_CLS_STABLE_MODEL_UPDATE_PROBABILITY = 0.7
 SER_CLS_PLASTIC_MODEL_UPDATE_WEIGHT = 0.999
 SER_CLS_PLASTIC_MODEL_UPDATE_PROBABILITY = 0.9
 
+# EWC
+EWC_LAMBDA = 0.4
+
+# LwF
+LWF_ALPHA = 1
+LWF_TEMPERATURE = 2
+
 MEMORY_SIZE = 32
+
+# Benchmark datasets/models
+TOKENIZER_KWARGS = dict(padding="max_length", max_length=128, truncation=True)
 
 
 def scheduler(config_space: Dict[str, Any], mode: str, metric: str):
@@ -115,12 +126,12 @@ def data_folder(working_directory: str):
     return os.path.join(working_directory, "data")
 
 
-def current_state_folder(working_directory: str):
-    return os.path.join(working_directory, "state")
+def input_state_folder(working_directory: str):
+    return os.path.join(working_directory, "input_state")
 
 
-def next_state_folder(working_directory: str):
-    return os.path.join(working_directory, "next_state")
+def output_state_folder(working_directory: str):
+    return os.path.join(working_directory, "output_state")
 
 
 def logs_folder(working_directory: str):
@@ -131,8 +142,16 @@ def model_file(state_folder: str):
     return os.path.join(state_folder, "model.ckpt")
 
 
+LEARNER_CHECKPOINT_NAME = "learner.ckpt"
+AVALANCHE_CHECKPOINT_NAME = "avalanche.ckpt"
+
+
 def learner_state_file(state_folder: str):
-    return os.path.join(state_folder, "learner.ckpt")
+    return os.path.join(state_folder, LEARNER_CHECKPOINT_NAME)
+
+
+def avalanche_state_file(state_folder: str):
+    return os.path.join(state_folder, AVALANCHE_CHECKPOINT_NAME)
 
 
 def metric_summary_file(logs_folder: str, special_str: str = ""):

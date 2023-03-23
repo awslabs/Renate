@@ -6,7 +6,7 @@ from typing import Callable, List, Tuple, Union
 import numpy as np
 import torch
 from torch.utils.data import Dataset, Subset
-from torchvision.transforms import Lambda, RandomRotation
+from torchvision.transforms import Lambda, RandomRotation, ToPILImage
 
 from renate import defaults
 from renate.data.data_module import RenateDataModule
@@ -238,6 +238,143 @@ class PermutationScenario(TransformScenario):
         transforms = [torch.nn.Identity()]
         for _ in range(num_tasks - 1):
             permutation = torch.randperm(input_dim, generator=rng)
-            transform = Lambda(lambda x: x.flatten()[permutation].view(x.size()))
+            transform = Lambda(lambda x, p=permutation: x.flatten()[p].view(x.size()))
             transforms.append(transform)
         super().__init__(data_module, transforms, chunk_id, seed)
+
+
+class IIDScenario(Scenario):
+    """A scenario splitting datasets into random equally-sized chunks."""
+
+    def setup(self) -> None:
+        """Make assignments: val/train/test splits."""
+        self._data_module.setup()
+        proportions = [1 / self._num_tasks for _ in range(self._num_tasks)]
+        self._train_data = randomly_split_data(
+            self._data_module.train_data(), proportions, self._seed
+        )[self._chunk_id]
+        val_data = self._data_module.val_data()
+        if val_data:
+            self._val_data = randomly_split_data(val_data, proportions, self._seed)[self._chunk_id]
+        self._test_data = [self._data_module.test_data() for _ in range(self._num_tasks)]
+
+
+class _SortingScenario(Scenario):
+    """A scenario that _softly_ sorts a dataset by some score.
+
+    Randomness in the sorted order is induced by swapping the position of random pairs.
+
+    Args:
+        data_module: The source RenateDataModule for the the user data.
+        num_tasks: The total number of expected tasks for experimentation.
+        randomness: A value between 0 and 1. For a dataset with ``N`` data points,
+            ``0.5 * N * randomness`` random pairs are swapped.
+        chunk_id: The data chunk to load in for the training or validation data.
+        seed: Seed used to fix random number generation.
+    """
+
+    def __init__(
+        self,
+        data_module: RenateDataModule,
+        num_tasks: int,
+        randomness: float,
+        chunk_id: int,
+        seed: int = defaults.SEED,
+    ) -> None:
+        super().__init__(data_module, num_tasks, chunk_id, seed)
+        self._randomness = randomness
+        assert 0 <= self._randomness <= 1
+
+    @abc.abstractmethod
+    def _get_scores(self, dataset: Dataset) -> List[float]:
+        """Returns a float value for each data point which is used for sorting."""
+        pass
+
+    def _split(self, dataset: Dataset) -> List[Dataset]:
+        """Sorts data, applies random swapping and then returns the Datasets."""
+        scores = self._get_scores(dataset)
+        idx_ordered = [x for _, x in sorted(zip(scores, np.arange(len(dataset))))]
+        rng = np.random.RandomState(seed=self._seed)
+        for _ in range(int(self._randomness * len(dataset) / 2)):
+            i, j = rng.randint(len(dataset), size=2)
+            idx_ordered[i], idx_ordered[j] = idx_ordered[j], idx_ordered[i]
+        split = torch.tensor_split(torch.tensor(idx_ordered), self._num_tasks)
+        return [Subset(dataset, idx) for idx in split]
+
+    def setup(self) -> None:
+        """Make assignments: val/train/test splits."""
+        self._data_module.setup()
+        train_data = self._data_module.train_data()
+        self._train_data = self._split(train_data)[self._chunk_id]
+        val_data = self._data_module.val_data()
+        if val_data:
+            self._val_data = self._split(val_data)[self._chunk_id]
+        test_data = self._data_module.test_data()
+        self._test_data = self._split(test_data)
+
+
+class FeatureSortingScenario(_SortingScenario):
+    """A scenario that _softly_ sorts a dataset by the value of a feature, then creates chunks.
+
+    This scenario sorts the data according to a feature value (see `feature_idx`) and randomly
+    swaps data positions based on the degree of randomness (see `randomness`).
+
+    This scenario assumes that `dataset[i]` returns a tuple `(x, y)` with a tensor `x` containing
+    the features.
+
+    Args:
+        data_module: The source RenateDataModule for the the user data.
+        num_tasks: The total number of expected tasks for experimentation.
+        feature_idx: Index of the feature by which to sort. This index refers to the input features
+            `x` of a single data point, i.e., no batch dimension. If the tensor `x` has more than
+            one dimension, this indexes along the 0-dim while additional dimensions will be averaged
+            out. Hence, for images, `feature_idx` refers to a color channel and we sort by mean
+            color channel value.
+        randomness: A value between 0 and 1. For a dataset with ``N`` data points,
+            ``0.5 * N * randomness`` random pairs are swapped.
+        chunk_id: The data chunk to load in for the training or validation data.
+        seed: Seed used to fix random number generation.
+    """
+
+    def __init__(
+        self,
+        data_module: RenateDataModule,
+        num_tasks: int,
+        feature_idx: int,
+        randomness: float,
+        chunk_id: int,
+        seed: int = defaults.SEED,
+    ) -> None:
+        super().__init__(
+            data_module=data_module,
+            num_tasks=num_tasks,
+            randomness=randomness,
+            chunk_id=chunk_id,
+            seed=seed,
+        )
+        self._feature_idx = feature_idx
+
+    def _get_scores(self, dataset: Dataset) -> List[float]:
+        return [x[0][self._feature_idx].mean().item() for x, _ in dataset]
+
+
+class HueShiftScenario(_SortingScenario):
+    """A scenario that sorts an image dataset by the hue value, then creates chunks.
+
+    All images are sorted by hue value and divided into ``num_tasks`` tasks.
+    ``randomness`` is a value between 0 and 1 and controls the number of random swaps applied
+    to the sorting.
+
+    This scenario assumes that `dataset[i]` returns a tuple `(x, y)` with a tensor `x` containing
+    an RGB image.
+    """
+
+    def _get_scores(self, dataset: Dataset) -> List[float]:
+        features = []
+        to_pil_image = ToPILImage()
+        for image, _ in enumerate(dataset):
+            count, value = np.histogram(
+                np.array(to_pil_image(image).convert("HSV"))[:, :, 0].reshape(-1), bins=100
+            )
+            features.append(value[np.argmax(count)])
+        return features

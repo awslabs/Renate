@@ -7,11 +7,13 @@ import pytest
 import torch
 from torchvision.transforms.functional import rotate
 
-from datasets import DummyTorchVisionDataModule, DummyTorchVisionDataModuleWithChunks
+from dummy_datasets import DummyTorchVisionDataModule, DummyTorchVisionDataModuleWithChunks
 from renate.benchmark.datasets.vision_datasets import TorchVisionDataModule
 from renate.benchmark.scenarios import (
     BenchmarkScenario,
     ClassIncrementalScenario,
+    FeatureSortingScenario,
+    IIDScenario,
     ImageRotationScenario,
     PermutationScenario,
 )
@@ -139,6 +141,32 @@ def test_permutation_scenario():
                 assert torch.equal(a, b)
 
 
+@pytest.mark.parametrize(
+    "scenario_class, scenario_kwargs",
+    (
+        (ImageRotationScenario, {"degrees": [0, 90, 180, 270]}),
+        (PermutationScenario, {"num_tasks": 4, "input_dim": (1, 5, 5)}),
+    ),
+)
+def test_transforms_in_transform_scenarios_are_distinct(scenario_class, scenario_kwargs):
+    """Tests if transformations are different.
+
+    Checks two cases: 1) transforms must not be same objects and 2) transforms must not perform
+    identical operations.
+    """
+    data_module = DummyTorchVisionDataModule()
+    scenario = scenario_class(data_module=data_module, **scenario_kwargs, chunk_id=0, seed=0)
+    scenario.prepare_data()
+    scenario.setup()
+    x = data_module.X_train[0]
+    for i, transform in enumerate(scenario._transforms):
+        for j, transform2 in enumerate(scenario._transforms):
+            if i == j:
+                continue
+            assert transform != transform2
+            assert not torch.all(torch.isclose(transform(x), transform2(x)))
+
+
 def test_benchmark_scenario():
     data_module = DummyTorchVisionDataModuleWithChunks(num_chunks=3, val_size=0.2)
     for chunk_id in range(3):
@@ -148,3 +176,55 @@ def test_benchmark_scenario():
         assert scenario.train_data() is not None
         assert scenario.val_data() is not None
         assert len(scenario.test_data()) == 3
+
+
+def test_iid_scenario():
+    """Tests that the IID scenario creates a non-overlapping split."""
+    data_module = DummyTorchVisionDataModule(val_size=0.3)
+    counter = {}
+    for i in range(3):
+        scenario = IIDScenario(
+            data_module=data_module,
+            num_tasks=3,
+            chunk_id=i,
+            seed=data_module._seed,
+        )
+        scenario.prepare_data()
+        scenario.setup()
+        for stage in ["train", "val"]:
+            scenario_data = getattr(scenario, f"{stage}_data")()
+            for j in range(len(scenario_data)):
+                x, y = scenario_data[j]
+                assert x not in counter
+                counter[x] = 1
+        assert len(scenario.test_data()) == 3
+
+
+@pytest.mark.parametrize("feature_idx", (0, 1))
+def test_feature_sorting_scenario(feature_idx):
+    """Tests the FeatureSortingScenario.
+
+    Checks for increasing feature values across chunks.
+    """
+    data_module = DummyTorchVisionDataModule(val_size=0.3)
+    num_tasks = 3
+    max_value = {"train": -float("inf"), "val": -float("inf")}
+    for i in range(3):
+        scenario = FeatureSortingScenario(
+            data_module=data_module,
+            num_tasks=num_tasks,
+            feature_idx=feature_idx,
+            randomness=0,
+            chunk_id=i,
+            seed=data_module._seed,
+        )
+        scenario.prepare_data()
+        scenario.setup()
+        for stage in ["train", "val"]:
+            scenario_data = getattr(scenario, f"{stage}_data")()
+            features = [x[0, feature_idx].mean().item() for x, _ in scenario_data]
+            chunk_min = min(features)
+            chunk_max = max(features)
+            assert max_value[stage] <= chunk_min
+            max_value[stage] = chunk_max
+        assert len(scenario.test_data()) == num_tasks
