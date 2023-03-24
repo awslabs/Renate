@@ -515,7 +515,7 @@ def _execute_training_and_tuning_job_locally(
     config_space["updater"] = updater
     config_space["max_epochs"] = max_epochs
     config_space["config_file"] = config_file
-    config_space["prepare_data"] = True
+    config_space["prepare_data"] = False
     config_space["chunk_id"] = chunk_id
     config_space["task_id"] = task_id
     config_space["working_directory"] = working_directory
