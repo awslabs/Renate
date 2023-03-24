@@ -26,12 +26,10 @@ def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule
 
 
 def data_module_fn(
-    data_path: Union[Path, str], chunk_id: int, seed: int = defaults.SEED
+    data_path: Union[Path, str], dataset_name: str, seed: int = defaults.SEED
 ) -> Scenario:
-    """Returns one of two movie review datasets, depending on `chunk_id`."""
+    """Returns a Huggingface dataset, depending on `dataset_name`."""
     tokenizer = transformers.DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
-    assert 0 <= chunk_id <= 1
-    dataset_name = "imdb" if chunk_id else "rotten_tomatoes"
     data_module = HuggingfaceTextDataModule(
         str(data_path),
         dataset_name=dataset_name,
@@ -40,13 +38,3 @@ def data_module_fn(
         seed=seed,
     )
     return data_module
-
-
-def train_transform() -> Callable:
-    """Returns a transform function to be used in the training."""
-    return None
-
-
-def test_transform() -> Callable:
-    """Returns a transform function to be used for validation or testing."""
-    return None
