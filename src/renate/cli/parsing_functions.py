@@ -4,18 +4,13 @@ import argparse
 import ast
 import inspect
 import sys
+from importlib.util import find_spec
 from types import ModuleType
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 from syne_tune.optimizer.scheduler import TrialScheduler
 
 from renate import defaults
-from renate.updaters.avalanche.model_updater import (
-    ElasticWeightConsolidationModelUpdater,
-    ExperienceReplayAvalancheModelUpdater,
-    ICaRLModelUpdater,
-    LearningWithoutForgettingModelUpdater,
-)
 from renate.updaters.experimental.er import (
     CLSExperienceReplayModelUpdater,
     DarkExperienceReplayModelUpdater,
@@ -50,6 +45,8 @@ def get_updater_and_learner_kwargs(
     args: argparse.Namespace,
 ) -> Tuple[Type[ModelUpdater], Dict[str, Any]]:
     """Returns the model updater class and the keyword arguments for the learner."""
+    if args.updater.startswith("Avalanche-") and find_spec("avalanche", None) is None:
+        raise ImportError("Avalanche is not installed. Please run `pip install Renate[avalanche]`.")
     learner_args = [
         "optimizer",
         "learning_rate",
@@ -121,15 +118,23 @@ def get_updater_and_learner_kwargs(
         updater_class = FineTuningModelUpdater
     elif args.updater == "Avalanche-ER":
         learner_args = learner_args + ["memory_size", "memory_batch_size"]
+        from renate.updaters.avalanche.model_updater import ExperienceReplayAvalancheModelUpdater
+
         updater_class = ExperienceReplayAvalancheModelUpdater
     elif args.updater == "Avalanche-EWC":
         learner_args = learner_args + ["ewc_lambda"]
+        from renate.updaters.avalanche.model_updater import ElasticWeightConsolidationModelUpdater
+
         updater_class = ElasticWeightConsolidationModelUpdater
     elif args.updater == "Avalanche-LwF":
         learner_args = learner_args + ["alpha", "temperature"]
+        from renate.updaters.avalanche.model_updater import LearningWithoutForgettingModelUpdater
+
         updater_class = LearningWithoutForgettingModelUpdater
     elif args.updater == "Avalanche-iCaRL":
         learner_args = learner_args + ["memory_size", "memory_batch_size"]
+        from renate.updaters.avalanche.model_updater import ICaRLModelUpdater
+
         updater_class = ICaRLModelUpdater
     if updater_class is None:
         raise ValueError(f"Unknown learner {args.updater}.")
