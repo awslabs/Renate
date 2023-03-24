@@ -34,7 +34,6 @@ if __name__ == "__main__":
         # review datasets: "rotten_tomatoes" and "imdb".
         dataset_name="rotten_tomatoes",  # "imdb"
         config_file="renate_config.py",
-        requirements_file="../../requirements.txt",
         # replace the url below with a different one if you already ran it and you want to avoid
         # overwriting
         output_state_url=f"s3://sagemaker-{AWS_REGION}-{AWS_ID}/renate-training-nlp-finetuning/",
