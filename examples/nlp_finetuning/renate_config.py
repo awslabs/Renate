@@ -8,7 +8,7 @@ import transformers
 
 import renate.defaults as defaults
 from renate.benchmark.datasets.nlp_datasets import HuggingfaceTextDataModule
-from renate.benchmark.scenarios import Scenario
+from renate.data.data_module import RenateDataModule
 from renate.models import RenateModule
 from renate.models.renate_module import RenateWrapper
 
@@ -26,10 +26,11 @@ def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule
 
 
 def data_module_fn(
-    data_path: Union[Path, str], dataset_name: str, seed: int = defaults.SEED
-) -> Scenario:
-    """Returns a Huggingface dataset, depending on `dataset_name`."""
+    data_path: Union[Path, str], chunk_id: int, seed: int = defaults.SEED
+) -> RenateDataModule:
+    """Returns one of two movie review datasets depending on `chunk_id`."""
     tokenizer = transformers.DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
+    dataset_name = "imdb" if chunk_id else "rotten_tomatoes"
     data_module = HuggingfaceTextDataModule(
         str(data_path),
         dataset_name=dataset_name,

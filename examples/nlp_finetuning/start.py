@@ -29,18 +29,17 @@ if __name__ == "__main__":
         metric="val_accuracy",
         updater="ER",  # we train with Experience Replay
         max_epochs=5,
-        # This dataset name will be passed to our data_module_fn, where we will load the
-        # corresponding dataset. You can try continual training on a sequence of  two binary movie
-        # review datasets: "rotten_tomatoes" and "imdb".
-        dataset_name="rotten_tomatoes",  # "imdb"
         config_file="renate_config.py",
+        # For this example, we can train on two binary movie review datasets: "rotten_tomatoes" and
+        # "imdb". Set chunk_id to [0, 1] to switch between the two.
+        chunk_id=0,
         # replace the url below with a different one if you already ran it and you want to avoid
         # overwriting
         output_state_url=f"s3://sagemaker-{AWS_REGION}-{AWS_ID}/renate-training-nlp-finetuning/",
         # uncomment the line below only if you already created a model with this script and you want
         # to update it
         # input_state_url=f"s3://sagemaker-{AWS_REGION}-{AWS_ID}/renate-training-nlp-finetuning/",
-        backend="local",  # run on SageMaker, select "local" to run this locally
+        backend="sagemaker",  # run on SageMaker, select "local" to run this locally
         role=get_execution_role(),
         instance_count=1,
         instance_type="ml.g4dn.xlarge",
