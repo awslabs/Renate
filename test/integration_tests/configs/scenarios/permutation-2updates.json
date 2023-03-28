@@ -1,0 +1,7 @@
+{
+  "val_size": 0.05,
+  "input_dim": [784],
+  "scenario_name": "PermutationScenario",
+  "num_tasks": 2,
+  "max_epochs": 3
+}
