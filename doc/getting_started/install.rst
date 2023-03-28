@@ -5,14 +5,23 @@ Renate is available via PyPI and can be installed using :code:`pip`:
 
 .. code-block:: bash
 
-    pip install renate
+    pip install Renate
+
+If you want to use additional methods that require the Avalanche library, please use use
+
+.. code-block:: bash
+
+    pip install Renate[avalanche]
+
+For Renate contributors we recommend using ``dev``.
+This will install further dependencies which are required for code formatting and unit testing.
 
 Alternatively, if you want to access the code directly (e.g., for developing and running new methods)
 it is possible to clone the git repository
 
 .. code-block:: bash
 
-    git clone https://github.com/awslabs/renate.git
+    git clone https://github.com/awslabs/Renate.git
 
 We also recommend using a virtual environment to avoid conflicts in the 
 versions of the packages installed. For example, following

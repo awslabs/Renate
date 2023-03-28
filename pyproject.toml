@@ -17,8 +17,12 @@ requires-python = ">=3.8, <3.11"
 dynamic = ["version", "readme", "dependencies"]
 
 [project.optional-dependencies]
+avalanche = [
+    "avalanche_lib==0.3.1",
+]
 dev = [
     "black==23.1.0",
+    "avalanche_lib==0.3.1",
     # PyTest Dependencies
     "pytest==7.2.2",
     "pytest-cov==4.0.0",

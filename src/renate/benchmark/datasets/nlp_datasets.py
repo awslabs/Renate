@@ -103,6 +103,7 @@ class HuggingfaceTextDataModule(RenateDataModule):
 
     def setup(self) -> None:
         """Set up train, test and val datasets."""
+        self.prepare_data()  # This will use cached datasets if they have already been downloaded.
 
         def tokenize_fn(batch):
             return self._tokenizer(batch[self._input_column], **self._tokenizer_kwargs)

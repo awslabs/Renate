@@ -12,4 +12,3 @@ torchmetrics~=0.10.3
 torchvision>=0.13.0, <0.14.2
 datasets~=2.9.0
 transformers>4.23.0, <4.26.2
-avalanche_lib<0.3.2

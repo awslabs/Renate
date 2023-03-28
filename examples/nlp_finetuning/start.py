@@ -1,26 +1,26 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
+import boto3
 from syne_tune.backend.sagemaker_backend.sagemaker_utils import get_execution_role
-from syne_tune.config_space import choice, loguniform, uniform
 
 from renate.training import run_training_job
 
 config_space = {
     "optimizer": "SGD",
-    "momentum": uniform(0.1, 0.9),
+    "momentum": 0.9,
     "weight_decay": 0.0,
-    "learning_rate": loguniform(1e-4, 1e-1),
-    "alpha": uniform(0.0, 1.0),
-    "batch_size": choice([32, 64, 128, 256]),
+    "learning_rate": 0.001,
+    "alpha": 0.5,
+    "batch_size": 32,
     "memory_batch_size": 32,
-    "memory_size": 1000,
+    "memory_size": 300,
     "loss_normalization": 0,
-    "loss_weight": uniform(0.0, 1.0),
+    "loss_weight": 0.5,
 }
 
 if __name__ == "__main__":
-    AWS_ID = "0123456789"  # use your AWS account id here
+    AWS_ID = boto3.client("sts").get_caller_identity().get("Account")
     AWS_REGION = "us-west-2"  # use your AWS preferred region here
 
     run_training_job(
@@ -28,25 +28,20 @@ if __name__ == "__main__":
         mode="max",
         metric="val_accuracy",
         updater="ER",  # we train with Experience Replay
-        max_epochs=50,
-        # we select the first chunk of our dataset, you will probably not need this in practice
-        chunk_id=0,
+        max_epochs=5,
         config_file="renate_config.py",
-        requirements_file="requirements.txt",
+        # For this example, we can train on two binary movie review datasets: "rotten_tomatoes" and
+        # "imdb". Set chunk_id to [0, 1] to switch between the two.
+        chunk_id=0,
         # replace the url below with a different one if you already ran it and you want to avoid
         # overwriting
-        output_state_url=f"s3://sagemaker-{AWS_REGION}-{AWS_ID}/renate-cifar10/",
+        output_state_url=f"s3://sagemaker-{AWS_REGION}-{AWS_ID}/renate-training-nlp-finetuning/",
         # uncomment the line below only if you already created a model with this script and you want
         # to update it
-        # input_state_url=f"s3://sagemaker-{AWS_REGION}-{AWS_ID}/renate-cifar10/",
+        # input_state_url=f"s3://sagemaker-{AWS_REGION}-{AWS_ID}/renate-training-nlp-finetuning/",
         backend="sagemaker",  # run on SageMaker, select "local" to run this locally
         role=get_execution_role(),
         instance_count=1,
         instance_type="ml.g4dn.xlarge",
-        max_num_trials_finished=100,
-        scheduler="asha",  # run ASHA to optimize our hyperparameters
-        # if you use a big instance with multiple GPUs you can multiple workers evaluating
-        # configuration in parallel
-        # n_workers=4,
-        job_name="job-name",
+        job_name="renate-training-nlp-finetuning",
     )
