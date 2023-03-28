@@ -10,7 +10,7 @@
     "alpha": 0.5,
     "beta": 0.1,
     "stable_model_update_weight": 0.999,
-    "plastic_model_update_weight": 0.7,
-    "stable_model_update_probability": 0.999,
+    "plastic_model_update_weight": 0.999,
+    "stable_model_update_probability": 0.7,
     "plastic_model_update_probability": 0.9
 }

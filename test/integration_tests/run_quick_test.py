@@ -3,7 +3,6 @@
 import argparse
 import datetime
 import json
-import logging
 import os
 import subprocess
 from pathlib import Path
@@ -13,8 +12,6 @@ import pandas as pd
 import pytest
 
 from renate.utils.file import upload_file_to_s3
-
-logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -61,30 +58,30 @@ if __name__ == "__main__":
         ]
     )
     process.wait()
+    num_updates = len(test_config["expected_accuracy"])
     result_file = (
         Path("tmp")
         / "renate-integration-tests"
         / test_suite
         / job_name
         / "logs"
-        / "metrics_summary.csv"
+        / f"metrics_summary_update_{num_updates - 1}.csv"
     )
     if result_file.exists():
-        results = pd.read_csv(result_file)
+        df = pd.read_csv(result_file)
+        accuracies = [float(acc) for acc in list(df.iloc[-1])[1:]]
+        results = pd.DataFrame(data={f"Update {i+1}": [acc] for i, acc in enumerate(accuracies)})
+        results["All Results"] = None
+        results["All Results"].astype("object")
+        results.at[0, "All Results"] = df.iloc[:, 1:].to_numpy().tolist()
     else:
-        results = pd.DataFrame(
-            data={
-                "Task ID": [1],
-                "Average Accuracy": [pd.NA],
-                "Forgetting": [pd.NA],
-                "Forward Transfer": [pd.NA],
-                "Backward Transfer": [pd.NA],
-            }
-        )
+        accuracies = []
+        results = pd.DataFrame(data={f"Update {i+1}": [pd.NA] for i in range(num_updates)})
     results["Timestamp"] = datetime.datetime.now()
     results["Commit"] = args.commit_id
     results["Test Suite"] = test_suite
     results["Test Name"] = test_config["job_name"]
+
     local_results_file = (
         Path("tmp") / "renate-integration-tests" / test_suite / job_name / f"{job_name}.csv"
     )
@@ -96,5 +93,4 @@ if __name__ == "__main__":
         f"sagemaker-us-west-2-{aws_account_id}",
         f"renate-integration-tests/{test_suite}/{job_name}.csv",
     )
-    logger.info(results)
-    assert pytest.approx(test_config["expected_accuracy"]) == list(results["Average Accuracy"])
+    assert pytest.approx(test_config["expected_accuracy"]) == accuracies

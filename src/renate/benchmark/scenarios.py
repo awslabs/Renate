@@ -370,11 +370,11 @@ class HueShiftScenario(_SortingScenario):
     """
 
     def _get_scores(self, dataset: Dataset) -> List[float]:
-        features = []
+        scores = []
         to_pil_image = ToPILImage()
-        for image, _ in enumerate(dataset):
+        for image, _ in dataset:
             count, value = np.histogram(
                 np.array(to_pil_image(image).convert("HSV"))[:, :, 0].reshape(-1), bins=100
             )
-            features.append(value[np.argmax(count)])
-        return features
+            scores.append(value[np.argmax(count)])
+        return scores

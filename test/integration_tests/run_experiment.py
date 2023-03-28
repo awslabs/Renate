@@ -71,8 +71,7 @@ if __name__ == "__main__":
     else:
         AWS_ACCOUNT_ID = boto3.client("sts").get_caller_identity().get("Account")
         experiment_outputs_url = f"s3://sagemaker-us-west-2-{AWS_ACCOUNT_ID}/renate-integration-tests/{args.test_suite}/{args.job_name}/"
-        role = f"arn:aws:iam::{AWS_ACCOUNT_ID}:role/AmazonSageMakerServiceCatalogProductsUseRole"  # get_execution_role()
-
+        role = get_execution_role()
     execute_experiment_job(
         backend=args.backend,
         config_file=experiment_config_file(),
