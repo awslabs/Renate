@@ -63,19 +63,20 @@ class GDumbLearner(ReplayLearner):
 
     def on_model_update_start(
         self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
-    ) -> Tuple[DataLoader, DataLoader]:
+    ) -> None:
         """Called before a model update starts."""
+        super().on_model_update_start(train_dataset, val_dataset, task_id)
         self._memory_buffer.update(train_dataset)
-        _, val_loader = super().on_model_update_start(train_dataset, val_dataset, task_id)
-        train_loader = DataLoader(
+        reinitialize_model_parameters(self._model)
+
+    def train_dataloader(self) -> DataLoader:
+        return DataLoader(
             self._memory_buffer,
             batch_size=self._batch_size,
             shuffle=True,
             generator=self._rng,
             pin_memory=True,
         )
-        reinitialize_model_parameters(self._model)
-        return train_loader, val_loader
 
     def training_step(
         self,

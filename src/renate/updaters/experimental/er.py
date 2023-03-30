@@ -11,7 +11,7 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch.utils.data import DataLoader, Dataset, Subset
 
 from renate import defaults
-from renate.data.datasets import _EnumeratedDataset
+from renate.data.datasets import _EnumeratedDataset, _TransformedDataset
 from renate.memory.buffer import DataDict
 from renate.models import RenateModule
 from renate.types import NestedTensors
@@ -80,21 +80,26 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
 
     def on_model_update_start(
         self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
-    ) -> Tuple[DataLoader, DataLoader]:
+    ) -> None:
         """Called before a model update starts."""
+        super().on_model_update_start(train_dataset, val_dataset, task_id)
         self._set_memory_loader()
-        self._current_train_dataset = train_dataset
-        train_loader, val_loader = super().on_model_update_start(
-            train_dataset, val_dataset, task_id
+
+    def train_dataloader(self) -> DataLoader:
+        train_dataset = _EnumeratedDataset(
+            _TransformedDataset(
+                self._train_dataset,
+                transform=self._train_transform,
+                target_transform=self._train_target_transform,
+            )
         )
-        train_loader = DataLoader(
-            _EnumeratedDataset(train_loader.dataset),
+        return DataLoader(
+            train_dataset,
             batch_size=self._batch_size,
             shuffle=True,
             generator=self._rng,
             pin_memory=True,
         )
-        return train_loader, val_loader
 
     def on_train_start(self) -> None:
         """PyTorch Lightning function to be run at the start of the training."""
@@ -208,7 +213,7 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
             ] = intermediate_representation.detach().cpu()
         # Some datasets have problems using tensors as subset indices, convert to list of ints.
         train_data_idx = [int(idx) for idx in step_output["train_data_idx"]]
-        dataset = Subset(self._current_train_dataset, train_data_idx)
+        dataset = Subset(self._train_dataset, train_data_idx)
         self._memory_buffer.update(dataset, metadata)
         self._set_memory_loader()
 

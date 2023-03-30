@@ -101,7 +101,7 @@ def test_continuation_of_training_with_dmc_model_updater(tmpdir):
     model_updater = RepeatedDistillationModelUpdater(
         model, memory_size=50, max_epochs=1, output_state_folder=state_url
     )
-    model = model_updater.update(train_dataset, task_id=defaults.TASK_ID)
+    model_updater.update(train_dataset, task_id=defaults.TASK_ID)
     model_updater = RepeatedDistillationModelUpdater(
         model, memory_size=50, max_epochs=1, input_state_folder=state_url
     )

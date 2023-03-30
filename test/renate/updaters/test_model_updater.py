@@ -108,7 +108,6 @@ def test_model_updater_with_early_stopping(
         )
 
     if metric_monitored and use_val and early_stopping_enabled:
-        print(model_updater._num_epochs_trained)
         assert model_updater._num_epochs_trained < max_epochs
     else:
         assert model_updater._num_epochs_trained == max_epochs
@@ -154,7 +153,7 @@ def test_continuation_of_training_with_simple_model_updater(tmpdir, learner_clas
         output_state_folder=state_url,
         max_epochs=2,
     )
-    model = model_updater.update(train_dataset, task_id=defaults.TASK_ID)
+    model_updater.update(train_dataset, task_id=defaults.TASK_ID)
     model_updater = pytest.helpers.get_simple_updater(
         model,
         learner_class=learner_class,
@@ -203,7 +202,7 @@ def test_transforms_passed_to_simple_model_updater_will_be_used_by_learner(tmpdi
         **transforms_kwargs,
     )
     check_learner_transforms(model_updater._learner, transforms_kwargs)
-    model = model_updater.update(train_dataset, task_id=defaults.TASK_ID)
+    model_updater.update(train_dataset, task_id=defaults.TASK_ID)
     model_updater = pytest.helpers.get_simple_updater(
         model, input_state_folder=state_url, learner_class=learner_class, **transforms_kwargs
     )
