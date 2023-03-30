@@ -94,7 +94,7 @@ class Learner(LightningModule, abc.ABC):
 
     def _post_init(self) -> None:
         self._rng = get_generator(self._seed)
-        # self._val_enabled = False
+        self._val_enabled = False
 
     def _create_metrics_collections(
         self, logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None

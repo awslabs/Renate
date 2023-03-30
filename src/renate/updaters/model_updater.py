@@ -316,10 +316,8 @@ class ModelUpdater(abc.ABC):
 
         if self._early_stopping_enabled:
             if learner._val_enabled:
-                print("Using early stopping!!!!")
                 callbacks.insert(0, EarlyStopping(monitor=self._metric, mode=self._mode))
             else:
-                print("!!! NOT using early stopping!!!!")
                 warnings.warn(
                     "Early stopping is currently not supported without a validation set. It will "
                     "be ignored."
