@@ -12,7 +12,7 @@ from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers.logger import Logger
 from syne_tune import Reporter
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 
 from renate import defaults
 from .learner import Learner, ReplayLearner
