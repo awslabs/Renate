@@ -27,10 +27,10 @@ class _InputTargetWrapper(torch.utils.data.Dataset):
         return item, target
 
 
-class HuggingfaceTextDataModule(RenateDataModule):
+class HuggingFaceTextDataModule(RenateDataModule):
     """Data module wrapping Huggingface text datasets.
 
-    This is a convenience wrapper to expose a hugginface dataset as a `RenateDataModule`. Datasets
+    This is a convenience wrapper to expose a Hugging Face dataset as a `RenateDataModule`. Datasets
     will be pre-tokenized and will return `input, target = dataset[i]`, where `input` is a
     dictionary with fields `["input_ids", "attention_mask"]`, and `target` is a tensor.
 
@@ -46,7 +46,7 @@ class HuggingfaceTextDataModule(RenateDataModule):
         target_column: Name of the column containing the target (e.g., class label).
         tokenizer: Tokenizer to apply to the dataset. See https://huggingface.co/docs/tokenizers/
             for more information on tokenizers.
-        tokenize_kwargs: Keyword arguments to be passed to the tokenizer. Typical options are
+        tokenizer_kwargs: Keyword arguments to be passed to the tokenizer. Typical options are
            `max_length`, `padding` and `truncation`. See https://huggingface.co/docs/tokenizers/
            for more information on tokenizers. If `None` is passed, this defaults to
            `{"padding": "max_length", max_length: 128, truncation: True}`.
@@ -65,7 +65,7 @@ class HuggingfaceTextDataModule(RenateDataModule):
         val_size: float = defaults.VALIDATION_SIZE,
         seed: int = defaults.SEED,
     ):
-        super(HuggingfaceTextDataModule, self).__init__(
+        super(HuggingFaceTextDataModule, self).__init__(
             data_path=data_path,
             val_size=val_size,
             seed=seed,
