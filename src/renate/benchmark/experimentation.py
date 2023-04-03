@@ -351,11 +351,7 @@ def _execute_experiment_job_locally(
         )
         df = individual_metrics_summary(results, update_id + 1, num_updates)
         save_pandas_df_to_csv(
-            df,
-            defaults.metric_summary_file(
-                logs_url,
-                special_str=f"_update_{update_id}_" + defaults.current_timestamp(),
-            ),
+            df, defaults.metric_summary_file(logs_url, special_str=f"_update_{update_id}")
         )
         logger.info(f"### Results after update {update_id + 1}: ###")
         logger.info(df)

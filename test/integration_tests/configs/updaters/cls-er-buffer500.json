@@ -1,0 +1,16 @@
+{
+    "updater": "CLS-ER",
+    "optimizer": "Adam",
+    "learning_rate": 0.01,
+    "momentum": 0.0,
+    "weight_decay": 0.0,
+    "batch_size": 256,
+    "memory_batch_size": 256,
+    "memory_size": 500,
+    "alpha": 0.5,
+    "beta": 0.1,
+    "stable_model_update_weight": 0.999,
+    "plastic_model_update_weight": 0.999,
+    "stable_model_update_probability": 0.7,
+    "plastic_model_update_probability": 0.9
+}
