@@ -1,6 +1,5 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-import os
 from pathlib import Path
 from typing import Optional, Union
 
@@ -44,7 +43,7 @@ class WildTimeDataModule(RenateDataModule):
             seed=seed,
         )
         self._dataset_name = dataset_name
-        self._time_step = time_step
+        self.time_step = time_step
 
     def prepare_data(self) -> None:
         """Download data.
@@ -59,26 +58,26 @@ class WildTimeDataModule(RenateDataModule):
                 data_dir=self._data_path,
             )
         else:
-            download_folder_from_s3(
-                src_bucket=self._src_bucket,
-                src_object_name=self._src_object_name,
-                dst_dir=os.path.join(
-                    self._data_path, dataset_classes[self._dataset_name].file_name
-                ),
-            )
+            dst_dir = Path(self._data_path) / dataset_classes[self._dataset_name].file_name
+            if not dst_dir.exists():
+                download_folder_from_s3(
+                    src_bucket=self._src_bucket,
+                    src_object_name=self._src_object_name,
+                    dst_dir=str(dst_dir),
+                )
 
     def setup(self) -> None:
         """Set up train, test and val datasets."""
         train_data = load_dataset(
             dataset_name=self._dataset_name,
-            time_step=available_time_steps(self._dataset_name)[self._time_step],
+            time_step=available_time_steps(self._dataset_name)[self.time_step],
             split="train",
             data_dir=self._data_path,
         )
         self._train_data, self._val_data = self._split_train_val_data(train_data)
         self._test_data = load_dataset(
             dataset_name=self._dataset_name,
-            time_step=available_time_steps(self._dataset_name)[self._time_step],
+            time_step=available_time_steps(self._dataset_name)[self.time_step],
             split="test",
             data_dir=self._data_path,
         )

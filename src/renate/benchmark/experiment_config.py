@@ -3,9 +3,11 @@
 from typing import List, Optional, Tuple, Union
 
 import torch
+import wild_time_data
 from torchvision.transforms import transforms
 
 from renate.benchmark.datasets.vision_datasets import CLEARDataModule, TorchVisionDataModule
+from renate.benchmark.datasets.wild_time_data import WildTimeDataModule
 from renate.benchmark.models import (
     MultiLayerPerceptron,
     ResNet18,
@@ -30,6 +32,7 @@ from renate.benchmark.scenarios import (
     ImageRotationScenario,
     PermutationScenario,
     Scenario,
+    WildTimeScenario,
 )
 from renate.data.data_module import RenateDataModule
 from renate.models import RenateModule
@@ -93,6 +96,10 @@ def get_data_module(
         )
     if dataset_name in ["CLEAR10", "CLEAR100"]:
         return CLEARDataModule(data_path, dataset_name=dataset_name, val_size=val_size, seed=seed)
+    if dataset_name in wild_time_data.list_datasets():
+        return WildTimeDataModule(
+            data_path=data_path, dataset_name=dataset_name, val_size=val_size, seed=seed
+        )
     raise ValueError(f"Unknown dataset `{dataset_name}`.")
 
 
@@ -175,6 +182,10 @@ def get_scenario(
             chunk_id=chunk_id,
             seed=seed,
         )
+    if scenario_name == "WildTimeScenario":
+        return WildTimeScenario(
+            data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed
+        )
     raise ValueError(f"Unknown scenario `{scenario_name}`.")
 
 
@@ -218,13 +229,22 @@ def _get_normalize_transform(dataset_name):
             TorchVisionDataModule.dataset_stats[dataset_name]["mean"],
             TorchVisionDataModule.dataset_stats[dataset_name]["std"],
         )
+    if dataset_name == "fmow":
+        return transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
 
 def train_transform(dataset_name: str) -> Optional[transforms.Compose]:
     """Returns a transform function to be used in the training."""
-    if dataset_name in ["MNIST", "FashionMNIST"]:
+    if dataset_name in ["MNIST", "FashionMNIST", "yearbook"]:
         return None
-    elif dataset_name in ["CIFAR10", "CIFAR100"]:
+    if dataset_name == "fmow":
+        return transforms.Compose(
+            [
+                transforms.ToTensor(),
+                _get_normalize_transform(dataset_name),
+            ]
+        )
+    if dataset_name in ["CIFAR10", "CIFAR100"]:
         return transforms.Compose(
             [
                 transforms.RandomCrop(32, padding=4),
@@ -237,8 +257,15 @@ def train_transform(dataset_name: str) -> Optional[transforms.Compose]:
 
 def test_transform(dataset_name: str) -> Optional[transforms.Normalize]:
     """Returns a transform function to be used for validation or testing."""
-    if dataset_name in ["MNIST", "FashionMNIST"]:
+    if dataset_name in ["MNIST", "FashionMNIST", "yearbook"]:
         return None
-    elif dataset_name in ["CIFAR10", "CIFAR100"]:
+    if dataset_name in ["CIFAR10", "CIFAR100"]:
         return _get_normalize_transform(dataset_name)
+    if dataset_name == "fmow":
+        return transforms.Compose(
+            [
+                transforms.ToTensor(),
+                _get_normalize_transform(dataset_name),
+            ]
+        )
     raise ValueError(f"Unknown dataset `{dataset_name}`.")

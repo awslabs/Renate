@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import logging
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import datasets
 import torch
@@ -12,7 +12,7 @@ from renate.data.data_module import RenateDataModule
 
 
 class _InputTargetWrapper(torch.utils.data.Dataset):
-    """Make a huggingface dataset comply with the `(input, target)` format."""
+    """Make a Hugging Face dataset comply with the `(input, target)` format."""
 
     def __init__(self, dataset, target_column: str = "label"):
         self._dataset = dataset
@@ -28,7 +28,7 @@ class _InputTargetWrapper(torch.utils.data.Dataset):
 
 
 class HuggingFaceTextDataModule(RenateDataModule):
-    """Data module wrapping Huggingface text datasets.
+    """Data module wrapping Hugging Face text datasets.
 
     This is a convenience wrapper to expose a Hugging Face dataset as a `RenateDataModule`. Datasets
     will be pre-tokenized and will return `input, target = dataset[i]`, where `input` is a
@@ -40,14 +40,15 @@ class HuggingFaceTextDataModule(RenateDataModule):
 
     Args:
         data_path: the path to the folder containing the dataset files.
+        tokenizer: Tokenizer to apply to the dataset. See https://huggingface.co/docs/tokenizers/
+            for more information on tokenizers.
         dataset_name: Name of the dataset, see https://huggingface.co/datasets. This is a wrapper
             for text datasets only.
         input_column: Name of the column containing the input text.
         target_column: Name of the column containing the target (e.g., class label).
-        tokenizer: Tokenizer to apply to the dataset. See https://huggingface.co/docs/tokenizers/
-            for more information on tokenizers.
-        tokenizer_kwargs: Keyword arguments to be passed to the tokenizer. Typical options are
-           `max_length`, `padding` and `truncation`. See https://huggingface.co/docs/tokenizers/
+        tokenizer_kwargs: Keyword arguments passed when calling the tokenizer's ``__call__``
+           function. Typical options are `max_length`, `padding` and `truncation`.
+           See https://huggingface.co/docs/tokenizers/
            for more information on tokenizers. If `None` is passed, this defaults to
            `{"padding": "max_length", max_length: 128, truncation: True}`.
         val_size: Fraction of the training data to be used for validation.
@@ -57,11 +58,11 @@ class HuggingFaceTextDataModule(RenateDataModule):
     def __init__(
         self,
         data_path: str,
+        tokenizer: transformers.PreTrainedTokenizer,
         dataset_name: str = "ag_news",
         input_column: str = "text",
         target_column: str = "label",
-        tokenizer: Optional[transformers.PreTrainedTokenizer] = None,
-        tokenizer_kwargs: Optional[dict] = None,
+        tokenizer_kwargs: Optional[Dict[str, Any]] = None,
         val_size: float = defaults.VALIDATION_SIZE,
         seed: int = defaults.SEED,
     ):
@@ -79,9 +80,9 @@ class HuggingFaceTextDataModule(RenateDataModule):
     def prepare_data(self) -> None:
         """Download data."""
         split_names = datasets.get_dataset_split_names(self._dataset_name)
-        if not "train" in split_names:
+        if "train" not in split_names:
             raise RuntimeError(f"Dataset {self._dataset_name} does not contain a 'train' split.")
-        if not "test" in split_names:
+        if "test" not in split_names:
             raise RuntimeError(f"Dataset {self._dataset_name} does not contain a 'test' split.")
         self._train_data = datasets.load_dataset(
             self._dataset_name, split="train", cache_dir=self._data_path
