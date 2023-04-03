@@ -1,0 +1,22 @@
+{
+    "updater": "Super-ER",
+    "optimizer": "Adam",
+    "learning_rate": 0.01,
+    "momentum": 0.0,
+    "weight_decay": 0.0,
+    "batch_size": 256,
+    "memory_batch_size": 256,
+    "memory_size": 500,
+    "der_alpha": 1.0,
+    "der_beta": 1.0,
+    "sp_shrink_factor": 0.95,
+    "sp_sigma": 0.001,
+    "pod_alpha": 1.0,
+    "pod_distillation_type": "spatial",
+    "pod_normalize": 1,
+    "cls_alpha": 0.1,
+    "cls_stable_model_update_weight": 0.999,
+    "cls_plastic_model_update_weight": 0.999,
+    "cls_stable_model_update_probability": 0.7,
+    "cls_plastic_model_update_probability": 0.9
+}

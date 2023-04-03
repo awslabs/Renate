@@ -1,0 +1,6 @@
+{
+  "val_size": 0.05,
+  "scenario_name": "IIDScenario",
+  "num_tasks": 2,
+  "max_epochs": 3
+}

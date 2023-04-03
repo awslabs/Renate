@@ -1,0 +1,13 @@
+{
+    "updater": "ER",
+    "optimizer": "Adam",
+    "learning_rate": 0.01,
+    "momentum": 0.0,
+    "weight_decay": 0.0,
+    "batch_size": 256,
+    "memory_batch_size": 256,
+    "memory_size": 500,
+    "alpha": 0.5,
+    "loss_normalization": 0,
+    "loss_weight": 0.5
+}

@@ -1,0 +1,9 @@
+{
+  "scenario": "class-incremental-2updates.json",
+  "model": "mlp-200.json",
+  "updater": "gdumb-buffer500.json",
+  "dataset": "fashionmnist.json",
+  "backend": "local",
+  "job_name": "class-incremental-mlp-gdumb",
+  "expected_accuracy": [0.4165,0.9545]
+}
