@@ -51,18 +51,39 @@ def test_model_fn_fails_for_unknown_model():
     (("CIFAR10", TorchVisionDataModule), ("CLEAR10", CLEARDataModule)),
 )
 def test_get_data_module(tmpdir, dataset_name, data_module_class):
-    data_module = get_data_module(data_path=tmpdir, dataset_name=dataset_name, val_size=0.5, seed=0)
+    data_module = get_data_module(
+        data_path=tmpdir,
+        dataset_name=dataset_name,
+        val_size=0.5,
+        seed=0,
+        src_bucket=None,
+        src_object_name=None,
+    )
     assert isinstance(data_module, data_module_class)
 
 
 def test_get_data_module_fails_for_unknown_dataset(tmpdir):
     unknown_dataset_name = "UNKNOWN_DATASET_NAME"
     with pytest.raises(ValueError, match=f"Unknown dataset `{unknown_dataset_name}`"):
-        get_data_module(data_path=tmpdir, dataset_name=unknown_dataset_name, val_size=0.5, seed=0)
+        get_data_module(
+            data_path=tmpdir,
+            dataset_name=unknown_dataset_name,
+            val_size=0.5,
+            seed=0,
+            src_bucket=None,
+            src_object_name=None,
+        )
 
 
 def test_get_scenario_fails_for_unknown_scenario(tmpdir):
-    data_module = get_data_module(data_path=tmpdir, dataset_name="MNIST", val_size=0.5, seed=0)
+    data_module = get_data_module(
+        data_path=tmpdir,
+        dataset_name="MNIST",
+        val_size=0.5,
+        seed=0,
+        src_bucket=None,
+        src_object_name=None,
+    )
     unknown_scenario_name = "UNKNOWN_SCENARIO_NAME"
     with pytest.raises(ValueError, match=f"Unknown scenario `{unknown_scenario_name}`"):
         get_scenario(

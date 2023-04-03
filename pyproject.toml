@@ -20,9 +20,13 @@ dynamic = ["version", "readme", "dependencies"]
 avalanche = [
     "avalanche_lib==0.3.1",
 ]
+benchmark = [
+    "wild-time-data==0.0.3",
+]
 dev = [
     "black==23.1.0",
     "avalanche_lib==0.3.1",
+    "wild-time-data==0.0.3",
     # PyTest Dependencies
     "pytest==7.2.2",
     "pytest-cov==4.0.0",

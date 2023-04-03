@@ -88,17 +88,28 @@ def model_fn(
 
 
 def get_data_module(
-    data_path: str, dataset_name: str, val_size: float, seed: int
+    data_path: str,
+    src_bucket: Optional[str],
+    src_object_name: Optional[str],
+    dataset_name: str,
+    val_size: float,
+    seed: int,
 ) -> RenateDataModule:
+    data_module_class = None
     if dataset_name in TorchVisionDataModule.dataset_dict:
-        return TorchVisionDataModule(
-            data_path, dataset_name=dataset_name, val_size=val_size, seed=seed
-        )
-    if dataset_name in ["CLEAR10", "CLEAR100"]:
-        return CLEARDataModule(data_path, dataset_name=dataset_name, val_size=val_size, seed=seed)
-    if dataset_name in wild_time_data.list_datasets():
-        return WildTimeDataModule(
-            data_path=data_path, dataset_name=dataset_name, val_size=val_size, seed=seed
+        data_module_class = TorchVisionDataModule
+    elif dataset_name in ["CLEAR10", "CLEAR100"]:
+        data_module_class = CLEARDataModule
+    elif dataset_name in wild_time_data.list_datasets():
+        data_module_class = WildTimeDataModule
+    if data_module_class is not None:
+        return data_module_class(
+            data_path=data_path,
+            src_bucket=src_bucket,
+            src_object_name=src_object_name,
+            dataset_name=dataset_name,
+            val_size=val_size,
+            seed=seed,
         )
     raise ValueError(f"Unknown dataset `{dataset_name}`.")
 
@@ -202,13 +213,19 @@ def data_module_fn(
     input_dim: Optional[Tuple[int]] = None,
     feature_idx: Optional[int] = None,
     randomness: Optional[float] = None,
+    src_bucket: Optional[str] = None,
+    src_object_name: Optional[str] = None,
 ):
     data_module = get_data_module(
         data_path=data_path,
+        src_bucket=src_bucket,
+        src_object_name=src_object_name,
         dataset_name=dataset_name,
         val_size=val_size,
         seed=seed,
     )
+    if dataset_name in wild_time_data.list_datasets() and num_tasks is None:
+        num_tasks = len(wild_time_data.available_time_steps(dataset_name))
     return get_scenario(
         scenario_name=scenario_name,
         data_module=data_module,
@@ -238,12 +255,7 @@ def train_transform(dataset_name: str) -> Optional[transforms.Compose]:
     if dataset_name in ["MNIST", "FashionMNIST", "yearbook"]:
         return None
     if dataset_name == "fmow":
-        return transforms.Compose(
-            [
-                transforms.ToTensor(),
-                _get_normalize_transform(dataset_name),
-            ]
-        )
+        return _get_normalize_transform(dataset_name)
     if dataset_name in ["CIFAR10", "CIFAR100"]:
         return transforms.Compose(
             [
@@ -259,13 +271,6 @@ def test_transform(dataset_name: str) -> Optional[transforms.Normalize]:
     """Returns a transform function to be used for validation or testing."""
     if dataset_name in ["MNIST", "FashionMNIST", "yearbook"]:
         return None
-    if dataset_name in ["CIFAR10", "CIFAR100"]:
+    if dataset_name in ["CIFAR10", "CIFAR100", "fmow"]:
         return _get_normalize_transform(dataset_name)
-    if dataset_name == "fmow":
-        return transforms.Compose(
-            [
-                transforms.ToTensor(),
-                _get_normalize_transform(dataset_name),
-            ]
-        )
     raise ValueError(f"Unknown dataset `{dataset_name}`.")
