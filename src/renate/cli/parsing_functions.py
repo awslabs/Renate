@@ -454,6 +454,19 @@ def _add_finetuning_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     pass
 
 
+def _add_offline_er_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+    _add_replay_learner_arguments(arguments)
+    arguments.update(
+        {
+            "loss_weight_new_data": {
+                "type": float,
+                "default": None,
+                "help": "Weight assigned to loss on the new data.",
+            }
+        }
+    )
+
+
 def _add_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds Experience Replay arguments."""
     arguments.update(
@@ -884,7 +897,7 @@ parse_by_updater = {
     "Joint": _add_joint_arguments,
     "FineTuning": _add_finetuning_arguments,
     "RD": _add_rd_learner_arguments,
-    "Offline-ER": _add_replay_learner_arguments,
+    "Offline-ER": _add_offline_er_arguments,
     "Avalanche-ER": _add_experience_replay_arguments,
     "Avalanche-EWC": _add_avalanche_ewc_learner_arguments,
     "Avalanche-LwF": _add_avalanche_lwf_learner_arguments,

@@ -103,7 +103,7 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         self._loss_collections["train_losses"]["base_loss"](loss)
         self._update_metrics(outputs, targets, "train")
         if "memory" in batch:
-            inputs_mem, targets_mem = batch["memory"]
+            (inputs_mem, targets_mem), _ = batch["memory"]
             outputs_mem = self(inputs_mem)
             loss_mem = self._model.loss_fn(outputs_mem, targets_mem)
             self._loss_collections["train_losses"]["memory_loss"](loss_mem)
