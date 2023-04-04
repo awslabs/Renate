@@ -168,10 +168,17 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         ),
         (
             "WildTimeScenario",
-            "yearbook",
-            {"num_tasks": 3},
+            "arxiv",
+            {"num_tasks": 3, "pretrained_model_name_or_path": "distilbert-base-uncased"},
             WildTimeScenario,
             3,
+        ),
+        (
+            "WildTimeScenario",
+            "fmow",
+            {},
+            WildTimeScenario,
+            16,
         ),
     ),
     ids=[
@@ -182,7 +189,8 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         "permutation",
         "feature_sorting",
         "hue_shift",
-        "wild_time",
+        "wild_time_text_with_tokenizer",
+        "wild_time_image_all_tasks",
     ],
 )
 @pytest.mark.parametrize("val_size", (0, 0.5), ids=["no_val", "val"])
@@ -208,10 +216,15 @@ def test_data_module_fn(
     if expected_scenario_class == ClassIncrementalScenario:
         assert scenario._class_groupings == scenario_kwargs["class_groupings"]
     elif expected_scenario_class == FeatureSortingScenario:
-        scenario._feature_idx = scenario_kwargs["feature_idx"]
-        scenario._randomness = scenario_kwargs["randomness"]
+        assert scenario._feature_idx == scenario_kwargs["feature_idx"]
+        assert scenario._randomness == scenario_kwargs["randomness"]
     elif expected_scenario_class == HueShiftScenario:
-        scenario._randomness = scenario_kwargs["randomness"]
+        assert scenario._randomness == scenario_kwargs["randomness"]
+    elif expected_scenario_class == WildTimeScenario:
+        if "pretrained_model_name_or_path" in scenario_kwargs:
+            assert scenario._data_module._tokenizer is not None
+        else:
+            assert scenario._data_module._tokenizer is None
     assert scenario._num_tasks == expected_num_tasks
 
 
