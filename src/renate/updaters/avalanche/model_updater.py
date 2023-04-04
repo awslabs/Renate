@@ -151,7 +151,7 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
         train_dataset: Dataset,
         val_dataset: Optional[Dataset] = None,
         task_id: Optional[str] = None,
-    ) -> None:
+    ) -> RenateModule:
         val_dataset_exists = val_dataset is not None
         benchmark = self._load_benchmark_if_exists(train_dataset, val_dataset)
         train_exp = benchmark.train_stream[0]
@@ -175,6 +175,7 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
             step=self._max_epochs - 1,
             epoch=self._max_epochs,
         )
+        return self._model
 
     def _load_benchmark_if_exists(
         self, train_dataset: Dataset, val_dataset: Optional[Dataset] = None

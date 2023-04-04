@@ -45,9 +45,9 @@ def test_joint_learner_model_reset():
         learner_kwargs={"learning_rate": 0.0},
         max_epochs=1,
     )
-    model_updater.update(train_dataset=dataset, task_id=defaults.TASK_ID)
+    model = model_updater.update(train_dataset=dataset, task_id=defaults.TASK_ID)
     model_copy = copy.deepcopy(model)
-    model_updater.update(train_dataset=dataset, task_id=defaults.TASK_ID)
+    model = model_updater.update(train_dataset=dataset, task_id=defaults.TASK_ID)
     for (name, param), (name_copy, param_copy) in zip(
         model.named_parameters(), model_copy.named_parameters()
     ):

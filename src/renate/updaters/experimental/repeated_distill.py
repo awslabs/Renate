@@ -162,7 +162,7 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
         train_dataset: Dataset,
         val_dataset: Optional[Dataset] = None,
         task_id: Optional[str] = None,
-    ) -> None:
+    ) -> RenateModule:
         """Updates the model using the data passed as input.
 
         Args:
@@ -199,6 +199,7 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
         # Run consolidation.
         self._learner.on_model_update_start(train_dataset, val_dataset, task_id)
         self._fit_learner(self._learner)
+        return self._model
 
 
 class RepeatedDistillationLearner(ReplayLearner):

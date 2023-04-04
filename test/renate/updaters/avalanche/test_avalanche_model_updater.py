@@ -65,7 +65,7 @@ def test_continuation_of_training_with_avalanche_model_updater(tmpdir, learner_c
         output_state_folder=state_url,
         max_epochs=2,
     )
-    model_updater.update(train_dataset, task_id=defaults.TASK_ID)
+    model = model_updater.update(train_dataset, task_id=defaults.TASK_ID)
     model_updater = pytest.helpers.get_avalanche_updater(
         model,
         learner_class=learner_class,

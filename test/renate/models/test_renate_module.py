@@ -198,11 +198,11 @@ def test_renate_model_multihead_save_and_load(tmpdir, test_case, test_cls):
 def test_renate_model_add_params(test_case):
     model, train_dataset, _ = test_case
     model_updater = pytest.helpers.get_simple_updater(model)
-    model_updater.update(train_dataset=train_dataset, task_id="second_task")
+    model = model_updater.update(train_dataset=train_dataset, task_id="second_task")
     assert model._tasks_params_ids == {TASK_ID, "second_task"}
-    model_updater.update(train_dataset=train_dataset, task_id="second_task")
+    model = model_updater.update(train_dataset=train_dataset, task_id="second_task")
     assert model._tasks_params_ids == {TASK_ID, "second_task"}
-    model_updater.update(train_dataset=train_dataset, task_id="third_task")
+    model = model_updater.update(train_dataset=train_dataset, task_id="third_task")
     assert model._tasks_params_ids == {TASK_ID, "second_task", "third_task"}
 
 
@@ -240,7 +240,7 @@ def test_renate_model_singlehead_single_param_update(test_case):
     original_model = copy.deepcopy(model)
 
     model_updater = pytest.helpers.get_simple_updater(model)
-    model_updater.update(train_dataset=train_dataset, task_id=TASK_ID)
+    model = model_updater.update(train_dataset=train_dataset, task_id=TASK_ID)
     state_dict = model.state_dict()
 
     for name, p in original_model.named_parameters():
@@ -280,9 +280,9 @@ def test_renate_multihead_multi_param_update(test_case):
     model, train_dataset, _ = test_case
     original_model = copy.deepcopy(model)
     model_updater = pytest.helpers.get_simple_updater(model)
-    model_updater.update(train_dataset=train_dataset, task_id=TASK_ID)
+    model = model_updater.update(train_dataset=train_dataset, task_id=TASK_ID)
     first_update_model = copy.deepcopy(model)
-    model_updater.update(train_dataset=train_dataset, task_id="second_task")
+    model = model_updater.update(train_dataset=train_dataset, task_id="second_task")
     second_update_model = model
 
     first_update_state_dict = first_update_model.state_dict()
