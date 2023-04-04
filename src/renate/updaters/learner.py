@@ -95,7 +95,6 @@ class Learner(LightningModule, abc.ABC):
 
     def _post_init(self) -> None:
         self._rng = get_generator(self._seed)
-        self._val_enabled = False
 
     def _create_metrics_collections(
         self, logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None
@@ -238,48 +237,50 @@ class Learner(LightningModule, abc.ABC):
 
     def on_model_update_start(
         self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
-    ) -> Tuple[DataLoader, DataLoader]:
-        """Called before a model update starts."""
+    ) -> None:
+        self._train_dataset = train_dataset
+        self._val_dataset = val_dataset
+        self.val_enabled = val_dataset is not None and len(val_dataset)
+        self._task_id = task_id
+        self._model.add_task_params(task_id=self._task_id)
+
+    def train_dataloader(self) -> DataLoader:
         train_dataset = _TransformedDataset(
-            train_dataset,
+            self._train_dataset,
             transform=self._train_transform,
             target_transform=self._train_target_transform,
         )
-        self._task_id = task_id
-        self._model.add_task_params(task_id=task_id)
-        train_loader = DataLoader(
+        return DataLoader(
             train_dataset,
             batch_size=self._batch_size,
             shuffle=True,
             generator=self._rng,
             pin_memory=True,
         )
-        if val_dataset is not None:
+
+    def val_dataloader(self) -> DataLoader:
+        if self._val_dataset is not None:
             val_dataset = _TransformedDataset(
-                val_dataset,
+                self._val_dataset,
                 transform=self._test_transform,
                 target_transform=self._test_target_transform,
             )
             self._val_memory_buffer.update(val_dataset)
 
-        val_loader = None
         if len(self._val_memory_buffer):
-            val_loader = DataLoader(
+            return DataLoader(
                 self._val_memory_buffer,
                 batch_size=self._batch_size,
                 shuffle=False,
                 generator=self._rng,
                 pin_memory=True,
             )
-            self._val_enabled = True
+        else:
+            return None
 
-        return train_loader, val_loader
-
-    def on_model_update_end(
-        self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
-    ) -> RenateModule:
+    def on_model_update_end(self) -> None:
         """Called right before a model update terminates."""
-        return self._model
+        pass
 
     def forward(self, inputs: NestedTensors, task_id: Optional[str] = None) -> torch.Tensor:
         """Forward pass of the model."""
@@ -313,7 +314,7 @@ class Learner(LightningModule, abc.ABC):
     def training_epoch_end(self, outputs: List[Union[Tensor, Dict[str, Any]]]) -> None:
         """PyTorch Lightning function to run at the end of training epoch."""
         super().training_epoch_end(outputs)
-        if not self._val_enabled:
+        if not self.val_enabled:
             self._log_metrics()
 
     def validation_step(self, batch: Tuple[NestedTensors, torch.Tensor], batch_idx: int) -> None:
@@ -363,7 +364,7 @@ class Learner(LightningModule, abc.ABC):
         """Shared logic for logging metrics, including the loss."""
         if self.trainer.sanity_checking:
             return
-        prefixes = ["train", "val"] if self._val_enabled else ["train"]
+        prefixes = ["train", "val"] if self.val_enabled else ["train"]
         for prefix in prefixes:
             self.log_dict(
                 self._metric_collections[f"{prefix}_metrics"].compute(),

@@ -181,17 +181,8 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
             train_target_transform=self._train_target_transform,
             **{key: value for key, value in self._learner_kwargs.items() if key != "memory_size"},
         )
-
-        train_loader, val_loader = expert_learner.on_model_update_start(
-            train_dataset, val_dataset, task_id
-        )
-        self._fit_learner(
-            expert_learner,
-            train_loader,
-            val_loader,
-            use_syne_tune_callback=False,
-        )
-        expert_model = expert_learner.on_model_update_end(train_dataset, val_dataset, task_id)
+        expert_learner.on_model_update_start(train_dataset, val_dataset, task_id)
+        self._fit_learner(expert_learner)
 
         # Extract logits from the expert model and register them with the consolidation learner.
         expert_logits = extract_logits(
@@ -206,11 +197,9 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
         del expert_learner
 
         # Run consolidation.
-        train_loader, val_loader = self._learner.on_model_update_start(
-            train_dataset, val_dataset, task_id
-        )
-        self._fit_learner(self._learner, train_loader, val_loader)
-        return self._learner.on_model_update_end(train_dataset, val_dataset, task_id)
+        self._learner.on_model_update_start(train_dataset, val_dataset, task_id)
+        self._fit_learner(self._learner)
+        return self._model
 
 
 class RepeatedDistillationLearner(ReplayLearner):
@@ -266,30 +255,27 @@ class RepeatedDistillationLearner(ReplayLearner):
 
     def on_model_update_start(
         self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[int] = None
-    ) -> Tuple[DataLoader, DataLoader]:
+    ) -> None:
         """Called before a model update starts."""
-        reinitialize_model_parameters(self._model)
+        super().on_model_update_start(train_dataset, val_dataset, task_id)
         self._memory_buffer.update(train_dataset, metadata={"logits": self._expert_logits})
+        reinitialize_model_parameters(self._model)
         self._expert_logits = None
 
-        _, val_loader = super().on_model_update_start(train_dataset, val_dataset, task_id)
-        train_loader = DataLoader(
+    def train_dataloader(self) -> DataLoader:
+        return DataLoader(
             self._memory_buffer,
             batch_size=self._batch_size,
             shuffle=True,
             generator=self._rng,
             pin_memory=True,
         )
-        return train_loader, val_loader
 
-    def on_model_update_end(
-        self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[int] = None
-    ) -> RenateModule:
+    def on_model_update_end(self) -> None:
         """Called right before a model update terminates."""
         # Update the logits in memory using the newly consolidated model.
         logits = extract_logits(self._model, self._memory_buffer, self._batch_size)
         self._memory_buffer.set_metadata("logits", logits)
-        return super().on_model_update_end(train_dataset, val_dataset, task_id)
 
     def training_step(
         self,

@@ -175,7 +175,6 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
             step=self._max_epochs - 1,
             epoch=self._max_epochs,
         )
-
         return self._model
 
     def _load_benchmark_if_exists(
