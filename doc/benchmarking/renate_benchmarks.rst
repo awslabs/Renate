@@ -117,6 +117,10 @@ The following table contains the list of supported datasets.
       - Task
       - Data Summary
       - Reference
+    * - arxiv
+      - Text Classification: category recognition of arXiv papers.
+      - ~1.9M train, ~206k test, 172 classes, years 2007-2023
+      - Huaxiu Yao et al.: Wild-Time: A Benchmark of in-the-Wild Distribution Shift over Time. Conference on Neural Information Processing Systems Datasets and Benchmarks Track. 2022.
     * - CIFAR10
       - Image Classification
       - 50k train, 10k test, 10 classes, image shape 32x32x3
@@ -132,6 +136,10 @@ The following table contains the list of supported datasets.
     * - fmow
       - Image Classification: land use recognition from satellite images.
       - 62 classes, image shape 32x32x3
+      - Huaxiu Yao et al.: Wild-Time: A Benchmark of in-the-Wild Distribution Shift over Time. Conference on Neural Information Processing Systems Datasets and Benchmarks Track. 2022.
+    * - huffpost
+      - Text Classification: category recognition of news paper articles.
+      - ~58k train, ~6k test, 11 classes, years 2012-2019
       - Huaxiu Yao et al.: Wild-Time: A Benchmark of in-the-Wild Distribution Shift over Time. Conference on Neural Information Processing Systems Datasets and Benchmarks Track. 2022.
     * - MNIST
       - Image Classification

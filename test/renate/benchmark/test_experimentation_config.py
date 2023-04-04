@@ -21,6 +21,7 @@ from renate.benchmark.scenarios import (
     IIDScenario,
     ImageRotationScenario,
     PermutationScenario,
+    WildTimeScenario,
 )
 
 
@@ -38,6 +39,27 @@ def test_model_fn(model_name, expected_model_class):
         hidden_size=1 if model_name == "MultiLayerPerceptron" else None,
     )
     assert isinstance(model, expected_model_class)
+
+
+@pytest.mark.parametrize(
+    "dataset_name,expected_in_channels",
+    (
+        ("FashionMNIST", 1),
+        ("MNIST", 1),
+        ("yearbook", 1),
+        ("CIFAR10", 3),
+        ("CIFAR100", 3),
+        ("fmow", 3),
+    ),
+)
+def test_model_fn_automatic_input_channel_detection_resnet(dataset_name, expected_in_channels):
+    """Tests if ResNet architectures input channels are correctly adapted to the dataset."""
+    model = model_fn(
+        model_state_url=None,
+        model_name="ResNet18",
+        dataset_name=dataset_name,
+    )
+    assert model.get_backbone().conv1.in_channels == expected_in_channels
 
 
 def test_model_fn_fails_for_unknown_model():
@@ -144,6 +166,13 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             HueShiftScenario,
             3,
         ),
+        (
+            "WildTimeScenario",
+            "yearbook",
+            {"num_tasks": 3},
+            WildTimeScenario,
+            3,
+        ),
     ),
     ids=[
         "class_incremental_image",
@@ -153,6 +182,7 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         "permutation",
         "feature_sorting",
         "hue_shift",
+        "wild_time",
     ],
 )
 @pytest.mark.parametrize("val_size", (0, 0.5), ids=["no_val", "val"])
