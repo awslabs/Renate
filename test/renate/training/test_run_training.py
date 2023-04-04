@@ -66,7 +66,7 @@ def test_run_training_job(
                 mode="max",
                 config_space={
                     "learning_rate": 0.1 if fixed_search_space else loguniform(10e-5, 0.1),
-                    "data_module_fn_val_size": val_size,
+                    "val_size": val_size,
                 },
                 metric="val_accuracy",
                 max_time=15,
@@ -132,7 +132,7 @@ def test_verify_validation_set_for_hpo_and_checkpointing(tmpdir, val_size, tune_
     If a validation set exists, the `config_space` must be changed such that the right metric and
     mode for checkpointing and hyperparameter optimization is used.
     """
-    config_space = {"data_module_fn_val_size": val_size}
+    config_space = {"val_size": val_size}
     expected_metric = "val_accuracy"
     expected_mode: defaults.SUPPORTED_TUNING_MODE_TYPE = "max"
 
@@ -346,8 +346,8 @@ def test_load_tuning_history_when_no_previous_history_exists(tmpdir, use_dir):
         ("asha", None),
         ("rush", None),
         (FIFOScheduler, None),
-        (ASHA, {"max_t": 3, "resource_attr": "epoch"}),
-        (RUSHScheduler, {"max_t": 3, "resource_attr": "epoch"}),
+        (ASHA, {"max_resource_attr": "max_epochs", "resource_attr": "epoch"}),
+        (RUSHScheduler, {"max_resource_attr": "max_epochs", "resource_attr": "epoch"}),
     ],
     ids=["str_random", "str_asha", "str_rush", "class_random", "class_asha", "class_rush"],
 )
@@ -366,10 +366,9 @@ def test_create_scheduler(tmpdir, scheduler, scheduler_kwargs, tuning_results_ex
         tuning_results.to_csv(defaults.hpo_file(state_url), index=False)
     _create_scheduler(
         scheduler=scheduler,
-        config_space={"lr": 0.01},
+        config_space={"lr": 0.01, "max_epochs": 3},
         metric="val_loss",
         mode="min",
-        max_epochs=3,
         seed=0,
         scheduler_kwargs=scheduler_kwargs,
         input_state_url=state_url,

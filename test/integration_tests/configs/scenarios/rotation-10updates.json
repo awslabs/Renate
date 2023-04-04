@@ -1,0 +1,6 @@
+{
+  "val_size": 0.05,
+  "scenario_name": "ImageRotationScenario",
+  "degrees": [0, 36, 72, 108, 144, 180, 216, 252, 288, 324],
+  "num_tasks": 10
+}

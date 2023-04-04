@@ -13,8 +13,8 @@ from pytorch_lightning import seed_everything
 import renate
 import renate.defaults as defaults
 from renate.cli.parsing_functions import (
-    get_data_module_fn_args,
-    get_model_fn_args,
+    get_data_module_fn_kwargs,
+    get_model_fn_kwargs,
     get_scheduler_kwargs,
     get_transforms_kwargs,
 )
@@ -267,17 +267,17 @@ def _execute_experiment_job_locally(
 
     config_module = import_module("config_module", config_file)
     scheduler, scheduler_kwargs = get_scheduler_kwargs(config_module)
-    model_fn_args = get_model_fn_args(config_space)
-    logger.info(f"Loading model {model_fn_args.get('model_fn_model_name', '')}")
-    model = get_model(config_module, **model_fn_args)
-    data_module_fn_args = get_data_module_fn_args(config_space)
-    logger.info(f"Prepare dataset {data_module_fn_args.get('data_module_fn_dataset_name', '')}")
+    model_fn_kwargs = get_model_fn_kwargs(config_module, config_space)
+    logger.info(f"Loading model {model_fn_kwargs.get('model_name', '')}")
+    model = get_model(config_module, **model_fn_kwargs)
+    data_module_fn_kwargs = get_data_module_fn_kwargs(config_module, config_space)
+    logger.info(f"Prepare dataset {data_module_fn_kwargs.get('dataset_name', '')}")
     data_module = get_and_prepare_data_module(
         config_module,
         data_path=data_url,
         chunk_id=defaults.CHUNK_ID,
         seed=seed,
-        **data_module_fn_args,
+        **data_module_fn_kwargs,
     )
     data_module.setup()
     assert num_updates == len(
@@ -334,7 +334,9 @@ def _execute_experiment_job_locally(
         move_to_uri(output_state_url, input_state_url)
         copy_to_uri(input_state_url, update_url)
         model = get_model(
-            config_module, model_state_url=model_url, **get_model_fn_args(config_space)
+            config_module,
+            model_state_url=model_url,
+            **get_model_fn_kwargs(config_module, config_space),
         )
 
         evaluate_and_record_results(
@@ -349,11 +351,7 @@ def _execute_experiment_job_locally(
         )
         df = individual_metrics_summary(results, update_id + 1, num_updates)
         save_pandas_df_to_csv(
-            df,
-            defaults.metric_summary_file(
-                logs_url,
-                special_str=f"_update_{update_id}_" + defaults.current_timestamp(),
-            ),
+            df, defaults.metric_summary_file(logs_url, special_str=f"_update_{update_id}")
         )
         logger.info(f"### Results after update {update_id + 1}: ###")
         logger.info(df)

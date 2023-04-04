@@ -13,6 +13,9 @@
 .. image:: https://readthedocs.org/projects/renate/badge/?version=latest
     :target: https://renate.readthedocs.io
     :alt: Documentation Status
+.. image:: https://raw.githubusercontent.com/awslabs/Renate/python-coverage-comment-action-data/badge.svg
+    :target: https://htmlpreview.github.io/?https://github.com/awslabs/Renate/blob/python-coverage-comment-action-data/htmlcov/index.html
+    :alt: Coverage Badge
 
 Renate: Automatic Neural Networks Retraining and Continual Learning in Python
 ******************************************************************************

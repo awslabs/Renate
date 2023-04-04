@@ -31,11 +31,11 @@ from renate.benchmark.scenarios import (
 def test_model_fn(model_name, expected_model_class):
     model = model_fn(
         model_state_url=None,
-        model_fn_model_name=model_name,
-        model_fn_num_inputs=1 if model_name == "MultiLayerPerceptron" else None,
-        model_fn_num_outputs=1 if model_name == "MultiLayerPerceptron" else None,
-        model_fn_num_hidden_layers=1 if model_name == "MultiLayerPerceptron" else None,
-        model_fn_hidden_size="1" if model_name == "MultiLayerPerceptron" else None,
+        model_name=model_name,
+        num_inputs=1 if model_name == "MultiLayerPerceptron" else None,
+        num_outputs=1 if model_name == "MultiLayerPerceptron" else None,
+        num_hidden_layers=1 if model_name == "MultiLayerPerceptron" else None,
+        hidden_size=1 if model_name == "MultiLayerPerceptron" else None,
     )
     assert isinstance(model, expected_model_class)
 
@@ -43,7 +43,7 @@ def test_model_fn(model_name, expected_model_class):
 def test_model_fn_fails_for_unknown_model():
     unknown_model_name = "UNKNOWN_MODEL_NAME"
     with pytest.raises(ValueError, match=f"Unknown model `{unknown_model_name}`"):
-        model_fn(model_fn_model_name=unknown_model_name)
+        model_fn(model_name=unknown_model_name)
 
 
 @pytest.mark.parametrize(
@@ -76,29 +76,29 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         (
             "ClassIncrementalScenario",
             "CIFAR10",
-            {"data_module_fn_class_groupings": "[[0,1],[2,3,4],[5,6]]"},
+            {"class_groupings": ((0, 1), (2, 3, 4), (5, 6))},
             ClassIncrementalScenario,
             3,
         ),
         (
             "IIDScenario",
             "MNIST",
-            {"data_module_fn_num_tasks": 3},
+            {"num_tasks": 3},
             IIDScenario,
             3,
         ),
         (
             "ImageRotationScenario",
             "MNIST",
-            {"data_module_fn_degrees": "[0,90,180]"},
+            {"degrees": (0, 90, 180)},
             ImageRotationScenario,
             3,
         ),
-        ("BenchmarkScenario", "CLEAR10", {"data_module_fn_num_tasks": "5"}, BenchmarkScenario, 5),
+        ("BenchmarkScenario", "CLEAR10", {"num_tasks": 5}, BenchmarkScenario, 5),
         (
             "PermutationScenario",
             "MNIST",
-            {"data_module_fn_num_tasks": "3", "data_module_fn_input_dim": "(1,28,28)"},
+            {"num_tasks": 3, "input_dim": (1, 28, 28)},
             PermutationScenario,
             3,
         ),
@@ -106,9 +106,9 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             "FeatureSortingScenario",
             "MNIST",
             {
-                "data_module_fn_num_tasks": "5",
-                "data_module_fn_feature_idx": "0",
-                "data_module_fn_randomness": "0.3",
+                "num_tasks": 5,
+                "feature_idx": 0,
+                "randomness": 0.3,
             },
             FeatureSortingScenario,
             5,
@@ -116,10 +116,7 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         (
             "HueShiftScenario",
             "CIFAR10",
-            {
-                "data_module_fn_num_tasks": "3",
-                "data_module_fn_randomness": "0.5",
-            },
+            {"num_tasks": 3, "randomness": 0.5},
             HueShiftScenario,
             3,
         ),
@@ -148,17 +145,19 @@ def test_data_module_fn(
         data_path=tmpdir,
         chunk_id=0,
         seed=0,
-        data_module_fn_scenario_name=scenario_name,
-        data_module_fn_dataset_name=dataset_name,
-        data_module_fn_val_size=val_size,
+        scenario_name=scenario_name,
+        dataset_name=dataset_name,
+        val_size=val_size,
         **scenario_kwargs,
     )
     assert isinstance(scenario, expected_scenario_class)
     if expected_scenario_class == ClassIncrementalScenario:
-        assert (
-            str(scenario._class_groupings).replace(" ", "")
-            == scenario_kwargs["data_module_fn_class_groupings"]
-        )
+        assert scenario._class_groupings == scenario_kwargs["class_groupings"]
+    elif expected_scenario_class == FeatureSortingScenario:
+        scenario._feature_idx = scenario_kwargs["feature_idx"]
+        scenario._randomness = scenario_kwargs["randomness"]
+    elif expected_scenario_class == HueShiftScenario:
+        scenario._randomness = scenario_kwargs["randomness"]
     assert scenario._num_tasks == expected_num_tasks
 
 

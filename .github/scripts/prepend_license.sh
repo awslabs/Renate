@@ -2,7 +2,7 @@
 
 exit_code=0
 
-for folder in "src" "test"
+for folder in "examples" "src" "test"
 do
 	for i in $(find $folder -name '*.py');
     do

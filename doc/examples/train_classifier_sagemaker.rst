@@ -26,6 +26,7 @@ normalize and augment the dataset. More transformations can be added if needed,
 details on how to write a configuration file are available in :doc:`../getting_started/how_to_renate_config`.
 
 .. literalinclude:: ../../examples/simple_classifier_cifar10/renate_config.py
+    :lines: 3-
 
 Training
 ========
@@ -47,6 +48,7 @@ The description of the other arguments and a high level overview of how to run a
 training jobs are available in :doc:`../getting_started/how_to_run_training`.
 
 .. literalinclude:: ../../examples/simple_classifier_cifar10/start_with_hpo.py
+    :lines: 3-
 
 Once the training job terminates, the output will be available in the S3 bucket indicated
 in :code:`next_state_url`. For more information about how to interpret the output, see

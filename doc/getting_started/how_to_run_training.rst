@@ -66,6 +66,7 @@ In both cases the urls can point to local folders or S3 locations.
 Putting everything together will result in a script like the following.
 
 .. literalinclude:: ../../examples/train_mlp_locally/start_training_with_er_without_hpo.py
+    :lines: 3-
 
 Once the training has been executed you will see some metrics printed on the screen (e.g., validation accuracy)
 and you will find the output of the training process in the folder specified. For more information about the
@@ -140,3 +141,26 @@ After defining these arguments it will be sufficient to run the script and wait 
 The output will be available in the location specified in :code:`output_state_url`.
 
 We provide an example of training on SageMaker with HPO at :doc:`../examples/train_classifier_sagemaker`.
+
+Custom Function Arguments
+=========================
+Now that we know how to run basic training jobs, we can discuss how to use custom defined function arguments.
+We are building upon the linear model example introduced in the
+:ref:`previous chapter <getting_started/how_to_renate_config:custom function arguments>` where we added
+``num_inputs`` and ``num_outputs`` to :code:`data_module_fn`.
+The values for these inputs are passed via the configuration alongside the other arguments.
+
+.. code-block:: python
+
+    config_space = {
+        # Define all remaining standard arguments as well
+        "num_inputs": 28 * 28,
+        "num_outputs": 10,
+    }
+
+While it does not make any sense for this example, we can also define ranges for our custom function arguments and
+automatically optimize them during hyperparameter optimization.
+
+.. note::
+    If you have functions defined with the same argument name, the value defined in the configuration will be passed
+    to both.

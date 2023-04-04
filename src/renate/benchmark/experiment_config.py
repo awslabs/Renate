@@ -1,7 +1,5 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-import ast
-from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
 import torch
@@ -55,35 +53,33 @@ models = {
 
 
 def model_fn(
-    model_state_url: Optional[Union[Path, str]] = None,
-    model_fn_updater: Optional[str] = None,
-    model_fn_model_name: Optional[str] = None,
-    model_fn_num_inputs: Optional[str] = None,
-    model_fn_num_outputs: Optional[str] = None,
-    model_fn_num_hidden_layers: Optional[str] = None,
-    model_fn_hidden_size: Optional[str] = None,
+    model_state_url: Optional[str] = None,
+    updater: Optional[str] = None,
+    model_name: Optional[str] = None,
+    num_inputs: Optional[int] = None,
+    num_outputs: Optional[int] = None,
+    num_hidden_layers: Optional[int] = None,
+    hidden_size: Optional[Tuple[int]] = None,
 ) -> RenateModule:
     """Returns a model instance."""
-    if model_fn_model_name not in models:
-        raise ValueError(f"Unknown model `{model_fn_model_name}`")
-    model_class = models[model_fn_model_name]
+    if model_name not in models:
+        raise ValueError(f"Unknown model `{model_name}`")
+    model_class = models[model_name]
     model_kwargs = {}
-    if model_fn_updater == "Avalanche-iCaRL":
+    if updater == "Avalanche-iCaRL":
         model_kwargs["prediction_strategy"] = ICaRLClassificationStrategy()
-    if model_fn_model_name == "MultiLayerPerceptron":
-        model_kwargs.update(
-            {
-                "num_inputs": int(model_fn_num_inputs),
-                "num_hidden_layers": int(model_fn_num_hidden_layers),
-                "hidden_size": ast.literal_eval(model_fn_hidden_size),
-            }
-        )
-    if model_fn_num_outputs is not None:
-        model_kwargs["num_outputs"] = int(model_fn_num_outputs)
+    if model_name == "MultiLayerPerceptron":
+        model_kwargs = {
+            "num_inputs": num_inputs,
+            "num_hidden_layers": num_hidden_layers,
+            "hidden_size": hidden_size,
+        }
+    if num_outputs is not None:
+        model_kwargs["num_outputs"] = num_outputs
     if model_state_url is None:
         model = model_class(**model_kwargs)
     else:
-        state_dict = torch.load(str(model_state_url))
+        state_dict = torch.load(model_state_url)
         model = model_class.from_state_dict(state_dict)
     return model
 
@@ -106,7 +102,7 @@ def get_scenario(
     chunk_id: int,
     seed: int,
     num_tasks: Optional[int] = None,
-    class_groupings: Optional[List[List[int]]] = None,
+    class_groupings: Optional[Tuple[Tuple[int]]] = None,
     degrees: Optional[List[int]] = None,
     input_dim: Optional[Union[List[int], Tuple[int], int]] = None,
     feature_idx: Optional[int] = None,
@@ -183,48 +179,36 @@ def get_scenario(
 
 
 def data_module_fn(
-    data_path: Union[Path, str],
+    data_path: str,
     chunk_id: int,
     seed: int,
-    data_module_fn_scenario_name: str,
-    data_module_fn_dataset_name: str,
-    data_module_fn_val_size: str = "0.0",
-    data_module_fn_num_tasks: Optional[str] = None,
-    data_module_fn_class_groupings: Optional[str] = None,
-    data_module_fn_degrees: Optional[str] = None,
-    data_module_fn_input_dim: Optional[str] = None,
-    data_module_fn_feature_idx: Optional[str] = None,
-    data_module_fn_randomness: Optional[str] = None,
+    scenario_name: str,
+    dataset_name: str,
+    val_size: float = 0.0,
+    num_tasks: Optional[int] = None,
+    class_groupings: Optional[Tuple[Tuple[int]]] = None,
+    degrees: Optional[Tuple[int]] = None,
+    input_dim: Optional[Tuple[int]] = None,
+    feature_idx: Optional[int] = None,
+    randomness: Optional[float] = None,
 ):
     data_module = get_data_module(
-        data_path=str(data_path),
-        dataset_name=data_module_fn_dataset_name,
-        val_size=float(data_module_fn_val_size),
+        data_path=data_path,
+        dataset_name=dataset_name,
+        val_size=val_size,
         seed=seed,
     )
-    if data_module_fn_num_tasks is not None:
-        data_module_fn_num_tasks = int(data_module_fn_num_tasks)
-    if data_module_fn_class_groupings is not None:
-        data_module_fn_class_groupings = ast.literal_eval(data_module_fn_class_groupings)
-    if data_module_fn_degrees is not None:
-        data_module_fn_degrees = ast.literal_eval(data_module_fn_degrees)
-    if data_module_fn_input_dim is not None:
-        data_module_fn_input_dim = ast.literal_eval(data_module_fn_input_dim)
-    if data_module_fn_feature_idx is not None:
-        data_module_fn_feature_idx = int(data_module_fn_feature_idx)
-    if data_module_fn_randomness is not None:
-        data_module_fn_randomness = float(data_module_fn_randomness)
     return get_scenario(
-        scenario_name=data_module_fn_scenario_name,
+        scenario_name=scenario_name,
         data_module=data_module,
         chunk_id=chunk_id,
         seed=seed,
-        num_tasks=data_module_fn_num_tasks,
-        class_groupings=data_module_fn_class_groupings,
-        degrees=data_module_fn_degrees,
-        input_dim=data_module_fn_input_dim,
-        feature_idx=data_module_fn_feature_idx,
-        randomness=data_module_fn_randomness,
+        num_tasks=num_tasks,
+        class_groupings=class_groupings,
+        degrees=degrees,
+        input_dim=input_dim,
+        feature_idx=feature_idx,
+        randomness=randomness,
     )
 
 
@@ -236,25 +220,25 @@ def _get_normalize_transform(dataset_name):
         )
 
 
-def train_transform(transform_dataset_name: str) -> Optional[transforms.Compose]:
+def train_transform(dataset_name: str) -> Optional[transforms.Compose]:
     """Returns a transform function to be used in the training."""
-    if transform_dataset_name in ["MNIST", "FashionMNIST"]:
+    if dataset_name in ["MNIST", "FashionMNIST"]:
         return None
-    elif transform_dataset_name in ["CIFAR10", "CIFAR100"]:
+    elif dataset_name in ["CIFAR10", "CIFAR100"]:
         return transforms.Compose(
             [
                 transforms.RandomCrop(32, padding=4),
                 transforms.RandomHorizontalFlip(),
-                _get_normalize_transform(transform_dataset_name),
+                _get_normalize_transform(dataset_name),
             ]
         )
-    raise ValueError(f"Unknown dataset `{transform_dataset_name}`.")
+    raise ValueError(f"Unknown dataset `{dataset_name}`.")
 
 
-def test_transform(transform_dataset_name: str) -> Optional[transforms.Normalize]:
+def test_transform(dataset_name: str) -> Optional[transforms.Normalize]:
     """Returns a transform function to be used for validation or testing."""
-    if transform_dataset_name in ["MNIST", "FashionMNIST"]:
+    if dataset_name in ["MNIST", "FashionMNIST"]:
         return None
-    elif transform_dataset_name in ["CIFAR10", "CIFAR100"]:
-        return _get_normalize_transform(transform_dataset_name)
-    raise ValueError(f"Unknown dataset `{transform_dataset_name}`.")
+    elif dataset_name in ["CIFAR10", "CIFAR100"]:
+        return _get_normalize_transform(dataset_name)
+    raise ValueError(f"Unknown dataset `{dataset_name}`.")

@@ -251,13 +251,18 @@ class RenateWrapper(RenateModule):
 
     def forward(self, x: NestedTensors, task_id: Optional[str] = None) -> torch.Tensor:
         if isinstance(x, torch.Tensor):
-            return self._model(x)
+            outputs = self._model(x)
         elif isinstance(x, tuple):
-            return self._model(*x)
+            outputs = self._model(*x)
         elif isinstance(x, dict):
-            return self._model(**x)
+            outputs = self._model(**x)
         else:
             raise TypeError(f"Expected tensor or tuple/dict of tensors; found {type(x)}.")
+
+        if isinstance(outputs, tuple) and len(outputs) == 1:
+            return outputs[0]
+        else:
+            return outputs
 
     @classmethod
     def from_state_dict(cls, state_dict):

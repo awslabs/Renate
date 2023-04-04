@@ -206,7 +206,9 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
             metadata[
                 f"intermediate_representation_{i}"
             ] = intermediate_representation.detach().cpu()
-        dataset = Subset(self._current_train_dataset, step_output["train_data_idx"])
+        # Some datasets have problems using tensors as subset indices, convert to list of ints.
+        train_data_idx = [int(idx) for idx in step_output["train_data_idx"]]
+        dataset = Subset(self._current_train_dataset, train_data_idx)
         self._memory_buffer.update(dataset, metadata)
         self._set_memory_loader()
 

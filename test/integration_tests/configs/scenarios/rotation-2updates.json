@@ -1,0 +1,7 @@
+{
+  "val_size": 0.05,
+  "scenario_name": "ImageRotationScenario",
+  "degrees": [0, 30],
+  "num_tasks": 2,
+  "max_epochs": 3
+}

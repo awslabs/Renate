@@ -52,7 +52,7 @@ def setup(app):
 project = "Renate"
 version = renate.__version__
 release = renate.__version__
-copyright = f"{datetime.datetime.now().year}, Amazon"
+copyright = f"2022-{datetime.datetime.now().year}, Amazon"
 
 
 extensions = [
@@ -89,7 +89,8 @@ html_theme = "pydata_sphinx_theme"
 html_sidebars = {"**": ["sidebar-nav-bs"]}
 html_theme_options = {
     "primary_sidebar_end": [],
-    "footer_items": ["copyright"],
+    "footer_start": ["copyright"],
+    "footer_end": [],
     "icon_links": [
         {
             "name": "GitHub",
