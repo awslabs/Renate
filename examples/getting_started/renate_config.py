@@ -1,6 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Callable, Literal, Optional, Dict
+from typing import Callable, Dict, Literal, Optional
 
 import torch
 import torchvision
