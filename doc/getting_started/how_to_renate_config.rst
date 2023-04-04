@@ -112,10 +112,14 @@ These are optional as well but, if omitted, Renate will use :code:`train_transfo
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 76-
+    :lines: 76-93
 
 Custom Metrics
 ==============
+.. literalinclude:: ../../examples/getting_started/renate_config.py
+    :caption: Example
+    :lines: 96-
+
 It is possible to specify a set of custom metrics to be measured during the training process.
 The metrics can be either imported from :code:`torchmetrics`, which offers a vast collection,
 or created ad-hoc by implementing the same interface
