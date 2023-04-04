@@ -231,7 +231,7 @@ class Learner(LightningModule, abc.ABC):
     ) -> None:
         self._train_dataset = train_dataset
         self._val_dataset = val_dataset
-        self._val_enabled = val_dataset is not None and len(val_dataset)
+        self.val_enabled = val_dataset is not None and len(val_dataset)
         self._task_id = task_id
         self._model.add_task_params(task_id=self._task_id)
 
@@ -305,7 +305,7 @@ class Learner(LightningModule, abc.ABC):
     def training_epoch_end(self, outputs: List[Union[Tensor, Dict[str, Any]]]) -> None:
         """PyTorch Lightning function to run at the end of training epoch."""
         super().training_epoch_end(outputs)
-        if not self._val_enabled:
+        if not self.val_enabled:
             self._log_metrics()
 
     def validation_step(self, batch: Tuple[NestedTensors, torch.Tensor], batch_idx: int) -> None:
@@ -355,7 +355,7 @@ class Learner(LightningModule, abc.ABC):
         """Shared logic for logging metrics, including the loss."""
         if self.trainer.sanity_checking:
             return
-        prefixes = ["train", "val"] if self._val_enabled else ["train"]
+        prefixes = ["train", "val"] if self.val_enabled else ["train"]
         for prefix in prefixes:
             self.log_dict(
                 self._metric_collections[f"{prefix}_metrics"].compute(),

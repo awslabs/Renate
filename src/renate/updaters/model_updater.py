@@ -309,13 +309,13 @@ class ModelUpdater(abc.ABC):
                 output_state_folder=self._output_state_folder,
                 metric=self._metric,
                 mode=self._mode,
-                val_enabled=learner._val_enabled,
+                val_enabled=learner.val_enabled,
                 use_syne_tune_callback=use_syne_tune_callback,
             )
             callbacks = [model_checkpoint_callback]  # FIXME: insert at 0 as soon as PTL is fixed.
 
         if self._early_stopping_enabled:
-            if learner._val_enabled:
+            if learner.val_enabled:
                 callbacks.insert(0, EarlyStopping(monitor=self._metric, mode=self._mode))
             else:
                 warnings.warn(
