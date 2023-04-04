@@ -302,7 +302,7 @@ class ModelUpdater(abc.ABC):
     ) -> None:
         callbacks: List[Callback] = []
         if use_syne_tune_callback:
-            callbacks.append(SyneTuneCallback(learner._val_enabled))
+            callbacks.append(SyneTuneCallback(learner.val_enabled))
         if self._output_state_folder is not None:
             model_checkpoint_callback = RenateModelCheckpoint(
                 model=self._model,
