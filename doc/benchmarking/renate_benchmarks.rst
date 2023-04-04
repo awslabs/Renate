@@ -129,10 +129,18 @@ The following table contains the list of supported datasets.
       - Image Classification
       - 60k train, 10k test, 10 classes, image shape 28x28x1
       - Han Xiao et al.: Fashion-MNIST: a Novel Image Dataset for Benchmarking Machine Learning Algorithms. 2017.
+    * - fmow
+      - Image Classification: land use recognition from satellite images.
+      - 62 classes, image shape 32x32x3
+      - Huaxiu Yao et al.: Wild-Time: A Benchmark of in-the-Wild Distribution Shift over Time. Conference on Neural Information Processing Systems Datasets and Benchmarks Track. 2022.
     * - MNIST
       - Image Classification
       - 60k train, 10k test, 10 classes, image shape 28x28x1
       - Li Deng: The MNIST Database of Handwritten Digit Images for Machine Learning Research. IEEE Signal Processing Magazine. 2012.
+    * - yearbook
+      - Image Classification: gender identification in yearbook photos.
+      - ~33k train, ~4k test, 2 classes, years 1930-2013, image shape 32x32x1
+      - Huaxiu Yao et al.: Wild-Time: A Benchmark of in-the-Wild Distribution Shift over Time. Conference on Neural Information Processing Systems Datasets and Benchmarks Track. 2022.
 
 .. _benchmarking-renate-benchmarks-scenarios:
 

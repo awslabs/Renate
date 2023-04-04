@@ -58,6 +58,7 @@ def test_get_data_module(tmpdir, dataset_name, data_module_class):
         seed=0,
         src_bucket=None,
         src_object_name=None,
+        pretrained_model_name_or_path=None,
     )
     assert isinstance(data_module, data_module_class)
 
@@ -72,6 +73,7 @@ def test_get_data_module_fails_for_unknown_dataset(tmpdir):
             seed=0,
             src_bucket=None,
             src_object_name=None,
+            pretrained_model_name_or_path=None,
         )
 
 
@@ -83,6 +85,7 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         seed=0,
         src_bucket=None,
         src_object_name=None,
+        pretrained_model_name_or_path=None,
     )
     unknown_scenario_name = "UNKNOWN_SCENARIO_NAME"
     with pytest.raises(ValueError, match=f"Unknown scenario `{unknown_scenario_name}`"):

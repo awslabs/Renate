@@ -1,13 +1,15 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Dict, Optional, Union
 
+from transformers import PreTrainedTokenizer
 from wild_time_data import load_dataset
 from wild_time_data.core import available_time_steps, dataset_classes
 
 from renate import defaults
 from renate.data.data_module import RenateDataModule
+from renate.data.datasets import _TransformedDataset
 from renate.utils.file import download_folder_from_s3
 
 
@@ -21,6 +23,10 @@ class WildTimeDataModule(RenateDataModule):
             source.
         src_object_name: the folder path in the s3 bucket.
         time_step: Time slice to be loaded.
+        tokenizer: Tokenizer to apply to the dataset. See https://huggingface.co/docs/tokenizers/
+            for more information on tokenizers.
+        tokenizer_kwargs: Keyword arguments passed when calling the tokenizer's ``__call__``
+            function.
         val_size: Fraction of the training data to be used for validation.
         seed: Seed used to fix random number generation.
     """
@@ -32,6 +38,8 @@ class WildTimeDataModule(RenateDataModule):
         src_bucket: Optional[str] = None,
         src_object_name: Optional[str] = None,
         time_step: int = 0,
+        tokenizer: Optional[PreTrainedTokenizer] = None,
+        tokenizer_kwargs: Optional[Dict[str, Any]] = None,
         val_size: float = defaults.VALIDATION_SIZE,
         seed: int = defaults.SEED,
     ):
@@ -44,6 +52,8 @@ class WildTimeDataModule(RenateDataModule):
         )
         self._dataset_name = dataset_name
         self.time_step = time_step
+        self._tokenizer = tokenizer
+        self._tokenizer_kwargs = tokenizer_kwargs
 
     def prepare_data(self) -> None:
         """Download data.
@@ -66,6 +76,11 @@ class WildTimeDataModule(RenateDataModule):
                     dst_dir=str(dst_dir),
                 )
 
+    def _apply_tokenizer(self, data: RenateDataModule) -> RenateDataModule:
+        return _TransformedDataset(
+            data, lambda batch: self._tokenizer(batch[0], **(self._tokenizer_kwargs or {}))
+        )
+
     def setup(self) -> None:
         """Set up train, test and val datasets."""
         train_data = load_dataset(
@@ -81,3 +96,7 @@ class WildTimeDataModule(RenateDataModule):
             split="test",
             data_dir=self._data_path,
         )
+        if self._tokenizer is not None:
+            self._train_data = self._apply_tokenizer(self._train_data)
+            self._val_data = self._apply_tokenizer(self._val_data)
+            self._test_data = self._apply_tokenizer(self._test_data)
