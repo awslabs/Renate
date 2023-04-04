@@ -114,6 +114,19 @@ These are optional as well but, if omitted, Renate will use :code:`train_transfo
     :caption: Example
     :lines: 75-
 
+Custom Metrics
+==============
+It is possible to specify a set of custom metrics to be measured during the training process.
+The metrics can be either imported from :code:`torchmetrics`, which offers a vast collection,
+or created ad-hoc following by implementing the same interface
+(see this `tutorial https://torchmetrics.readthedocs.io/en/stable/pages/implement.html`_).
+
+To enable the usage of additional metrics in Renate it is sufficient to implement the
+:code:`metrics_fn` function, returning a dictionary where the key is a string containing the
+metric's name and the value is an instantiation of the metric class.
+In the example above we add a metric called :code:`my_accuracy` by instantiating the accuracy
+metric from :code:`torchmetrics`.
+
 Custom Function Arguments
 =========================
 In many cases, the standard arguments passed to all functions described above are not sufficient.
