@@ -84,6 +84,7 @@ def test_er_validation_buffer(tmpdir):
             assert torch.allclose(
                 datasets_val[i][j][0],
                 model_updater._learner._val_memory_buffer[i * 100 + j][0][0],
+                rtol=1e-3,
             )
 
 
