@@ -14,7 +14,7 @@ config_space = {
     "memory_size": 500,
     "loss_normalization": 0,
     "loss_weight": 0.5,
-    "enable_early_stopping": True,
+    "early_stopping": True,
 }
 
 if __name__ == "__main__":
