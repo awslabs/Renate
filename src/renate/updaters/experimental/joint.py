@@ -42,7 +42,8 @@ class JointLearner(Learner):
     def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
         """Restores the state of the learner."""
         super().load_state_dict(model, state_dict, **kwargs)
-        self._memory_buffer = InfiniteBuffer()
+        if not hasattr(self, "_memory_buffer"):
+            self._memory_buffer = InfiniteBuffer()
         self._memory_buffer.load_state_dict(state_dict["memory_buffer"])
 
     def set_transforms(

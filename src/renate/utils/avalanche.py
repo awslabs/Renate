@@ -30,20 +30,17 @@ class AvalancheDataset(Dataset):
 
 
 def to_avalanche_dataset(dataset: Union[Dataset, DataBuffer]) -> AvalancheDataset:
-    """Converts a DataBuffer od Dataset into an Avalanche-compatible Dataset."""
+    """Converts a DataBuffer or Dataset into an Avalanche-compatible Dataset."""
     x_data, y_data = [], []
-    if isinstance(dataset, DataBuffer):
-        for i, ((x, y), _) in enumerate(dataset):
-            if i == len(dataset):
-                break
-            x_data.append(x)
-            y_data.append(y)
-    else:
-        for x, y in dataset:
-            x_data.append(x)
-            if not isinstance(y, int):
-                y = y.item()
-            y_data.append(y)
+    for i in range(len(dataset)):
+        if isinstance(dataset, DataBuffer):
+            (x, y), _ = dataset[i]
+        else:
+            x, y = dataset[i]
+        x_data.append(x)
+        if not isinstance(y, int):
+            y = y.item()
+        y_data.append(y)
     return AvalancheDataset(x_data, y_data)
 
 

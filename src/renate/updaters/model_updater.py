@@ -129,7 +129,7 @@ class RenateModelCheckpoint(ModelCheckpoint):
             pl_module.load_state_dict(self._model, torch.load(learner_state_path)["state_dict"])
         # Finalize model update.
         pl_module.on_model_update_end()
-        # Save permanently
+        # Save permanently.
         pl_module.save(self._output_state_folder)
         # Overwrite checkpoint.
         self._save_checkpoint(trainer, learner_state_path)
