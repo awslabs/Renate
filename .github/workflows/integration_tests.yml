@@ -54,5 +54,6 @@ jobs:
         suite: ${{ fromJSON(needs.prepare.outputs.matrix)}}
     uses: ./.github/workflows/run_renate.yml
     with:
-      script-path: test/integration_tests/run_quick_test.py --test-file ${{ matrix.suite }}
+      path: test/integration_tests
+      script: run_quick_test.py --test-file ${{ matrix.suite }}
 

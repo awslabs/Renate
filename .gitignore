@@ -2,6 +2,7 @@
 .DS_Store
 *.egg-info
 std.out
+tmp/
 
 renate_working_dir/
 

@@ -7,7 +7,10 @@ permissions:
 on:
   workflow_call:
     inputs:
-      script-path:
+      path:
+        required: true
+        type: string
+      script:
         required: true
         type: string
       requires-aws-credentials:
@@ -53,4 +56,6 @@ jobs:
         run: ${{ inputs.additional-command }}
       - name: Run Renate Script
         run: |
-          python ${{ inputs.script-path }}
+          cd ${{ inputs.path }}
+          python ${{ inputs.script }}
+          cd ~
