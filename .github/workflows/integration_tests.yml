@@ -38,7 +38,7 @@ jobs:
         with open('matrix.json', 'w') as f:
             f.write(matrix_json)
         
-        os.environ["GITHUB_OUTPUT"] += f"matrix={matrix_json}"
+        os.environ["GITHUB_OUTPUT"] = f"matrix={matrix_json}"
 
       shell: python
 
