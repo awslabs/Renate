@@ -48,11 +48,10 @@ jobs:
 
   tests:
     needs: prepare
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         suite: ${{ fromJSON(needs.prepare.outputs.matrix)}}
-    steps:
-     - name: run tests
-       run: |
-         echo ${{ matrix.suite }}  
+    uses: ./.github/workflows/run_renate.yml
+    with:
+      script-path: test/integration_tests/run_quick_test.py --test-file ${{ matrix.suite }}
+
