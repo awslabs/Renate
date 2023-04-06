@@ -43,11 +43,6 @@ jobs:
 
       shell: python
 
-    - uses: actions/upload-artifact@v3
-      with:
-         name: matrix
-         path: matrix.json
-
 
   tests:
     needs: prepare
