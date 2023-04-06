@@ -1,0 +1,7 @@
+**/__pycache__/
+.DS_Store
+*.egg-info
+std.out
+
+renate_working_dir/
+

@@ -1,0 +1,50 @@
+name: Integration Tests
+
+# All tests in this file:
+# 1. Run against every PR
+# 2. Do not require AWS credentials (We only run the tests that require credentials on code that has been approved and merged to main)
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  prepare:
+  - name: Parse test suite
+  - uses: actions/checkout@v3
+  - uses: actions/setup-python@v2
+    with:
+      python-version: 3.x
+    run: |
+      import os
+      import json
+
+      target_directory = 'test/integration_tests/configs/suites/quick'
+      files = [f for f in os.listdir(target_directory) if os.path.isfile(os.path.join(target_directory, f))]
+      matrix = {'file': files}
+      matrix_json = json.dumps(matrix)
+      print(matrix_json)
+      with open('matrix.json', 'w') as f:
+          f.write(matrix_json)
+
+#      print(f"::set-output name=matrix::{matrix_json}")
+  - uses: actions/upload-artifact@v3
+    with:
+       name: matrix
+       path: matrix.json
+#    outputs:
+#      matrix: ${{ steps.set-matrix.outputs.suite }}
+
+   tests:
+     needs: prepare
+     strategy:
+       matrix:
+        suite: ${{ fromJSON(needs.prepare.outputs.matrix)}}
+     run: |
+       echo ${{ matrix.file }}
