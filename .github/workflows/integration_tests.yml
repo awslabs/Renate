@@ -18,12 +18,15 @@ on:
 jobs:
   prepare:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v2
       with:
         python-version: 3.x
     - name: Prepare Inputs
+      id: set-matrix
       run: |
         import os
         import json
@@ -45,3 +48,14 @@ jobs:
 #    outputs:
 #      matrix: ${{ steps.set-matrix.outputs.suite }}
 
+
+  tests:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        suite: ${{ fromJSON(needs.prepare.outputs.matrix)}}
+    steps:
+     - name: run tests
+       run: |
+         echo ${{ matrix.suite }}  
