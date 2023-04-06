@@ -74,7 +74,15 @@ class DataBuffer(Dataset):
         i, j = self._indices[idx]
         data = self._datasets[i][j]
         metadata = {key: value[idx] for key, value in self._metadata.items()}
-        return data, metadata
+        if self._transform is None and self._target_transform is None:
+            return data, metadata
+        else:
+            inputs, targets = data
+            if self._transform is not None:
+                inputs = self._transform(inputs)
+            if self._target_transform is not None:
+                targets = self._target_transform(targets)
+            return (inputs, targets), metadata
 
     def update(self, dataset: Dataset, metadata: Optional[Dict] = None) -> None:
         """Updates the buffer with a new dataset."""
@@ -130,6 +138,7 @@ class DataBuffer(Dataset):
 
     def state_dict(self) -> Dict:
         return {
+            "buffer_class_name": self.__class__.__name__,
             "max_size": self._max_size,
             "seed": self._seed,
             "count": self._count,
@@ -139,12 +148,18 @@ class DataBuffer(Dataset):
         }
 
     def load_state_dict(self, state_dict: Dict) -> None:
+        if self.__class__.__name__ != state_dict["buffer_class_name"]:
+            raise RuntimeError(
+                f"Buffer of class {self.__class__} was used to load a state dict created by class "
+                f"{state_dict['buffer_class_name']}."
+            )
         self._max_size = state_dict["max_size"]
         self._seed = state_dict["seed"]
         self._count = state_dict["count"]
         self._indices = state_dict["indices"]
         self._data_point_prototype = state_dict["data_point_prototype"]
         self._metadata = state_dict["metadata"]
+        self._rng = get_generator(self._seed)
 
     def save(self, target_dir: str) -> None:
         if len(self):
