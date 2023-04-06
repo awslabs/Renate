@@ -67,11 +67,7 @@ if __name__ == "__main__":
 
     print("Expected Accuracy:", test_config["expected_accuracy"])
     print("Actual Accuracy:", accuracies)
-    is_approximately_equal = pytest.approx(test_config["expected_accuracy"]) == accuracies
-    is_more_accurate_than_expected = pytest.approx(test_config["expected_accuracy"]) <= accuracies
-    print("Is Roughly Equal:", is_approximately_equal)
-    print("Is more accurate than expected:", is_more_accurate_than_expected)
 
     # Noticed different accuracy scores across Mac and the Linux-based hosts used in our GitHub Actions Workflows
-    # TODO see if we can return to asserting on just actual accuracy
-    assert is_approximately_equal or is_more_accurate_than_expected
+    # TODO see if we can align the Mac and Linux results
+    assert pytest.approx(test_config["expected_accuracy"]) == accuracies
