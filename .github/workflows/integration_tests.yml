@@ -49,6 +49,7 @@ jobs:
   tests:
     needs: prepare
     strategy:
+      fail-fast: false
       matrix:
         suite: ${{ fromJSON(needs.prepare.outputs.matrix)}}
     uses: ./.github/workflows/run_renate.yml
