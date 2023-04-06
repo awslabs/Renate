@@ -38,7 +38,10 @@ jobs:
         with open('matrix.json', 'w') as f:
             f.write(matrix_json)
         
-        os.environ["GITHUB_OUTPUT"] = f"matrix={matrix_json}"
+        name = "matrix"
+        value = matrix_json
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+          print(f'{name}={value}', file=fh)
 
       shell: python
 
