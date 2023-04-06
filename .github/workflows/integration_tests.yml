@@ -33,8 +33,7 @@ jobs:
 
         target_directory = 'test/integration_tests/configs/suites/quick'
         files = [f for f in os.listdir(target_directory) if os.path.isfile(os.path.join(target_directory, f))]
-        matrix = {'file': files}
-        matrix_json = json.dumps(matrix)
+        matrix_json = json.dumps(files)
         print(matrix_json)
         with open('matrix.json', 'w') as f:
             f.write(matrix_json)
@@ -49,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        suite: ${{ fromJSON(needs.prepare.outputs.matrix.file)}}
+        suite: ${{ fromJSON(needs.prepare.outputs.matrix)}}
     steps:
      - name: run tests
        run: |
