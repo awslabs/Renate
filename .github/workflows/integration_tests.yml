@@ -49,7 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        suite: ${{ fromJSON(needs.prepare.outputs.matrix)}}
+        suite: ${{ fromJSON(needs.prepare.outputs.matrix.file)}}
     steps:
      - name: run tests
        run: |
