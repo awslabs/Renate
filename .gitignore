@@ -1,0 +1,5 @@
+*.pyc
+Tests*
+renate_working_dir
+src/Renate.egg*
+testout

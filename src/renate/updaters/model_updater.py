@@ -331,6 +331,8 @@ class ModelUpdater(abc.ABC):
             logger=self._logger,
             enable_progress_bar=False,
             deterministic=self._deterministic_trainer,
+            strategy="auto" if self._devices == 1 else "deepspeed_stage_2",
+            precision=16
         )
         trainer.fit(learner)
         self._num_epochs_trained = trainer.current_epoch

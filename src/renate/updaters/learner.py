@@ -327,6 +327,7 @@ class Learner(LightningModule, abc.ABC):
         """PyTorch Lightning function to create an optimizer."""
         optimizer = create_optimizer(
             params=self._model.get_params(self._task_id),
+            # params=self.trainer.model.parameters(),
             optimizer=self._optimizer,
             lr=self._learning_rate,
             momentum=self._momentum,
