@@ -92,6 +92,7 @@ def run_training_job(
     devices: int = defaults.DEVICES,
     deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     job_name: str = defaults.JOB_NAME,
+    **kwargs
 ) -> Optional[Tuner]:
     """Starts updating the model including hyperparameter optimization.
 
@@ -144,6 +145,8 @@ def run_training_job(
     for key, value in config_space.items():
         if isinstance(value, (bool, list, tuple)):
             config_space[key] = to_dense_str(value)
+    if kwargs and (backend != "local"):
+        raise ValueError("Only local possible with random arguments to run_training_job")
     if backend == "local":
         return _execute_training_and_tuning_job_locally(
             input_state_url=input_state_url,
@@ -169,6 +172,7 @@ def run_training_job(
             accelerator=accelerator,
             devices=devices,
             deterministic_trainer=deterministic_trainer,
+            **kwargs
         )
     submit_remote_job(
         input_state_url=input_state_url,
@@ -506,6 +510,7 @@ def _execute_training_and_tuning_job_locally(
     accelerator: str,
     devices: int,
     deterministic_trainer: bool,
+    **kwargs
 ):
     """Executes the training job locally.
 
@@ -523,6 +528,7 @@ def _execute_training_and_tuning_job_locally(
     config_space["accelerator"] = accelerator
     config_space["devices"] = devices
     config_space["deterministic_trainer"] = deterministic_trainer
+    config_space.update(**kwargs)
     if input_state_url is not None:
         config_space["input_state_url"] = input_state_url
 
@@ -545,7 +551,11 @@ def _execute_training_and_tuning_job_locally(
             f"Tuning hyperparameters with respect to {metric} ({mode}) for {max_time} seconds on "
             f"{n_workers} worker(s)."
         )
-    backend = LocalBackend(entry_point=training_script, rotate_gpus=False)
+    backend = LocalBackend(
+        entry_point=training_script,
+        rotate_gpus=False if devices > 1 else True,
+        delete_checkpoints=True,
+    )
     if scheduler is None or not tune_hyperparameters:
         if scheduler is not None:
             warnings.warn(

@@ -6,53 +6,62 @@ from typing import Optional, Union
 import renate.defaults as defaults
 import torch
 import transformers
+
+from peft import (
+    LoraConfig,
+    get_peft_model,
+)
 from renate.benchmark.datasets.nlp_datasets import HuggingfaceTextDataModule
 from renate.data.data_module import RenateDataModule
 from renate.models import RenateModule
 from renate.models.renate_module import RenateWrapper
 
-MODEL_TYPE = "distilbert"
-ALLOWED_MODEL_TYPES = {"distilbert", "bertl", "gpt2"}
+MODEL_TYPE = "gpt2-xl"
+ALLOWED_MODEL_TYPES = {"distilbert", "bert-large-uncased", "gpt2", "gpt2-xl"}
+MODEL_PARALLEL = False
 
 
 def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule:
     assert (
         MODEL_TYPE in ALLOWED_MODEL_TYPES
     ), f"MODEL_TYPE set in renate_config.py is wrongly set as {MODEL_TYPE}"
-    
+
+    peft_config = LoraConfig(
+        task_type="SEQ_CLS", inference_mode=False, r=8, lora_alpha=16, lora_dropout=0.1
+    )
+
+    model_config = transformers.AutoConfig.from_pretrained(MODEL_TYPE)
+
     if MODEL_TYPE == "distilbert":
-        config = transformers.AutoConfig.from_pretrained("distilbert-base-uncased")
-        config.num_labels=2
-        config.return_dict=False
-        transformer_model = transformers.DistilBertForSequenceClassification(config)
-        
-    elif MODEL_TYPE == "bertl":
-        # 24-layer, 1024-hidden, 16-heads == Bert large
-        config = transformers.BertConfig(
-            hidden_size=1024,
-            num_hidden_layers=24,
-            num_attention_heads=16,
-            num_labels=2,
-            return_dict=False,
-            output_hidden_states=False,
-            output_attentions=False,
+        model_config.__dict__.update(dict(num_labels=2, return_dict=False))
+    elif MODEL_TYPE == "bert-large-uncased":
+        model_config.__dict__.update(
+            dict(
+                num_labels=2, return_dict=False, output_hidden_states=False, output_attentions=False
+            )
         )
-        transformer_model = transformers.BertForSequenceClassification(config)
+    elif "gpt2" in MODEL_TYPE:
+        model_config.__dict__.update(
+            dict(
+                output_hidden_states=False,
+                output_attentions=False,
+                use_cache=False,
+                pad_token_id=0,
+                num_labels=2,
+                return_dict=False,
+            )
+        )
 
-    elif MODEL_TYPE == "gpt2":
-        config = transformers.AutoConfig.from_pretrained("gpt2-large")
-        config.output_hidden_states=False
-        config.output_attentions=False
-        config.use_cache=False
-        config.pad_token_id=0
-        config.num_labels=2
-        config.return_dict=False
-        transformer_model = transformers.GPT2ForSequenceClassification(config=config)
+    transformer_model = transformers.AutoModelForSequenceClassification.from_config(
+        model_config
+    )
+    transformer_model.gradient_checkpointing_enable()
+    if MODEL_PARALLEL:
+        transformer_model.transformer.parallelize()
 
-        # transformer_model.gradient_checkpointing_enable()
-
-
+    transformer_model = get_peft_model(transformer_model, peft_config)
     model = RenateWrapper(transformer_model, loss_fn=torch.nn.CrossEntropyLoss())
+
     if model_state_url is not None:
         state_dict = torch.load(str(model_state_url))
         model.load_state_dict(state_dict)
@@ -65,8 +74,6 @@ def data_module_fn(
     """Returns one of two movie review datasets depending on `chunk_id`."""
     if MODEL_TYPE == "distilbert":
         tokenizer = transformers.DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
-
-    # elif MODEL_TYPE == "bertl":
     else:
         tokenizer = transformers.BertTokenizer.from_pretrained("bert-base-uncased")
 

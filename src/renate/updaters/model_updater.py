@@ -11,6 +11,7 @@ import torchmetrics
 from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers.logger import Logger
+from pytorch_lightning.strategies import DDPFullyShardedStrategy, DeepSpeedStrategy
 from syne_tune import Reporter
 from torch.utils.data import Dataset
 
@@ -42,11 +43,12 @@ class SyneTuneCallback(Callback):
 
         if trainer.sanity_checking or (training and self._val_enabled):
             return
-        self._report(
-            **{k: v.item() for k, v in trainer.logged_metrics.items()},
-            step=trainer.current_epoch,
-            epoch=trainer.current_epoch + 1,
-        )
+        if trainer.global_rank == 0:
+            self._report(
+                **{k: v.item() for k, v in trainer.logged_metrics.items()},
+                step=trainer.current_epoch,
+                epoch=trainer.current_epoch + 1,
+            )
 
     def on_train_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         self._log(trainer=trainer, training=pl_module.training)
@@ -323,6 +325,29 @@ class ModelUpdater(abc.ABC):
                     "be ignored."
                 )
 
+        strategy = "deepspeed_stage_3_offload"
+
+        if self._devices > 1:
+            if strategy == "fsdp_native":
+                strategy = DDPFullyShardedStrategy(
+                    cpu_offload=torch.distributed.fsdp.CPUOffload(offload_params=True)
+                )
+            elif strategy == "deepspeed_stage_3_offload":
+                strategy = DeepSpeedStrategy(
+                    stage=2, offload_optimizer=True, offload_parameters=True
+                )
+                strategy.config["zero_force_ds_cpu_optimizer"] = False
+            elif strategy == "ddp":
+                pass
+            elif strategy == "ddp_sharded":
+                pass
+            elif strategy == "ddp_fully_sharded":
+                pass
+            else:
+                pass
+        else:
+            strategy = None
+
         trainer = Trainer(
             accelerator=self._accelerator,
             devices=self._devices,
@@ -331,8 +356,8 @@ class ModelUpdater(abc.ABC):
             logger=self._logger,
             enable_progress_bar=False,
             deterministic=self._deterministic_trainer,
-            strategy="auto" if self._devices == 1 else "deepspeed_stage_2",
-            precision=16
+            strategy=strategy,
+            precision=16,
         )
         trainer.fit(learner)
         self._num_epochs_trained = trainer.current_epoch
