@@ -128,6 +128,7 @@ class ModelUpdaterCLI:
             logged_metrics=metrics,
             accelerator=args.accelerator,
             devices=args.devices,
+            strategy=args.strategy,
             early_stopping_enabled=args.early_stopping,
             deterministic_trainer=args.deterministic_trainer,
             **learner_kwargs,

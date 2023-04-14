@@ -644,6 +644,7 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         logger: Logger = defaults.LOGGER(**defaults.LOGGER_KWARGS),
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
+        strategy: Optional[int] = None,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
@@ -684,6 +685,7 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             logger=logger,
             accelerator=accelerator,
             devices=devices,
+            strategy=strategy,
             deterministic_trainer=deterministic_trainer,
         )
 

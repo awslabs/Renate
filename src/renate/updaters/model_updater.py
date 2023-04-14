@@ -11,6 +11,7 @@ import torchmetrics
 from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers.logger import Logger
+from pytorch_lightning.strategies import DDPFullyShardedStrategy, DeepSpeedStrategy
 from syne_tune import Reporter
 from torch.utils.data import Dataset
 
@@ -42,11 +43,12 @@ class SyneTuneCallback(Callback):
 
         if trainer.sanity_checking or (training and self._val_enabled):
             return
-        self._report(
-            **{k: v.item() for k, v in trainer.logged_metrics.items()},
-            step=trainer.current_epoch,
-            epoch=trainer.current_epoch + 1,
-        )
+        if trainer.global_rank == 0:
+            self._report(
+                **{k: v.item() for k, v in trainer.logged_metrics.items()},
+                step=trainer.current_epoch,
+                epoch=trainer.current_epoch + 1,
+            )
 
     def on_train_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         self._log(trainer=trainer, training=pl_module.training)
@@ -172,6 +174,8 @@ class ModelUpdater(abc.ABC):
         devices: Devices used by PyTorch Lightning to train the model. If the devices flag is not
             defined, it will assume devices to be "auto" and fetch the `auto_device_count` from the
             `accelerator`.
+        strategy: Distributed training strategy to be used by lightning. This will be reset if 
+            only one device.
         deterministic_trainer: When set to True makes the output of the training deterministic.
             The value is passed to the trainer as described
             `here <https://pytorch-lightning.readthedocs.io/en/stable/common\
@@ -199,6 +203,7 @@ class ModelUpdater(abc.ABC):
         logger: Logger = defaults.LOGGER(**defaults.LOGGER_KWARGS),
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
+        strategy: Optional[str] = None,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
         self._learner_kwargs = learner_kwargs or {}
@@ -254,6 +259,7 @@ class ModelUpdater(abc.ABC):
             )
         self._accelerator = accelerator
         self._devices = devices
+        self._strategy = strategy
         self._learner = self._load_learner(learner_class, self._learner_kwargs)
         assert self._learner.is_logged_metric(metric), f"Target metric `{metric}` is not logged."
         self._logger = logger
@@ -323,6 +329,28 @@ class ModelUpdater(abc.ABC):
                     "be ignored."
                 )
 
+        strategy = self._strategy
+        if self._devices > 1:
+            if self._strategy == "fsdp_native":
+                strategy = DDPFullyShardedStrategy(
+                    cpu_offload=torch.distributed.fsdp.CPUOffload(offload_params=True)
+                )
+            elif self._strategy == "deepspeed_stage_3_offload":
+                strategy = DeepSpeedStrategy(
+                    stage=2, offload_optimizer=True, offload_parameters=True
+                )
+                strategy.config["zero_force_ds_cpu_optimizer"] = False
+            elif self._strategy == "ddp":
+                pass
+            elif self._strategy == "ddp_sharded":
+                pass
+            elif self._strategy == "ddp_fully_sharded":
+                pass
+            else:
+                pass
+        else:
+            strategy = None
+
         trainer = Trainer(
             accelerator=self._accelerator,
             devices=self._devices,
@@ -331,6 +359,8 @@ class ModelUpdater(abc.ABC):
             logger=self._logger,
             enable_progress_bar=False,
             deterministic=self._deterministic_trainer,
+            strategy=strategy,
+            precision=16,
         )
         trainer.fit(learner)
         self._num_epochs_trained = trainer.current_epoch

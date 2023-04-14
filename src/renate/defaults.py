@@ -31,6 +31,7 @@ DETERMINISTIC_TRAINER = False
 ACCELERATOR = "auto"
 SUPPORTED_ACCELERATORS = ["auto", "cpu", "gpu", "tpu"]
 SUPPORTED_ACCELERATORS_TYPE = Literal["auto", "cpu", "gpu", "tpu"]
+DISTRIBUTED_STRATEGY = "none"
 DEVICES = 1
 VOLUME_SIZE = 60
 
