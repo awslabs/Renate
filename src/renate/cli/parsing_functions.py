@@ -4,6 +4,8 @@ import argparse
 import ast
 import inspect
 import sys
+
+import pytorch_lightning as pl
 from importlib.util import find_spec
 from types import ModuleType
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
@@ -286,12 +288,18 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
             "help": f"Devices used for this job. Default: {defaults.DEVICES} device.",
             "argument_group": OPTIONAL_ARGS_GROUP,
         },
+        "strategy": {
+            "type": str,
+            "default": defaults.DISTRIBUTED_STRATEGY,
+            "help": f"Devices used for this job. Default: {defaults.DISTRIBUTED_STRATEGY} device.",
+            "argument_group": OPTIONAL_ARGS_GROUP,
+            "choices": list(pl.strategies.StrategyRegistry.keys())
+        },
         "early_stopping": {
             "type": str,
             "default": str(defaults.EARLY_STOPPING),
             "choices": ["True", "False"],
-            "help": "Enables the early stopping of the optimization. Default: "
-            f"{defaults.EARLY_STOPPING}.",
+            "help": "Enables the early stopping of the optimization. Default: {defaults.EARLY_STOPPING}.",
             "argument_group": OPTIONAL_ARGS_GROUP,
             "true_type": bool,
         },
