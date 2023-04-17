@@ -31,5 +31,6 @@ if __name__ == "__main__":
         output_state_url = "testout",
         backend="local",  # run on SageMaker, select "local" to run this locally
         devices=4,
-        strategy="deepspeed_stage_3_offload"
+        # strategy="deepspeed_stage_2_offload"
+        strategy="fsdp"
     )

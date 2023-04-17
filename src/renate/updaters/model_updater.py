@@ -110,8 +110,8 @@ class RenateModelCheckpoint(ModelCheckpoint):
 
     def _save_checkpoint(self, trainer: Trainer, filepath: str) -> None:
         Path(self.dirpath).mkdir(parents=True, exist_ok=True)
-        torch.save(self._model.state_dict(), defaults.model_file(self.dirpath))
-        super()._save_checkpoint(trainer=trainer, filepath=filepath)
+        # torch.save(self._model.state_dict(), defaults.model_file(self.dirpath))
+        # super()._save_checkpoint(trainer=trainer, filepath=filepath)
 
     def on_train_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         super().on_train_epoch_end(trainer=trainer, pl_module=pl_module)
@@ -335,7 +335,7 @@ class ModelUpdater(abc.ABC):
                 strategy = DDPFullyShardedStrategy(
                     cpu_offload=torch.distributed.fsdp.CPUOffload(offload_params=True)
                 )
-            elif self._strategy == "deepspeed_stage_3_offload":
+            elif self._strategy == "deepspeed_stage_2_offload":
                 strategy = DeepSpeedStrategy(
                     stage=2, offload_optimizer=True, offload_parameters=True
                 )
