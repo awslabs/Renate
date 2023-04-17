@@ -3,7 +3,7 @@ import warnings
 import transformers
 from peft import LoraConfig, get_peft_model
 
-ALLOWED_MODEL_TYPES = {"distilbert-base-uncased", "bert-large-uncased", "gpt2", "gpt2-xl", "gpt-j"}
+ALLOWED_MODEL_TYPES = {"distilbert-base-uncased", "bert-large-uncased", "gpt2", "gpt2-xl", "EleutherAI/gpt-j-6B"}
 ALLOWED_FINE_TUNE_MODES = {"full", "peft", "lora"}
 
 

@@ -3,6 +3,7 @@
 import abc
 import logging
 import warnings
+from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Type
 
@@ -11,8 +12,18 @@ import torchmetrics
 from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers.logger import Logger
-from pytorch_lightning.strategies import DDPFullyShardedStrategy, DeepSpeedStrategy
+from pytorch_lightning.strategies import (
+    DDPFullyShardedStrategy,
+    DeepSpeedStrategy,
+    DDPFullyShardedNativeStrategy,
+)
 from syne_tune import Reporter
+from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload
+from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+    checkpoint_wrapper,
+    CheckpointImpl,
+    apply_activation_checkpointing,
+)
 from torch.utils.data import Dataset
 
 from renate import defaults
@@ -340,6 +351,18 @@ class ModelUpdater(abc.ABC):
                     stage=2, offload_optimizer=True, offload_parameters=True
                 )
                 strategy.config["zero_force_ds_cpu_optimizer"] = False
+            elif self._strategy == "fsdp_native":
+                strategy = DDPFullyShardedNativeStrategy(
+                    cpu_offload=CPUOffload(offload_params=True)
+                )
+                non_reentrant_wrapper = partial(
+                    checkpoint_wrapper,
+                    offload_to_cpu=False,
+                    checkpoint_impl=CheckpointImpl.NO_REENTRANT,
+                )
+                check_fn = lambda submodule: isinstance(submodule, self._model._)
+                apply_activation_checkpointing(self._model, checkpoint_wrapper_fn=non_reentrant_wrapper, check_fn=check_fn)
+
             elif self._strategy == "ddp":
                 pass
             elif self._strategy == "ddp_sharded":
