@@ -7,7 +7,7 @@ ALLOWED_MODEL_TYPES = {"distilbert-base-uncased", "bert-large-uncased", "gpt2", 
 ALLOWED_FINE_TUNE_MODES = {"full", "peft", "lora"}
 
 
-def make_transformers_model(model_name, enable_gradient_checkpointing=True, load_in_8bit=False):
+def make_transformers_model(model_name, enable_gradient_checkpointing=True, load_in_8bit=False, **kwargs):
     """Instantiates a model from HF repository. Doesn't load pretrained weights because
     of hard disk space issues on SageMaker. Change the `from_config` call to `from_pretrained`.
     """
@@ -31,11 +31,14 @@ def make_transformers_model(model_name, enable_gradient_checkpointing=True, load
             )
         )
 
+    additional_flags.update(kwargs)
     ## update flags in model
     for k, v in additional_flags.items():
         setattr(model_config, k, v)
 
     model_config.load_in_8bit = load_in_8bit
+    if load_in_8bit:
+        model_config.device_map = "auto"
 
     transformer_model = transformers.AutoModelForSequenceClassification.from_config(model_config)
 
