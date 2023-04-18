@@ -353,21 +353,13 @@ class ModelUpdater(abc.ABC):
                 )
                 # import pdb; pdb.set_trace()
                 check_fn = lambda submodule: isinstance(submodule, self._model)
-                print("What!")
                 apply_activation_checkpointing(self._model, checkpoint_wrapper_fn=non_reentrant_wrapper, check_fn=check_fn)
+
             elif self._strategy == "deepspeed_stage_2_offload":
                 strategy = DeepSpeedStrategy(
                     stage=2, offload_optimizer=True, offload_parameters=True
                 )
                 strategy.config["zero_force_ds_cpu_optimizer"] = False
-            elif self._strategy == "ddp":
-                pass
-            elif self._strategy == "ddp_sharded":
-                pass
-            elif self._strategy == "ddp_fully_sharded":
-                pass
-            else:
-                pass
         else:
             strategy = None
 

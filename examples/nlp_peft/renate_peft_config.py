@@ -23,7 +23,6 @@ def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule
     ### wrap in peft or not
     if not INFERENCE_ONLY:
         transformer_model = fine_tuning_mode(model, FINE_TUNE_MODE)
-        # print(transformer_model.print_trainable_parameters())
 
     model = RenateWrapper(transformer_model, loss_fn=torch.nn.CrossEntropyLoss())
 
