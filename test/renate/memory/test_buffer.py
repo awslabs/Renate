@@ -129,7 +129,7 @@ def test_reservoir_is_uniform():
     assert 5000 - 5 * 91 < xs.mean() < 5000 + 5 * 91
 
 
-def test_greedy_is_balanced():
+def test_greedy_is_balanced(tmpdir):
     """Present buffer with 10 classes with respect to 10000 samples, where each class has 1000
     samples. When inspecting the ._class_counts attribute, it should be uniform.
     """
@@ -146,6 +146,12 @@ def test_greedy_is_balanced():
             X[i * 1000 : (i + 1) * 1000], Y[i * 1000 : (i + 1) * 1000]
         )
         buffer.update(ds)
+        buffer.save(tmpdir)
+        state_dict = buffer.state_dict()
+        del buffer
+        buffer = GreedyClassBalancingBuffer(max_size=100)
+        buffer.load_state_dict(state_dict)
+        buffer.load(tmpdir)
     counts = torch.tensor([len(v) for v in buffer._indices_by_class.values()], dtype=torch.float32)
     label_counts = defaultdict(int)
     assert 10 - 1 < counts.mean() < 10 + 1
