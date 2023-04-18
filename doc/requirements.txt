@@ -7,4 +7,4 @@ pydata-sphinx-theme==0.13.1
 sphinx-autodoc-typehints==1.22.0
 
 # Temporarily added
-#avalanche_lib==0.3.1
+# avalanche_lib==0.3.1
