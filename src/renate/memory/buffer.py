@@ -163,6 +163,8 @@ class DataBuffer(Dataset):
 
     def save(self, target_dir: str) -> None:
         if len(self):
+            transforms = self._transform, self._target_transform
+            self._transform, self._target_transform = None, None
             storage = MemoryMappedTensorStorage(
                 target_dir,
                 data_point=self._data_point_prototype,
@@ -172,6 +174,7 @@ class DataBuffer(Dataset):
                 storage[i] = self[i][0]  # Drop metadata.
             self._datasets = [storage]
             self._indices = {i: (0, i) for i in range(len(self))}
+            self.set_transforms(*transforms)
 
     def load(self, source_dir: str) -> None:
         if len(self):

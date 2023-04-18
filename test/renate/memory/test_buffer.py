@@ -294,3 +294,45 @@ def test_load_and_save_buffer(tmpdir, buffer_cls, max_size, num_updates, dataset
         buffer.load(tmpdir)
         for j in range(len(buffer)):
             assert nested_tensors_equal(buffer[j], elements_before[j])
+
+
+@pytest.mark.parametrize("buffer_cls", [ReservoirBuffer, SlidingWindowBuffer])
+@pytest.mark.parametrize("max_size", [10, 100])
+@pytest.mark.parametrize("num_updates", [0, 1, 2])
+@pytest.mark.parametrize(
+    "dataset",
+    [
+        torch.utils.data.TensorDataset(torch.randn(10, 2), torch.arange(10)),
+    ],
+)
+@pytest.mark.parametrize("metadata", [None, {"a": torch.arange(10), "b": torch.zeros(10, 2)}])
+@pytest.mark.parametrize("buffer_transform", [None, lambda x: x * 2])
+@pytest.mark.parametrize("buffer_target_transform", [None, lambda y: y // 5])
+def test_load_and_save_buffer_with_transforms(
+    tmpdir,
+    buffer_cls,
+    max_size,
+    num_updates,
+    dataset,
+    metadata,
+    buffer_transform,
+    buffer_target_transform,
+):
+    """Tests loading an saving of the buffer state."""
+    buffer = buffer_cls(
+        max_size, transform=buffer_transform, target_transform=buffer_target_transform
+    )
+    for _ in range(2):
+        for _ in range(num_updates):
+            buffer.update(dataset, metadata)
+        elements_before = [copy.deepcopy(buffer[i]) for i in range(len(buffer))]
+        buffer.save(tmpdir)
+        state_dict = buffer.state_dict()
+        del buffer
+        buffer = buffer_cls(
+            max_size, transform=buffer_transform, target_transform=buffer_target_transform
+        )
+        buffer.load_state_dict(state_dict)
+        buffer.load(tmpdir)
+        for j in range(len(buffer)):
+            assert nested_tensors_equal(buffer[j], elements_before[j])
