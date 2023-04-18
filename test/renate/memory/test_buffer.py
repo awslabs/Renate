@@ -154,7 +154,8 @@ def test_greedy_is_balanced(tmpdir):
         buffer.load(tmpdir)
     counts = torch.tensor([len(v) for v in buffer._indices_by_class.values()], dtype=torch.float32)
     label_counts = defaultdict(int)
-    assert 10 - 1 < counts.mean() < 10 + 1
+    assert torch.all(counts >= 10 - 1)
+    assert torch.all(counts <= 10 + 1)
     for i in range(len(buffer)):
         (_, y), _ = buffer[i]
         label_counts[y.item()] += 1
