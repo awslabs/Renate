@@ -28,6 +28,11 @@ configuration file are available in :doc:`../getting_started/how_to_renate_confi
 
 .. literalinclude:: ../../examples/train_mlp_locally/renate_config.py
     :lines: 3-
+    
+The configuration file uses a scenario in the definition of the data module function.
+The scenario is just splitting the dataset in several chunks and allows us to train the model on
+different parts of the dataset without adding complex code to the example. For most practical purposes
+the definition of the scenario can be removed from the function.
 
 Training
 ========
