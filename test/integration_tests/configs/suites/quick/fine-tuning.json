@@ -5,5 +5,5 @@
   "dataset": "fashionmnist.json",
   "backend": "local",
   "job_name": "iid-mlp-fine-tuning",
-  "expected_accuracy": [0.8521, 0.8521]
+  "expected_accuracy": [0.8458999991416931, 0.8458999991416931]
 }

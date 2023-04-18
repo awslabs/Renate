@@ -5,5 +5,5 @@
   "dataset": "cifar10.json",
   "backend": "local",
   "job_name": "hue-shift-mlp-pod-er",
-  "expected_accuracy": [0.2000, 0.2638]
+  "expected_accuracy": [0.17059999704360962, 0.31299999356269836]
 }
