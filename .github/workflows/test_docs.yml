@@ -31,4 +31,5 @@ jobs:
 
       - name: Build docs
         run: |
+          shell: cmd
           bash .github/scripts/build_docs.sh
