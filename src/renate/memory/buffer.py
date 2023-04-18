@@ -281,7 +281,7 @@ class GreedyClassBalancingBuffer(DataBuffer):
 
     def load_state_dict(self, state_dict: Dict) -> None:
         super().load_state_dict(state_dict)
-        self._indices_by_class = defaultdict(list)
+        # self._indices_by_class = defaultdict(list)
         self._indices_by_class.update(state_dict["indices_by_class"])
 
     def _get_largest_class(self):
@@ -293,9 +293,6 @@ class GreedyClassBalancingBuffer(DataBuffer):
                 max_length = len(indices)
             if len(indices) == max_length:
                 largest_classes.append(y)
-        # if len(largest_classes) == 1:
-        #     largest_class = largest_classes[0]
-        # else:
         rand = torch.randint(low=0, high=len(largest_classes), size=(1,), generator=self._rng)
         largest_class = largest_classes[rand.item()]
         return largest_class, max_length
