@@ -293,11 +293,11 @@ class GreedyClassBalancingBuffer(DataBuffer):
                 max_length = len(indices)
             if len(indices) == max_length:
                 largest_classes.append(y)
-        if len(largest_classes) == 1:
-            largest_class = largest_classes[0]
-        else:
-            rand = torch.randint(low=0, high=len(largest_classes), size=(1,), generator=self._rng)
-            largest_class = largest_classes[rand.item()]
+        # if len(largest_classes) == 1:
+        #     largest_class = largest_classes[0]
+        # else:
+        rand = torch.randint(low=0, high=len(largest_classes), size=(1,), generator=self._rng)
+        largest_class = largest_classes[rand.item()]
         return largest_class, max_length
 
     def _update(self, dataset: Dataset, metadata: Dict) -> Dict[int, int]:
