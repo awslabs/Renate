@@ -11,8 +11,8 @@ from renate.models import RenateModule
 from renate.models.model_utils import fine_tuning_mode, make_tokenizer, make_transformers_model
 from renate.models.renate_module import RenateWrapper
 
-MODEL_TYPE = "gpt2-xl"
-FINE_TUNE_MODE = "full"
+MODEL_TYPE = "EleutherAI/gpt-j-6B"
+FINE_TUNE_MODE = "peft"
 INFERENCE_ONLY = False
 
 
