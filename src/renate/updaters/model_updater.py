@@ -343,26 +343,23 @@ class ModelUpdater(abc.ABC):
         strategy = self._strategy
         if self._devices > 1:
             if self._strategy == "fsdp_native":
-                strategy = DDPFullyShardedStrategy(
-                    cpu_offload=torch.distributed.fsdp.CPUOffload(offload_params=True)
-                )
-            elif self._strategy == "deepspeed_stage_2_offload":
-                strategy = DeepSpeedStrategy(
-                    stage=2, offload_optimizer=True, offload_parameters=True
-                )
-                strategy.config["zero_force_ds_cpu_optimizer"] = False
-            elif self._strategy == "fsdp_native":
                 strategy = DDPFullyShardedNativeStrategy(
                     cpu_offload=CPUOffload(offload_params=True)
                 )
                 non_reentrant_wrapper = partial(
                     checkpoint_wrapper,
-                    offload_to_cpu=False,
+                    offload_to_cpu=True,
                     checkpoint_impl=CheckpointImpl.NO_REENTRANT,
                 )
-                check_fn = lambda submodule: isinstance(submodule, self._model._)
+                # import pdb; pdb.set_trace()
+                check_fn = lambda submodule: isinstance(submodule, self._model)
+                print("What!")
                 apply_activation_checkpointing(self._model, checkpoint_wrapper_fn=non_reentrant_wrapper, check_fn=check_fn)
-
+            elif self._strategy == "deepspeed_stage_2_offload":
+                strategy = DeepSpeedStrategy(
+                    stage=2, offload_optimizer=True, offload_parameters=True
+                )
+                strategy.config["zero_force_ds_cpu_optimizer"] = False
             elif self._strategy == "ddp":
                 pass
             elif self._strategy == "ddp_sharded":

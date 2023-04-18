@@ -11,18 +11,19 @@ from renate.models import RenateModule
 from renate.models.model_utils import fine_tuning_mode, make_tokenizer, make_transformers_model
 from renate.models.renate_module import RenateWrapper
 
-MODEL_TYPE = "gpt2"
+MODEL_TYPE = "gpt2-xl"
 FINE_TUNE_MODE = "full"
 INFERENCE_ONLY = False
 
 
 def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule:
     model = make_transformers_model(
-        MODEL_TYPE, enable_gradient_checkpointing=False, load_in_8bit=INFERENCE_ONLY
+        MODEL_TYPE, enable_gradient_checkpointing=True, load_in_8bit=INFERENCE_ONLY
     )
     ### wrap in peft or not
     if not INFERENCE_ONLY:
         transformer_model = fine_tuning_mode(model, FINE_TUNE_MODE)
+        # print(transformer_model.print_trainable_parameters())
 
     model = RenateWrapper(transformer_model, loss_fn=torch.nn.CrossEntropyLoss())
 

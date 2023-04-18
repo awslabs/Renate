@@ -11,7 +11,7 @@ config_space = {
     "momentum": 0.9,
     "weight_decay": 0.0,
     "learning_rate": 0.001,
-    "batch_size": 32,
+    "batch_size": 10,
 }
 
 if __name__ == "__main__":
@@ -31,6 +31,6 @@ if __name__ == "__main__":
         output_state_url = "testout",
         backend="local",  # run on SageMaker, select "local" to run this locally
         devices=4,
-        # strategy="deepspeed_stage_2_offload"
-        strategy="fsdp"
+        strategy="deepspeed_stage_2_offload"
+        # strategy="fsdp_native"
     )
