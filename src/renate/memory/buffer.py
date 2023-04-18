@@ -282,7 +282,8 @@ class GreedyClassBalancingBuffer(DataBuffer):
     def load_state_dict(self, state_dict: Dict) -> None:
         super().load_state_dict(state_dict)
         # self._indices_by_class = defaultdict(list)
-        self._indices_by_class.update(state_dict["indices_by_class"])
+        # self._indices_by_class.update(state_dict["indices_by_class"])
+        self._indices_by_class = state_dict["indices_by_class"]
 
     def _get_largest_class(self):
         largest_classes = []
