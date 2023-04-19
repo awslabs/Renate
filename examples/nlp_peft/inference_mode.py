@@ -13,6 +13,7 @@ n_gpus = torch.cuda.device_count()
 model_name = "EleutherAI/gpt-j-6B"
 # model_name = "bigscience/T0"
 
+
 def main():
     print("Making model")
     model = AutoModelForSequenceClassification.from_pretrained(
@@ -48,10 +49,10 @@ def LmExample():
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
         device_map="auto",
-        load_in_8bit=False,
+        load_in_8bit=True,
         # max_memory={i: "2GB" for i in range(n_gpus)},
         cache_dir="/home/ec2-user/SageMaker/hub",
-        pad_token_id=50256
+        pad_token_id=50256,
     )
 
     pdb.set_trace()
@@ -59,14 +60,30 @@ def LmExample():
     text = "Working with large language deep learning models in Berlin is like"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     seqs = tokenizer(text, return_tensors="pt")
-    generated_ids = model.generate(seqs.input_ids.expand(10, -1).to("cuda"), max_length=128, do_sample=True, temperature=1)
+    generated_ids = model.generate(
+        seqs.input_ids.expand(10, -1).to("cuda"), max_length=128, do_sample=True, temperature=1
+    )
     for x in tokenizer.batch_decode(generated_ids, skip_special_tokens=True):
         print(x)
-        print('--' * 10)
+        print("--" * 10)
+
+
+def large_memory_example():
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        device_map="auto",
+        load_in_8bit=False,
+        # max_memory={i: "2GB" for i in range(n_gpus)},
+        cache_dir="/home/ec2-user/SageMaker/hub",
+        pad_token_id=50256,
+    )
+
+    pdb.set_trace()
 
 
 if __name__ == "__main__":
     # main()
+    large_memory_example()
     LmExample()
 
 
