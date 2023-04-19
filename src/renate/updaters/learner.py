@@ -236,6 +236,7 @@ class Learner(LightningModule, abc.ABC):
         self._model.add_task_params(task_id=self._task_id)
 
     def train_dataloader(self) -> DataLoader:
+        """Returns the dataloader for training the model."""
         train_dataset = _TransformedDataset(
             self._train_dataset,
             transform=self._train_transform,
