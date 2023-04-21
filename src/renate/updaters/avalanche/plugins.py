@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 from pathlib import Path
-from typing import Any, Callable, Dict, IO, Optional, Union
+from typing import Callable, Dict, IO, Optional, Union
 
 import torch
 from avalanche.training.plugins.checkpoint import CheckpointPlugin, FileSystemCheckpointStorage
@@ -18,11 +18,6 @@ class RenateFileSystemCheckpointStorage(FileSystemCheckpointStorage):
 
     def checkpoint_exists(self, checkpoint_name: str) -> bool:
         return self._make_checkpoint_file_path(checkpoint_name).exists()
-
-    def load_checkpoint(self, checkpoint_name: str, checkpoint_loader) -> Any:
-        checkpoint_file = self._make_checkpoint_file_path(checkpoint_name)
-        with open(checkpoint_file, "rb") as f:
-            return checkpoint_loader(f)
 
     def store_checkpoint(
         self, checkpoint_name: str, checkpoint_writer: Callable[[IO[bytes]], None]
