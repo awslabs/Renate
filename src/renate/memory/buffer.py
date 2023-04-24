@@ -36,9 +36,6 @@ class DataBuffer(Dataset):
     In addition to passing metadata to the `update` method, one also access and replace the metadata
     in the buffer via the `get_metadata` and `set_metadata` methods.
 
-    Note that the buffer does not change the device placement of data passed to it. Please ensure
-    that the data passed to `DataBuffer.update` resides on the CPU.
-
     Note that, in order to apply transformations, the buffer assumes that the data points are tuples
     of the form `(x, y)`. We apply `transform` to `inputs` and `target_transform` to `y`. Ensure
     that the transforms accept the correct type, e.g., if `x` is a dictionary, `transform` needs to
