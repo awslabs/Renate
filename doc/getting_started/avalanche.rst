@@ -12,6 +12,7 @@ Using Avalanche updaters for training works the same as with Renate updaters whi
 argument of :py:func:`~renate.training.training.run_training_job`. The available Avalanche options are
 ``"Avalanche-ER"``, ``"Avalanche-EWC"``, ``"Avalanche-LwF"``, and ``"Avalanche-iCaRL"``.
 More details about these algorithms are given in :doc:`supported_algorithms`.
+Further Avalanche updaters can be created if needed.
 
 Limitations
 ===========
@@ -35,6 +36,8 @@ No Multi-Fidelity HPO
 ---------------------
 Currently, we do not support multi-fidelity hyperparameter optimization with Avalanche updaters. For that reason,
 please do not use ``asha`` as a scheduler but use ``random`` or ``bo`` instead.
+For more details about HPO in Renate, please refer to the
+:ref:`Renate HPO section <getting_started/how_to_run_training:run a training job with hpo>`.
 
 No Early-Stopping
 -----------------
