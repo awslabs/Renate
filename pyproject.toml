@@ -19,10 +19,12 @@ dynamic = ["version", "readme", "dependencies"]
 [project.optional-dependencies]
 avalanche = [
     "avalanche_lib==0.3.1",
+    "torch>=1.10.0, <1.12.2",
 ]
 dev = [
     "black==23.1.0",
     "avalanche_lib==0.3.1",
+    "torch>=1.10.0, <1.12.2",
     # PyTest Dependencies
     "pytest==7.2.2",
     "pytest-cov==4.0.0",
