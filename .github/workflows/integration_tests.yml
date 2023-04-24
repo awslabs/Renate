@@ -24,11 +24,7 @@ jobs:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
       with:
-        python-version: 3.9
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e .[dev]
+        python-version: 3.x
     - name: Prepare Inputs
       id: set-matrix
       run: |
