@@ -37,6 +37,8 @@ class FineTuningModelUpdater(SingleTrainingLoopUpdater):
         logger: Logger = defaults.LOGGER(**defaults.LOGGER_KWARGS),
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
+        strategy: str = defaults.DISTRIBUTED_STRATEGY,
+        precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
@@ -70,4 +72,6 @@ class FineTuningModelUpdater(SingleTrainingLoopUpdater):
             accelerator=accelerator,
             devices=devices,
             deterministic_trainer=deterministic_trainer,
+            strategy=strategy,
+            precision=precision,
         )

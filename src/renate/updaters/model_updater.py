@@ -4,7 +4,7 @@ import abc
 import logging
 import warnings
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 import torch
 import torchmetrics
@@ -15,6 +15,7 @@ from syne_tune import Reporter
 from torch.utils.data import Dataset
 
 from renate import defaults
+from renate.utils.distributed_strategies import create_strategy
 from .learner import Learner, ReplayLearner
 from ..models import RenateModule
 
@@ -201,6 +202,8 @@ class ModelUpdater(abc.ABC):
         logger: Logger = defaults.LOGGER(**defaults.LOGGER_KWARGS),
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
+        strategy: Optional[str] = defaults.DISTRIBUTED_STRATEGY,
+        precision: str = defaults.PRECISION,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
         self._learner_kwargs = learner_kwargs or {}
@@ -256,6 +259,8 @@ class ModelUpdater(abc.ABC):
             )
         self._accelerator = accelerator
         self._devices = devices
+        self._strategy = strategy
+        self._precision = precision
         self._learner = self._load_learner(learner_class, self._learner_kwargs)
         assert self._learner.is_logged_metric(metric), f"Target metric `{metric}` is not logged."
         self._logger = logger
@@ -326,6 +331,8 @@ class ModelUpdater(abc.ABC):
                     "be ignored."
                 )
 
+        strategy = create_strategy(self._devices, self._strategy)
+        warnings.warn(f"Strategy: {self._strategy}, precision: {self._precision}")
         trainer = Trainer(
             accelerator=self._accelerator,
             devices=self._devices,
@@ -334,6 +341,8 @@ class ModelUpdater(abc.ABC):
             logger=self._logger,
             enable_progress_bar=False,
             deterministic=self._deterministic_trainer,
+            strategy=strategy,
+            precision=self._precision,
         )
         trainer.fit(learner)
         self._num_epochs_trained = trainer.current_epoch
