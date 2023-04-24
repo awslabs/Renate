@@ -39,9 +39,13 @@ if __name__ == "__main__":
         # uncomment the line below only if you already created a model with this script and you want
         # to update it
         # input_state_url=f"s3://sagemaker-{AWS_REGION}-{AWS_ID}/renate-training-nlp-finetuning/",
-        backend="sagemaker",  # run on SageMaker, select "local" to run this locally
-        role=get_execution_role(),
-        instance_count=1,
-        instance_type="ml.g4dn.xlarge",
-        job_name="renate-training-nlp-finetuning",
+        # backend="sagemaker",  # run on SageMaker, select "local" to run this locally
+        # role=get_execution_role(),
+        # instance_count=1,
+        # instance_type="ml.g4dn.xlarge",
+        # job_name="renate-training-nlp-finetuning",
+        backend="local",
+        devices=1,
+        strategy="deepspeed_stage_2",
+        precision="32",
     )
