@@ -191,6 +191,7 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
                     self._dummy_learner._val_memory_buffer.load_state_dict(
                         avalanche_state["val_memory_buffer"]
                     )
+                    self._dummy_learner.load(self._input_state_folder)
         if val_dataset is not None:
             self._dummy_learner._val_memory_buffer.update(val_dataset)
             val_memory_dataset = to_avalanche_dataset(self._dummy_learner._val_memory_buffer)
@@ -213,6 +214,7 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
     def _save_avalanche_state(self, benchmark: AvalancheBenchmarkWrapper, val_dataset_exists: bool):
         state = benchmark.state_dict()
         if val_dataset_exists:
+            self._dummy_learner.save(self._output_state_folder)
             state["val_memory_buffer"] = self._dummy_learner._val_memory_buffer.state_dict()
         torch.save(state, defaults.avalanche_state_file(self._output_state_folder))
 

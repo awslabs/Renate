@@ -1,5 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+import os
 from typing import Any, Callable, Dict, Optional, Tuple
 
 import torch
@@ -41,9 +42,20 @@ class JointLearner(Learner):
 
     def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
         """Restores the state of the learner."""
+        if not hasattr(self, "_memory_buffer"):
+            self._memory_buffer = InfiniteBuffer()
         super().load_state_dict(model, state_dict, **kwargs)
-        self._memory_buffer = InfiniteBuffer()
         self._memory_buffer.load_state_dict(state_dict["memory_buffer"])
+
+    def save(self, output_state_dir: str) -> None:
+        super().save(output_state_dir)
+        buffer_dir = os.path.join(output_state_dir, "memory_buffer")
+        os.makedirs(buffer_dir, exist_ok=True)
+        self._memory_buffer.save(buffer_dir)
+
+    def load(self, input_state_dir: str) -> None:
+        super().load(input_state_dir)
+        self._memory_buffer.load(os.path.join(input_state_dir, "memory_buffer"))
 
     def set_transforms(
         self,

@@ -129,7 +129,9 @@ class RenateModelCheckpoint(ModelCheckpoint):
             pl_module.load_state_dict(self._model, torch.load(learner_state_path)["state_dict"])
         # Finalize model update.
         pl_module.on_model_update_end()
-        # Overwrite checkpoint
+        # Save permanently.
+        pl_module.save(self._output_state_folder)
+        # Overwrite checkpoint.
         self._save_checkpoint(trainer, learner_state_path)
 
     def on_exception(
@@ -290,6 +292,7 @@ class ModelUpdater(abc.ABC):
             )
         learner = learner_class.__new__(learner_class)
         learner.load_state_dict(self._model, torch.load(self._learner_state_file)["state_dict"])
+        learner.load(self._input_state_folder)
         learner.set_transforms(**self._transforms_kwargs)
         learner.set_logged_metrics(self._logged_metrics)
         learner.update_hyperparameters(learner_kwargs)

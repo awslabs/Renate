@@ -1,63 +1,37 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+import copy
 import os
 from collections import defaultdict
 
 import pytest
 import torch
 
-from renate.memory import (
+from renate.data.datasets import NestedTensorDataset
+from renate.memory.buffer import (
     GreedyClassBalancingBuffer,
     InfiniteBuffer,
     ReservoirBuffer,
     SlidingWindowBuffer,
 )
-from renate.memory.buffer import _get_data_point, _insert_data_point, _make_storage
 
 
-class NestedTensorDataset(torch.utils.data.Dataset):
-    def __init__(self, nested_tensors):
-        self._nested_tensors = nested_tensors
-        self._length = self._get_len(nested_tensors)
-
-    def _get_len(self, nested_tensors, expected_length=None) -> int:
-        if isinstance(nested_tensors, torch.Tensor):
-            length = nested_tensors.size(0)
-            assert length == expected_length or expected_length is None
-            return length
-        elif isinstance(nested_tensors, tuple):
-            for t in nested_tensors:
-                expected_length = self._get_len(t, expected_length)
-            return expected_length
-        elif isinstance(nested_tensors, dict):
-            for t in nested_tensors.values():
-                expected_length = self._get_len(t, expected_length)
-            return expected_length
-        else:
-            raise TypeError(f"Expected nested dict/tuple of tensors, found {type(nested_tensors)}.")
-
-    def __len__(self):
-        return self._length
-
-    def __getitem__(self, idx):
-        return _get_data_point(self._nested_tensors, idx)
-
-
-@pytest.mark.parametrize("length", [1, 10])
-@pytest.mark.parametrize(
-    "data_point",
-    [
-        torch.tensor(1),
-        torch.zeros(10),
-        (torch.zeros(10, 10), torch.tensor(1)),
-        ({"x": torch.zeros(10, 10), "z": torch.tensor(1)}, torch.tensor(1)),
-    ],
-)
-def test_nested_tensor_storage(data_point, length):
-    """Ensures that creation/insertion/extraction works for different nested tensor structures."""
-    storage = _make_storage(data_point, length)
-    _insert_data_point(storage, 0, data_point)
-    _get_data_point(storage, 0)
+def nested_tensors_equal(t1, t2):
+    if type(t1) is not type(t2):
+        print("Type mismatch")
+        return False
+    if isinstance(t1, torch.Tensor):
+        return torch.allclose(t1, t2, rtol=1e-3)
+    if isinstance(t1, tuple):
+        if len(t1) != len(t2):
+            print("Tuple length mismatch")
+            return False
+        return all(nested_tensors_equal(t1_, t2_) for t1_, t2_ in zip(t1, t2))
+    if isinstance(t1, dict):
+        if set(t1.keys()) != set(t2.keys()):
+            print("Dict key mismatch")
+            return False
+        return all(nested_tensors_equal(t1[key], t2[key]) for key in t1.keys())
 
 
 @pytest.mark.parametrize("buffer_cls", [ReservoirBuffer, SlidingWindowBuffer])
@@ -66,14 +40,14 @@ def test_nested_tensor_storage(data_point, length):
 @pytest.mark.parametrize(
     "dataset",
     [
-        torch.utils.data.TensorDataset(torch.empty(10, 2)),
-        torch.utils.data.TensorDataset(torch.empty(100, 2)),
-        torch.utils.data.TensorDataset(torch.empty(10, 2), torch.arange(10)),
-        torch.utils.data.TensorDataset(torch.empty(100, 2), torch.arange(100)),
-        NestedTensorDataset({"X": torch.empty(10, 2), "y": torch.arange(10)}),
-        NestedTensorDataset({"X": torch.empty(100, 2), "y": torch.arange(100)}),
-        NestedTensorDataset(({"X": torch.empty(10, 2), "z": torch.empty(10)}, torch.arange(10))),
-        NestedTensorDataset(({"X": torch.empty(100, 2), "z": torch.empty(100)}, torch.arange(100))),
+        torch.utils.data.TensorDataset(torch.randn(10, 2)),
+        torch.utils.data.TensorDataset(torch.randn(100, 2)),
+        torch.utils.data.TensorDataset(torch.randn(10, 2), torch.arange(10)),
+        torch.utils.data.TensorDataset(torch.randn(100, 2), torch.arange(100)),
+        NestedTensorDataset({"X": torch.randn(10, 2), "y": torch.arange(10)}),
+        NestedTensorDataset({"X": torch.randn(100, 2), "y": torch.arange(100)}),
+        NestedTensorDataset(({"X": torch.randn(10, 2), "z": torch.randn(10)}, torch.arange(10))),
+        NestedTensorDataset(({"X": torch.randn(100, 2), "z": torch.randn(100)}, torch.arange(100))),
     ],
 )
 def test_buffer_respects_max_size(buffer_cls, max_size, num_updates, dataset):
@@ -102,19 +76,23 @@ def test_batching_with_metadata(buffer):
 
 
 @pytest.mark.parametrize("buffer", [ReservoirBuffer(30), SlidingWindowBuffer(30)])
-def test_get_metadata(buffer):
+def test_get_and_set_metadata(buffer):
     X = torch.randn(100, 3)
     y = torch.randint(0, 10, size=(100,))
     ds = torch.utils.data.TensorDataset(X, y)
     metadata = {"foo": torch.ones(100)}
     buffer.update(ds, metadata)
 
-    metadata_ = buffer.metadata
-    assert isinstance(metadata_, dict)
-    assert "foo" in metadata_
-    assert isinstance(metadata_["foo"], torch.Tensor)
-    assert len(metadata_["foo"]) == len(buffer)
-    assert torch.all(metadata_["foo"] == 1.0)
+    foo_values = buffer.get_metadata("foo")
+    assert isinstance(foo_values, torch.Tensor)
+    assert foo_values.size() == (len(buffer),)
+    assert torch.all(foo_values == 1.0)
+
+    buffer.set_metadata("foo", 2 * torch.ones(len(buffer)))
+    foo_values = buffer.get_metadata("foo")
+    assert isinstance(foo_values, torch.Tensor)
+    assert foo_values.size() == (len(buffer),)
+    assert torch.all(foo_values == 2.0)
 
 
 @pytest.mark.parametrize("buffer", [ReservoirBuffer(30), SlidingWindowBuffer(30)])
@@ -125,7 +103,7 @@ def test_getitem_returns_points_and_metadata(buffer):
     metadata = {"foo": torch.ones(100)}
     buffer.update(ds, metadata)
 
-    for idx in [0, 1, 10, 29, -1, -2, -30]:
+    for idx in [0, 1, 10, 29]:
         datapoint, metadata = buffer[idx]
         assert isinstance(metadata, dict) and ("foo" in metadata)
         assert metadata["foo"] == 1.0
@@ -151,7 +129,7 @@ def test_reservoir_is_uniform():
     assert 5000 - 5 * 91 < xs.mean() < 5000 + 5 * 91
 
 
-def test_greedy_is_balanced():
+def test_greedy_is_balanced(tmpdir):
     """Present buffer with 10 classes with respect to 10000 samples, where each class has 1000
     samples. When inspecting the ._class_counts attribute, it should be uniform.
     """
@@ -168,15 +146,20 @@ def test_greedy_is_balanced():
             X[i * 1000 : (i + 1) * 1000], Y[i * 1000 : (i + 1) * 1000]
         )
         buffer.update(ds)
-    counts = torch.tensor(
-        [len(v) for v in buffer._class_to_index_map.values()], dtype=torch.float32
-    )
+        buffer.save(tmpdir)
+        state_dict = buffer.state_dict()
+        del buffer
+        buffer = GreedyClassBalancingBuffer(max_size=100)
+        buffer.load_state_dict(state_dict)
+        buffer.load(tmpdir)
+    counts = torch.tensor([len(v) for v in buffer._indices_by_class.values()], dtype=torch.float32)
     label_counts = defaultdict(int)
-    assert 10 - 1 < counts.mean() < 10 + 1
+    assert torch.all(counts >= 10 - 1)
+    assert torch.all(counts <= 10 + 1)
     for i in range(len(buffer)):
         (_, y), _ = buffer[i]
         label_counts[y.item()] += 1
-    buffer_class_counts = {k: len(v) for k, v in buffer._class_to_index_map.items()}
+    buffer_class_counts = {k: len(v) for k, v in buffer._indices_by_class.items()}
     assert buffer_class_counts == label_counts
 
 
@@ -191,59 +174,6 @@ def test_sliding_window_keeps_most_recent(max_size, num_batches, batch_size):
     xs = torch.stack([buffer[i][0][0] for i in range(len(buffer))], dim=0)
     assert xs.max() == num_batches * batch_size - 1
     assert xs.min() == max(num_batches * batch_size - max_size, 0)
-
-
-@pytest.mark.parametrize("max_size", [1, 10, 100])
-def test_buffer_get_state_dict(max_size):
-    buffer = ReservoirBuffer(max_size=max_size)
-    for i in range(20):
-        ds = torch.utils.data.TensorDataset(torch.arange(i * 10, (i + 1) * 10))
-        metadata = {"x": torch.ones(10, 10)}
-        buffer.update(ds, metadata)
-    state_dict = buffer.state_dict()
-    torch.all(torch.eq(buffer._data_points[0], state_dict["data_points"][0]))
-
-    assert torch.all(torch.eq(buffer.metadata["x"], state_dict["metadata"]["x"]))
-
-    for key in ["max_size", "storage_mode", "seed", "count", "data_points"]:
-        assert getattr(buffer, "_" + key) == state_dict[key]
-    assert buffer.metadata == state_dict["metadata"]
-    assert state_dict["size"] == max_size
-    assert len(state_dict["data_points"][0]) == max_size
-
-
-@pytest.mark.parametrize("buffer_type", [ReservoirBuffer, SlidingWindowBuffer])
-def test_buffer_load_state_dict(buffer_type):
-    buffer = buffer_type(max_size=100)
-
-    state_dict = {
-        "buffer_class_name": buffer_type.__name__,
-        "max_size": 100,
-        "seed": 1,
-        "count": 100,
-        "size": 100,
-        "data_points": {},
-        "metadata": {},
-        "storage_mode": "in_memory",
-    }
-    for i in range(100):
-        x = torch.ones((5,))
-        state_dict["data_points"]["0"] = (
-            x.unsqueeze(0)
-            if i == 0
-            else torch.cat((state_dict["data_points"]["0"], x.unsqueeze(0)), dim=0)
-        )
-    state_dict["metadata"] = {"x": torch.ones(100, 5)}
-
-    buffer.load_state_dict(state_dict)
-    for key, value in state_dict["data_points"].items():
-        assert torch.all(torch.eq(buffer._data_points[key], value))
-
-    assert torch.all(torch.eq(buffer.metadata["x"], state_dict["metadata"]["x"]))
-
-    for key in ["max_size", "storage_mode", "seed", "count", "data_points", "size"]:
-        if not isinstance(getattr(buffer, "_" + key), list):
-            assert getattr(buffer, "_" + key) == state_dict[key]
 
 
 @pytest.mark.parametrize(
@@ -315,7 +245,7 @@ def test_infinite_buffer():
 
     for i in range(5):
         for j in range(10):
-            assert torch.all(torch.eq(buffer[j + i * 10][0][0], torch.ones((3)) * i))
+            assert torch.all(torch.eq(buffer[i * 10 + j][0][0], torch.ones((3)) * i))
 
 
 @pytest.mark.parametrize("max_size", [1, 10, 100])
@@ -341,3 +271,75 @@ def test_buffer_same_size_on_disk_after_updates(tmpdir, max_size, buffer_cls):
         assert disk_size == os.path.getsize(os.path.join(tmpdir, "buffer.pt"))
     else:
         assert disk_size < os.path.getsize(os.path.join(tmpdir, "buffer.pt"))
+
+
+@pytest.mark.parametrize("buffer_cls", [ReservoirBuffer, SlidingWindowBuffer])
+@pytest.mark.parametrize("max_size", [10, 100])
+@pytest.mark.parametrize("num_updates", [0, 1, 2])
+@pytest.mark.parametrize(
+    "dataset",
+    [
+        torch.utils.data.TensorDataset(torch.randn(10, 2)),
+        torch.utils.data.TensorDataset(torch.randn(10, 2), torch.arange(10)),
+        NestedTensorDataset({"X": torch.randn(10, 2), "y": torch.arange(10)}),
+        NestedTensorDataset(({"X": torch.randn(10, 2), "z": torch.randn(10)}, torch.arange(10))),
+    ],
+)
+@pytest.mark.parametrize("metadata", [None, {"a": torch.arange(10), "b": torch.zeros(10, 2)}])
+def test_load_and_save_buffer(tmpdir, buffer_cls, max_size, num_updates, dataset, metadata):
+    """Tests loading an saving of the buffer state."""
+    buffer = buffer_cls(max_size)
+    for _ in range(2):
+        for _ in range(num_updates):
+            buffer.update(dataset, metadata)
+        elements_before = [copy.deepcopy(buffer[i]) for i in range(len(buffer))]
+        buffer.save(tmpdir)
+        state_dict = buffer.state_dict()
+        del buffer
+        buffer = buffer_cls(max_size)
+        buffer.load_state_dict(state_dict)
+        buffer.load(tmpdir)
+        for j in range(len(buffer)):
+            assert nested_tensors_equal(buffer[j], elements_before[j])
+
+
+@pytest.mark.parametrize("buffer_cls", [ReservoirBuffer, SlidingWindowBuffer])
+@pytest.mark.parametrize("max_size", [10, 100])
+@pytest.mark.parametrize("num_updates", [0, 1, 2])
+@pytest.mark.parametrize(
+    "dataset",
+    [
+        torch.utils.data.TensorDataset(torch.randn(10, 2), torch.arange(10)),
+    ],
+)
+@pytest.mark.parametrize("metadata", [None, {"a": torch.arange(10), "b": torch.zeros(10, 2)}])
+@pytest.mark.parametrize("buffer_transform", [None, lambda x: x * 2])
+@pytest.mark.parametrize("buffer_target_transform", [None, lambda y: y // 5])
+def test_load_and_save_buffer_with_transforms(
+    tmpdir,
+    buffer_cls,
+    max_size,
+    num_updates,
+    dataset,
+    metadata,
+    buffer_transform,
+    buffer_target_transform,
+):
+    """Tests loading an saving of the buffer state."""
+    buffer = buffer_cls(
+        max_size, transform=buffer_transform, target_transform=buffer_target_transform
+    )
+    for _ in range(2):
+        for _ in range(num_updates):
+            buffer.update(dataset, metadata)
+        elements_before = [copy.deepcopy(buffer[i]) for i in range(len(buffer))]
+        buffer.save(tmpdir)
+        state_dict = buffer.state_dict()
+        del buffer
+        buffer = buffer_cls(
+            max_size, transform=buffer_transform, target_transform=buffer_target_transform
+        )
+        buffer.load_state_dict(state_dict)
+        buffer.load(tmpdir)
+        for j in range(len(buffer)):
+            assert nested_tensors_equal(buffer[j], elements_before[j])

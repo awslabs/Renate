@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import abc
+import os
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import torch
@@ -167,9 +168,18 @@ class Learner(LightningModule, abc.ABC):
         self._batch_size = state_dict["batch_size"]
         self._seed = state_dict["seed"]
         self._task_id = state_dict["task_id"]
-        self._val_memory_buffer = InfiniteBuffer()
+        if not hasattr(self, "_val_memory_buffer"):
+            self._val_memory_buffer = InfiniteBuffer()
         self._val_memory_buffer.load_state_dict(state_dict["val_memory_buffer"])
         self._post_init()
+
+    def save(self, output_state_dir: str) -> None:
+        val_buffer_dir = os.path.join(output_state_dir, "val_memory_buffer")
+        os.makedirs(val_buffer_dir, exist_ok=True)
+        self._val_memory_buffer.save(val_buffer_dir)
+
+    def load(self, input_state_dir: str) -> None:
+        self._val_memory_buffer.load(os.path.join(input_state_dir, "val_memory_buffer"))
 
     def set_transforms(
         self,
@@ -424,8 +434,19 @@ class ReplayLearner(Learner, abc.ABC):
         """Restores the state of the learner."""
         super().load_state_dict(model, state_dict, **kwargs)
         self._memory_batch_size = state_dict["memory_batch_size"]
-        self._memory_buffer = ReservoirBuffer()
+        if not hasattr(self, "_memory_buffer"):
+            self._memory_buffer = ReservoirBuffer()
         self._memory_buffer.load_state_dict(state_dict["memory_buffer"])
+
+    def save(self, output_state_dir: str) -> None:
+        super().save(output_state_dir)
+        buffer_dir = os.path.join(output_state_dir, "memory_buffer")
+        os.makedirs(buffer_dir, exist_ok=True)
+        self._memory_buffer.save(buffer_dir)
+
+    def load(self, input_state_dir: str) -> None:
+        super().load(input_state_dir)
+        self._memory_buffer.load(os.path.join(input_state_dir, "memory_buffer"))
 
     def set_transforms(
         self,

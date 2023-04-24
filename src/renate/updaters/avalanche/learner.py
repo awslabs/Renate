@@ -138,7 +138,7 @@ class AvalancheICaRLLearner(ReplayLearner, AvalancheLoaderMixin):
             raise RuntimeError(
                 """The RenateModule must contain an attribute `class_means`.
                 Please add something like
-                
+
                 self.class_means = torch.nn.Parameter(
                     torch.zeros((embedding_size, num_outputs)), requires_grad=False
                 )

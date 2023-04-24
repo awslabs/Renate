@@ -56,9 +56,10 @@ class GDumbLearner(ReplayLearner):
 
     def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
         """Restores the state of the learner."""
+        if not hasattr(self, "_memory_buffer"):
+            self._memory_buffer = GreedyClassBalancingBuffer()
         Learner.load_state_dict(self, model, state_dict, **kwargs)
         self._memory_batch_size = state_dict["memory_batch_size"]
-        self._memory_buffer = GreedyClassBalancingBuffer()
         self._memory_buffer.load_state_dict(state_dict["memory_buffer"])
 
     def on_model_update_start(
