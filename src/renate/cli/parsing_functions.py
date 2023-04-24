@@ -4,6 +4,7 @@ import argparse
 import ast
 import inspect
 import sys
+import pytorch_lightning as pl
 from importlib.util import find_spec
 from types import ModuleType
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
@@ -285,6 +286,20 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
             "default": defaults.DEVICES,
             "help": f"Devices used for this job. Default: {defaults.DEVICES} device.",
             "argument_group": OPTIONAL_ARGS_GROUP,
+        },
+        "strategy": {
+            "type": str,
+            "default": defaults.DISTRIBUTED_STRATEGY,
+            "help": f"Distributed training strategy when devices > 1. Default: {defaults.DISTRIBUTED_STRATEGY}.",
+            "argument_group": OPTIONAL_ARGS_GROUP,
+            "choices": list(pl.strategies.StrategyRegistry.keys()),
+        },
+        "precision": {
+            "type": str,
+            "default": defaults.PRECISION,
+            "help": f"Distributed training strategy when devices > 1. Default: {defaults.PRECISION}.",
+            "argument_group": OPTIONAL_ARGS_GROUP,
+            "choices": ("16", "32", "64", "bf16"),
         },
         "early_stopping": {
             "type": str,
@@ -903,3 +918,17 @@ parse_by_updater = {
     "Avalanche-LwF": _add_avalanche_lwf_learner_arguments,
     "Avalanche-iCaRL": _add_experience_replay_arguments,
 }
+
+
+def _precision_allowed_type(x: Union[int, str]) -> Union[int, str]:
+    """This is the hack by lightning to figure out the following two cases.
+    Code taken from pytorch_lightning/utilities/argparse.py.
+    >>> _precision_allowed_type("32")
+    32
+    >>> _precision_allowed_type("bf16")
+    'bf16'
+    """
+    try:
+        return int(x)
+    except ValueError:
+        return x
