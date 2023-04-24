@@ -162,28 +162,32 @@ class DataBuffer(Dataset):
         self._rng = get_generator(self._seed)
 
     def save(self, target_dir: str) -> None:
-        if len(self):
-            transforms = self._transform, self._target_transform
-            self._transform, self._target_transform = None, None
-            storage = MemoryMappedTensorStorage(
-                target_dir,
-                data_point=self._data_point_prototype,
-                length=len(self),
-            )
-            for i in range(len(self)):
-                storage[i] = self[i][0]  # Drop metadata.
-            self._datasets = [storage]
-            self._indices = {i: (0, i) for i in range(len(self))}
-            self.set_transforms(*transforms)
+        if not len(self):
+            return
+
+        transforms = self._transform, self._target_transform
+        self._transform, self._target_transform = None, None
+        storage = MemoryMappedTensorStorage(
+            target_dir,
+            data_point=self._data_point_prototype,
+            length=len(self),
+        )
+        for i in range(len(self)):
+            storage[i] = self[i][0]  # Drop metadata.
+        self._datasets = [storage]
+        self._indices = {i: (0, i) for i in range(len(self))}
+        self.set_transforms(*transforms)
 
     def load(self, source_dir: str) -> None:
-        if len(self):
-            storage = MemoryMappedTensorStorage(
-                source_dir,
-                data_point=self._data_point_prototype,
-                length=len(self),
-            )
-            self._datasets = [storage]
+        if not len(self):
+            return
+
+        storage = MemoryMappedTensorStorage(
+            source_dir,
+            data_point=self._data_point_prototype,
+            length=len(self),
+        )
+        self._datasets = [storage]
 
     def _add_metadata_like(self, metadata: DataDict):
         for key, value in metadata.items():
