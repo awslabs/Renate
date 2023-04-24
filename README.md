@@ -7,21 +7,22 @@
 | src/renate/\_\_init\_\_.py                                        |       10 |        0 |    100% |           |
 | src/renate/benchmark/\_\_init\_\_.py                              |        0 |        0 |    100% |           |
 | src/renate/benchmark/datasets/\_\_init\_\_.py                     |        0 |        0 |    100% |           |
-| src/renate/benchmark/datasets/nlp\_datasets.py                    |       26 |       10 |     62% |53, 61-71, 75-78 |
+| src/renate/benchmark/datasets/nlp\_datasets.py                    |       54 |        6 |     89% |22, 83, 85, 98-102, 124 |
 | src/renate/benchmark/datasets/vision\_datasets.py                 |      108 |       68 |     37% |45-52, 56-57, 68-72, 76-97, 150, 157-162, 170-178, 238-243, 254-260, 265, 269-292 |
-| src/renate/benchmark/experiment\_config.py                        |       71 |        2 |     97% |     79-80 |
-| src/renate/benchmark/experimentation.py                           |      104 |        6 |     94% |47, 65, 202, 259, 371-374 |
+| src/renate/benchmark/experiment\_config.py                        |       67 |        3 |     96% | 70, 82-83 |
+| src/renate/benchmark/experimentation.py                           |      104 |        6 |     94% |47, 65, 206, 265, 376-379 |
 | src/renate/benchmark/models/\_\_init\_\_.py                       |        4 |        0 |    100% |           |
-| src/renate/benchmark/models/mlp.py                                |       30 |        1 |     97% |        62 |
-| src/renate/benchmark/models/resnet.py                             |       47 |        0 |    100% |           |
-| src/renate/benchmark/models/vision\_transformer.py                |       44 |        1 |     98% |        91 |
-| src/renate/benchmark/scenarios.py                                 |       93 |        1 |     99% |        58 |
-| src/renate/cli/parsing\_functions.py                              |      149 |       59 |     60% |51-94, 96, 109, 246, 251, 267-279, 284-305, 310-350, 355-434, 439, 470, 488, 500 |
-| src/renate/cli/run\_training.py                                   |       77 |        1 |     99% |       250 |
+| src/renate/benchmark/models/base.py                               |       40 |        1 |     98% |        61 |
+| src/renate/benchmark/models/mlp.py                                |       20 |        1 |     95% |        71 |
+| src/renate/benchmark/models/resnet.py                             |       36 |        0 |    100% |           |
+| src/renate/benchmark/models/vision\_transformer.py                |       33 |        1 |     97% |        99 |
+| src/renate/benchmark/scenarios.py                                 |      142 |       10 |     93% |58, 291, 299-300, 373-380 |
+| src/renate/cli/parsing\_functions.py                              |      242 |       52 |     79% |49, 73-74, 76-77, 79-87, 89-103, 105-106, 108-109, 111-112, 114-115, 117-118, 120-123, 125-128, 130-133, 140, 331, 444, 449, 454, 458-459, 486-500, 505-527, 532-571, 576-648, 653, 667, 680, 738, 780, 808, 816, 846, 886 |
+| src/renate/cli/run\_training.py                                   |       55 |        2 |     96% |   87, 144 |
 | src/renate/data/\_\_init\_\_.py                                   |        3 |        0 |    100% |           |
 | src/renate/data/data\_module.py                                   |       66 |        5 |     92% |67, 72, 90, 145, 160 |
-| src/renate/data/datasets.py                                       |       50 |        1 |     98% |        36 |
-| src/renate/defaults.py                                            |       95 |        0 |    100% |           |
+| src/renate/data/datasets.py                                       |       82 |        3 |     96% |38, 86, 101 |
+| src/renate/defaults.py                                            |      102 |        1 |     99% |       120 |
 | src/renate/evaluation/\_\_init\_\_.py                             |        0 |        0 |    100% |           |
 | src/renate/evaluation/evaluator.py                                |       58 |        2 |     97% |   76, 141 |
 | src/renate/evaluation/metrics/\_\_init\_\_.py                     |        0 |        0 |    100% |           |
@@ -29,34 +30,43 @@
 | src/renate/evaluation/metrics/performance\_regression\_metrics.py |       68 |        0 |    100% |           |
 | src/renate/evaluation/metrics/utils.py                            |       13 |        0 |    100% |           |
 | src/renate/memory/\_\_init\_\_.py                                 |        2 |        0 |    100% |           |
-| src/renate/memory/buffer.py                                       |      155 |       10 |     94% |97, 104, 109, 114, 161, 186, 202, 205, 208, 211 |
+| src/renate/memory/buffer.py                                       |      187 |       11 |     94% |117, 124, 126, 149, 209, 213, 222, 224, 230, 232, 336 |
+| src/renate/memory/storage.py                                      |       64 |        6 |     91% |27, 30, 33, 78, 89, 112 |
 | src/renate/models/\_\_init\_\_.py                                 |        2 |        0 |    100% |           |
 | src/renate/models/layers/\_\_init\_\_.py                          |        1 |        0 |    100% |           |
 | src/renate/models/layers/cn.py                                    |       11 |        4 |     64% |41-44, 47, 59 |
-| src/renate/models/renate\_module.py                               |       75 |       17 |     77% |104, 114, 126, 168-188, 193-197, 207-208, 213 |
-| src/renate/tuning/\_\_init\_\_.py                                 |        2 |        0 |    100% |           |
-| src/renate/tuning/config\_spaces.py                               |       15 |       15 |      0% |      3-75 |
-| src/renate/tuning/tuning.py                                       |      191 |       29 |     85% |167, 204-221, 370-371, 545, 582-583, 616-634 |
+| src/renate/models/prediction\_strategies.py                       |       14 |        5 |     64% | 13, 18-21 |
+| src/renate/models/renate\_module.py                               |       85 |       23 |     73% |108, 118, 130, 173-193, 198-202, 212-213, 218, 255-260, 263 |
+| src/renate/training/\_\_init\_\_.py                               |        2 |        0 |    100% |           |
+| src/renate/training/training.py                                   |      195 |       29 |     85% |173, 211-228, 377-378, 551, 587-588, 621-639 |
+| src/renate/types.py                                               |        3 |        0 |    100% |           |
 | src/renate/updaters/\_\_init\_\_.py                               |        0 |        0 |    100% |           |
+| src/renate/updaters/avalanche/\_\_init\_\_.py                     |        0 |        0 |    100% |           |
+| src/renate/updaters/avalanche/learner.py                          |       73 |        2 |     97% |  138, 148 |
+| src/renate/updaters/avalanche/model\_updater.py                   |      120 |        7 |     94% |54, 102, 104, 320-332, 386-399 |
+| src/renate/updaters/avalanche/plugins.py                          |       25 |        1 |     96% |        43 |
 | src/renate/updaters/experimental/\_\_init\_\_.py                  |        0 |        0 |    100% |           |
-| src/renate/updaters/experimental/er.py                            |      237 |       66 |     72% |73, 173-174, 197, 209, 309-313, 363-370, 441-458, 574-604, 722-740, 801-820, 884-906, 976-1004 |
-| src/renate/updaters/experimental/gdumb.py                         |       34 |        2 |     94% |   117-130 |
-| src/renate/updaters/experimental/joint.py                         |       40 |        2 |     95% |   110-121 |
-| src/renate/updaters/experimental/offline\_er.py                   |       62 |       10 |     84% |47, 70, 92, 103-107, 157-171 |
-| src/renate/updaters/experimental/repeated\_distill.py             |       68 |        0 |    100% |           |
-| src/renate/updaters/learner.py                                    |      180 |        1 |     99% |       154 |
+| src/renate/updaters/experimental/er.py                            |      235 |       66 |     72% |75, 180-181, 199, 211, 313-317, 367-374, 445-462, 578-608, 729-747, 810-829, 895-917, 989-1017 |
+| src/renate/updaters/experimental/fine\_tuning.py                  |       11 |        0 |    100% |           |
+| src/renate/updaters/experimental/gdumb.py                         |       36 |        2 |     94% |   125-138 |
+| src/renate/updaters/experimental/joint.py                         |       51 |        2 |     96% |   129-140 |
+| src/renate/updaters/experimental/offline\_er.py                   |       64 |       10 |     84% |48, 72, 93, 104-108, 159-173 |
+| src/renate/updaters/experimental/repeated\_distill.py             |       67 |        0 |    100% |           |
+| src/renate/updaters/learner.py                                    |      200 |        1 |     99% |       155 |
 | src/renate/updaters/learner\_components/\_\_init\_\_.py           |        0 |        0 |    100% |           |
 | src/renate/updaters/learner\_components/component.py              |       27 |        1 |     96% |        42 |
-| src/renate/updaters/learner\_components/losses.py                 |      155 |       69 |     55% |55, 69, 111-114, 188, 192-193, 202-240, 243-244, 247-248, 259-265, 365-383, 395-399, 404-417, 422-427, 430-435, 438-443, 446-451 |
+| src/renate/updaters/learner\_components/losses.py                 |      155 |       69 |     55% |55, 69, 111-114, 188, 192-193, 202-240, 243-244, 247-248, 259-265, 365-375, 387-391, 396-409, 414-419, 422-427, 430-435, 438-443 |
 | src/renate/updaters/learner\_components/reinitialization.py       |       33 |       10 |     70% |17, 55-59, 62-65, 68-69 |
-| src/renate/updaters/model\_updater.py                             |      127 |        1 |     99% |       228 |
+| src/renate/updaters/model\_updater.py                             |      144 |        4 |     97% |107, 140-141, 253 |
 | src/renate/utils/\_\_init\_\_.py                                  |        0 |        0 |    100% |           |
+| src/renate/utils/avalanche.py                                     |       85 |        0 |    100% |           |
+| src/renate/utils/config\_spaces.py                                |       15 |       15 |      0% |      3-75 |
 | src/renate/utils/file.py                                          |      120 |       61 |     49% |21, 26-27, 38, 62, 87-91, 95, 112, 116, 123-124, 138-145, 164-176, 189-195, 211-218, 228-229, 234-235, 247-253, 269-270 |
 | src/renate/utils/module.py                                        |       42 |        2 |     95% |   83, 101 |
 | src/renate/utils/optimizer.py                                     |       17 |        0 |    100% |           |
-| src/renate/utils/pytorch.py                                       |       28 |        2 |     93% |     32-33 |
+| src/renate/utils/pytorch.py                                       |       40 |        4 |     90% |34-35, 78, 86 |
 | src/renate/utils/syne\_tune.py                                    |       46 |        5 |     89% |38-39, 46, 80, 88 |
-|                                                         **TOTAL** | **2808** |  **464** | **83%** |           |
+|                                                         **TOTAL** | **3501** |  **501** | **86%** |           |
 
 
 ## Setup coverage badge
