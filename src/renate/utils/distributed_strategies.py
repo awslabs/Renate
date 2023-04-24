@@ -29,14 +29,18 @@ def create_strategy(devices: int = 1, strategy_name: Optional["str"] = None) -> 
         raise ValueError(
             f"Current strategy: {strategy_name} is unsupported. Choose deepspeed variants or ddp."
         )
-
-    if devices == 1:
+    if devices < 1:
+        raise ValueError("Number of devices has to be at least 1.")
+    elif devices == 1:
         # If one GPU, use standard training. Enabled by passing strategy=None
         # to pl.Trainer
         if strategy_name is not None:
             warnings.warn(f"With devices=1, strategy is ignored. But got {strategy_name}.")
 
         return None
+    elif strategy_name is None:
+        ## Nothing is specified and devices > 1. Fall back to DDP
+        return StrategyRegistry.get("ddp")
 
     elif "deepspeed" in strategy_name:
         strategy = StrategyRegistry.get(strategy_name)
@@ -48,6 +52,5 @@ def create_strategy(devices: int = 1, strategy_name: Optional["str"] = None) -> 
         return strategy
 
     else:
-        # Something else happened. Fall back to DDP.
-        # warnings.warn(f"Unknown combination devices={devices}, strategy={strategy_name}")
+        # Something else happened. Fall back to whatever is happening.
         return StrategyRegistry.get(strategy_name)
