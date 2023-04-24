@@ -1,3 +1,5 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
 import warnings
 from typing import Optional
 from pytorch_lightning.strategies import Strategy, StrategyRegistry
