@@ -84,12 +84,12 @@ Cite Renate
     .. code-block::
     
       @misc{renate2023,
-      title={Renate: A Library for Real-World Continual Learning}, 
-      author={Martin Wistuba and Martin Ferianc and Lukas Balles and Cedric Archambeau and Giovanni Zappella},
-      year={2023},
-      eprint={2304.12067},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG}
+        title           = {Renate: A Library for Real-World Continual Learning}, 
+        author          = {Martin Wistuba and Martin Ferianc and Lukas Balles and Cedric Archambeau and Giovanni Zappella},
+        year            = {2023},
+        eprint          = {2304.12067},
+        archivePrefix   = {arXiv},
+        primaryClass    = {cs.LG}
       }
 
 What are you looking for?
