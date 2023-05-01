@@ -16,6 +16,7 @@ from torch.utils.data import Dataset
 
 from renate import defaults
 from renate.utils.distributed_strategies import create_strategy
+from renate.utils.misc import int_or_str, unlink_file_or_folder
 from .learner import Learner, ReplayLearner
 from ..models import RenateModule
 
@@ -41,13 +42,14 @@ class SyneTuneCallback(Callback):
         the validation epoch. Otherwise, they are reported at the end of the training epoch.
         """
 
-        if trainer.sanity_checking or (training and self._val_enabled):
-            return
-        self._report(
-            **{k: v.item() for k, v in trainer.logged_metrics.items()},
-            step=trainer.current_epoch,
-            epoch=trainer.current_epoch + 1,
-        )
+        if trainer.is_global_zero:
+            if trainer.sanity_checking or (training and self._val_enabled):
+                return
+            self._report(
+                **{k: v.item() for k, v in trainer.logged_metrics.items()},
+                step=trainer.current_epoch,
+                epoch=trainer.current_epoch + 1,
+            )
 
     def on_train_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         self._log(trainer=trainer, training=pl_module.training)
@@ -97,7 +99,7 @@ class RenateModelCheckpoint(ModelCheckpoint):
         self._output_state_folder = output_state_folder
         self.CHECKPOINT_NAME_LAST = learner_checkpoint_filename
         # Delete old checkpoint if exists
-        Path(defaults.learner_state_file(self._output_state_folder)).unlink(missing_ok=True)
+        unlink_file_or_folder(Path(defaults.learner_state_file(self._output_state_folder)))
         # FIXME: Hack to make sure Syne Tune is called after checkpointing.
         # Details: https://github.com/Lightning-AI/lightning/issues/15026
         # If fixed, remove on_train_epoch_end, on_validation_epoch_end, val_enabled, remove line
@@ -260,7 +262,7 @@ class ModelUpdater(abc.ABC):
         self._accelerator = accelerator
         self._devices = devices
         self._strategy = strategy
-        self._precision = precision
+        self._precision = int_or_str(precision)
         self._learner = self._load_learner(learner_class, self._learner_kwargs)
         assert self._learner.is_logged_metric(metric), f"Target metric `{metric}` is not logged."
         self._logger = logger
@@ -332,7 +334,6 @@ class ModelUpdater(abc.ABC):
                 )
 
         strategy = create_strategy(self._devices, self._strategy)
-        warnings.warn(f"Strategy: {self._strategy}, precision: {self._precision}")
         trainer = Trainer(
             accelerator=self._accelerator,
             devices=self._devices,
