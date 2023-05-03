@@ -4,7 +4,7 @@ pandas>=1.4.0, <1.5.3
 boto3>=1.26.0, <1.26.116
 #botocore==1.29.118
 #coverage==7.2.3
-huggingface-hub==0.14.0
+#huggingface-hub==0.14.0
 platformdirs==3.2.0
 pyarrow==11.0.0
 regex==2023.3.23
