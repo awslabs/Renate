@@ -9,7 +9,7 @@ Configuration
 =============
 
 Let us take a look at the :code:`renate_config.py` for this example. In the :code:`model_fn`
-function, we use the Huggingface :code:`transformers` library to instantiate a sequence
+function, we use the Hugging Face :code:`transformers` library to instantiate a sequence
 classification model. Since this model is static, we can easily turn it into a :code:`RenateModule`
 by wrapping it in :py:class:`~renate.models.renate_module.RenateWrapper`.
 
