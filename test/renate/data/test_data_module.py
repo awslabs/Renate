@@ -198,13 +198,13 @@ def test_hugging_face_exception_raised_with_wrong_column(tmpdir, column):
         with pytest.raises(
             ValueError,
             match="Input column 'WRONG_COLUMN' does not exist in rotten_tomatoes. "
-            "Available columns: \['text', 'label'\].",
+            "Available columns: \\['text', 'label'\\].",
         ):
             data_module.prepare_data()
     elif column == "target":
         with pytest.raises(
             ValueError,
             match="Target column 'WRONG_COLUMN' does not exist in rotten_tomatoes. "
-            "Available columns: \['text', 'label'\].",
+            "Available columns: \\['text', 'label'\\].",
         ):
             data_module.prepare_data()
