@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from collections import defaultdict
 import copy
+from collections import defaultdict
 from typing import Callable, Dict, Optional
 
 import torch
