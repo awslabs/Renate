@@ -54,10 +54,10 @@ class RenateModule(torch.nn.Module, ABC):
         loss_fn: The loss function to be optimized during the training.
     """
 
-    def __init__(self, constructor_arguments: dict, loss_fn: torch.nn.Module):
+    def __init__(self, constructor_arguments: dict):
         super(RenateModule, self).__init__()
         self._constructor_arguments = copy.deepcopy(constructor_arguments)
-        self.loss_fn = loss_fn
+        ## Loss function is a part of learner.
         self._tasks_params_ids: Set[str] = set()
         self._intermediate_representation_cache: List[torch.Tensor] = []
         self._hooks: List[Callable] = []
@@ -82,14 +82,14 @@ class RenateModule(torch.nn.Module, ABC):
         return {
             "constructor_arguments": self._constructor_arguments,
             "tasks_params_ids": self._tasks_params_ids,
-            "loss_fn": self.loss_fn,
+            # "loss_fn": self.loss_fn,
         }
 
     def set_extra_state(self, state: Any):
         """Extract the content of the ``_extra_state`` and set the related values in the module."""
         self._constructor_arguments = state["constructor_arguments"]
         self._tasks_params_ids = state["tasks_params_ids"]
-        self.loss_fn = state["loss_fn"]
+        # self.loss_fn = state["loss_fn"]
 
     @abstractmethod
     def forward(self, x: NestedTensors, task_id: Optional[str] = None) -> torch.Tensor:
@@ -245,8 +245,8 @@ class RenateWrapper(RenateModule):
         loss_fn: The loss function to be optimized during the training.
     """
 
-    def __init__(self, model: torch.nn.Module, loss_fn: torch.nn.Module) -> None:
-        super().__init__(constructor_arguments={}, loss_fn=loss_fn)
+    def __init__(self, model: torch.nn.Module) -> None:
+        super().__init__(constructor_arguments={})
         self._model = model
 
     def forward(self, x: NestedTensors, task_id: Optional[str] = None) -> torch.Tensor:

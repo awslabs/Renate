@@ -34,11 +34,22 @@ class JointLearner(Learner):
             target_transform=self._train_target_transform,
         )
 
-    def state_dict(self, **kwargs) -> Dict[str, Any]:
-        """Returns the state of the learner."""
-        state_dict = super().state_dict(**kwargs)
-        state_dict["memory_buffer"] = self._memory_buffer.state_dict()
-        return state_dict
+    # def state_dict(self, **kwargs) -> Dict[str, Any]:
+    #     """Returns the state of the learner."""
+    #     state_dict = super().state_dict(**kwargs)
+    #     state_dict["memory_buffer"] = self._memory_buffer.state_dict()
+    #     return state_dict
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        super().on_save_checkpoint(checkpoint=checkpoint)
+        checkpoint["memory_buffer"] = self._memory_buffer.state_dict()
+
+    def on_load_checkpoint(self, state_dict) -> None:
+        if not hasattr(self, "_memory_buffer"):
+            self._memory_buffer = InfiniteBuffer()
+        self._memory_buffer.load_state_dict(state_dict["memory_buffer"])
+        state_dict.pop("memory_buffer")
+        super().on_load_checkpoint(state_dict)
 
     def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
         """Restores the state of the learner."""
@@ -101,6 +112,7 @@ class JointModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
         learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
@@ -138,6 +150,7 @@ class JointModelUpdater(SingleTrainingLoopUpdater):
             "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
+            "loss_fn": loss_fn
         }
         super().__init__(
             model,

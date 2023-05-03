@@ -35,7 +35,6 @@ class RenateBenchmarkingModule(RenateModule, ABC):
         embedding_size: int,
         num_outputs: int,
         constructor_arguments: dict,
-        loss_fn: torch.nn.Module,
         prediction_strategy: Optional[PredictionStrategy] = None,
         add_icarl_class_means: bool = True,
     ):
@@ -43,7 +42,6 @@ class RenateBenchmarkingModule(RenateModule, ABC):
         constructor_arguments["add_icarl_class_means"] = add_icarl_class_means
         super().__init__(
             constructor_arguments=constructor_arguments,
-            loss_fn=loss_fn,
         )
         self._embedding_size = embedding_size
         self._num_outputs = num_outputs

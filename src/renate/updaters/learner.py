@@ -57,6 +57,7 @@ class Learner(LightningModule, abc.ABC):
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
         learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
@@ -74,6 +75,7 @@ class Learner(LightningModule, abc.ABC):
     ) -> None:
         super().__init__()
         self._model = model
+        self._loss_fn = loss_fn
         self._optimizer = optimizer
         self._learning_rate = learning_rate
         self._learning_rate_scheduler = learning_rate_scheduler
@@ -125,9 +127,25 @@ class Learner(LightningModule, abc.ABC):
             }
         )
 
-    def state_dict(self, **kwargs) -> Dict[str, Any]:
-        """Returns the state of the learner."""
-        return {
+    # def state_dict(self, **kwargs) -> Dict[str, Any]:
+    #     """Returns the state of the learner."""
+    #     return {
+    #         "learner_class_name": self.__class__.__name__,
+    #         "optimizer": self._optimizer,
+    #         "learning_rate": self._learning_rate,
+    #         "learning_rate_scheduler": self._learning_rate_scheduler,
+    #         "learning_rate_scheduler_gamma": self._learning_rate_scheduler_gamma,
+    #         "learning_rate_scheduler_step_size": self._learning_rate_scheduler_step_size,
+    #         "momentum": self._momentum,
+    #         "weight_decay": self._weight_decay,
+    #         "batch_size": self._batch_size,
+    #         "seed": self._seed,
+    #         "task_id": self._task_id,
+    #         "val_memory_buffer": self._val_memory_buffer.state_dict(),
+    #     }
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        learner_state_dict = {
             "learner_class_name": self.__class__.__name__,
             "optimizer": self._optimizer,
             "learning_rate": self._learning_rate,
@@ -141,6 +159,29 @@ class Learner(LightningModule, abc.ABC):
             "task_id": self._task_id,
             "val_memory_buffer": self._val_memory_buffer.state_dict(),
         }
+        checkpoint.update(learner_state_dict)
+
+    def on_load_checkpoint(self, state_dict):
+        self._learning_rate = state_dict["learning_rate"]
+        self._learning_rate_scheduler = state_dict["learning_rate_scheduler"]
+        self._learning_rate_scheduler_gamma = state_dict["learning_rate_scheduler_gamma"]
+        self._learning_rate_scheduler_step_size = state_dict["learning_rate_scheduler_step_size"]
+        self._momentum = state_dict["momentum"]
+        self._weight_decay = state_dict["weight_decay"]
+        self._batch_size = state_dict["batch_size"]
+        self._seed = state_dict["seed"]
+        self._task_id = state_dict["task_id"]
+        if not hasattr(self, "_val_memory_buffer"):
+            self._val_memory_buffer = InfiniteBuffer()
+        self._val_memory_buffer.load_state_dict(state_dict["val_memory_buffer"])
+        if "state_dict" in state_dict:
+            # It not deepspeed, we get this element. So we manually load that.
+            new_sd = {k.replace("_model.", "", 1): v for k, v in state_dict["state_dict"].items()}
+            self._model.load_state_dict(new_sd)
+        if "optimizer" in state_dict:
+            # It not deepspeed, we get this element. So we manually load that.
+            self._optimizer = state_dict["optimizer"]
+        self._post_init()
 
     def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
         """Restores the state of the learner.
@@ -298,7 +339,7 @@ class Learner(LightningModule, abc.ABC):
         outputs = self(inputs)
         intermediate_representation = self._model.get_intermediate_representation()
         self._model.reset_intermediate_representation_cache()
-        loss = self._model.loss_fn(outputs, targets)
+        loss = self._loss_fn(outputs, targets)
         self._update_metrics(outputs, targets, "train")
         self._loss_collections["train_losses"]["base_loss"](loss)
         return {
@@ -323,7 +364,7 @@ class Learner(LightningModule, abc.ABC):
         """PyTorch Lightning function to estimate validation metrics."""
         (inputs, targets), _ = batch
         outputs = self(inputs)
-        loss = self._model.loss_fn(outputs, targets)
+        loss = self._loss_fn(outputs, targets)
         self._update_metrics(outputs, targets, "val")
         self._loss_collections["val_losses"]["loss"](loss)
 
@@ -373,6 +414,7 @@ class Learner(LightningModule, abc.ABC):
                 on_step=False,
                 on_epoch=True,
                 logger=True,
+                sync_dist=True,
             )
             self._metric_collections[f"{prefix}_metrics"].reset()
 
@@ -383,6 +425,7 @@ class Learner(LightningModule, abc.ABC):
                     on_step=False,
                     on_epoch=True,
                     logger=True,
+                    sync_dist=True,
                 )
                 loss.reset()
 

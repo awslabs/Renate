@@ -254,16 +254,16 @@ class ExperienceReplayLearner(BaseExperienceReplayLearner):
     """
 
     def __init__(self, alpha: float = defaults.ER_ALPHA, **kwargs) -> None:
-        components = self.components(model=kwargs["model"], alpha=alpha)
+        components = self.components(loss_fn=kwargs["loss_fn"], alpha=alpha)
         super().__init__(components=components, **kwargs)
 
     def components(
-        self, model: Optional[RenateModule] = None, alpha: float = defaults.ER_ALPHA
+        self, loss_fn: Optional[torch.nn.Module]=None, alpha: float = defaults.ER_ALPHA
     ) -> nn.ModuleDict:
         return nn.ModuleDict(
             {
                 "memory_loss": WeightedCustomLossComponent(
-                    loss_fn=model.loss_fn, weight=alpha, sample_new_memory_batch=True
+                    loss_fn=loss_fn, weight=alpha, sample_new_memory_batch=True
                 )
             }
         )
@@ -405,6 +405,7 @@ class CLSExperienceReplayLearner(BaseExperienceReplayLearner):
     ):
         components = self.components(
             model=kwargs["model"],
+            loss_fn=kwargs["loss_fn"],
             alpha=alpha,
             beta=beta,
             stable_model_update_weight=stable_model_update_weight,
@@ -417,6 +418,7 @@ class CLSExperienceReplayLearner(BaseExperienceReplayLearner):
     def components(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         alpha: float = defaults.CLS_ALPHA,
         beta: float = defaults.CLS_BETA,
         plastic_model_update_weight: float = defaults.CLS_PLASTIC_MODEL_UPDATE_WEIGHT,
@@ -427,7 +429,7 @@ class CLSExperienceReplayLearner(BaseExperienceReplayLearner):
         return nn.ModuleDict(
             {
                 "memory_loss": WeightedCustomLossComponent(
-                    loss_fn=model.loss_fn, weight=alpha, sample_new_memory_batch=True
+                    loss_fn=loss_fn, weight=alpha, sample_new_memory_batch=True
                 ),
                 "cls_loss": WeightedCLSLossComponent(
                     weight=beta,
@@ -510,6 +512,7 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
     ) -> None:
         components = self.components(
             model=kwargs["model"],
+            loss_fn=kwargs["loss_fn"]
             der_alpha=der_alpha,
             der_beta=der_beta,
             sp_shrink_factor=sp_shrink_factor,
@@ -532,6 +535,7 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
     def components(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         der_alpha: float = defaults.SER_DER_ALPHA,
         der_beta: float = defaults.SER_DER_BETA,
         sp_shrink_factor: float = defaults.SER_SP_SHRINK_FACTOR,
@@ -551,7 +555,7 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
                     weight=der_alpha, sample_new_memory_batch=True
                 ),
                 "memory_loss": WeightedCustomLossComponent(
-                    loss_fn=model.loss_fn, weight=der_beta, sample_new_memory_batch=True
+                    loss_fn=loss_fn, weight=der_beta, sample_new_memory_batch=True
                 ),
                 "cls_loss": WeightedCLSLossComponent(
                     weight=cls_alpha,

@@ -56,7 +56,6 @@ class VisionTransformer(RenateBenchmarkingModule):
         norm_layer: Callable[..., nn.Module] = partial(nn.LayerNorm, eps=1e-6),
         conv_stem_configs: Optional[List[ConvStemConfig]] = None,
         weights: Optional[WeightsEnum] = None,
-        loss: nn.Module = nn.CrossEntropyLoss(),
         prediction_strategy: Optional[PredictionStrategy] = None,
         add_icarl_class_means: bool = True,
     ) -> None:
@@ -90,7 +89,6 @@ class VisionTransformer(RenateBenchmarkingModule):
                 "norm_layer": norm_layer,
                 "conv_stem_configs": conv_stem_configs,
             },
-            loss_fn=loss,
             prediction_strategy=prediction_strategy,
             add_icarl_class_means=add_icarl_class_means,
         )
