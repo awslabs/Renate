@@ -229,7 +229,7 @@ class RepeatedDistillationLearner(ReplayLearner):
         super().__init__(
             model=model,
             memory_size=memory_size,
-            memory_batch_size=batch_size,
+            batch_memory_frac=-1.0,
             buffer_transform=buffer_transform,
             buffer_target_transform=buffer_target_transform,
             optimizer=optimizer,

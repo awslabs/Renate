@@ -69,7 +69,7 @@ def pytest_collection_modifyitems(config, items):
 LEARNER_KWARGS = {
     ExperienceReplayLearner: {
         "memory_size": 30,
-        "memory_batch_size": 20,
+        "batch_memory_frac": 0.6,
         "optimizer": "SGD",
         "learning_rate": 2.5,
         "momentum": 1.3,
@@ -113,7 +113,7 @@ LEARNER_KWARGS = {
     },
     OfflineExperienceReplayLearner: {
         "memory_size": 30,
-        "memory_batch_size": 20,
+        "batch_memory_frac": 0.6,
         "loss_weight_new_data": 0.5,
         "optimizer": "SGD",
         "learning_rate": 2.5,
@@ -126,7 +126,7 @@ LEARNER_KWARGS = {
 AVALANCHE_LEARNER_KWARGS = {
     AvalancheReplayLearner: {
         "memory_size": 30,
-        "memory_batch_size": 20,
+        "batch_memory_frac": 0.3,
         "optimizer": "SGD",
         "learning_rate": 2.5,
         "momentum": 1.3,
@@ -155,7 +155,7 @@ AVALANCHE_LEARNER_KWARGS = {
     },
     AvalancheICaRLLearner: {
         "memory_size": 30,
-        "memory_batch_size": 20,
+        "batch_memory_frac": 0.3,
         "optimizer": "SGD",
         "learning_rate": 2.5,
         "momentum": 1.3,

@@ -392,9 +392,7 @@ class ReplayLearner(Learner, abc.ABC):
 
     Args:
         memory_size: The maximum size of the memory.
-        memory_batch_size: Size of batches sampled from the memory. The memory batch will be
-            appended to the batch sampled from the current dataset, leading to an effective batch
-            size of `memory_batch_size + batch_size`.
+        batch_memory_frac: Fraction of the batch that is sampled from rehearsal memory.
         buffer_transform: The transformation to be applied to the memory buffer data samples.
         buffer_target_transform: The target transformation to be applied to the memory buffer target
             samples.
@@ -404,14 +402,14 @@ class ReplayLearner(Learner, abc.ABC):
     def __init__(
         self,
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
+        batch_memory_frac: float = defaults.BATCH_MEMORY_FRAC,
         buffer_transform: Optional[Callable] = None,
         buffer_target_transform: Optional[Callable] = None,
         seed: int = defaults.SEED,
         **kwargs,
     ) -> None:
         super().__init__(seed=seed, **kwargs)
-        self._memory_batch_size = min(memory_size, memory_batch_size)
+        self._batch_memory_frac = batch_memory_frac
         self._memory_buffer = ReservoirBuffer(
             max_size=memory_size,
             seed=seed,
@@ -424,7 +422,7 @@ class ReplayLearner(Learner, abc.ABC):
         state_dict = super().state_dict(**kwargs)
         state_dict.update(
             {
-                "memory_batch_size": self._memory_batch_size,
+                "batch_memory_frac": self._batch_memory_frac,
                 "memory_buffer": self._memory_buffer.state_dict(),
             }
         )
@@ -433,7 +431,7 @@ class ReplayLearner(Learner, abc.ABC):
     def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
         """Restores the state of the learner."""
         super().load_state_dict(model, state_dict, **kwargs)
-        self._memory_batch_size = state_dict["memory_batch_size"]
+        self._batch_memory_frac = state_dict["batch_memory_frac"]
         if not hasattr(self, "_memory_buffer"):
             self._memory_buffer = ReservoirBuffer()
         self._memory_buffer.load_state_dict(state_dict["memory_buffer"])

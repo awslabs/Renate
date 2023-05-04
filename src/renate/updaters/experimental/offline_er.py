@@ -10,6 +10,7 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch.utils.data import DataLoader, Dataset
 
 from renate import defaults
+from renate.data.datasets import _TransformedDataset
 from renate.models import RenateModule
 from renate.types import NestedTensors
 from renate.updaters.learner import ReplayLearner
@@ -25,9 +26,7 @@ class OfflineExperienceReplayLearner(ReplayLearner):
 
     Args:
         memory_size: The maximum size of the memory.
-        memory_batch_size: Size of batches sampled from the memory. The memory batch will be
-            appended to the batch sampled from the current dataset, leading to an effective batch
-            size of `memory_batch_size + batch_size`.
+        batch_memory_frac: Fraction of the batch that is sampled from rehearsal memory.
         loss_weight_new_data: The training loss will be a convex combination of the loss on the new
             data and the loss on the memory data. If a float (needs to be in [0, 1]) is given here,
             it will be used as the weight for the new data. If `None`, the weight will be set
@@ -66,17 +65,32 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         self._num_points_current_task = len(train_dataset)
 
     def train_dataloader(self) -> DataLoader:
-        train_loader = super().train_dataloader()
-        loaders = {"current_task": train_loader}
-        if len(self._memory_buffer) > self._memory_batch_size:
+        """Returns the dataloader for training the model."""
+        loaders = {}
+        memory_batch_size = int(self._batch_memory_frac * self._batch_size)
+        if len(self._memory_buffer) >= memory_batch_size:
             loaders["memory"] = DataLoader(
                 dataset=self._memory_buffer,
-                batch_size=self._memory_batch_size,
+                batch_size=memory_batch_size,
                 drop_last=True,
                 shuffle=True,
                 generator=self._rng,
                 pin_memory=True,
             )
+        else:
+            memory_batch_size = 0
+        train_dataset = _TransformedDataset(
+            self._train_dataset,
+            transform=self._train_transform,
+            target_transform=self._train_target_transform,
+        )
+        loaders["current_task"] = DataLoader(
+            train_dataset,
+            batch_size=self._batch_size - memory_batch_size,
+            shuffle=True,
+            generator=self._rng,
+            pin_memory=True,
+        )
         return CombinedLoader(loaders, mode="max_size_cycle")
 
     def on_model_update_end(self) -> None:
@@ -127,7 +141,7 @@ class OfflineExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
+        batch_memory_frac: float = defaults.BATCH_MEMORY_FRAC,
         loss_weight_new_data: Optional[float] = None,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
@@ -158,7 +172,7 @@ class OfflineExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     ):
         learner_kwargs = {
             "memory_size": memory_size,
-            "memory_batch_size": memory_batch_size,
+            "batch_memory_frac": batch_memory_frac,
             "loss_weight_new_data": loss_weight_new_data,
             "optimizer": optimizer,
             "learning_rate": learning_rate,

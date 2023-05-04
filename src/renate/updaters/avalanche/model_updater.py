@@ -224,7 +224,7 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
         self,
         model: RenateModule,
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
+        batch_memory_frac: float = defaults.BATCH_MEMORY_FRAC,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
         learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
@@ -253,7 +253,7 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
     ):
         learner_kwargs = {
             "memory_size": memory_size,
-            "memory_batch_size": memory_batch_size,
+            "batch_memory_frac": batch_memory_frac,
             "optimizer": optimizer,
             "learning_rate": learning_rate,
             "learning_rate_scheduler": learning_rate_scheduler,
@@ -423,7 +423,7 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
         self,
         model: RenateModule,
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
+        batch_memory_frac: float = defaults.BATCH_MEMORY_FRAC,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
         learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
@@ -452,7 +452,7 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
     ):
         learner_kwargs = {
             "memory_size": memory_size,
-            "memory_batch_size": memory_batch_size,
+            "batch_memory_frac": batch_memory_frac,
             "optimizer": optimizer,
             "learning_rate": learning_rate,
             "learning_rate_scheduler": learning_rate_scheduler,

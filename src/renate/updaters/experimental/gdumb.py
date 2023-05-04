@@ -44,6 +44,7 @@ class GDumbLearner(ReplayLearner):
     ) -> None:
         super().__init__(
             memory_size=memory_size,
+            batch_memory_frac=-1.0,  # Dummy value
             seed=seed,
             **kwargs,
         )
@@ -59,7 +60,6 @@ class GDumbLearner(ReplayLearner):
         if not hasattr(self, "_memory_buffer"):
             self._memory_buffer = GreedyClassBalancingBuffer()
         Learner.load_state_dict(self, model, state_dict, **kwargs)
-        self._memory_batch_size = state_dict["memory_batch_size"]
         self._memory_buffer.load_state_dict(state_dict["memory_buffer"])
 
     def on_model_update_start(
@@ -94,7 +94,6 @@ class GDumbModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
         learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
@@ -124,7 +123,6 @@ class GDumbModelUpdater(SingleTrainingLoopUpdater):
     ):
         learner_kwargs = {
             "memory_size": memory_size,
-            "memory_batch_size": memory_batch_size,
             "optimizer": optimizer,
             "learning_rate": learning_rate,
             "learning_rate_scheduler": learning_rate_scheduler,

@@ -27,14 +27,15 @@ def get_model_and_dataset():
 
 
 @pytest.mark.parametrize(
-    "batch_size,memory_size,memory_batch_size",
-    [[10, 10, 10], [20, 10, 10], [10, 100, 10], [10, 30, 1], [100, 10, 3]],
+    "batch_size,memory_size,batch_memory_frac",
+    [[10, 10, 10], [20, 10, 10], [10, 100, 10], [10, 30, 1], [0.1, 0.5, 0.3]],
 )
-def test_er_overall_memory_size_after_update(batch_size, memory_size, memory_batch_size):
+def test_er_overall_memory_size_after_update(batch_size, memory_size, batch_memory_frac):
+    memory_batch_size = int(batch_memory_frac * batch_size)
     model, dataset = get_model_and_dataset()
     learner_kwargs = {
         "memory_size": memory_size,
-        "memory_batch_size": memory_batch_size,
+        "batch_memory_frac": batch_memory_frac,
         "batch_size": batch_size,
     }
     model_updater = pytest.helpers.get_simple_updater(
@@ -91,7 +92,7 @@ def test_er_validation_buffer(tmpdir):
 @pytest.mark.parametrize(
     "cls,kwargs",
     [
-        [ExperienceReplayLearner, {"alpha": 0.2, "memory_size": 10, "memory_batch_size": 10}],
+        [ExperienceReplayLearner, {"alpha": 0.2, "memory_size": 10, "batch_memory_frac": 0.5}],
         [DarkExperienceReplayLearner, {"alpha": 0.1, "beta": 0.3, "memory_size": 42}],
         [
             CLSExperienceReplayLearner,

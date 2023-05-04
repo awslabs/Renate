@@ -21,7 +21,7 @@ _learner_config_space = {
 _replay_config_space = {
     **_learner_config_space,
     **{
-        "memory_batch_size": 32,
+        "batch_memory_frac": 0.5,
         "memory_size": 1000,
     },
 }

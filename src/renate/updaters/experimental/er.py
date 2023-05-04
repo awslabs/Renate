@@ -95,7 +95,7 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
         )
         return DataLoader(
             train_dataset,
-            batch_size=self._batch_size,
+            batch_size=self._current_task_batch_size,
             shuffle=True,
             generator=self._rng,
             pin_memory=True,
@@ -192,7 +192,8 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
 
     def _sample_from_buffer(self, device: torch.device) -> Optional[Tuple[NestedTensors, DataDict]]:
         """Function to sample from the buffer, if buffer is populated."""
-        if self._memory_loader is not None and len(self._memory_buffer) >= self._memory_batch_size:
+        memory_batch_size = int(self._batch_memory_frac * self._batch_size)
+        if self._memory_loader is not None and len(self._memory_buffer) >= memory_batch_size:
             memory_batch = next(iter(self._memory_loader))
             return move_tensors_to_device(memory_batch, device)
         else:
@@ -219,10 +220,11 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
 
     def _set_memory_loader(self) -> None:
         """Create a memory loader from a memory buffer."""
-        if self._memory_loader is None and len(self._memory_buffer) >= self._memory_batch_size:
+        memory_batch_size = int(self._batch_memory_frac * self._batch_size)
+        if self._memory_loader is None and len(self._memory_buffer) >= memory_batch_size:
             self._memory_loader = DataLoader(
                 dataset=self._memory_buffer,
-                batch_size=self._memory_batch_size,
+                batch_size=memory_batch_size,
                 drop_last=True,
                 shuffle=True,
                 generator=self._rng,
@@ -615,7 +617,7 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
+        batch_memory_frac: float = defaults.BATCH_MEMORY_FRAC,
         loss_weight: float = defaults.LOSS_WEIGHT,
         ema_memory_update_gamma: float = defaults.EMA_MEMORY_UPDATE_GAMMA,
         loss_normalization: int = defaults.LOSS_NORMALIZATION,
@@ -649,7 +651,7 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     ):
         learner_kwargs = {
             "memory_size": memory_size,
-            "memory_batch_size": memory_batch_size,
+            "batch_memory_frac": batch_memory_frac,
             "loss_weight": loss_weight,
             "ema_memory_update_gamma": ema_memory_update_gamma,
             "loss_normalization": loss_normalization,
@@ -693,7 +695,7 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
+        batch_memory_frac: float = defaults.BATCH_MEMORY_FRAC,
         loss_weight: float = defaults.LOSS_WEIGHT,
         ema_memory_update_gamma: float = defaults.EMA_MEMORY_UPDATE_GAMMA,
         loss_normalization: int = defaults.LOSS_NORMALIZATION,
@@ -728,7 +730,7 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     ):
         learner_kwargs = {
             "memory_size": memory_size,
-            "memory_batch_size": memory_batch_size,
+            "batch_memory_frac": batch_memory_frac,
             "loss_weight": loss_weight,
             "ema_memory_update_gamma": ema_memory_update_gamma,
             "loss_normalization": loss_normalization,
@@ -773,7 +775,7 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
         self,
         model: RenateModule,
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
+        batch_memory_frac: float = defaults.BATCH_MEMORY_FRAC,
         loss_weight: float = defaults.LOSS_WEIGHT,
         ema_memory_update_gamma: float = defaults.EMA_MEMORY_UPDATE_GAMMA,
         loss_normalization: int = defaults.LOSS_NORMALIZATION,
@@ -809,7 +811,7 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
     ):
         learner_kwargs = {
             "memory_size": memory_size,
-            "memory_batch_size": memory_batch_size,
+            "batch_memory_frac": batch_memory_frac,
             "loss_weight": loss_weight,
             "ema_memory_update_gamma": ema_memory_update_gamma,
             "loss_normalization": loss_normalization,
@@ -855,7 +857,7 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
+        batch_memory_frac: float = defaults.BATCH_MEMORY_FRAC,
         loss_weight: float = defaults.LOSS_WEIGHT,
         ema_memory_update_gamma: float = defaults.EMA_MEMORY_UPDATE_GAMMA,
         loss_normalization: int = defaults.LOSS_NORMALIZATION,
@@ -894,7 +896,7 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     ):
         learner_kwargs = {
             "memory_size": memory_size,
-            "memory_batch_size": memory_batch_size,
+            "batch_memory_frac": batch_memory_frac,
             "loss_weight": loss_weight,
             "ema_memory_update_gamma": ema_memory_update_gamma,
             "loss_normalization": loss_normalization,
@@ -943,7 +945,7 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
+        batch_memory_frac: float = defaults.BATCH_MEMORY_FRAC,
         loss_weight: float = defaults.LOSS_WEIGHT,
         ema_memory_update_gamma: float = defaults.EMA_MEMORY_UPDATE_GAMMA,
         loss_normalization: int = defaults.LOSS_NORMALIZATION,
@@ -988,7 +990,7 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     ):
         learner_kwargs = {
             "memory_size": memory_size,
-            "memory_batch_size": memory_batch_size,
+            "batch_memory_frac": batch_memory_frac,
             "loss_weight": loss_weight,
             "ema_memory_update_gamma": ema_memory_update_gamma,
             "loss_normalization": loss_normalization,
