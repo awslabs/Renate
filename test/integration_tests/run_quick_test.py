@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 from pathlib import Path
+from sys import platform
 
 import pandas as pd
 import pytest
@@ -65,6 +66,5 @@ if __name__ == "__main__":
     else:
         accuracies = []
 
-    # Noticed different accuracy scores across Mac and GitHub Actions Workflows (which run on Linux)
-    # TODO see if we can align the Mac and Linux results
-    assert pytest.approx(test_config["expected_accuracy"]) == accuracies, accuracies
+    expected_accuracy = test_config[f"expected_accuracy_{platform}"]
+    assert pytest.approx(expected_accuracy) == accuracies, accuracies
