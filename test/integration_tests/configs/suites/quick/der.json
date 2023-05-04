@@ -5,5 +5,6 @@
   "dataset": "cifar10.json",
   "backend": "local",
   "job_name": "feature-sorting-mlp-der",
-  "expected_accuracy": [0.35339999198913574, 0.3086000084877014]
+  "expected_accuracy_linux": [[0.35339999198913574, 0.3086000084877014]],
+  "expected_accuracy_darwin": [[0.3555999994277954, 0.13660000264644623]]
 }
