@@ -252,7 +252,7 @@ def _execute_experiment_job_locally(
     See renate.benchmark.experimentation.execute_experiment_job for more details.
     """
     logger.info("Start experiment.")
-    seed_everything(seed)
+    seed_everything(seed, True)
 
     input_state_url = defaults.input_state_folder(working_directory)
     output_state_url = defaults.output_state_folder(working_directory)
