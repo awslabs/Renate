@@ -45,18 +45,15 @@ class JointLearner(Learner):
         checkpoint["memory_buffer"] = self._memory_buffer.state_dict()
 
     def on_load_checkpoint(self, state_dict) -> None:
-        if not hasattr(self, "_memory_buffer"):
-            self._memory_buffer = InfiniteBuffer()
-        self._memory_buffer.load_state_dict(state_dict["memory_buffer"])
-        state_dict.pop("memory_buffer")
         super().on_load_checkpoint(state_dict)
-
-    def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
-        """Restores the state of the learner."""
-        if not hasattr(self, "_memory_buffer"):
-            self._memory_buffer = InfiniteBuffer()
-        super().load_state_dict(model, state_dict, **kwargs)
         self._memory_buffer.load_state_dict(state_dict["memory_buffer"])
+
+    # def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
+    #     """Restores the state of the learner."""
+    #     if not hasattr(self, "_memory_buffer"):
+    #         self._memory_buffer = InfiniteBuffer()
+    #     super().load_state_dict(model, state_dict, **kwargs)
+    #     self._memory_buffer.load_state_dict(state_dict["memory_buffer"])
 
     def save(self, output_state_dir: str) -> None:
         super().save(output_state_dir)
@@ -150,7 +147,7 @@ class JointModelUpdater(SingleTrainingLoopUpdater):
             "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
-            "loss_fn": loss_fn
+            "loss_fn": loss_fn,
         }
         super().__init__(
             model,

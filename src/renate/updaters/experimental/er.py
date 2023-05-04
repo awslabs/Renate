@@ -57,6 +57,8 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
     ) -> None:
         self._components_names = list(components.keys())
         super().__init__(**kwargs)
+        self.save_hyperparameters(ignore=["model", "loss_fn", "components"])
+
         self._components = components
         self._loss_weight = loss_weight
         self._ema_memory_update_gamma = ema_memory_update_gamma
@@ -107,29 +109,38 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
         for component in self._components.values():
             component.on_train_start(model=self._model)
 
-    def state_dict(self, **kwargs) -> Dict[str, Any]:
-        """Returns the state of the learner."""
-        state_dict = super().state_dict(**kwargs)
-        state_dict.update(
-            {
-                "loss_weight": self._loss_weight,
-                "ema_memory_update_gamma": self._ema_memory_update_gamma,
-                "loss_normalization": self._use_loss_normalization,
-                "components": self._components.state_dict(),
-                "components_names": self._components_names,
-            }
-        )
-        return state_dict
+    # def state_dict(self, **kwargs) -> Dict[str, Any]:
+    #     """Returns the state of the learner."""
+    #     state_dict = super().state_dict(**kwargs)
+    #     state_dict.update(
+    #         {
+    #             "loss_weight": self._loss_weight,
+    #             "ema_memory_update_gamma": self._ema_memory_update_gamma,
+    #             "loss_normalization": self._use_loss_normalization,
+    #             "components": self._components.state_dict(),
+    #             "components_names": self._components_names,
+    #         }
+    #     )
+    #     return state_dict
 
-    def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
-        """Restores the state of the learner."""
-        self._components_names = state_dict["components_names"]
-        super().load_state_dict(model, state_dict, **kwargs)
-        self._loss_weight = state_dict["loss_weight"]
-        self._ema_memory_update_gamma = state_dict["ema_memory_update_gamma"]
-        self._use_loss_normalization = state_dict["loss_normalization"]
-        self._components = self.components(model=model)
-        self._components.load_state_dict(state_dict["components"])
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        super().on_save_checkpoint(checkpoint)
+        checkpoint["components"] = self._components.state_dict()
+
+    # def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+    #     super().on_load_checkpoint(checkpoint)
+    #     # self._components = self.components(model=self._model)
+    #     self._components.load_state_dict(checkpoint["components"])
+
+    # def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
+    #     """Restores the state of the learner."""
+    #     self._components_names = state_dict["components_names"]
+    #     super().load_state_dict(model, state_dict, **kwargs)
+    #     self._loss_weight = state_dict["loss_weight"]
+    #     self._ema_memory_update_gamma = state_dict["ema_memory_update_gamma"]
+    #     self._use_loss_normalization = state_dict["loss_normalization"]
+    # self._components = self.components(model=model)
+    #     self._components.load_state_dict(state_dict["components"])
 
     def update_hyperparameters(self, args: Dict[str, Any]) -> None:
         """Update the hyperparameters of the learner."""
@@ -256,9 +267,10 @@ class ExperienceReplayLearner(BaseExperienceReplayLearner):
     def __init__(self, alpha: float = defaults.ER_ALPHA, **kwargs) -> None:
         components = self.components(loss_fn=kwargs["loss_fn"], alpha=alpha)
         super().__init__(components=components, **kwargs)
+        self.save_hyperparameters(ignore=["model", "loss_fn", "components"])
 
     def components(
-        self, loss_fn: Optional[torch.nn.Module]=None, alpha: float = defaults.ER_ALPHA
+        self, loss_fn: Optional[torch.nn.Module] = None, alpha: float = defaults.ER_ALPHA
     ) -> nn.ModuleDict:
         return nn.ModuleDict(
             {
@@ -291,6 +303,8 @@ class DarkExperienceReplayLearner(ExperienceReplayLearner):
         self, alpha: float = defaults.DER_ALPHA, beta: float = defaults.DER_BETA, **kwargs
     ) -> None:
         super().__init__(alpha=beta, **kwargs)
+        self.save_hyperparameters(ignore=["model", "loss_fn", "components"])
+
         self._components = self.components(model=kwargs["model"], alpha=alpha, beta=beta)
 
     def components(
@@ -343,6 +357,7 @@ class PooledOutputDistillationExperienceReplayLearner(BaseExperienceReplayLearne
             alpha=alpha, distillation_type=distillation_type, normalize=normalize
         )
         super().__init__(components=components, **kwargs)
+        self.save_hyperparameters(ignore=["model", "loss_fn", "components"])
 
     def components(
         self,
@@ -414,6 +429,7 @@ class CLSExperienceReplayLearner(BaseExperienceReplayLearner):
             plastic_model_update_probability=plastic_model_update_probability,
         )
         super().__init__(components=components, **kwargs)
+        self.save_hyperparameters(ignore=["model", "loss_fn", "components"])
 
     def components(
         self,
@@ -512,7 +528,7 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
     ) -> None:
         components = self.components(
             model=kwargs["model"],
-            loss_fn=kwargs["loss_fn"]
+            loss_fn=kwargs["loss_fn"],
             der_alpha=der_alpha,
             der_beta=der_beta,
             sp_shrink_factor=sp_shrink_factor,
@@ -531,6 +547,7 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
             ema_memory_update_gamma=ema_memory_update_gamma,
             **kwargs,
         )
+        self.save_hyperparameters(ignore=["model", "loss_fn", "components"])
 
     def components(
         self,
@@ -618,6 +635,7 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         loss_weight: float = defaults.LOSS_WEIGHT,
@@ -669,6 +687,7 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
+            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
@@ -700,6 +719,7 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         loss_weight: float = defaults.LOSS_WEIGHT,
@@ -753,6 +773,7 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
+            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
@@ -784,6 +805,7 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         loss_weight: float = defaults.LOSS_WEIGHT,
@@ -839,6 +861,7 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
             "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
+            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
@@ -870,6 +893,7 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         loss_weight: float = defaults.LOSS_WEIGHT,
@@ -931,6 +955,7 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
+            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
@@ -962,6 +987,7 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         loss_weight: float = defaults.LOSS_WEIGHT,
@@ -1035,6 +1061,7 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
+            "loss_fn": loss_fn,
         }
         super().__init__(
             model,

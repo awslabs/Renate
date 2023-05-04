@@ -94,7 +94,7 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
     def __init__(
         self,
         model: RenateModule,
-        loss_fn: torch.nn.Module, 
+        loss_fn: torch.nn.Module,
         memory_size: int,
         optimizer: str = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
@@ -136,7 +136,7 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
             "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
-            "loss_fn": loss_fn
+            "loss_fn": loss_fn,
         }
         super().__init__(
             model=model,
@@ -253,9 +253,10 @@ class RepeatedDistillationLearner(ReplayLearner):
             test_target_transform=test_target_transform,
             logged_metrics=logged_metrics,
             seed=seed,
-            loss_fn=loss_fn
+            loss_fn=loss_fn,
         )
         self._expert_logits: Optional[torch.Tensor] = None
+        self.save_hyperparameters(ignore=["model", "loss_fn"])
 
     def update_expert_logits(self, new_expert_logits: torch.Tensor) -> None:
         """Update expert logits."""
