@@ -6,5 +6,5 @@
   "backend": "local",
   "job_name": "class-incremental-mlp-cls-er",
   "expected_accuracy_linux": [[0.9858155846595764, 0.9740450382232666]],
-  "expected_accuracy_darwin": [[0.9995272159576416, 0.0]]
+  "expected_accuracy_darwin": [[0.9858155846595764, 0.9740450382232666]]
 }
