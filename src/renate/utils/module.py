@@ -27,6 +27,8 @@ def evaluate_and_record_results(
     batch_size: int = defaults.BATCH_SIZE,
     accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
     devices: Optional[int] = None,
+    strategy: str = defaults.DISTRIBUTED_STRATEGY,
+    precision: str = defaults.PRECISION,
 ) -> Dict[str, List[List[float]]]:
     """A helper function that performs the evaluation on test data and records quantitative metrics
     in a dictionary.
@@ -59,6 +61,8 @@ def evaluate_and_record_results(
         logged_metrics=logged_metrics,
         accelerator=accelerator,
         devices=devices,
+        strategy=strategy,
+        precision=precision,
     )
     for key, value in update_results.items():
         if key not in results:

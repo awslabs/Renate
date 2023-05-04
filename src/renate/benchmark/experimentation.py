@@ -147,6 +147,8 @@ def execute_experiment_job(
     devices: int = defaults.DEVICES,
     deterministic_trainer: bool = True,
     job_name: str = defaults.JOB_NAME,
+    strategy: str = defaults.DISTRIBUTED_STRATEGY,
+    precision: str = defaults.PRECISION,
 ) -> None:
     """Executes the experiment job.
 
@@ -202,6 +204,8 @@ def execute_experiment_job(
             devices=devices,
             deterministic_trainer=deterministic_trainer,
             seed=seed,
+            strategy=strategy,
+            precision=precision,
         )
     _execute_experiment_job_remotely(
         job_name=job_name,
@@ -226,6 +230,8 @@ def execute_experiment_job(
         instance_type=instance_type,
         instance_count=instance_count,
         instance_max_time=instance_max_time,
+        strategy=strategy,
+        precision=precision,
     )
 
 
@@ -246,6 +252,8 @@ def _execute_experiment_job_locally(
     max_num_trials_finished: int,
     n_workers: int,
     deterministic_trainer: bool,
+    strategy: str,
+    precision: str,
 ) -> None:
     """Runs an experiment, combining hyperparameter tuning and model for multiple updates.
 
@@ -258,6 +266,7 @@ def _execute_experiment_job_locally(
     output_state_url = defaults.output_state_folder(working_directory)
     data_url = defaults.data_folder(working_directory)
     model_url = defaults.model_file(input_state_url)
+    learner_url = defaults.learner_state_file(input_state_url)
     logs_url = defaults.logs_folder(working_directory)
 
     for url in [input_state_url, output_state_url, logs_url]:
@@ -286,10 +295,10 @@ def _execute_experiment_job_locally(
     transforms = get_transforms_kwargs(config_module, config_space)
     metrics = get_metrics(config_module)
 
-    torch.save(
-        model.state_dict(),
-        model_url,
-    )
+    # torch.save(
+    #     model.state_dict(),
+    #     model_url,
+    # )
 
     results: Dict[str, List[List[float]]] = {}
     evaluate_and_record_results(
@@ -302,6 +311,8 @@ def _execute_experiment_job_locally(
         metric_postfix="_init",
         accelerator=accelerator,
         devices=devices,
+        strategy=strategy,
+        precision=precision,
     )
 
     for update_id in range(num_updates):
@@ -329,6 +340,8 @@ def _execute_experiment_job_locally(
             seed=seed,
             accelerator=accelerator,
             devices=devices,
+            precision=precision,
+            strategy=strategy,
             deterministic_trainer=deterministic_trainer,
         )
         move_to_uri(output_state_url, input_state_url)
@@ -338,6 +351,7 @@ def _execute_experiment_job_locally(
             model_state_url=model_url,
             **get_model_fn_kwargs(config_module, config_space),
         )
+        # model.loss_fn = torch.nn.CrossEntropyLoss()
 
         evaluate_and_record_results(
             results,
@@ -347,7 +361,7 @@ def _execute_experiment_job_locally(
             target_transform=transforms.get("target_test_transform"),
             logged_metrics=metrics,
             accelerator=accelerator,
-            devices=devices,
+            devices=1,
         )
         df = individual_metrics_summary(results, update_id + 1, num_updates)
         save_pandas_df_to_csv(

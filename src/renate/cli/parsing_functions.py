@@ -918,17 +918,3 @@ parse_by_updater = {
     "Avalanche-LwF": _add_avalanche_lwf_learner_arguments,
     "Avalanche-iCaRL": _add_experience_replay_arguments,
 }
-
-
-def _precision_allowed_type(x: Union[int, str]) -> Union[int, str]:
-    """This is the hack by lightning to figure out the following two cases.
-    Code taken from pytorch_lightning/utilities/argparse.py.
-    >>> _precision_allowed_type("32")
-    32
-    >>> _precision_allowed_type("bf16")
-    'bf16'
-    """
-    try:
-        return int(x)
-    except ValueError:
-        return x
