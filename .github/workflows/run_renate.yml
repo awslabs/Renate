@@ -30,7 +30,7 @@ env:
 
 jobs:
   run:
-    runs-on: Renate_ubuntu-latest_16-core
+    runs-on: ubuntu-latest
     timeout-minutes: ${{ inputs.timeout-minutes }}
     steps:
       - name: Configure AWS Credentials (if required)
@@ -44,6 +44,7 @@ jobs:
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
         with:
+          architecture: 'x64'
           python-version: 3.9
           cache: 'pip'
       - name: Install Renate
