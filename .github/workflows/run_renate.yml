@@ -55,7 +55,6 @@ jobs:
           lscpu
           lspci
           lshw -short
-          hwinfo -short
           uname
           uname -r
           cat /etc/os-release
