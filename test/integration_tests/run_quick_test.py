@@ -52,7 +52,7 @@ if __name__ == "__main__":
     )
     process.wait()
     expected_accuracy = test_config[f"expected_accuracy_{platform}"]
-    num_updates = len(test_config["expected_accuracy_darwin"])
+    num_updates = len(test_config["expected_accuracy_darwin"][0])
     result_file = (
         Path("tmp")
         / "renate-integration-tests"
