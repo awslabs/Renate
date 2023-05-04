@@ -93,6 +93,10 @@ The full list of models and model names including a short description is provide
     * - `~renate.benchmark.models.vision_transformer.VisionTransformerH14`
       - Huge `Vision Transformer <https://arxiv.org/abs/2010.11929>`_ architecture for images of size 224x224 with patch size 14.
       - * ``num_outputs``: Output dimensionality, for classification the number of classes.
+    * - `~renate.benchmark.models.transformer.HuggingFaceSequenceClassificationTransformer`
+      - Wrapper around Hugging Face transformers.
+      - * ``pretrained_model_name``: Hugging Face `transformer ID <https://huggingface.co/models>`__.
+        * ``num_outputs``: The number of classes.
 
 
 .. _benchmarking-renate-benchmarks-datasets:
@@ -133,6 +137,10 @@ The following table contains the list of supported datasets.
       - Image Classification
       - 60k train, 10k test, 10 classes, image shape 28x28x1
       - Li Deng: The MNIST Database of Handwritten Digit Images for Machine Learning Research. IEEE Signal Processing Magazine. 2012.
+    * - hfd-{dataset_name}
+      - multiple
+      - Any `Hugging Face dataset <https://huggingface.co/datasets>`__ can be used. Just prepend the prefix ``hfd-``, e.g., ``hfd-rotten_tomatoes``. Select input and target columns via ``config_space``, e.g., add ``"input_column": "text", "target_column": "label"`` for the `rotten_tomatoes <https://huggingface.co/datasets/rotten_tomatoes>`__ example.
+      - Please refer to `the official documentation <https://huggingface.co/datasets>`__.
 
 .. _benchmarking-renate-benchmarks-scenarios:
 
