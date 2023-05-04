@@ -38,7 +38,7 @@ def create_strategy(devices: int = 1, strategy_name: Optional["str"] = None) -> 
             warnings.warn(f"With devices=1, strategy is ignored. But got {strategy_name}.")
 
         return None
-    elif strategy_name is None:
+    elif strategy_name in ["none", "None", None]:
         ## Nothing is specified and devices > 1. Fall back to DDP
         return StrategyRegistry.get("ddp")
 
