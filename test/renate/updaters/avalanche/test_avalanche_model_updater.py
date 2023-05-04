@@ -77,8 +77,8 @@ def test_continuation_of_training_with_avalanche_model_updater(tmpdir, learner_c
 
 
 @pytest.mark.parametrize(
-    "batch_size,memory_size,batch_memory_size",
-    [[10, 10, 10], [20, 10, 10], [10, 100, 10], [10, 30, 1], [0.1, 0.5, 0.3]],
+    "batch_size,memory_size,batch_memory_frac",
+    [[20, 10, 0.5], [30, 10, 0.33], [20, 100, 0.5], [10, 30, 0.1], [100, 10, 0.03]],
 )
 def test_experience_replay_buffer_size(tmpdir, batch_size, memory_size, batch_memory_frac):
     dataset_size = 100
@@ -118,7 +118,7 @@ def test_experience_replay_buffer_size(tmpdir, batch_size, memory_size, batch_me
 
         assert replay_plugin.batch_size == batch_size
         assert replay_plugin.mem_size == memory_size
-        assert replay_plugin.batch_size_mem == memory_batch_size
+        assert replay_plugin.batch_size_mem == int(batch_memory_frac * batch_size)
         model_updater.update(train_dataset=dataset)
         assert len(model_updater._learner.dataloader.data) == dataset_size
         assert len(model_updater._learner.dataloader.memory) == min(

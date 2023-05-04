@@ -95,7 +95,7 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
         )
         return DataLoader(
             train_dataset,
-            batch_size=self._current_task_batch_size,
+            batch_size=self._batch_size - int(self._batch_memory_frac * self._batch_size),
             shuffle=True,
             generator=self._rng,
             pin_memory=True,

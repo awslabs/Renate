@@ -60,6 +60,7 @@ class GDumbLearner(ReplayLearner):
         if not hasattr(self, "_memory_buffer"):
             self._memory_buffer = GreedyClassBalancingBuffer()
         Learner.load_state_dict(self, model, state_dict, **kwargs)
+        self._batch_memory_frac = state_dict["batch_memory_frac"]
         self._memory_buffer.load_state_dict(state_dict["memory_buffer"])
 
     def on_model_update_start(

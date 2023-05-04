@@ -28,7 +28,7 @@ def get_model_and_dataset():
 
 @pytest.mark.parametrize(
     "batch_size,memory_size,batch_memory_frac",
-    [[10, 10, 10], [20, 10, 10], [10, 100, 10], [10, 30, 1], [0.1, 0.5, 0.3]],
+    [[20, 10, 0.5], [30, 10, 0.33], [20, 100, 0.5], [10, 30, 0.1], [100, 10, 0.03]],
 )
 def test_er_overall_memory_size_after_update(batch_size, memory_size, batch_memory_frac):
     memory_batch_size = int(batch_memory_frac * batch_size)
