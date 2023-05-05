@@ -30,7 +30,7 @@ env:
 
 jobs:
   run:
-    runs-on: Renate_ubuntu-latest_16-core
+    runs-on: ubuntu-latest
     timeout-minutes: ${{ inputs.timeout-minutes }}
     steps:
       - name: Configure AWS Credentials (if required)

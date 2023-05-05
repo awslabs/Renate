@@ -99,7 +99,7 @@ class ModelUpdaterCLI:
             ignore_args=["data_path", "model_state_url"],
         )
 
-        seed_everything(args.seed)
+        seed_everything(args.seed, True)
         self._prepare_data_state_model(args)
 
         data_module = get_and_setup_data_module(
