@@ -6,6 +6,6 @@
     "weight_decay": 0.0,
     "batch_size": 512,
     "batch_memory_frac": 0.5,
-    "memory_size": 500
+    "memory_size": 500,
     "loss_weight_new_data": 0.5
 }
