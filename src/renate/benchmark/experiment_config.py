@@ -4,7 +4,9 @@ from typing import List, Optional, Tuple, Union
 
 import torch
 from torchvision.transforms import transforms
+from transformers import AutoTokenizer
 
+from renate.benchmark.datasets.nlp_datasets import HuggingfaceTextDataModule
 from renate.benchmark.datasets.vision_datasets import CLEARDataModule, TorchVisionDataModule
 from renate.benchmark.models import (
     MultiLayerPerceptron,
@@ -21,6 +23,7 @@ from renate.benchmark.models import (
     VisionTransformerL16,
     VisionTransformerL32,
 )
+from renate.benchmark.models.transformer import HuggingFaceSequenceClassificationTransformer
 from renate.benchmark.scenarios import (
     BenchmarkScenario,
     ClassIncrementalScenario,
@@ -49,6 +52,7 @@ models = {
     "VisionTransformerL16": VisionTransformerL16,
     "VisionTransformerL32": VisionTransformerL32,
     "VisionTransformerH14": VisionTransformerH14,
+    "HuggingFaceTransformer": HuggingFaceSequenceClassificationTransformer,
 }
 
 
@@ -60,6 +64,7 @@ def model_fn(
     num_outputs: Optional[int] = None,
     num_hidden_layers: Optional[int] = None,
     hidden_size: Optional[Tuple[int]] = None,
+    pretrained_model_name: Optional[str] = None,
 ) -> RenateModule:
     """Returns a model instance."""
     if model_name not in models:
@@ -69,11 +74,17 @@ def model_fn(
     if updater == "Avalanche-iCaRL":
         model_kwargs["prediction_strategy"] = ICaRLClassificationStrategy()
     if model_name == "MultiLayerPerceptron":
-        model_kwargs = {
-            "num_inputs": num_inputs,
-            "num_hidden_layers": num_hidden_layers,
-            "hidden_size": hidden_size,
-        }
+        model_kwargs.update(
+            {
+                "num_inputs": num_inputs,
+                "num_hidden_layers": num_hidden_layers,
+                "hidden_size": hidden_size,
+            }
+        )
+    elif model_name == "HuggingFaceTransformer":
+        if updater == "Avalanche-iCaRL":
+            raise ValueError("Transformers do not support iCaRL.")
+        model_kwargs["pretrained_model_name"] = pretrained_model_name
     if num_outputs is not None:
         model_kwargs["num_outputs"] = num_outputs
     if model_state_url is None:
@@ -85,7 +96,13 @@ def model_fn(
 
 
 def get_data_module(
-    data_path: str, dataset_name: str, val_size: float, seed: int
+    data_path: str,
+    dataset_name: str,
+    val_size: float,
+    seed: int,
+    pretrained_model_name: Optional[str],
+    input_column: Optional[str],
+    target_column: Optional[str],
 ) -> RenateDataModule:
     if dataset_name in TorchVisionDataModule.dataset_dict:
         return TorchVisionDataModule(
@@ -93,6 +110,17 @@ def get_data_module(
         )
     if dataset_name in ["CLEAR10", "CLEAR100"]:
         return CLEARDataModule(data_path, dataset_name=dataset_name, val_size=val_size, seed=seed)
+    if dataset_name.startswith("hfd-"):
+        tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name)
+        return HuggingfaceTextDataModule(
+            data_path=data_path,
+            dataset_name=dataset_name[4:],
+            input_column=input_column,
+            target_column=target_column,
+            tokenizer=tokenizer,
+            val_size=val_size,
+            seed=seed,
+        )
     raise ValueError(f"Unknown dataset `{dataset_name}`.")
 
 
@@ -191,12 +219,18 @@ def data_module_fn(
     input_dim: Optional[Tuple[int]] = None,
     feature_idx: Optional[int] = None,
     randomness: Optional[float] = None,
+    pretrained_model_name: Optional[str] = None,
+    input_column: Optional[str] = None,
+    target_column: Optional[str] = None,
 ):
     data_module = get_data_module(
         data_path=data_path,
         dataset_name=dataset_name,
         val_size=val_size,
         seed=seed,
+        pretrained_model_name=pretrained_model_name,
+        input_column=input_column,
+        target_column=target_column,
     )
     return get_scenario(
         scenario_name=scenario_name,
@@ -222,7 +256,7 @@ def _get_normalize_transform(dataset_name):
 
 def train_transform(dataset_name: str) -> Optional[transforms.Compose]:
     """Returns a transform function to be used in the training."""
-    if dataset_name in ["MNIST", "FashionMNIST"]:
+    if dataset_name in ["MNIST", "FashionMNIST"] or dataset_name.startswith("hfd-"):
         return None
     elif dataset_name in ["CIFAR10", "CIFAR100"]:
         return transforms.Compose(
@@ -237,7 +271,7 @@ def train_transform(dataset_name: str) -> Optional[transforms.Compose]:
 
 def test_transform(dataset_name: str) -> Optional[transforms.Normalize]:
     """Returns a transform function to be used for validation or testing."""
-    if dataset_name in ["MNIST", "FashionMNIST"]:
+    if dataset_name in ["MNIST", "FashionMNIST"] or dataset_name.startswith("hfd-"):
         return None
     elif dataset_name in ["CIFAR10", "CIFAR100"]:
         return _get_normalize_transform(dataset_name)
