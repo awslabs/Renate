@@ -409,7 +409,7 @@ class ReplayLearner(Learner, abc.ABC):
         **kwargs,
     ) -> None:
         super().__init__(seed=seed, **kwargs)
-        self._batch_memory_frac = batch_memory_frac
+        self._batch_memory_frac = min(batch_memory_frac, memory_size / self._batch_size)
         self._memory_buffer = ReservoirBuffer(
             max_size=memory_size,
             seed=seed,
