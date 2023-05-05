@@ -415,8 +415,9 @@ class ReplayLearner(Learner, abc.ABC):
             )
         if memory_size < self._batch_size:
             raise ValueError(
-                "Memory size needs to be larger than the batch size. Received "
-                f"memory_size={memory_size}, batch_size={self._batch_size}."
+                "Expected memory_size to exceed batch_memory_frac * batch_size. Received "
+                f"memory_size={memory_size}, batch_memory_frac={batch_memory_frac}, "
+                f"batch_size={self._batch_size}."
             )
         self._batch_memory_frac = batch_memory_frac
         self._memory_buffer = ReservoirBuffer(
