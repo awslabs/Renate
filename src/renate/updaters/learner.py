@@ -413,12 +413,12 @@ class ReplayLearner(Learner, abc.ABC):
             raise ValueError(
                 f"Expecting batch_memory_frac to be in [0, 1], received {batch_memory_frac}."
             )
-        if memory_size < self._batch_size * batch_memory_frac:
-            raise ValueError(
-                "Expected memory_size to exceed batch_memory_frac * batch_size. Received "
-                f"memory_size={memory_size}, batch_memory_frac={batch_memory_frac}, "
-                f"batch_size={self._batch_size}."
-            )
+        # if memory_size < self._batch_size * batch_memory_frac:
+        #     raise ValueError(
+        #         "Expected memory_size to exceed batch_memory_frac * batch_size. Received "
+        #         f"memory_size={memory_size}, batch_memory_frac={batch_memory_frac}, "
+        #         f"batch_size={self._batch_size}."
+        #     )
         self._batch_memory_frac = batch_memory_frac
         self._memory_buffer = ReservoirBuffer(
             max_size=memory_size,
