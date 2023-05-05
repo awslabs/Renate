@@ -7,7 +7,7 @@ Renate is available via PyPI and can be installed using :code:`pip`:
 
     pip install Renate
 
-If you want to use additional methods that require the Avalanche library, please use use
+If you want to use additional methods that require the Avalanche library, please use
 
 .. code-block:: bash
 
