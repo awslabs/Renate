@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import os
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import torch
 import torchmetrics
@@ -112,6 +112,7 @@ class JointModelUpdater(SingleTrainingLoopUpdater):
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
+        limit_train_batches: Union[int, float] = 1.0,
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
         test_transform: Optional[Callable] = None,
@@ -144,6 +145,7 @@ class JointModelUpdater(SingleTrainingLoopUpdater):
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            limit_train_batches=limit_train_batches,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,

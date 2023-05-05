@@ -1,6 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Optional, Union
 
 import torchmetrics
 from pytorch_lightning.loggers.logger import Logger
