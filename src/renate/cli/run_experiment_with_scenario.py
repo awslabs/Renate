@@ -103,6 +103,12 @@ class ExperimentCLI:
             help=f"Number of epochs trained at most. Default: {defaults.MAX_EPOCHS}",
         )
         argument_group.add_argument(
+            "--limit_train_batches",
+            type=int,
+            default=1.0,
+            help=f"Limit batches per epoch",
+        )
+        argument_group.add_argument(
             "--seed",
             type=int,
             default=defaults.SEED,

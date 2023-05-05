@@ -242,6 +242,12 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
             "help": f"Number of epochs trained at most. Default: {defaults.MAX_EPOCHS}",
             "argument_group": OPTIONAL_ARGS_GROUP,
         },
+        "limit_train_batches": {
+            "type": int,
+            "default": 1.0,
+            "help": "TODO",
+            "argument_group": OPTIONAL_ARGS_GROUP,
+        },
         "task_id": {
             "type": str,
             "default": defaults.TASK_ID,

@@ -4,7 +4,7 @@ import abc
 import logging
 import warnings
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 import torch
 import torchmetrics
@@ -156,6 +156,9 @@ class ModelUpdater(abc.ABC):
         input_state_folder: Folder used by Renate to store files for current state.
         output_state_folder: Folder used by Renate to store files for next state.
         max_epochs: The maximum number of epochs used to train the model.
+        limit_train_batches: Limit an epoch to this number of train batches. Can be formulated in
+            absolute terms (when passing an integer) or as a fraction of a total epochs (when
+            passing a float).
         train_transform: The transformation applied during training.
         train_target_transform: The target transformation applied during testing.
         test_transform: The transformation at test time.
@@ -188,6 +191,7 @@ class ModelUpdater(abc.ABC):
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
+        limit_train_batches: Union[int, float] = 1.0,
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
         test_transform: Optional[Callable] = None,
@@ -249,6 +253,7 @@ class ModelUpdater(abc.ABC):
             self._transforms_kwargs["buffer_transform"] = self._buffer_transform
             self._transforms_kwargs["buffer_target_transform"] = self._buffer_target_transform
         self._max_epochs = max_epochs
+        self._limit_train_batches = limit_train_batches
         if accelerator not in defaults.SUPPORTED_ACCELERATORS:
             raise ValueError(
                 f"Accelerator {accelerator} not supported. "
@@ -330,6 +335,7 @@ class ModelUpdater(abc.ABC):
             accelerator=self._accelerator,
             devices=self._devices,
             max_epochs=self._max_epochs,
+            limit_train_batches=self._limit_train_batches,
             callbacks=callbacks,
             logger=self._logger,
             enable_progress_bar=False,

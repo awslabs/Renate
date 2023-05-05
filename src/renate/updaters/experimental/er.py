@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import abc
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -631,6 +631,7 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
+        limit_train_batches: Union[int, float] = 1.0,
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
         test_transform: Optional[Callable] = None,
@@ -671,6 +672,7 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            limit_train_batches=limit_train_batches,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,
@@ -710,6 +712,7 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
+        limit_train_batches: Union[int, float] = 1.0,
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
         test_transform: Optional[Callable] = None,
@@ -751,6 +754,7 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            limit_train_batches=limit_train_batches,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,
@@ -791,6 +795,7 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
+        limit_train_batches: Union[int, float] = 1.0,
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
         test_transform: Optional[Callable] = None,
@@ -833,6 +838,7 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            limit_train_batches=limit_train_batches,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,
@@ -876,6 +882,7 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
+        limit_train_batches: Union[int, float] = 1.0,
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
         test_transform: Optional[Callable] = None,
@@ -921,6 +928,7 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            limit_train_batches=limit_train_batches,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,
@@ -970,6 +978,7 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
+        limit_train_batches: Union[int, float] = 1.0,
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
         test_transform: Optional[Callable] = None,
@@ -1021,6 +1030,7 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            limit_train_batches=limit_train_batches,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,

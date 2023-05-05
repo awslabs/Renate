@@ -67,6 +67,7 @@ def run_training_job(
     backend: defaults.SUPPORTED_BACKEND_TYPE,
     updater: str = defaults.LEARNER,
     max_epochs: int = defaults.MAX_EPOCHS,
+    limit_train_batches: Union[int, float] = 1.0,
     task_id: str = defaults.TASK_ID,
     chunk_id: int = defaults.CHUNK_ID,
     input_state_url: Optional[str] = None,
@@ -104,6 +105,7 @@ def run_training_job(
         backend: Whether to run jobs locally (`local`) or on SageMaker (`sagemaker`).
         updater: Updater used for model update.
         max_epochs: Maximum number of epochs the model is trained.
+        limit_train_batches: TODO
         task_id: Unique identifier for the current task.
         chunk_id: Unique identifier for the current data chunk.
         input_state_url: Path to the Renate model state.
@@ -155,6 +157,7 @@ def run_training_job(
             metric=metric,
             updater=updater,
             max_epochs=max_epochs,
+            limit_train_batches=limit_train_batches,
             task_id=task_id,
             chunk_id=chunk_id,
             max_time=max_time,
@@ -180,6 +183,7 @@ def run_training_job(
         metric=metric,
         updater=updater,
         max_epochs=max_epochs,
+        limit_train_batches=limit_train_batches,
         task_id=task_id,
         chunk_id=chunk_id,
         source_dir=source_dir,
@@ -492,6 +496,7 @@ def _execute_training_and_tuning_job_locally(
     metric: str,
     updater: str,
     max_epochs: int,
+    limit_train_batches: Union[int, float],
     task_id: str,
     chunk_id: int,
     max_time: float,
@@ -514,6 +519,7 @@ def _execute_training_and_tuning_job_locally(
     tune_hyperparameters = is_syne_tune_config_space(config_space)
     config_space["updater"] = updater
     config_space["max_epochs"] = max_epochs
+    config_space["limit_train_batches"] = limit_train_batches
     config_space["config_file"] = config_file
     config_space["prepare_data"] = False
     config_space["chunk_id"] = chunk_id

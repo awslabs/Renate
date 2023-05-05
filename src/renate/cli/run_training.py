@@ -123,6 +123,7 @@ class ModelUpdaterCLI:
             input_state_folder=self._input_state_folder,
             output_state_folder=self._output_state_folder,
             max_epochs=args.max_epochs,
+            limit_train_batches=args.limit_train_batches,
             metric=args.metric,
             mode=args.mode,
             logged_metrics=metrics,
