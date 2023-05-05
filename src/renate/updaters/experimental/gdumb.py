@@ -44,7 +44,7 @@ class GDumbLearner(ReplayLearner):
     ) -> None:
         super().__init__(
             memory_size=memory_size,
-            batch_memory_frac=-1.0,  # Dummy value
+            batch_memory_frac=0.0,  # Dummy value
             seed=seed,
             **kwargs,
         )

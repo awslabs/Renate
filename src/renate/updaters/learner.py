@@ -409,13 +409,28 @@ class ReplayLearner(Learner, abc.ABC):
         **kwargs,
     ) -> None:
         super().__init__(seed=seed, **kwargs)
-        self._batch_memory_frac = min(batch_memory_frac, memory_size / self._batch_size)
+        if not (0 <= batch_memory_frac <= 1):
+            raise ValueError(
+                f"Expecting batch_memory_frac to be in [0, 1], received {batch_memory_frac}."
+            )
+        if memory_size < self._batch_size:
+            raise ValueError(
+                "Memory size needs to be larger than the batch size. Received "
+                f"memory_size={memory_size}, batch_size={self._batch_size}."
+            )
+        self._batch_memory_frac = batch_memory_frac
         self._memory_buffer = ReservoirBuffer(
             max_size=memory_size,
             seed=seed,
             transform=buffer_transform,
             target_transform=buffer_target_transform,
         )
+
+    def _memory_batch_size(self):
+        memory_batch_size = int(self._batch_memory_frac * self._batch_size)
+        if memory_batch_size < len(self._memory_buffer):
+            return 0
+        return memory_batch_size
 
     def state_dict(self, **kwargs) -> Dict[str, Any]:
         """Returns the state of the learner."""

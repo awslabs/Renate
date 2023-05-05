@@ -95,7 +95,7 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
         )
         return DataLoader(
             train_dataset,
-            batch_size=self._batch_size - int(self._batch_memory_frac * self._batch_size),
+            batch_size=self._batch_size - self._memory_batch_size(),
             shuffle=True,
             generator=self._rng,
             pin_memory=True,
@@ -219,8 +219,8 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
 
     def _set_memory_loader(self) -> None:
         """Create a memory loader from a memory buffer."""
-        memory_batch_size = int(self._batch_memory_frac * self._batch_size)
-        if self._memory_loader is None and len(self._memory_buffer) >= memory_batch_size:
+        memory_batch_size = self._memory_batch_size()
+        if self._memory_loader is None and memory_batch_size:
             self._memory_loader = DataLoader(
                 dataset=self._memory_buffer,
                 batch_size=memory_batch_size,

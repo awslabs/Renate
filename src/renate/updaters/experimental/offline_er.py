@@ -66,9 +66,22 @@ class OfflineExperienceReplayLearner(ReplayLearner):
 
     def train_dataloader(self) -> DataLoader:
         """Returns the dataloader for training the model."""
-        loaders = {}
-        memory_batch_size = int(self._batch_memory_frac * self._batch_size)
-        if len(self._memory_buffer) >= memory_batch_size:
+        memory_batch_size = self._memory_batch_size()
+        train_dataset = _TransformedDataset(
+            self._train_dataset,
+            transform=self._train_transform,
+            target_transform=self._train_target_transform,
+        )
+        loaders = {
+            "current_task": DataLoader(
+                train_dataset,
+                batch_size=self._batch_size - memory_batch_size,
+                shuffle=True,
+                generator=self._rng,
+                pin_memory=True,
+            )
+        }
+        if memory_batch_size:
             loaders["memory"] = DataLoader(
                 dataset=self._memory_buffer,
                 batch_size=memory_batch_size,
@@ -77,20 +90,6 @@ class OfflineExperienceReplayLearner(ReplayLearner):
                 generator=self._rng,
                 pin_memory=True,
             )
-        else:
-            memory_batch_size = 0
-        train_dataset = _TransformedDataset(
-            self._train_dataset,
-            transform=self._train_transform,
-            target_transform=self._train_target_transform,
-        )
-        loaders["current_task"] = DataLoader(
-            train_dataset,
-            batch_size=self._batch_size - memory_batch_size,
-            shuffle=True,
-            generator=self._rng,
-            pin_memory=True,
-        )
         return CombinedLoader(loaders, mode="max_size_cycle")
 
     def on_model_update_end(self) -> None:
