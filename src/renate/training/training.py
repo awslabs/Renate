@@ -31,7 +31,7 @@ from syne_tune.util import experiment_path
 
 import renate
 from renate import defaults
-from renate.cli.parsing_functions import to_dense_str, get_data_module_fn_kwargs
+from renate.cli.parsing_functions import get_data_module_fn_kwargs, to_dense_str
 from renate.utils.file import move_to_uri
 from renate.utils.module import get_and_prepare_data_module, import_module
 from renate.utils.syne_tune import (

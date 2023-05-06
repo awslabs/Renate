@@ -40,7 +40,7 @@ with your data module as follows.
 .. code-block:: python
 
     def data_module_fn(
-        data_path: Union[Path, str], chunk_id: int, seed: int, class_groupings: Tuple[Tuple[int]]
+        data_path: str, chunk_id: int, seed: int, class_groupings: Tuple[Tuple[int]]
     ):
         data_module = CustomDataModule(data_path=data_path, seed=seed)
         return ClassIncrementalScenario(

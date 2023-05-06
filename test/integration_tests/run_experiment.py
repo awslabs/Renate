@@ -57,7 +57,7 @@ if __name__ == "__main__":
         f"--max-time",
         type=int,
         default=12 * 3600,
-        help="Seed.",
+        help="Maximum execution time.",
     )
     args = parser.parse_args()
     config_space = load_config(

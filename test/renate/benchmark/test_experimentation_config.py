@@ -4,6 +4,7 @@ import pytest
 from torchvision.transforms import Compose, Normalize
 
 from renate.benchmark import experiment_config
+from renate.benchmark.datasets.nlp_datasets import HuggingfaceTextDataModule
 from renate.benchmark.datasets.vision_datasets import CLEARDataModule, TorchVisionDataModule
 from renate.benchmark.experiment_config import (
     data_module_fn,
@@ -22,20 +23,24 @@ from renate.benchmark.scenarios import (
     ImageRotationScenario,
     PermutationScenario,
 )
+from renate.models.prediction_strategies import ICaRLClassificationStrategy
 
 
 @pytest.mark.parametrize(
     "model_name,expected_model_class",
-    [(model_name, model_class) for model_name, model_class in zip(models.keys(), models.values())],
+    [(model_name, model_class) for model_name, model_class in models.items()],
 )
 def test_model_fn(model_name, expected_model_class):
     model = model_fn(
         model_state_url=None,
         model_name=model_name,
         num_inputs=1 if model_name == "MultiLayerPerceptron" else None,
-        num_outputs=1 if model_name == "MultiLayerPerceptron" else None,
+        num_outputs=1 if model_name in ["MultiLayerPerceptron", "HuggingFaceTransformer"] else None,
         num_hidden_layers=1 if model_name == "MultiLayerPerceptron" else None,
         hidden_size=1 if model_name == "MultiLayerPerceptron" else None,
+        pretrained_model_name="distilbert-base-uncased"
+        if model_name == "HuggingFaceTransformer"
+        else None,
     )
     assert isinstance(model, expected_model_class)
 
@@ -47,22 +52,58 @@ def test_model_fn_fails_for_unknown_model():
 
 
 @pytest.mark.parametrize(
-    "dataset_name,data_module_class",
-    (("CIFAR10", TorchVisionDataModule), ("CLEAR10", CLEARDataModule)),
+    "dataset_name,data_module_class,pretrained_model_name,input_column,target_column",
+    (
+        ("CIFAR10", TorchVisionDataModule, None, None, None),
+        ("CLEAR10", CLEARDataModule, None, None, None),
+        (
+            "hfd-rotten-tomatoes",
+            HuggingfaceTextDataModule,
+            "distilbert-base-uncased",
+            "text",
+            "label",
+        ),
+    ),
 )
-def test_get_data_module(tmpdir, dataset_name, data_module_class):
-    data_module = get_data_module(data_path=tmpdir, dataset_name=dataset_name, val_size=0.5, seed=0)
+def test_get_data_module(
+    tmpdir, dataset_name, data_module_class, pretrained_model_name, input_column, target_column
+):
+    data_module = get_data_module(
+        data_path=tmpdir,
+        dataset_name=dataset_name,
+        val_size=0.5,
+        seed=0,
+        pretrained_model_name=pretrained_model_name,
+        input_column=input_column,
+        target_column=target_column,
+    )
     assert isinstance(data_module, data_module_class)
 
 
 def test_get_data_module_fails_for_unknown_dataset(tmpdir):
     unknown_dataset_name = "UNKNOWN_DATASET_NAME"
     with pytest.raises(ValueError, match=f"Unknown dataset `{unknown_dataset_name}`"):
-        get_data_module(data_path=tmpdir, dataset_name=unknown_dataset_name, val_size=0.5, seed=0)
+        get_data_module(
+            data_path=tmpdir,
+            dataset_name=unknown_dataset_name,
+            val_size=0.5,
+            seed=0,
+            pretrained_model_name=None,
+            input_column=None,
+            target_column=None,
+        )
 
 
 def test_get_scenario_fails_for_unknown_scenario(tmpdir):
-    data_module = get_data_module(data_path=tmpdir, dataset_name="MNIST", val_size=0.5, seed=0)
+    data_module = get_data_module(
+        data_path=tmpdir,
+        dataset_name="MNIST",
+        val_size=0.5,
+        seed=0,
+        pretrained_model_name=None,
+        input_column=None,
+        target_column=None,
+    )
     unknown_scenario_name = "UNKNOWN_SCENARIO_NAME"
     with pytest.raises(ValueError, match=f"Unknown scenario `{unknown_scenario_name}`"):
         get_scenario(
@@ -75,8 +116,13 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
     (
         (
             "ClassIncrementalScenario",
-            "CIFAR10",
-            {"class_groupings": ((0, 1), (2, 3, 4), (5, 6))},
+            "hfd-trec",
+            {
+                "pretrained_model_name": "distilbert-base-uncased",
+                "input_column": "text",
+                "target_column": "coarse_label",
+                "class_groupings": ((0, 1), (2, 3), (4, 5)),
+            },
             ClassIncrementalScenario,
             3,
         ),
@@ -122,7 +168,7 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         ),
     ),
     ids=[
-        "class_incremental_image",
+        "class_incremental",
         "iid",
         "rotation",
         "benchmark",
@@ -163,7 +209,13 @@ def test_data_module_fn(
 
 @pytest.mark.parametrize(
     "dataset_name,use_transforms",
-    (("MNIST", False), ("FashionMNIST", False), ("CIFAR10", True), ("CIFAR100", True)),
+    (
+        ("MNIST", False),
+        ("FashionMNIST", False),
+        ("CIFAR10", True),
+        ("CIFAR100", True),
+        ("hfd-rotten_tomatoes", False),
+    ),
 )
 def test_transforms(dataset_name, use_transforms):
     train_preprocessing = train_transform(dataset_name)
@@ -181,3 +233,27 @@ def test_transforms_fails_for_unknown_dataset():
     for transform_function in [train_transform, experiment_config.test_transform]:
         with pytest.raises(ValueError, match=f"Unknown dataset `{unknown_dataset_set}`"):
             transform_function(unknown_dataset_set)
+
+
+@pytest.mark.parametrize("model_name", [model_name for model_name in models])
+@pytest.mark.parametrize("updater", ("ER", "Avalanche-iCaRL"))
+def test_prediction_strategy_is_correctly_set(model_name, updater):
+    """If iCaRL is used, the model prediction strategy must be changed."""
+    model_kwargs = {
+        "model_name": model_name,
+        "updater": updater,
+        "num_outputs": 2,
+    }
+    if model_name == "MultiLayerPerceptron":
+        model_kwargs.update({"num_inputs": 10, "hidden_size": 10, "num_hidden_layers": 2})
+    elif model_name == "HuggingFaceTransformer":
+        model_kwargs["pretrained_model_name"] = "distilbert-base-uncased"
+    if model_name == "HuggingFaceTransformer" and updater == "Avalanche-iCaRL":
+        with pytest.raises(ValueError, match="Transformers do not support iCaRL."):
+            model_fn(**model_kwargs)
+    else:
+        model = model_fn(**model_kwargs)
+        if updater == "ER":
+            assert not hasattr(model, "_prediction_strategy") or model._prediction_strategy is None
+        else:
+            assert isinstance(model._prediction_strategy, ICaRLClassificationStrategy)

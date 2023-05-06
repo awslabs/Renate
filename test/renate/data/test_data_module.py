@@ -150,7 +150,7 @@ def test_tiny_imagenet_data_module(tmpdir):
         dict(padding="longest", max_length=512, truncation=True),
     ],
 )
-def test_huggingface_data_module(
+def test_hugging_face_data_module(
     tmpdir, dataset_name, input_column, target_column, tokenizer, tokenizer_kwargs
 ):
     data_module = HuggingfaceTextDataModule(
@@ -177,3 +177,34 @@ def test_huggingface_data_module(
         assert set(inputs.keys()) == set(["input_ids", "attention_mask"])
         assert isinstance(inputs["input_ids"], torch.Tensor)
         assert isinstance(inputs["attention_mask"], torch.Tensor)
+
+
+@pytest.mark.parametrize("column", ("input", "target"), ids=("input", "target"))
+def test_hugging_face_exception_raised_with_wrong_column(tmpdir, column):
+    input_column = "text"
+    target_column = "label"
+    if column == "input":
+        input_column = "WRONG_COLUMN"
+    elif column == "target":
+        target_column = "WRONG_COLUMN"
+    data_module = HuggingfaceTextDataModule(
+        data_path=tmpdir,
+        dataset_name="rotten_tomatoes",
+        input_column=input_column,
+        target_column=target_column,
+        val_size=0.2,
+    )
+    if column == "input":
+        with pytest.raises(
+            ValueError,
+            match="Input column 'WRONG_COLUMN' does not exist in rotten_tomatoes. "
+            "Available columns: \\['text', 'label'\\].",
+        ):
+            data_module.prepare_data()
+    elif column == "target":
+        with pytest.raises(
+            ValueError,
+            match="Target column 'WRONG_COLUMN' does not exist in rotten_tomatoes. "
+            "Available columns: \\['text', 'label'\\].",
+        ):
+            data_module.prepare_data()

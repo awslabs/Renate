@@ -31,13 +31,13 @@ In the following, we refer with :code:`model_fn` to the function defined by the 
 Output Saved Locally
 ~~~~~~~~~~~~~~~~~~~~
 
-If :code:`next_state_url` is a path to a local folder, loading the updated model can be done as follows:
+If :code:`output_state_url` is a path to a local folder, loading the updated model can be done as follows:
 
 .. code-block:: python
 
-    from renate.defaults import current_state_folder, model_file
+    from renate.defaults import input_state_folder, model_file
 
-    my_model = model_fn(model_file(current_state_folder(next_state_url)))
+    my_model = model_fn(model_file(input_state_folder(output_state_url)))
 
 Output Saved on S3
 ~~~~~~~~~~~~~~~~~~
@@ -46,9 +46,9 @@ If the Renate output was saved on S3, the model checkpoint :code:`model.ckpt` ca
 
 .. code-block:: python
 
-    from renate.defaults import current_state_folder, model_file
+    from renate.defaults import input_state_folder, model_file
 
-    print(model_file(current_state_folder(next_state_url)))
+    print(model_file(input_state_folder(output_state_url)))
 
 and then loaded via
 
