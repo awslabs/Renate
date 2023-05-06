@@ -310,7 +310,7 @@ def _execute_experiment_job_locally(
         logged_metrics=metrics,
         metric_postfix="_init",
         accelerator=accelerator,
-        devices=devices,
+        devices=1,
         strategy=strategy,
         precision=precision,
     )
@@ -351,7 +351,6 @@ def _execute_experiment_job_locally(
             model_state_url=model_url,
             **get_model_fn_kwargs(config_module, config_space),
         )
-        # model.loss_fn = torch.nn.CrossEntropyLoss()
 
         evaluate_and_record_results(
             results,
