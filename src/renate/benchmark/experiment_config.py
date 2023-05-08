@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple, Union
 
 import torch
 from torchvision.transforms import transforms
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, GPT2Tokenizer, GPT2TokenizerFast
 
 from renate.benchmark.datasets.nlp_datasets import HuggingfaceTextDataModule
 from renate.benchmark.datasets.vision_datasets import CLEARDataModule, TorchVisionDataModule
@@ -114,7 +114,7 @@ def get_data_module(
         return CLEARDataModule(data_path, dataset_name=dataset_name, val_size=val_size, seed=seed)
     if dataset_name.startswith("hfd-"):
         tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name)
-        if pretrained_model_name == "gpt2":
+        if isinstance(tokenizer, (GPT2Tokenizer, GPT2TokenizerFast)):
             tokenizer.pad_token = tokenizer.eos_token
         return HuggingfaceTextDataModule(
             data_path=data_path,
