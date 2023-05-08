@@ -41,12 +41,12 @@ class HuggingFaceSequenceClassificationTransformer(RenateModule):
             pretrained_model_name, num_labels=num_outputs, return_dict=False
         )
         if peft_type:
-            self.use_peft(peft_type)
+            self.use_peft(pretrained_model_name, peft_type)
 
-    def use_peft(self, peft_type):
+    def use_peft(self, pretrained_model_name: str, peft_type: str) -> None:
         if peft_type == "lora":
             lora_kwargs = {"r": 8, "lora_alpha": 32, "lora_dropout": 0.1}
-            if self._pretrained_model_name == "gpt2":
+            if pretrained_model_name == "gpt2":
                 lora_kwargs["fan_in_fan_out"] = True
             peft_config = LoraConfig(**lora_kwargs)
         else:
