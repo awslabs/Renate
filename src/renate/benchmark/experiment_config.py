@@ -65,6 +65,7 @@ def model_fn(
     num_hidden_layers: Optional[int] = None,
     hidden_size: Optional[Tuple[int]] = None,
     pretrained_model_name: Optional[str] = None,
+    peft_type: Optional[str] = None,
 ) -> RenateModule:
     """Returns a model instance."""
     if model_name not in models:
@@ -85,6 +86,7 @@ def model_fn(
         if updater == "Avalanche-iCaRL":
             raise ValueError("Transformers do not support iCaRL.")
         model_kwargs["pretrained_model_name"] = pretrained_model_name
+        model_kwargs["peft_type"] = peft_type
     if num_outputs is not None:
         model_kwargs["num_outputs"] = num_outputs
     if model_state_url is None:
@@ -112,6 +114,8 @@ def get_data_module(
         return CLEARDataModule(data_path, dataset_name=dataset_name, val_size=val_size, seed=seed)
     if dataset_name.startswith("hfd-"):
         tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name)
+        if pretrained_model_name == "gpt2":
+            tokenizer.pad_token = tokenizer.eos_token
         return HuggingfaceTextDataModule(
             data_path=data_path,
             dataset_name=dataset_name[4:],
