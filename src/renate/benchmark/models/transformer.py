@@ -6,9 +6,18 @@ import torch
 import torch.nn as nn
 from peft import LoraConfig, get_peft_model
 from torch import Tensor
-from transformers import AutoModelForSequenceClassification
+from transformers import AutoModelForSequenceClassification, T5ForConditionalGeneration
 
 from renate.models import RenateModule
+
+
+def from_pretrained(pretrained_model_name: str, num_labels: int, return_dict: bool):
+    auto_class = AutoModelForSequenceClassification
+    if pretrained_model_name in ["t5-small", "t5-base", "t5-large", "t5-3b", "t5-11b"]:
+        auto_class = T5ForConditionalGeneration
+    return auto_class.from_pretrained(
+        pretrained_model_name, num_labels=num_labels, return_dict=return_dict
+    )
 
 
 class HuggingFaceSequenceClassificationTransformer(RenateModule):
@@ -35,9 +44,7 @@ class HuggingFaceSequenceClassificationTransformer(RenateModule):
             },
             loss_fn=loss_fn,
         )
-        # if pretrained_model_name in ["t5-small", "t5-base", "t5-large", "t5-3b", "t5-11b"]:
-        #    auto_class = AutoModelForConditionalGeneration
-        self._model = AutoModelForSequenceClassification.from_pretrained(
+        self._model = from_pretrained(
             pretrained_model_name, num_labels=num_outputs, return_dict=False
         )
         if peft_type:
