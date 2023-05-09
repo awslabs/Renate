@@ -67,7 +67,7 @@ def run_training_job(
     backend: defaults.SUPPORTED_BACKEND_TYPE,
     updater: str = defaults.LEARNER,
     max_epochs: int = defaults.MAX_EPOCHS,
-    limit_train_batches: Union[int, float] = 1.0,
+    limit_train_batches: float = 1.0,
     task_id: str = defaults.TASK_ID,
     chunk_id: int = defaults.CHUNK_ID,
     input_state_url: Optional[str] = None,
