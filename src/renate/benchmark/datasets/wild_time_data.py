@@ -76,27 +76,16 @@ class WildTimeDataModule(RenateDataModule):
                     dst_dir=str(dst_dir),
                 )
 
-    def _apply_tokenizer(self, data: RenateDataModule) -> RenateDataModule:
-        return _TransformedDataset(
-            data, lambda batch: self._tokenizer(batch[0], **(self._tokenizer_kwargs or {}))
-        )
-
     def setup(self) -> None:
         """Set up train, test and val datasets."""
-        train_data = load_dataset(
-            dataset_name=self._dataset_name,
-            time_step=available_time_steps(self._dataset_name)[self.time_step],
-            split="train",
-            data_dir=self._data_path,
-        )
+        kwargs = {
+            "dataset_name": self._dataset_name,
+            "time_step": available_time_steps(self._dataset_name)[self.time_step],
+            "data_dir": self._data_path,
+            "in_memory": self._dataset_name != "fmow",
+        }
+        if self._tokenizer:
+            kwargs["transform"] = lambda x: self._tokenizer(x, **(self._tokenizer_kwargs or {}))
+        train_data = load_dataset(split="train", **kwargs)
         self._train_data, self._val_data = self._split_train_val_data(train_data)
-        self._test_data = load_dataset(
-            dataset_name=self._dataset_name,
-            time_step=available_time_steps(self._dataset_name)[self.time_step],
-            split="test",
-            data_dir=self._data_path,
-        )
-        if self._tokenizer is not None:
-            self._train_data = self._apply_tokenizer(self._train_data)
-            self._val_data = self._apply_tokenizer(self._val_data)
-            self._test_data = self._apply_tokenizer(self._test_data)
+        self._test_data = load_dataset(split="test", **kwargs)

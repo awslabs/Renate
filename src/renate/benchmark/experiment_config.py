@@ -7,6 +7,7 @@ import wild_time_data
 from torchvision.transforms import transforms
 from transformers import AutoTokenizer
 
+from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
 from renate.benchmark.datasets.vision_datasets import CLEARDataModule, TorchVisionDataModule
 from renate.benchmark.datasets.wild_time_data import WildTimeDataModule
 from renate.benchmark.models import (
@@ -132,7 +133,7 @@ def get_data_module(
 
     if dataset_name.startswith("hfd-"):
         tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name)
-        return HuggingfaceTextDataModule(
+        return HuggingFaceTextDataModule(
             data_path=data_path,
             dataset_name=dataset_name[4:],
             input_column=input_column,
