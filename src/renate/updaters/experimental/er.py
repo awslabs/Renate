@@ -71,7 +71,7 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
                 "test_target_transform",
                 "buffer_transform",
                 "buffer_target_transform",
-                "logged_metrics"
+                "logged_metrics",
             ]
         )
 
@@ -297,7 +297,7 @@ class ExperienceReplayLearner(BaseExperienceReplayLearner):
                 "test_target_transform",
                 "buffer_transform",
                 "buffer_target_transform",
-                "logged_metrics"
+                "logged_metrics",
             ]
         )
 
@@ -349,7 +349,7 @@ class DarkExperienceReplayLearner(ExperienceReplayLearner):
                 "test_target_transform",
                 "buffer_transform",
                 "buffer_target_transform",
-                "logged_metrics"
+                "logged_metrics",
             ]
         )
 
@@ -419,7 +419,7 @@ class PooledOutputDistillationExperienceReplayLearner(BaseExperienceReplayLearne
                 "test_target_transform",
                 "buffer_transform",
                 "buffer_target_transform",
-                "logged_metrics"
+                "logged_metrics",
             ]
         )
 
@@ -509,7 +509,7 @@ class CLSExperienceReplayLearner(BaseExperienceReplayLearner):
                 "test_target_transform",
                 "buffer_transform",
                 "buffer_target_transform",
-                "logged_metrics"
+                "logged_metrics",
             ]
         )
 
@@ -643,7 +643,7 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
                 "test_target_transform",
                 "buffer_transform",
                 "buffer_target_transform",
-                "logged_metrics"
+                "logged_metrics",
             ]
         )
 

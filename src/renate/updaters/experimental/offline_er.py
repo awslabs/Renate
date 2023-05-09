@@ -65,7 +65,7 @@ class OfflineExperienceReplayLearner(ReplayLearner):
                 "test_target_transform",
                 "buffer_transform",
                 "buffer_target_transform",
-                "logged_metrics"
+                "logged_metrics",
             ]
         )
 

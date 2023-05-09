@@ -353,7 +353,7 @@ class ModelUpdater(abc.ABC):
         learner.load(self._input_state_folder)
         # learner.set_transforms(**self._transforms_kwargs)
         # learner.set_logged_metrics(self._logged_metrics)
-        # learner.update_hyperparameters(learner_kwargs) 
+        # learner.update_hyperparameters(learner_kwargs)
         return learner
 
     def _fit_learner(

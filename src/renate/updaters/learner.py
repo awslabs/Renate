@@ -108,7 +108,7 @@ class Learner(LightningModule, abc.ABC):
                 "test_target_transform",
                 "buffer_transform",
                 "buffer_target_transform",
-                "logged_metrics"
+                "logged_metrics",
             ]
         )
 
@@ -485,7 +485,7 @@ class ReplayLearner(Learner, abc.ABC):
                 "test_target_transform",
                 "buffer_transform",
                 "buffer_target_transform",
-                "logged_metrics"
+                "logged_metrics",
             ]
         )
 
