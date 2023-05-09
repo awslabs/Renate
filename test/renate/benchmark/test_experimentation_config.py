@@ -197,7 +197,7 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         (
             "WildTimeScenario",
             "arxiv",
-            {"num_tasks": 3, "pretrained_model_name_or_path": "distilbert-base-uncased"},
+            {"num_tasks": 3, "pretrained_model_name": "distilbert-base-uncased"},
             WildTimeScenario,
             3,
         ),
@@ -249,7 +249,7 @@ def test_data_module_fn(
     elif expected_scenario_class == HueShiftScenario:
         assert scenario._randomness == scenario_kwargs["randomness"]
     elif expected_scenario_class == WildTimeScenario:
-        if "pretrained_model_name_or_path" in scenario_kwargs:
+        if "pretrained_model_name" in scenario_kwargs:
             assert scenario._data_module._tokenizer is not None
         else:
             assert scenario._data_module._tokenizer is None

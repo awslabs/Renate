@@ -192,6 +192,7 @@ def test_hugging_face_exception_raised_with_wrong_column(tmpdir, column):
         dataset_name="rotten_tomatoes",
         input_column=input_column,
         target_column=target_column,
+        tokenizer=None,
         val_size=0.2,
     )
     if column == "input":
