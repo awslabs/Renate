@@ -9,7 +9,6 @@ from wild_time_data.core import available_time_steps, dataset_classes
 
 from renate import defaults
 from renate.data.data_module import RenateDataModule
-from renate.data.datasets import _TransformedDataset
 from renate.utils.file import download_folder_from_s3
 
 
