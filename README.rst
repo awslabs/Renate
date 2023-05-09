@@ -2,7 +2,7 @@
     :target: #
     :alt: PyPI - Status
 .. image:: https://img.shields.io/github/v/release/awslabs/Renate
-    :target: https://github.com/awslabs/Renate/releases/tag/v0.1.0
+    :target: https://github.com/awslabs/Renate/releases/tag/v0.2.0
     :alt: Latest Release
 .. image:: https://img.shields.io/pypi/dm/Renate
     :target: https://pypistats.org/packages/renate
@@ -72,11 +72,29 @@ Key features
 * Advanced HPO functionalities available out-of-the-box
 * Open for experimentation 
 
-Blog posts
-==========
+Resources
+=========
 
-* `Automatically retrain neural networks with Renate <https://aws.amazon.com/blogs/machine-learning/automatically-retrain-neural-networks-with-renate/>`_
+* (blog) `Automatically retrain neural networks with Renate <https://aws.amazon.com/blogs/machine-learning/automatically-retrain-neural-networks-with-renate/>`_
+* (paper) `Renate: A Library for Real-World Continual Learning <https://arxiv.org/abs/2304.12067>`_
 
+Cite Renate
+===========
+
+    .. code-block:: bibtex
+    
+      @misc{renate2023,
+        title           = {Renate: A Library for Real-World Continual Learning}, 
+        author          = {Martin Wistuba and
+                           Martin Ferianc and
+                           Lukas Balles and
+                           Cedric Archambeau and
+                           Giovanni Zappella},
+        year            = {2023},
+        eprint          = {2304.12067},
+        archivePrefix   = {arXiv},
+        primaryClass    = {cs.LG}
+      }
 
 What are you looking for?
 =========================

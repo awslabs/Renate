@@ -1,7 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from pathlib import Path
-from typing import Callable, Optional, Union
+from typing import Callable, Optional
 
 import torch
 from torchvision import transforms
@@ -13,12 +12,12 @@ from renate.benchmark.scenarios import ClassIncrementalScenario, Scenario
 from renate.models import RenateModule
 
 
-def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule:
+def model_fn(model_state_url: Optional[str] = None) -> RenateModule:
     """Returns a model instance."""
     if model_state_url is None:
         model = ResNet18CIFAR()
     else:
-        state_dict = torch.load(str(model_state_url))
+        state_dict = torch.load(model_state_url)
         model = ResNet18CIFAR.from_state_dict(state_dict)
     return model
 

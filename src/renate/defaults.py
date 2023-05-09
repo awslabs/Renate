@@ -34,8 +34,6 @@ SUPPORTED_ACCELERATORS_TYPE = Literal["auto", "cpu", "gpu", "tpu"]
 DEVICES = 1
 VOLUME_SIZE = 60
 
-BUFFER_STORAGE_MODE = "in_memory"
-SUPPORTED_BUFFER_STORAGE_MODES = Literal["in_memory"]
 LEARNER = "ER"
 INSTANCE_COUNT = 1
 INSTANCE_MAX_TIME = 3 * 24 * 3600
@@ -122,23 +120,23 @@ def current_timestamp() -> str:
     return str(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f"))
 
 
-def data_folder(working_directory: str):
+def data_folder(working_directory: str) -> str:
     return os.path.join(working_directory, "data")
 
 
-def input_state_folder(working_directory: str):
+def input_state_folder(working_directory: str) -> str:
     return os.path.join(working_directory, "input_state")
 
 
-def output_state_folder(working_directory: str):
+def output_state_folder(working_directory: str) -> str:
     return os.path.join(working_directory, "output_state")
 
 
-def logs_folder(working_directory: str):
+def logs_folder(working_directory: str) -> str:
     return os.path.join(working_directory, "logs")
 
 
-def model_file(state_folder: str):
+def model_file(state_folder: str) -> str:
     return os.path.join(state_folder, "model.ckpt")
 
 
@@ -146,17 +144,17 @@ LEARNER_CHECKPOINT_NAME = "learner.ckpt"
 AVALANCHE_CHECKPOINT_NAME = "avalanche.ckpt"
 
 
-def learner_state_file(state_folder: str):
+def learner_state_file(state_folder: str) -> str:
     return os.path.join(state_folder, LEARNER_CHECKPOINT_NAME)
 
 
-def avalanche_state_file(state_folder: str):
+def avalanche_state_file(state_folder: str) -> str:
     return os.path.join(state_folder, AVALANCHE_CHECKPOINT_NAME)
 
 
-def metric_summary_file(logs_folder: str, special_str: str = ""):
+def metric_summary_file(logs_folder: str, special_str: str = "") -> str:
     return os.path.join(logs_folder, f"metrics_summary{special_str}.csv")
 
 
-def hpo_file(state_folder: str):
+def hpo_file(state_folder: str) -> str:
     return os.path.join(state_folder, "hpo.csv")

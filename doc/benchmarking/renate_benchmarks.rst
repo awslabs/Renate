@@ -93,6 +93,10 @@ The full list of models and model names including a short description is provide
     * - `~renate.benchmark.models.vision_transformer.VisionTransformerH14`
       - Huge `Vision Transformer <https://arxiv.org/abs/2010.11929>`_ architecture for images of size 224x224 with patch size 14.
       - * ``num_outputs``: Output dimensionality, for classification the number of classes.
+    * - `~renate.benchmark.models.transformer.HuggingFaceSequenceClassificationTransformer`
+      - Wrapper around Hugging Face transformers.
+      - * ``pretrained_model_name``: Hugging Face `transformer ID <https://huggingface.co/models>`__.
+        * ``num_outputs``: The number of classes.
 
 
 .. _benchmarking-renate-benchmarks-datasets:
@@ -149,6 +153,10 @@ The following table contains the list of supported datasets.
       - Image Classification: gender identification in yearbook photos.
       - ~33k train, ~4k test, 2 classes, years 1930-2013, image shape 32x32x1
       - Huaxiu Yao et al.: Wild-Time: A Benchmark of in-the-Wild Distribution Shift over Time. Conference on Neural Information Processing Systems Datasets and Benchmarks Track. 2022.
+    * - hfd-{dataset_name}
+      - multiple
+      - Any `Hugging Face dataset <https://huggingface.co/datasets>`__ can be used. Just prepend the prefix ``hfd-``, e.g., ``hfd-rotten_tomatoes``. Select input and target columns via ``config_space``, e.g., add ``"input_column": "text", "target_column": "label"`` for the `rotten_tomatoes <https://huggingface.co/datasets/rotten_tomatoes>`__ example.
+      - Please refer to `the official documentation <https://huggingface.co/datasets>`__.
 
 .. _benchmarking-renate-benchmarks-scenarios:
 

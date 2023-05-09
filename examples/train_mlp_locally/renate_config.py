@@ -1,7 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from pathlib import Path
-from typing import Callable, Optional, Union
+from typing import Callable, Optional
 
 import torch
 from torchvision.transforms import transforms
@@ -34,14 +33,14 @@ def data_module_fn(data_path: str, chunk_id: int, seed: int = defaults.SEED) -> 
     return class_incremental_scenario
 
 
-def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule:
+def model_fn(model_state_url: Optional[str] = None) -> RenateModule:
     """Returns a model instance."""
     if model_state_url is None:
         model = MultiLayerPerceptron(
             num_inputs=784, num_outputs=10, num_hidden_layers=2, hidden_size=128
         )
     else:
-        state_dict = torch.load(str(model_state_url))
+        state_dict = torch.load(model_state_url)
         model = MultiLayerPerceptron.from_state_dict(state_dict)
     return model
 

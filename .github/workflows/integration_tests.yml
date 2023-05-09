@@ -1,0 +1,59 @@
+name: Integration Tests
+
+# All tests in this file:
+# 1. Run against every PR
+# 2. Do not require AWS credentials (We only run the tests that require credentials on code that has been approved and merged to main)
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: 3.x
+    - name: Prepare Inputs
+      id: set-matrix
+      run: |
+        import os
+        import json
+
+        target_directory = 'test/integration_tests/configs/suites/quick'
+        files = [f for f in os.listdir(target_directory) if os.path.isfile(os.path.join(target_directory, f))]
+        matrix_json = json.dumps(files)
+        print(matrix_json)
+        with open('matrix.json', 'w') as f:
+            f.write(matrix_json)
+        
+        name = "matrix"
+        value = matrix_json
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+          print(f'{name}={value}', file=fh)
+
+      shell: python
+
+
+  tests:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: ${{ fromJSON(needs.prepare.outputs.matrix)}}
+    uses: ./.github/workflows/run_renate.yml
+    with:
+      path: test/integration_tests
+      script: run_quick_test.py --test-file ${{ matrix.suite }}
+

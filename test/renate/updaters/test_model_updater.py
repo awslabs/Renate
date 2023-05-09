@@ -27,7 +27,7 @@ def test_simple_model_updater(tmpdir, provide_folder):
         model, output_state_folder=defaults.output_state_folder(tmpdir) if provide_folder else None
     )
     y_hat_before_train = model(test_data, task_id=defaults.TASK_ID)
-    model_updater.update(train_dataset, task_id=defaults.TASK_ID)
+    model = model_updater.update(train_dataset, task_id=defaults.TASK_ID)
     y_hat_after_train = model(test_data, task_id=defaults.TASK_ID)
     assert y_hat_before_train.shape[0] == y_hat_after_train.shape[0]
     assert not torch.allclose(y_hat_before_train, y_hat_after_train)
@@ -57,8 +57,8 @@ def test_deterministic_updater():
         deterministic_trainer=True,
     )
 
-    model_updater1.update(train_dataset, task_id=defaults.TASK_ID)
-    model_updater2.update(train_dataset, task_id=defaults.TASK_ID)
+    model1 = model_updater1.update(train_dataset, task_id=defaults.TASK_ID)
+    model2 = model_updater2.update(train_dataset, task_id=defaults.TASK_ID)
 
     y_hat_1 = model1(test_data, task_id=defaults.TASK_ID)
     y_hat_2 = model2(test_data, task_id=defaults.TASK_ID)
@@ -108,7 +108,6 @@ def test_model_updater_with_early_stopping(
         )
 
     if metric_monitored and use_val and early_stopping_enabled:
-        print(model_updater._num_epochs_trained)
         assert model_updater._num_epochs_trained < max_epochs
     else:
         assert model_updater._num_epochs_trained == max_epochs

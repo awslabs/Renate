@@ -16,7 +16,7 @@ Its signature is
 
 .. code-block:: python
 
-    def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule:
+    def model_fn(model_state_url: Optional[str] = None) -> RenateModule:
 
 A :py:class:`~renate.models.renate_module.RenateModule` is a :code:`torch.nn.Module` with some
 additional functionality relevant to continual learning.
@@ -29,7 +29,7 @@ method, which automatically handles model hyperparameters.
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 13-39
+    :lines: 14-39
 
 If you are using a torch model with **no or fixed hyperparameters**, you can use
 :py:class:`~renate.models.renate_module.RenateWrapper`.
@@ -40,7 +40,7 @@ method, but simply reinstantiate your model and call :code:`load_state_dict`.
 .. code-block:: python
     :caption: Example
 
-    def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule:
+    def model_fn(model_state_url: Optional[str] = None) -> RenateModule:
         my_torch_model = torch.nn.Linear(28 * 28, 10)  # Instantiate your torch model.
         model = RenateWrapper(my_torch_model)
         if model_state_url is not None:
@@ -58,7 +58,7 @@ Its signature is
 
 .. code-block:: python
 
-    def data_module_fn(data_path: Union[Path, str], seed: int = defaults.SEED) -> RenateDataModule:
+    def data_module_fn(data_path: str, seed: int = defaults.SEED) -> RenateDataModule:
 
 :py:class:`~renate.data.data_module.RenateDataModule` provides a structured interface to
 download, set up, and access train/val/test datasets.
@@ -67,7 +67,7 @@ such as data subsampling or splitting.
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 42-72
+    :lines: 43-69
 
 Transforms
 ==========
@@ -112,7 +112,25 @@ These are optional as well but, if omitted, Renate will use :code:`train_transfo
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 75-
+    :lines: 76-93
+
+Custom Metrics
+==============
+
+It is possible to specify a set of custom metrics to be measured during the training process.
+The metrics can be either imported from :code:`torchmetrics`, which offers a vast collection,
+or created ad-hoc by implementing the same interface
+(see this `tutorial <https://torchmetrics.readthedocs.io/en/stable/pages/implement.html>`_).
+
+.. literalinclude:: ../../examples/getting_started/renate_config.py
+    :caption: Example
+    :lines: 96-
+
+To enable the usage of additional metrics in Renate it is sufficient to implement the
+:code:`metrics_fn` function, returning a dictionary where the key is a string containing the
+metric's name and the value is an instantiation of the metric class.
+In the example above we add a metric called :code:`my_accuracy` by instantiating the accuracy
+metric from :code:`torchmetrics`.
 
 Custom Function Arguments
 =========================
@@ -125,11 +143,11 @@ Let us assume we already have a config file in which we implemented a simple lin
 
 .. code-block:: python
 
-    def model_fn(model_state_url: Optional[Union[Path, str]] = None) -> RenateModule:
+    def model_fn(model_state_url: Optional[str] = None) -> RenateModule:
         my_torch_model = torch.nn.Linear(28 * 28, 10)
         model = RenateWrapper(my_torch_model)
         if model_state_url is not None:
-            state_dict = torch.load(str(model_state_url))
+            state_dict = torch.load(model_state_url)
             model.load_state_dict(state_dict)
         return model
 
@@ -138,11 +156,11 @@ The natural change would be to change it to something like
 
 .. code-block:: python
 
-    def model_fn(num_inputs: int, num_outputs: int, model_state_url: Optional[Union[Path, str]] = None) -> RenateModule:
+    def model_fn(num_inputs: int, num_outputs: int, model_state_url: Optional[str] = None) -> RenateModule:
         my_torch_model = torch.nn.Linear(num_inputs, num_outputs)
         model = RenateWrapper(my_torch_model)
         if model_state_url is not None:
-            state_dict = torch.load(str(model_state_url))
+            state_dict = torch.load(model_state_url)
             model.load_state_dict(state_dict)
         return model
 

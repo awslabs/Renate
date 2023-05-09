@@ -1,0 +1,10 @@
+{
+    "scenario": "class-incremental-2updates.json",
+    "model": "mlp-200.json",
+    "updater": "offline-er-buffer500.json",
+    "dataset": "cifar10.json",
+    "backend": "local",
+    "job_name": "class-incremental-mlp-offline-er",
+    "expected_accuracy": [0.7089999914169312, 0.5120000243186951],
+    "loss_weight_new_data": 0.5
+  }

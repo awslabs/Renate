@@ -60,12 +60,13 @@ class OfflineExperienceReplayLearner(ReplayLearner):
 
     def on_model_update_start(
         self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
-    ) -> Tuple[DataLoader, DataLoader]:
+    ) -> None:
         """Called before a model update starts."""
+        super().on_model_update_start(train_dataset, val_dataset, task_id)
         self._num_points_current_task = len(train_dataset)
-        train_loader, val_loader = super().on_model_update_start(
-            train_dataset, val_dataset, task_id
-        )
+
+    def train_dataloader(self) -> DataLoader:
+        train_loader = super().train_dataloader()
         loaders = {"current_task": train_loader}
         if len(self._memory_buffer) > self._memory_batch_size:
             loaders["memory"] = DataLoader(
@@ -76,16 +77,13 @@ class OfflineExperienceReplayLearner(ReplayLearner):
                 generator=self._rng,
                 pin_memory=True,
             )
-        return CombinedLoader(loaders, mode="max_size_cycle"), val_loader
+        return CombinedLoader(loaders, mode="max_size_cycle")
 
-    def on_model_update_end(
-        self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
-    ) -> RenateModule:
+    def on_model_update_end(self) -> None:
         """Called right before a model update terminates."""
-        self._memory_buffer.update(train_dataset)
+        self._memory_buffer.update(self._train_dataset)
         self._num_points_previous_tasks += self._num_points_current_task
         self._num_points_current_task = -1
-        return super().on_model_update_end(train_dataset, val_dataset, task_id)
 
     def training_step(
         self, batch: Dict[str, Tuple[NestedTensors, torch.Tensor]], batch_idx: int
@@ -103,7 +101,7 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         self._loss_collections["train_losses"]["base_loss"](loss)
         self._update_metrics(outputs, targets, "train")
         if "memory" in batch:
-            inputs_mem, targets_mem = batch["memory"]
+            (inputs_mem, targets_mem), _ = batch["memory"]
             outputs_mem = self(inputs_mem)
             loss_mem = self._model.loss_fn(outputs_mem, targets_mem)
             self._loss_collections["train_losses"]["memory_loss"](loss_mem)

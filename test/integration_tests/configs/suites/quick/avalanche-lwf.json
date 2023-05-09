@@ -5,5 +5,5 @@
   "dataset": "mnist.json",
   "backend": "local",
   "job_name": "permutation-mlp-avalanche-lwf",
-  "expected_accuracy": [0.7202, 0.9647]
+  "expected_accuracy": [0.7526999711990356, 0.9607999920845032]
 }

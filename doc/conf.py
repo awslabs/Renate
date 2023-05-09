@@ -68,6 +68,7 @@ extensions = [
     "hoverxref.extension",  # show reference preview
     "sphinx_copybutton",
     "sphinxext.opengraph",
+    "sphinx_paramlinks",  # lightning uses it, we get warnings otherwise
 ]
 coverage_show_missing_items = True
 

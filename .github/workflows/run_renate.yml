@@ -1,0 +1,60 @@
+name: Run Renate
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read  # This is required for actions/checkout
+
+on:
+  workflow_call:
+    inputs:
+      path:
+        required: true
+        type: string
+      script:
+        required: true
+        type: string
+      requires-aws-credentials:
+        required: false
+        type: boolean
+      timeout-minutes:
+        required: false
+        type: number
+    secrets:
+      PROD_AWS_END_TO_END_TEST_ROLE_ARN:
+        required: false
+
+env:
+  AWS_DEFAULT_REGION: us-west-2
+  SCRIPT_PATH: ${{ inputs.script-path }}
+  AWS_ROLE: ${{ secrets.PROD_AWS_END_TO_END_TEST_ROLE_ARN }}
+
+jobs:
+  run:
+    runs-on: Renate_ubuntu-latest_16-core
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    steps:
+      - name: Configure AWS Credentials (if required)
+        if: ${{ inputs.requires-aws-credentials == true }}
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.PROD_AWS_END_TO_END_TEST_ROLE_ARN }}
+          role-session-name: integtestsession
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+          cache: 'pip'
+      - name: Install Renate
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev]'
+      - name: Run optional custom command
+        if: ${{ inputs.additional-command != '' }}
+        run: ${{ inputs.additional-command }}
+      - name: Run Renate Script
+        run: |
+          cd ${{ inputs.path }}
+          python ${{ inputs.script }}
+          cd ~

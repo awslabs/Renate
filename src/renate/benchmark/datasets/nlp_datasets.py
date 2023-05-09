@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 import datasets
 import torch
 import transformers
+from datasets import get_dataset_infos
 
 from renate import defaults
 from renate.data.data_module import RenateDataModule
@@ -84,6 +85,17 @@ class HuggingFaceTextDataModule(RenateDataModule):
             raise RuntimeError(f"Dataset {self._dataset_name} does not contain a 'train' split.")
         if "test" not in split_names:
             raise RuntimeError(f"Dataset {self._dataset_name} does not contain a 'test' split.")
+        available_columns = list(get_dataset_infos(self._dataset_name)["default"].features)
+        if self._input_column not in available_columns:
+            raise ValueError(
+                f"Input column '{self._input_column}' does not exist in {self._dataset_name}. "
+                f"Available columns: {available_columns}."
+            )
+        if self._target_column not in available_columns:
+            raise ValueError(
+                f"Target column '{self._target_column}' does not exist in {self._dataset_name}. "
+                f"Available columns: {available_columns}."
+            )
         self._train_data = datasets.load_dataset(
             self._dataset_name, split="train", cache_dir=self._data_path
         )

@@ -8,6 +8,8 @@ from PIL import Image
 from torch import Tensor
 from torch.utils.data import Dataset
 
+from renate.types import NestedTensors
+
 
 class ImageDataset(Dataset):
     """Dataset class for image datasets where the images are loaded as raw images.
@@ -52,6 +54,55 @@ class ImageDataset(Dataset):
         if self.target_transform:
             target = self.target_transform(target)
         return image, target.long()
+
+
+class NestedTensorDataset(Dataset):
+    """A dataset of nested tensors.
+
+    Args:
+        nested_tensors: A nested tuple/dict structure of tensors. Tensors need to be of equal size
+            along the batch dimension.
+    """
+
+    def __init__(self, nested_tensors: NestedTensors):
+        self._nested_tensors = nested_tensors
+        self._length = self._get_len(nested_tensors)
+
+    def _get_len(self, nested_tensors: NestedTensors, expected_length: Optional[int] = None) -> int:
+        """Extracts length of the dataset and checks for consistent length."""
+        if isinstance(nested_tensors, torch.Tensor):
+            length = nested_tensors.size(0)
+            assert length == expected_length or expected_length is None
+            return length
+        elif isinstance(nested_tensors, tuple):
+            for t in nested_tensors:
+                expected_length = self._get_len(t, expected_length)
+            return expected_length
+        elif isinstance(nested_tensors, dict):
+            for t in nested_tensors.values():
+                expected_length = self._get_len(t, expected_length)
+            return expected_length
+        else:
+            raise TypeError(f"Expected nested dict/tuple of tensors, found {type(nested_tensors)}.")
+
+    def __len__(self):
+        """Returns the number of data points in the dataset."""
+        return self._length
+
+    @staticmethod
+    def _get(storage: NestedTensors, idx: int) -> NestedTensors:
+        if isinstance(storage, torch.Tensor):
+            return storage[idx]
+        elif isinstance(storage, tuple):
+            return tuple(NestedTensorDataset._get(t, idx) for t in storage)
+        elif isinstance(storage, dict):
+            return {key: NestedTensorDataset._get(t, idx) for key, t in storage.items()}
+        else:
+            raise TypeError(f"Expected nested tuple/dict of tensors, found {type(storage)}.")
+
+    def __getitem__(self, idx: int) -> NestedTensors:
+        """Read the item stored at index `idx`."""
+        return self._get(self._nested_tensors, idx)
 
 
 class _TransformedDataset(Dataset):

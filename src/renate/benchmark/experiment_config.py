@@ -24,6 +24,7 @@ from renate.benchmark.models import (
     VisionTransformerL16,
     VisionTransformerL32,
 )
+from renate.benchmark.models.transformer import HuggingFaceSequenceClassificationTransformer
 from renate.benchmark.scenarios import (
     BenchmarkScenario,
     ClassIncrementalScenario,
@@ -53,6 +54,7 @@ models = {
     "VisionTransformerL16": VisionTransformerL16,
     "VisionTransformerL32": VisionTransformerL32,
     "VisionTransformerH14": VisionTransformerH14,
+    "HuggingFaceTransformer": HuggingFaceSequenceClassificationTransformer,
 }
 
 
@@ -65,6 +67,7 @@ def model_fn(
     num_hidden_layers: Optional[int] = None,
     hidden_size: Optional[Tuple[int]] = None,
     dataset_name: Optional[str] = None,
+    pretrained_model_name: Optional[str] = None,
 ) -> RenateModule:
     """Returns a model instance."""
     if model_name not in models:
@@ -74,11 +77,19 @@ def model_fn(
     if updater == "Avalanche-iCaRL":
         model_kwargs["prediction_strategy"] = ICaRLClassificationStrategy()
     if model_name == "MultiLayerPerceptron":
-        model_kwargs["num_inputs"] = num_inputs
-        model_kwargs["num_hidden_layers"] = num_hidden_layers
-        model_kwargs["hidden_size"] = hidden_size
+        model_kwargs.update(
+            {
+                "num_inputs": num_inputs,
+                "num_hidden_layers": num_hidden_layers,
+                "hidden_size": hidden_size,
+            }
+        )
     elif model_name.startswith("ResNet") and dataset_name in ["FashionMNIST", "MNIST", "yearbook"]:
         model_kwargs["gray_scale"] = True
+    elif model_name == "HuggingFaceTransformer":
+        if updater == "Avalanche-iCaRL":
+            raise ValueError("Transformers do not support iCaRL.")
+        model_kwargs["pretrained_model_name"] = pretrained_model_name
     if num_outputs is not None:
         model_kwargs["num_outputs"] = num_outputs
     if model_state_url is None:
@@ -94,31 +105,42 @@ def get_data_module(
     src_bucket: Optional[str],
     src_object_name: Optional[str],
     dataset_name: str,
-    pretrained_model_name_or_path: str,
     val_size: float,
     seed: int,
+    pretrained_model_name: Optional[str],
+    input_column: Optional[str],
+    target_column: Optional[str],
 ) -> RenateDataModule:
-    data_module_class = None
     if dataset_name in TorchVisionDataModule.dataset_dict:
-        data_module_class = TorchVisionDataModule
-    elif dataset_name in ["CLEAR10", "CLEAR100"]:
-        data_module_class = CLEARDataModule
-    elif dataset_name in wild_time_data.list_datasets():
-        data_module_class = WildTimeDataModule
-    data_module_kwargs = {
-        "data_path": data_path,
-        "src_bucket": src_bucket,
-        "src_object_name": src_object_name,
-        "dataset_name": dataset_name,
-        "val_size": val_size,
-        "seed": seed,
-    }
-    if pretrained_model_name_or_path is not None:
-        data_module_kwargs["tokenizer"] = AutoTokenizer.from_pretrained(
-            pretrained_model_name_or_path
+        return TorchVisionDataModule(
+            data_path, dataset_name=dataset_name, val_size=val_size, seed=seed
         )
-    if data_module_class is not None:
-        return data_module_class(**data_module_kwargs)
+    if dataset_name in ["CLEAR10", "CLEAR100"]:
+        return CLEARDataModule(data_path, dataset_name=dataset_name, val_size=val_size, seed=seed)
+    if dataset_name in wild_time_data.list_datasets():
+        data_module_kwargs = {
+            "data_path": data_path,
+            "src_bucket": src_bucket,
+            "src_object_name": src_object_name,
+            "dataset_name": dataset_name,
+            "val_size": val_size,
+            "seed": seed,
+        }
+        if pretrained_model_name is not None:
+            data_module_kwargs["tokenizer"] = AutoTokenizer.from_pretrained(pretrained_model_name)
+        return WildTimeDataModule(**data_module_kwargs)
+
+    if dataset_name.startswith("hfd-"):
+        tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name)
+        return HuggingfaceTextDataModule(
+            data_path=data_path,
+            dataset_name=dataset_name[4:],
+            input_column=input_column,
+            target_column=target_column,
+            tokenizer=tokenizer,
+            val_size=val_size,
+            seed=seed,
+        )
     raise ValueError(f"Unknown dataset `{dataset_name}`.")
 
 
@@ -223,16 +245,20 @@ def data_module_fn(
     randomness: Optional[float] = None,
     src_bucket: Optional[str] = None,
     src_object_name: Optional[str] = None,
-    pretrained_model_name_or_path: Optional[str] = None,
+    pretrained_model_name: Optional[str] = None,
+    input_column: Optional[str] = None,
+    target_column: Optional[str] = None,
 ):
     data_module = get_data_module(
         data_path=data_path,
         src_bucket=src_bucket,
         src_object_name=src_object_name,
         dataset_name=dataset_name,
-        pretrained_model_name_or_path=pretrained_model_name_or_path,
         val_size=val_size,
         seed=seed,
+        pretrained_model_name=pretrained_model_name,
+        input_column=input_column,
+        target_column=target_column,
     )
     if dataset_name in wild_time_data.list_datasets() and num_tasks is None:
         num_tasks = len(wild_time_data.available_time_steps(dataset_name))
@@ -260,7 +286,10 @@ def _get_normalize_transform(dataset_name):
 
 def train_transform(dataset_name: str) -> Optional[transforms.Compose]:
     """Returns a transform function to be used in the training."""
-    if dataset_name in ["MNIST", "FashionMNIST", "fmow", "yearbook"]:
+    if dataset_name in [
+        "MNIST",
+        "FashionMNIST",
+    ] + wild_time_data.list_datasets() or dataset_name.startswith("hfd-"):
         return None
     if dataset_name in ["CIFAR10", "CIFAR100"]:
         return transforms.Compose(
@@ -275,7 +304,10 @@ def train_transform(dataset_name: str) -> Optional[transforms.Compose]:
 
 def test_transform(dataset_name: str) -> Optional[transforms.Normalize]:
     """Returns a transform function to be used for validation or testing."""
-    if dataset_name in ["MNIST", "FashionMNIST", "fmow", "yearbook"]:
+    if dataset_name in [
+        "MNIST",
+        "FashionMNIST",
+    ] + wild_time_data.list_datasets() or dataset_name.startswith("hfd-"):
         return None
     if dataset_name in ["CIFAR10", "CIFAR100"]:
         return _get_normalize_transform(dataset_name)
