@@ -154,24 +154,27 @@ class RenateModelCheckpoint(ModelCheckpoint):
         # Overwrite checkpoint.
         self._save_checkpoint(trainer, learner_state_path)
 
-    @rank_zero_only
     def teardown(self, trainer: Trainer, *args, **kwargs) -> None:
-        learner_state_path = Path(defaults.learner_state_file(self._output_state_folder))
-        if learner_state_path.exists() and learner_state_path.is_dir():
-            # Deepspeed zero saves everything as folders. We convert that to a single file.
-            # The flow is to create a temp file with the shards combined, and then
-            # delete the ZeRO folder, and then move it combined file to the learner.cpkt.
-            # I would ideally not have a temp file, but convert_zero_checkpoint... saves the
-            # dict without returning it.
-            temp_model_save_path = learner_state_path.parent / "temp_learner.cpkt"
-            convert_zero_checkpoint_to_fp32_state_dict(learner_state_path, temp_model_save_path)
-            unlink_file_or_folder(learner_state_path)
-            temp_model_save_path.rename(learner_state_path)
-        elif learner_state_path.exists() and learner_state_path.is_file():
-            ## This a normal file. We strip the model of any wrappers and save that.
-            state_dict = torch.load(learner_state_path)["state_dict"]
-            out_sd = {k.replace("_model.", ""): v for k, v in state_dict.items()}
-            torch.save(out_sd, defaults.model_file(self.dirpath))
+        if trainer.is_global_zero:
+            learner_state_path = Path(defaults.learner_state_file(self._output_state_folder))
+            if learner_state_path.exists() and learner_state_path.is_dir():
+                # Deepspeed zero saves everything as folders. We convert that to a single file.
+                # The flow is to create a temp file with the shards combined, and then
+                # delete the ZeRO folder, and then move it combined file to the learner.cpkt.
+                # I would ideally not have a temp file, but convert_zero_checkpoint... saves the
+                # dict without returning it.
+                temp_model_save_path = learner_state_path.parent / "temp_learner.cpkt"
+                convert_zero_checkpoint_to_fp32_state_dict(learner_state_path, temp_model_save_path)
+                unlink_file_or_folder(learner_state_path)
+                temp_model_save_path.rename(learner_state_path)
+                self.teardown(trainer, *args, **kwargs)
+            elif learner_state_path.exists() and learner_state_path.is_file():
+                ## This a normal file. We strip the model of any wrappers and save that.
+                state_dict = torch.load(learner_state_path)["state_dict"]
+                out_sd = {k.replace("_model.", ""): v for k, v in state_dict.items()}
+                torch.save(out_sd, defaults.model_file(self.dirpath))
+        # This is needed to prevent other processes to exit/enter some UD state.
+        trainer.strategy.barrier()
 
     def on_exception(
         self, trainer: Trainer, pl_module: LightningModule, exception: BaseException
@@ -350,7 +353,7 @@ class ModelUpdater(abc.ABC):
         learner.load(self._input_state_folder)
         # learner.set_transforms(**self._transforms_kwargs)
         # learner.set_logged_metrics(self._logged_metrics)
-        # learner.update_hyperparameters(learner_kwargs)
+        # learner.update_hyperparameters(learner_kwargs) 
         return learner
 
     def _fit_learner(

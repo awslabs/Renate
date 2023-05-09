@@ -74,7 +74,7 @@ class RenateModule(torch.nn.Module, ABC):
         model = cls(**constructor_arguments)
         for task in state_dict["_extra_state"]["tasks_params_ids"]:
             model.add_task_params(task)
-        model.load_state_dict(state_dict)
+        model.load_state_dict(state_dict, strict=False)
         return model
 
     def get_extra_state(self) -> Any:

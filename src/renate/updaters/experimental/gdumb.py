@@ -61,6 +61,7 @@ class GDumbLearner(ReplayLearner):
     #     Learner.load_state_dict(self, model, state_dict, **kwargs)
     #     self._memory_batch_size = state_dict["memory_batch_size"]
     #     self._memory_buffer.load_state_dict(state_dict["memory_buffer"])
+
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         super().on_load_checkpoint(checkpoint)
         self._memory_buffer.load_state_dict(checkpoint["memory_buffer"])

@@ -51,6 +51,23 @@ class OfflineExperienceReplayLearner(ReplayLearner):
             )
         self._loss_weight_new_data = loss_weight_new_data
         self._num_points_previous_tasks: int = 0
+        self.save_hyperparameters(
+            ignore=[
+                "model",
+                "loss_fn",
+                "components",
+                "train_transform",
+                "test_transform",
+                "buffer_transform",
+                "train_transform",
+                "train_target_transform",
+                "test_transform",
+                "test_target_transform",
+                "buffer_transform",
+                "buffer_target_transform",
+                "logged_metrics"
+            ]
+        )
 
     def _create_metrics_collections(
         self, logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None
@@ -114,6 +131,13 @@ class OfflineExperienceReplayLearner(ReplayLearner):
     #     state_dict["loss_weight_new_data"] = self._loss_weight_new_data
     #     state_dict["num_points_previous_tasks"] = self._num_points_previous_tasks
     #     return state_dict
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        super().on_save_checkpoint(checkpoint)
+        checkpoint["num_points_previous_tasks"] = self._num_points_previous_tasks
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        super().on_load_checkpoint(checkpoint)
+        self._num_points_previous_tasks = checkpoint["num_points_previous_tasks"]
 
     # def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
     #     """Restores the state of the learner."""

@@ -44,7 +44,7 @@ if __name__ == "__main__":
         f"--test-suite",
         type=str,
         required=True,
-        choices=["quick"],
+        choices=["quick", "main"],
         help="Test suite that is run.",
     )
     parser.add_argument(

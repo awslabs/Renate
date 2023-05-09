@@ -94,7 +94,23 @@ class Learner(LightningModule, abc.ABC):
         self._val_memory_buffer: DataBuffer = InfiniteBuffer()
         self._create_metrics_collections(logged_metrics)
         self._post_init()
-        self.save_hyperparameters(ignore=["model", "loss_fn"])
+        self.save_hyperparameters(
+            ignore=[
+                "model",
+                "loss_fn",
+                "components",
+                "train_transform",
+                "test_transform",
+                "buffer_transform",
+                "train_transform",
+                "train_target_transform",
+                "test_transform",
+                "test_target_transform",
+                "buffer_transform",
+                "buffer_target_transform",
+                "logged_metrics"
+            ]
+        )
 
     def _post_init(self) -> None:
         self._rng = get_generator(self._seed)
@@ -455,7 +471,23 @@ class ReplayLearner(Learner, abc.ABC):
         **kwargs,
     ) -> None:
         super().__init__(seed=seed, **kwargs)
-        self.save_hyperparameters(ignore=["model", "loss_fn"])
+        self.save_hyperparameters(
+            ignore=[
+                "model",
+                "loss_fn",
+                "components",
+                "train_transform",
+                "test_transform",
+                "buffer_transform",
+                "train_transform",
+                "train_target_transform",
+                "test_transform",
+                "test_target_transform",
+                "buffer_transform",
+                "buffer_target_transform",
+                "logged_metrics"
+            ]
+        )
 
         self._memory_batch_size = min(memory_size, memory_batch_size)
         self._memory_buffer = ReservoirBuffer(
@@ -482,7 +514,7 @@ class ReplayLearner(Learner, abc.ABC):
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         super().on_load_checkpoint(checkpoint)
-        self._memory_batch_size = checkpoint["memory_batch_size"]
+        # self._memory_batch_size = checkpoint["memory_batch_size"]
         if not hasattr(self, "_memory_buffer"):
             self._memory_buffer = ReservoirBuffer()
         self._memory_buffer.load_state_dict(checkpoint["memory_buffer"])

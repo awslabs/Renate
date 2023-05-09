@@ -57,7 +57,23 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
     ) -> None:
         self._components_names = list(components.keys())
         super().__init__(**kwargs)
-        self.save_hyperparameters(ignore=["model", "loss_fn", "components"])
+        self.save_hyperparameters(
+            ignore=[
+                "model",
+                "loss_fn",
+                "components",
+                "train_transform",
+                "test_transform",
+                "buffer_transform",
+                "train_transform",
+                "train_target_transform",
+                "test_transform",
+                "test_target_transform",
+                "buffer_transform",
+                "buffer_target_transform",
+                "logged_metrics"
+            ]
+        )
 
         self._components = components
         self._loss_weight = loss_weight
@@ -267,7 +283,23 @@ class ExperienceReplayLearner(BaseExperienceReplayLearner):
     def __init__(self, alpha: float = defaults.ER_ALPHA, **kwargs) -> None:
         components = self.components(loss_fn=kwargs["loss_fn"], alpha=alpha)
         super().__init__(components=components, **kwargs)
-        self.save_hyperparameters(ignore=["model", "loss_fn", "components"])
+        self.save_hyperparameters(
+            ignore=[
+                "model",
+                "loss_fn",
+                "components",
+                "train_transform",
+                "test_transform",
+                "buffer_transform",
+                "train_transform",
+                "train_target_transform",
+                "test_transform",
+                "test_target_transform",
+                "buffer_transform",
+                "buffer_target_transform",
+                "logged_metrics"
+            ]
+        )
 
     def components(
         self, loss_fn: Optional[torch.nn.Module] = None, alpha: float = defaults.ER_ALPHA
@@ -303,17 +335,33 @@ class DarkExperienceReplayLearner(ExperienceReplayLearner):
         self, alpha: float = defaults.DER_ALPHA, beta: float = defaults.DER_BETA, **kwargs
     ) -> None:
         super().__init__(alpha=beta, **kwargs)
-        self.save_hyperparameters(ignore=["model", "loss_fn", "components"])
+        self.save_hyperparameters(
+            ignore=[
+                "model",
+                "loss_fn",
+                "components",
+                "train_transform",
+                "test_transform",
+                "buffer_transform",
+                "train_transform",
+                "train_target_transform",
+                "test_transform",
+                "test_target_transform",
+                "buffer_transform",
+                "buffer_target_transform",
+                "logged_metrics"
+            ]
+        )
 
-        self._components = self.components(model=kwargs["model"], alpha=alpha, beta=beta)
+        self._components = self.components(loss_fn=kwargs["loss_fn"], alpha=alpha, beta=beta)
 
     def components(
         self,
-        model: Optional[RenateModule] = None,
+        loss_fn: Optional[torch.nn.Module] = None,
         alpha: float = defaults.DER_ALPHA,
         beta: float = defaults.DER_BETA,
     ) -> nn.ModuleDict:
-        components = super().components(model=model, alpha=beta)
+        components = super().components(loss_fn=loss_fn, alpha=beta)
         components.update(
             {
                 "mse_loss": WeightedMeanSquaredErrorLossComponent(
@@ -357,11 +405,27 @@ class PooledOutputDistillationExperienceReplayLearner(BaseExperienceReplayLearne
             alpha=alpha, distillation_type=distillation_type, normalize=normalize
         )
         super().__init__(components=components, **kwargs)
-        self.save_hyperparameters(ignore=["model", "loss_fn", "components"])
+        self.save_hyperparameters(
+            ignore=[
+                "model",
+                "loss_fn",
+                "components",
+                "train_transform",
+                "test_transform",
+                "buffer_transform",
+                "train_transform",
+                "train_target_transform",
+                "test_transform",
+                "test_target_transform",
+                "buffer_transform",
+                "buffer_target_transform",
+                "logged_metrics"
+            ]
+        )
 
     def components(
         self,
-        model: Optional[RenateModule] = None,
+        # model: Optional[RenateModule] = None,
         alpha: float = defaults.POD_ALPHA,
         distillation_type: str = defaults.POD_DISTILLATION_TYPE,
         normalize: bool = defaults.POD_NORMALIZE,
@@ -428,8 +492,26 @@ class CLSExperienceReplayLearner(BaseExperienceReplayLearner):
             stable_model_update_probability=stable_model_update_probability,
             plastic_model_update_probability=plastic_model_update_probability,
         )
+        # print(kwargs.keys())
+        # print(kwargs["components"])
         super().__init__(components=components, **kwargs)
-        self.save_hyperparameters(ignore=["model", "loss_fn", "components"])
+        self.save_hyperparameters(
+            ignore=[
+                "model",
+                "loss_fn",
+                "components",
+                "train_transform",
+                "test_transform",
+                "buffer_transform",
+                "train_transform",
+                "train_target_transform",
+                "test_transform",
+                "test_target_transform",
+                "buffer_transform",
+                "buffer_target_transform",
+                "logged_metrics"
+            ]
+        )
 
     def components(
         self,
@@ -547,7 +629,23 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
             ema_memory_update_gamma=ema_memory_update_gamma,
             **kwargs,
         )
-        self.save_hyperparameters(ignore=["model", "loss_fn", "components"])
+        self.save_hyperparameters(
+            ignore=[
+                "model",
+                "loss_fn",
+                "components",
+                "train_transform",
+                "test_transform",
+                "buffer_transform",
+                "train_transform",
+                "train_target_transform",
+                "test_transform",
+                "test_target_transform",
+                "buffer_transform",
+                "buffer_target_transform",
+                "logged_metrics"
+            ]
+        )
 
     def components(
         self,
