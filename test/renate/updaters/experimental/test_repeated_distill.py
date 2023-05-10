@@ -28,12 +28,9 @@ def test_dmc_runs_end_to_end():
         data.append(ds)
 
     val = ConcatDataset(data)
-
+    loss_fn = torch.nn.CrossEntropyLoss()
     updater = RepeatedDistillationModelUpdater(
-        model=mlp,
-        memory_size=300,
-        batch_size=20,
-        max_epochs=5,
+        model=mlp, memory_size=300, batch_size=20, max_epochs=5, loss_fn=loss_fn
     )
 
     for i in range(len(data)):

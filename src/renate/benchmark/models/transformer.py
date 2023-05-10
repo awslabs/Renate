@@ -23,14 +23,12 @@ class HuggingFaceSequenceClassificationTransformer(RenateModule):
         self,
         pretrained_model_name: str,
         num_outputs: int,
-        loss_fn: nn.Module = nn.CrossEntropyLoss(),
     ) -> None:
         super().__init__(
             constructor_arguments={
                 "pretrained_model_name": pretrained_model_name,
                 "num_outputs": num_outputs,
             },
-            loss_fn=loss_fn,
         )
         self._model = AutoModelForSequenceClassification.from_pretrained(
             pretrained_model_name, num_labels=num_outputs, return_dict=False

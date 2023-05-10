@@ -76,6 +76,7 @@ LEARNER_KWARGS = {
         "weight_decay": 0.5,
         "batch_size": 50,
         "seed": 1,
+        "loss_fn": torch.nn.CrossEntropyLoss(),
     },
     Learner: {
         "optimizer": "SGD",
@@ -84,6 +85,7 @@ LEARNER_KWARGS = {
         "weight_decay": 0.005,
         "batch_size": 10,
         "seed": 42,
+        "loss_fn": torch.nn.CrossEntropyLoss(),
     },
     GDumbLearner: {
         "optimizer": "SGD",
@@ -93,6 +95,7 @@ LEARNER_KWARGS = {
         "batch_size": 10,
         "seed": 42,
         "memory_size": 30,
+        "loss_fn": torch.nn.CrossEntropyLoss(),
     },
     JointLearner: {
         "optimizer": "SGD",
@@ -101,6 +104,7 @@ LEARNER_KWARGS = {
         "weight_decay": 0.001,
         "batch_size": 10,
         "seed": 3,
+        "loss_fn": torch.nn.CrossEntropyLoss(),
     },
     RepeatedDistillationLearner: {
         "optimizer": "SGD",
@@ -110,6 +114,7 @@ LEARNER_KWARGS = {
         "batch_size": 10,
         "seed": 42,
         "memory_size": 30,
+        "loss_fn": torch.nn.CrossEntropyLoss(),
     },
     OfflineExperienceReplayLearner: {
         "memory_size": 30,
@@ -121,6 +126,7 @@ LEARNER_KWARGS = {
         "weight_decay": 0.5,
         "batch_size": 50,
         "seed": 1,
+        "loss_fn": torch.nn.CrossEntropyLoss(),
     },
 }
 AVALANCHE_LEARNER_KWARGS = {
@@ -363,7 +369,7 @@ def get_simple_updater(
     input_state_folder=None,
     output_state_folder=None,
     learner_class=ExperienceReplayLearner,
-    learner_kwargs={"memory_size": 10},
+    learner_kwargs={"memory_size": 10, "loss_fn": torch.nn.CrossEntropyLoss()},
     max_epochs=5,
     train_transform=None,
     train_target_transform=None,
