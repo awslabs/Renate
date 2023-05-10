@@ -22,7 +22,7 @@
 | src/renate/data/\_\_init\_\_.py                                   |        3 |        0 |    100% |           |
 | src/renate/data/data\_module.py                                   |       66 |        5 |     92% |67, 72, 90, 145, 160 |
 | src/renate/data/datasets.py                                       |       82 |        3 |     96% |38, 86, 101 |
-| src/renate/defaults.py                                            |      102 |        1 |     99% |       120 |
+| src/renate/defaults.py                                            |      101 |        1 |     99% |       119 |
 | src/renate/evaluation/\_\_init\_\_.py                             |        0 |        0 |    100% |           |
 | src/renate/evaluation/evaluator.py                                |       58 |        2 |     97% |   76, 141 |
 | src/renate/evaluation/metrics/\_\_init\_\_.py                     |        0 |        0 |    100% |           |
@@ -38,7 +38,7 @@
 | src/renate/models/prediction\_strategies.py                       |       14 |        5 |     64% | 13, 18-21 |
 | src/renate/models/renate\_module.py                               |       85 |       23 |     73% |108, 118, 130, 173-193, 198-202, 212-213, 218, 255-260, 263 |
 | src/renate/training/\_\_init\_\_.py                               |        2 |        0 |    100% |           |
-| src/renate/training/training.py                                   |      195 |       29 |     85% |173, 211-228, 377-378, 551, 587-588, 621-639 |
+| src/renate/training/training.py                                   |      196 |       29 |     85% |173, 211-228, 377-378, 548, 584-585, 618-636 |
 | src/renate/types.py                                               |        3 |        0 |    100% |           |
 | src/renate/updaters/\_\_init\_\_.py                               |        0 |        0 |    100% |           |
 | src/renate/updaters/avalanche/\_\_init\_\_.py                     |        0 |        0 |    100% |           |
