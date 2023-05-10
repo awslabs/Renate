@@ -275,7 +275,7 @@ def _execute_experiment_job_locally(
     data_module = get_and_prepare_data_module(
         config_module,
         data_path=data_url,
-        chunk_id=defaults.CHUNK_ID,
+        chunk_id=0,
         seed=seed,
         **data_module_fn_kwargs,
     )

@@ -87,14 +87,13 @@ def test_get_argument_type():
 def test_get_function_args(all_args, ignore_args):
     expected_args = [
         "data_path",
-        "chunk_id",
         "val_size",
         "seed",
-        "use_scenario",
         "class_groupings",
         "optional_tuple",
         "optional_float",
         "list_param",
+        "bool_param",
     ]
     expected_all_args = {
         **all_args,
@@ -104,12 +103,6 @@ def test_get_function_args(all_args, ignore_args):
                 "argument_group": CUSTOM_ARGS_GROUP,
                 "required": True,
                 "true_type": str,
-            },
-            "chunk_id": {
-                "type": int,
-                "argument_group": CUSTOM_ARGS_GROUP,
-                "default": None,
-                "true_type": int,
             },
             "val_size": {
                 "type": float,
@@ -122,12 +115,6 @@ def test_get_function_args(all_args, ignore_args):
                 "argument_group": CUSTOM_ARGS_GROUP,
                 "default": 0,
                 "true_type": int,
-            },
-            "use_scenario": {
-                "type": str,
-                "argument_group": CUSTOM_ARGS_GROUP,
-                "default": "False",
-                "true_type": bool,
             },
             "class_groupings": {
                 "type": str,
@@ -152,6 +139,12 @@ def test_get_function_args(all_args, ignore_args):
                 "argument_group": CUSTOM_ARGS_GROUP,
                 "default": "[1,2]",
                 "true_type": list,
+            },
+            "bool_param": {
+                "type": str,
+                "argument_group": CUSTOM_ARGS_GROUP,
+                "default": "False",
+                "true_type": bool,
             },
         },
     }
@@ -214,16 +207,16 @@ def test_get_fn_kwargs_helper_functions():
     expected_data_module_kwargs = {
         "data_path": "home/data/path",
         "class_groupings": ((1, 2), (3, 4)),
-        "use_scenario": False,
         "optional_float": None,
+        "bool_param": False,
     }
     config_space = {
         "data_path": expected_data_module_kwargs["data_path"],
         "model_state_url": "home/model/state",
         "unused_config": 1,
         "class_groupings": to_dense_str(expected_data_module_kwargs["class_groupings"]),
-        "use_scenario": to_dense_str(expected_data_module_kwargs["use_scenario"]),
         "optional_float": to_dense_str(expected_data_module_kwargs["optional_float"]),
+        "bool_param": to_dense_str(expected_data_module_kwargs["bool_param"]),
     }
     data_module_kwargs = get_data_module_fn_kwargs(
         config_module=config_module, config_space=config_space, cast_arguments=True

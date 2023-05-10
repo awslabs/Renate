@@ -68,7 +68,7 @@ def run_training_job(
     updater: str = defaults.LEARNER,
     max_epochs: int = defaults.MAX_EPOCHS,
     task_id: str = defaults.TASK_ID,
-    chunk_id: int = defaults.CHUNK_ID,
+    chunk_id: Optional[int] = None,
     input_state_url: Optional[str] = None,
     output_state_url: Optional[str] = None,
     working_directory: Optional[str] = defaults.WORKING_DIRECTORY,
@@ -405,8 +405,6 @@ def _verify_validation_set_for_hpo_and_checkpointing(
     metric: str,
     mode: defaults.SUPPORTED_TUNING_MODE_TYPE,
     working_directory: str,
-    chunk_id: int,
-    seed: int,
 ) -> Tuple[str, defaults.SUPPORTED_TUNING_MODE_TYPE]:
     """Checks if validation set is provided when needed and updates config_space such that
     checkpointing works.
@@ -516,7 +514,8 @@ def _execute_training_and_tuning_job_locally(
     config_space["max_epochs"] = max_epochs
     config_space["config_file"] = config_file
     config_space["prepare_data"] = False
-    config_space["chunk_id"] = chunk_id
+    if chunk_id is not None:
+        config_space["chunk_id"] = chunk_id
     config_space["task_id"] = task_id
     config_space["working_directory"] = working_directory
     config_space["seed"] = seed
@@ -533,8 +532,6 @@ def _execute_training_and_tuning_job_locally(
         metric=metric,
         mode=mode,
         working_directory=working_directory,
-        chunk_id=chunk_id,
-        seed=seed,
     )
 
     training_script = str(Path(renate.__path__[0]) / "cli" / "run_training.py")
