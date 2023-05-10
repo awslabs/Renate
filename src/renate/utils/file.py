@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import logging
 import os
+import pickle as pkl
 import shutil
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
@@ -11,6 +12,7 @@ from zipfile import ZipFile
 import boto3
 import pandas as pd
 import requests
+import torch
 from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
@@ -277,3 +279,15 @@ def save_pandas_df_to_csv(df: pd.DataFrame, file_path: Union[str, Path]) -> pd.D
     """
     df.to_csv(file_path, index=False)
     return df
+
+
+def convert_to_tensor(obj):
+    """This function converts a pickleable object to a torch tensor. This is only to
+    aid saving with Deepspeed."""
+    return torch.as_tensor(list(pkl.dumps(obj)))
+
+
+def recover_object_from_tensor(tensor):
+    """This fucntion converts a tensor to a byte stream that is passed through pickle
+    to recover the underlying object. For usage with Deepspeed"""
+    return pkl.loads(bytes(tensor.tolist()))

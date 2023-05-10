@@ -4,7 +4,12 @@ import os
 
 import pytest
 
-from renate.utils.file import copy_to_uri, move_to_uri
+from renate.utils.file import (
+    copy_to_uri,
+    move_to_uri,
+    convert_to_tensor,
+    recover_object_from_tensor,
+)
 
 
 def create_file(path, content):
@@ -95,3 +100,24 @@ def test_copy_to_uri_locally(
         assert f.read() == file_content1_source_dir
     with open(os.path.join(tmpdir, "source_dir", "file2.txt"), "r") as f:
         assert f.read() == file_content2_source_dir
+
+
+@pytest.mark.parametrize(
+    "obj",
+    [
+        {
+            "constructor_arguments": {
+                "a": 1,
+                "b": "2",
+                "nested_dict": {
+                    "k1": "v1",
+                    "k2": "v2",
+                },
+            },
+            "tasks_params_ids": "task_param_id_1",
+            "misc_args": tuple(range(10))
+        }
+    ],
+)
+def test_serialize_random_objects(obj):
+    assert recover_object_from_tensor(convert_to_tensor(obj)) == obj

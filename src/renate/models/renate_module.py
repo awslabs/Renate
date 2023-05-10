@@ -8,6 +8,7 @@ import torch
 
 from renate.models.layers import ContinualNorm
 from renate.types import NestedTensors
+from renate.utils.file import convert_to_tensor, recover_object_from_tensor
 
 
 class RenateModule(torch.nn.Module, ABC):
@@ -77,19 +78,19 @@ class RenateModule(torch.nn.Module, ABC):
         model.load_state_dict(state_dict, strict=False)
         return model
 
-    def get_extra_state(self) -> Any:
-        """Get the constructor_arguments, loss and task ids necessary to reconstruct the model."""
-        return {
+    def get_extra_state(self, encode: bool = True) -> Any:
+        """Get the constructor_arguments, and task ids necessary to reconstruct the model."""
+        extra_state = {
             "constructor_arguments": self._constructor_arguments,
             "tasks_params_ids": self._tasks_params_ids,
-            # "loss_fn": self.loss_fn,
         }
+        return convert_to_tensor(extra_state) if encode else extra_state
 
-    def set_extra_state(self, state: Any):
+    def set_extra_state(self, state: Any, decode: bool = True):
         """Extract the content of the ``_extra_state`` and set the related values in the module."""
-        self._constructor_arguments = state["constructor_arguments"]
-        self._tasks_params_ids = state["tasks_params_ids"]
-        # self.loss_fn = state["loss_fn"]
+        extra_state = recover_object_from_tensor(state) if decode else state
+        self._constructor_arguments = extra_state["constructor_arguments"]
+        self._tasks_params_ids = extra_state["tasks_params_ids"]
 
     @abstractmethod
     def forward(self, x: NestedTensors, task_id: Optional[str] = None) -> torch.Tensor:
