@@ -46,7 +46,7 @@ class ResNet(RenateBenchmarkingModule):
         replace_stride_with_dilation: Optional[List[bool]] = None,
         norm_layer: Type[nn.Module] = nn.BatchNorm2d,
         cifar_stem: bool = True,
-        loss: nn.Module = nn.CrossEntropyLoss(),
+        loss: nn.Module = nn.CrossEntropyLoss(reduction="none"),
         prediction_strategy: Optional[PredictionStrategy] = None,
         add_icarl_class_means: bool = True,
     ) -> None:

@@ -35,7 +35,7 @@ class MultiLayerPerceptron(RenateBenchmarkingModule):
         num_outputs: int,
         num_hidden_layers: int,
         hidden_size: Union[int, List[int], Tuple[int]],
-        loss: nn.Module = nn.CrossEntropyLoss(),
+        loss: nn.Module = nn.CrossEntropyLoss(reduction="none"),
         activation: str = "ReLU",
         batch_normalization: bool = False,
         prediction_strategy: Optional[PredictionStrategy] = None,
