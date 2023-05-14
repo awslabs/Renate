@@ -382,6 +382,18 @@ class HueShiftScenario(_SortingScenario):
 
 
 class WildTimeScenario(Scenario):
+    """Creating a time-incremental scenario for the Wild-Time datasets.
+
+    In contrast to the original work, data is presented time step by time step (no grouping) and
+    the test set is all data up to the current time step.
+
+    Args:
+        data_module: The source RenateDataModule for the the user data.
+        num_tasks: The total number of expected tasks for experimentation.
+        chunk_id: The data chunk to load in for the training or validation data.
+        seed: Seed used to fix random number generation.
+    """
+
     def __init__(
         self,
         data_module: RenateDataModule,
@@ -390,7 +402,8 @@ class WildTimeScenario(Scenario):
         seed: int = defaults.SEED,
     ) -> None:
         super().__init__(data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed)
-        assert isinstance(data_module, WildTimeDataModule)
+        if not isinstance(data_module, WildTimeDataModule):
+            raise ValueError("This scenario is only compatible with `WildTimeDataModule`.")
 
     def setup(self) -> None:
         """Sets up the scenario."""

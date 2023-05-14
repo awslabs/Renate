@@ -13,7 +13,10 @@ from renate.utils.file import download_folder_from_s3
 
 
 class WildTimeDataModule(RenateDataModule):
-    """Data module wrapping torchvision datasets.
+    """Data module wrapping around the Wild-Time data.
+
+    Huaxiu Yao, Caroline Choi, Bochuan Cao, Yoonho Lee, Pang Wei Koh, Chelsea Finn:
+    Wild-Time: A Benchmark of in-the-Wild Distribution Shift over Time. NeurIPS 2022
 
     Args:
         data_path: the path to the folder containing the dataset files.
