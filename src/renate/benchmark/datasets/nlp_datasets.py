@@ -6,7 +6,6 @@ from typing import Any, Dict, Optional
 import datasets
 import torch
 import transformers
-from datasets import get_dataset_infos
 
 from renate import defaults
 from renate.data.data_module import RenateDataModule
@@ -85,7 +84,10 @@ class HuggingFaceTextDataModule(RenateDataModule):
             raise RuntimeError(f"Dataset {self._dataset_name} does not contain a 'train' split.")
         if "test" not in split_names:
             raise RuntimeError(f"Dataset {self._dataset_name} does not contain a 'test' split.")
-        available_columns = list(get_dataset_infos(self._dataset_name)["default"].features)
+        self._train_data = datasets.load_dataset(
+            self._dataset_name, split="train", cache_dir=self._data_path
+        )
+        available_columns = list(self._train_data.features)
         if self._input_column not in available_columns:
             raise ValueError(
                 f"Input column '{self._input_column}' does not exist in {self._dataset_name}. "
@@ -96,9 +98,6 @@ class HuggingFaceTextDataModule(RenateDataModule):
                 f"Target column '{self._target_column}' does not exist in {self._dataset_name}. "
                 f"Available columns: {available_columns}."
             )
-        self._train_data = datasets.load_dataset(
-            self._dataset_name, split="train", cache_dir=self._data_path
-        )
         self._test_data = datasets.load_dataset(
             self._dataset_name, split="test", cache_dir=self._data_path
         )
@@ -125,13 +124,13 @@ class HuggingFaceTextDataModule(RenateDataModule):
 
         self._train_data = self._train_data.map(tokenize_fn, batched=True)
         self._train_data.set_format(type="torch", columns=columns)
-        self._train_data = _InputTargetWrapper(self._train_data)
+        self._train_data = _InputTargetWrapper(self._train_data, self._target_column)
         self._test_data = self._test_data.map(tokenize_fn, batched=True)
         self._test_data.set_format(type="torch", columns=columns)
-        self._test_data = _InputTargetWrapper(self._test_data)
+        self._test_data = _InputTargetWrapper(self._test_data, self._target_column)
         if self._val_data is not None:
             self._val_data = self._val_data.map(tokenize_fn, batched=True)
             self._val_data.set_format(type="torch", columns=columns)
-            self._val_data = _InputTargetWrapper(self._val_data)
+            self._val_data = _InputTargetWrapper(self._val_data, self._target_column)
         else:
             self._train_data, self._val_data = self._split_train_val_data(self._train_data)
