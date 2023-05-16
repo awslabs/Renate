@@ -284,7 +284,7 @@ def _execute_experiment_job_locally(
     data_module = get_and_prepare_data_module(
         config_module,
         data_path=data_url,
-        chunk_id=defaults.CHUNK_ID,
+        chunk_id=0,
         seed=seed,
         **data_module_fn_kwargs,
     )
@@ -392,5 +392,8 @@ def _execute_experiment_job_remotely(experiment_outputs_url: str, **job_kwargs: 
         experiment_outputs_url
     ), f"experiment_outputs_url {experiment_outputs_url} is not on S3."
     return submit_remote_job(
-        source_dir=None, experiment_outputs_url=experiment_outputs_url, **job_kwargs
+        source_dir=None,
+        experiment_outputs_url=experiment_outputs_url,
+        optional_dependencies="benchmark",
+        **job_kwargs,
     )

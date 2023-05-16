@@ -46,7 +46,6 @@ FRAMEWORK_VERSION = "1.12.0"
 
 TASK_ID = "default_task"
 SUPPORTED_TASKS_TYPE = Literal["classification", "regression"]
-CHUNK_ID = 0
 WORKING_DIRECTORY = "renate_working_dir"
 LOGGER = TensorBoardLogger
 LOGGER_KWARGS = {
@@ -106,7 +105,7 @@ LWF_TEMPERATURE = 2
 MEMORY_SIZE = 32
 
 # Benchmark datasets/models
-TOKENIZER_KWARGS = dict(padding="max_length", max_length=128, truncation=True)
+TOKENIZER_KWARGS = {"padding": "max_length", "max_length": 128, "truncation": True}
 
 
 def scheduler(config_space: Dict[str, Any], mode: str, metric: str):

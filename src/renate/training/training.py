@@ -68,7 +68,7 @@ def run_training_job(
     updater: str = defaults.LEARNER,
     max_epochs: int = defaults.MAX_EPOCHS,
     task_id: str = defaults.TASK_ID,
-    chunk_id: int = defaults.CHUNK_ID,
+    chunk_id: Optional[int] = None,
     input_state_url: Optional[str] = None,
     output_state_url: Optional[str] = None,
     working_directory: Optional[str] = defaults.WORKING_DIRECTORY,
@@ -213,7 +213,10 @@ def run_training_job(
 
 
 def _prepare_remote_job(
-    tmp_dir: str, requirements_file: Optional[str], **job_kwargs: Any
+    tmp_dir: str,
+    requirements_file: Optional[str],
+    optional_dependencies: Optional[str] = None,
+    **job_kwargs: Any,
 ) -> List[str]:
     """Prepares a SageMaker job."""
     dependencies = list(renate.__path__ + [job_kwargs["config_file"]])
@@ -231,7 +234,12 @@ def _prepare_remote_job(
     if requirements_file is None:
         requirements_file = os.path.join(tmp_dir, "requirements.txt")
         with open(requirements_file, "w") as f:
-            f.write(f"renate=={renate.__version__}")
+            f.write(
+                "Renate{}=={}".format(
+                    "" if optional_dependencies is None else f"[{optional_dependencies}]",
+                    renate.__version__,
+                )
+            )
     dependencies.append(requirements_file)
     return dependencies
 
@@ -413,8 +421,6 @@ def _verify_validation_set_for_hpo_and_checkpointing(
     metric: str,
     mode: defaults.SUPPORTED_TUNING_MODE_TYPE,
     working_directory: str,
-    chunk_id: int,
-    seed: int,
 ) -> Tuple[str, defaults.SUPPORTED_TUNING_MODE_TYPE]:
     """Checks if validation set is provided when needed and updates config_space such that
     checkpointing works.
@@ -526,7 +532,8 @@ def _execute_training_and_tuning_job_locally(
     config_space["max_epochs"] = max_epochs
     config_space["config_file"] = config_file
     config_space["prepare_data"] = False
-    config_space["chunk_id"] = chunk_id
+    if chunk_id is not None:
+        config_space["chunk_id"] = chunk_id
     config_space["task_id"] = task_id
     config_space["working_directory"] = working_directory
     config_space["seed"] = seed
@@ -545,8 +552,6 @@ def _execute_training_and_tuning_job_locally(
         metric=metric,
         mode=mode,
         working_directory=working_directory,
-        chunk_id=chunk_id,
-        seed=seed,
     )
 
     training_script = str(Path(renate.__path__[0]) / "cli" / "run_training.py")
@@ -627,6 +632,7 @@ def submit_remote_job(
     instance_count: int,
     instance_max_time: float,
     job_name: str,
+    optional_dependencies: Optional[str] = None,
     **job_kwargs: Any,
 ) -> str:
     """Executes the training job on SageMaker.
@@ -636,7 +642,9 @@ def submit_remote_job(
     job_timestamp = defaults.current_timestamp()
     job_name = f"{job_name}-{job_timestamp}"
     tmp_dir = tempfile.mkdtemp()
-    dependencies = _prepare_remote_job(tmp_dir=tmp_dir, **job_kwargs)
+    dependencies = _prepare_remote_job(
+        tmp_dir=tmp_dir, optional_dependencies=optional_dependencies, **job_kwargs
+    )
     PyTorch(
         entry_point=tuning_script,
         source_dir=None if source_dir is None else str(source_dir),

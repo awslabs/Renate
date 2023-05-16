@@ -4,7 +4,7 @@ import pytest
 from torchvision.transforms import Compose, Normalize
 
 from renate.benchmark import experiment_config
-from renate.benchmark.datasets.nlp_datasets import HuggingfaceTextDataModule
+from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
 from renate.benchmark.datasets.vision_datasets import CLEARDataModule, TorchVisionDataModule
 from renate.benchmark.experiment_config import (
     data_module_fn,
@@ -22,6 +22,7 @@ from renate.benchmark.scenarios import (
     IIDScenario,
     ImageRotationScenario,
     PermutationScenario,
+    WildTimeScenario,
 )
 from renate.models.prediction_strategies import ICaRLClassificationStrategy
 
@@ -45,6 +46,27 @@ def test_model_fn(model_name, expected_model_class):
     assert isinstance(model, expected_model_class)
 
 
+@pytest.mark.parametrize(
+    "dataset_name,expected_in_channels",
+    (
+        ("FashionMNIST", 1),
+        ("MNIST", 1),
+        ("yearbook", 1),
+        ("CIFAR10", 3),
+        ("CIFAR100", 3),
+        ("fmow", 3),
+    ),
+)
+def test_model_fn_automatic_input_channel_detection_resnet(dataset_name, expected_in_channels):
+    """Tests if ResNet architectures input channels are correctly adapted to the dataset."""
+    model = model_fn(
+        model_state_url=None,
+        model_name="ResNet18",
+        dataset_name=dataset_name,
+    )
+    assert model.get_backbone().conv1.in_channels == expected_in_channels
+
+
 def test_model_fn_fails_for_unknown_model():
     unknown_model_name = "UNKNOWN_MODEL_NAME"
     with pytest.raises(ValueError, match=f"Unknown model `{unknown_model_name}`"):
@@ -58,7 +80,7 @@ def test_model_fn_fails_for_unknown_model():
         ("CLEAR10", CLEARDataModule, None, None, None),
         (
             "hfd-rotten-tomatoes",
-            HuggingfaceTextDataModule,
+            HuggingFaceTextDataModule,
             "distilbert-base-uncased",
             "text",
             "label",
@@ -73,6 +95,8 @@ def test_get_data_module(
         dataset_name=dataset_name,
         val_size=0.5,
         seed=0,
+        src_bucket=None,
+        src_object_name=None,
         pretrained_model_name=pretrained_model_name,
         input_column=input_column,
         target_column=target_column,
@@ -88,6 +112,8 @@ def test_get_data_module_fails_for_unknown_dataset(tmpdir):
             dataset_name=unknown_dataset_name,
             val_size=0.5,
             seed=0,
+            src_bucket=None,
+            src_object_name=None,
             pretrained_model_name=None,
             input_column=None,
             target_column=None,
@@ -100,6 +126,8 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         dataset_name="MNIST",
         val_size=0.5,
         seed=0,
+        src_bucket=None,
+        src_object_name=None,
         pretrained_model_name=None,
         input_column=None,
         target_column=None,
@@ -166,6 +194,20 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             HueShiftScenario,
             3,
         ),
+        (
+            "WildTimeScenario",
+            "arxiv",
+            {"num_tasks": 3, "pretrained_model_name": "distilbert-base-uncased"},
+            WildTimeScenario,
+            3,
+        ),
+        (
+            "WildTimeScenario",
+            "fmow",
+            {},
+            WildTimeScenario,
+            16,
+        ),
     ),
     ids=[
         "class_incremental",
@@ -175,6 +217,8 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         "permutation",
         "feature_sorting",
         "hue_shift",
+        "wild_time_text_with_tokenizer",
+        "wild_time_image_all_tasks",
     ],
 )
 @pytest.mark.parametrize("val_size", (0, 0.5), ids=["no_val", "val"])
@@ -200,10 +244,15 @@ def test_data_module_fn(
     if expected_scenario_class == ClassIncrementalScenario:
         assert scenario._class_groupings == scenario_kwargs["class_groupings"]
     elif expected_scenario_class == FeatureSortingScenario:
-        scenario._feature_idx = scenario_kwargs["feature_idx"]
-        scenario._randomness = scenario_kwargs["randomness"]
+        assert scenario._feature_idx == scenario_kwargs["feature_idx"]
+        assert scenario._randomness == scenario_kwargs["randomness"]
     elif expected_scenario_class == HueShiftScenario:
-        scenario._randomness = scenario_kwargs["randomness"]
+        assert scenario._randomness == scenario_kwargs["randomness"]
+    elif expected_scenario_class == WildTimeScenario:
+        if "pretrained_model_name" in scenario_kwargs:
+            assert scenario._data_module._tokenizer is not None
+        else:
+            assert scenario._data_module._tokenizer is None
     assert scenario._num_tasks == expected_num_tasks
 
 
