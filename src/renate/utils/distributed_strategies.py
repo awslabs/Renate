@@ -25,12 +25,14 @@ def create_strategy(devices: int = 1, strategy_name: Optional["str"] = None) -> 
     """Function returns a strategy object based on the number of devices queried
     and name of strategy"""
 
+    devices = devices or 1
     if strategy_name in _UNSUPPORTED_STRATEGIES:
         raise ValueError(
             f"Current strategy: {strategy_name} is unsupported. Choose deepspeed variants or ddp."
         )
-    if devices < 1:
-        raise ValueError("Number of devices has to be at least 1.")
+    if devices < 0:
+        raise ValueError("Number of devices has to be at least 0.")
+
     elif devices == 1:
         # If one GPU, use standard training. Enabled by passing strategy=None
         # to pl.Trainer
