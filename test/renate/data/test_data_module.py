@@ -9,7 +9,7 @@ import torch
 import transformers
 from torch.utils.data import Dataset, TensorDataset
 
-from renate.benchmark.datasets.nlp_datasets import HuggingfaceTextDataModule
+from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
 from renate.benchmark.datasets.vision_datasets import (
     CLEARDataModule,
     TinyImageNetDataModule,
@@ -153,7 +153,7 @@ def test_tiny_imagenet_data_module(tmpdir):
 def test_hugging_face_data_module(
     tmpdir, dataset_name, input_column, target_column, tokenizer, tokenizer_kwargs
 ):
-    data_module = HuggingfaceTextDataModule(
+    data_module = HuggingFaceTextDataModule(
         data_path=tmpdir,
         dataset_name=dataset_name,
         input_column=input_column,
@@ -187,11 +187,12 @@ def test_hugging_face_exception_raised_with_wrong_column(tmpdir, column):
         input_column = "WRONG_COLUMN"
     elif column == "target":
         target_column = "WRONG_COLUMN"
-    data_module = HuggingfaceTextDataModule(
+    data_module = HuggingFaceTextDataModule(
         data_path=tmpdir,
         dataset_name="rotten_tomatoes",
         input_column=input_column,
         target_column=target_column,
+        tokenizer=None,
         val_size=0.2,
     )
     if column == "input":

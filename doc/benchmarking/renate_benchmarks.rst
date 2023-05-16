@@ -121,6 +121,10 @@ The following table contains the list of supported datasets.
       - Task
       - Data Summary
       - Reference
+    * - arxiv
+      - Text Classification: category recognition of arXiv papers.
+      - ~1.9M train, ~206k test, 172 classes, years 2007-2023
+      - Huaxiu Yao et al.: Wild-Time: A Benchmark of in-the-Wild Distribution Shift over Time. Conference on Neural Information Processing Systems Datasets and Benchmarks Track. 2022.
     * - CIFAR10
       - Image Classification
       - 50k train, 10k test, 10 classes, image shape 32x32x3
@@ -133,10 +137,22 @@ The following table contains the list of supported datasets.
       - Image Classification
       - 60k train, 10k test, 10 classes, image shape 28x28x1
       - Han Xiao et al.: Fashion-MNIST: a Novel Image Dataset for Benchmarking Machine Learning Algorithms. 2017.
+    * - fmow
+      - Image Classification: land use recognition from satellite images.
+      - 62 classes, image shape 32x32x3
+      - Huaxiu Yao et al.: Wild-Time: A Benchmark of in-the-Wild Distribution Shift over Time. Conference on Neural Information Processing Systems Datasets and Benchmarks Track. 2022.
+    * - huffpost
+      - Text Classification: category recognition of news paper articles.
+      - ~58k train, ~6k test, 11 classes, years 2012-2019
+      - Huaxiu Yao et al.: Wild-Time: A Benchmark of in-the-Wild Distribution Shift over Time. Conference on Neural Information Processing Systems Datasets and Benchmarks Track. 2022.
     * - MNIST
       - Image Classification
       - 60k train, 10k test, 10 classes, image shape 28x28x1
       - Li Deng: The MNIST Database of Handwritten Digit Images for Machine Learning Research. IEEE Signal Processing Magazine. 2012.
+    * - yearbook
+      - Image Classification: gender identification in yearbook photos.
+      - ~33k train, ~4k test, 2 classes, years 1930-2013, image shape 32x32x1
+      - Huaxiu Yao et al.: Wild-Time: A Benchmark of in-the-Wild Distribution Shift over Time. Conference on Neural Information Processing Systems Datasets and Benchmarks Track. 2022.
     * - hfd-{dataset_name}
       - multiple
       - Any `Hugging Face dataset <https://huggingface.co/datasets>`__ can be used. Just prepend the prefix ``hfd-``, e.g., ``hfd-rotten_tomatoes``. Select input and target columns via ``config_space``, e.g., add ``"input_column": "text", "target_column": "label"`` for the `rotten_tomatoes <https://huggingface.co/datasets/rotten_tomatoes>`__ example.
@@ -170,6 +186,11 @@ The first part contains all instances with classes 1 and 2, the second with clas
       - Settings
     * - :py:class:`~renate.benchmark.scenarios.BenchmarkScenario`
       - Used in combination only with CLEAR-10 or CLEAR-100.
+      - * :code:`num_tasks`: Number of data partitions.
+    * - :py:class:`~renate.benchmark.scenarios.WildTimeScenario`
+      - Used in combination only with Wild-Time datasets. This is not the scenario used in the paper.
+        Data is presented time step by time step and the model is evaluated on test data up to the
+        current time step.
       - * :code:`num_tasks`: Number of data partitions.
     * - :py:class:`~renate.benchmark.scenarios.ClassIncrementalScenario`
       - Creates data partitions by splitting the data according to class labels.

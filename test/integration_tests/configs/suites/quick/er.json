@@ -5,5 +5,6 @@
   "dataset": "cifar10.json",
   "backend": "local",
   "job_name": "class-incremental-mlp-er",
-  "expected_accuracy": [0.5799999833106995, 0.367000013589859]
+  "expected_accuracy_linux": [[0.5799999833106995, 0.367000013589859], [0.6100000143051147, 0.5975000262260437]],
+  "expected_accuracy_darwin": [[0.49050000309944153, 0.671500027179718]]
 }

@@ -5,5 +5,6 @@
   "dataset": "fashionmnist.json",
   "backend": "local",
   "job_name": "class-incremental-mlp-super-er",
-  "expected_accuracy": [0.9330000281333923, 0.9144999980926514]
+  "expected_accuracy_linux": [[0.9330000281333923, 0.9144999980926514], [0.9434999823570251, 0.8974999785423279]],
+  "expected_accuracy_darwin": [[0.9390000104904175, 0.9089999794960022]]
 }

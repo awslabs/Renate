@@ -9,6 +9,7 @@ from torch.utils.data import Dataset, Subset
 from torchvision.transforms import Lambda, RandomRotation, ToPILImage
 
 from renate import defaults
+from renate.benchmark.datasets.wild_time_data import WildTimeDataModule
 from renate.data.data_module import RenateDataModule
 from renate.data.datasets import _TransformedDataset
 from renate.utils.pytorch import get_generator, randomly_split_data
@@ -378,3 +379,40 @@ class HueShiftScenario(_SortingScenario):
             )
             scores.append(value[np.argmax(count)])
         return scores
+
+
+class WildTimeScenario(Scenario):
+    """Creating a time-incremental scenario for the Wild-Time datasets.
+
+    In contrast to the original work, data is presented time step by time step (no grouping) and
+    the test set is all data up to the current time step.
+
+    Args:
+        data_module: The source RenateDataModule for the the user data.
+        num_tasks: The total number of expected tasks for experimentation.
+        chunk_id: The data chunk to load in for the training or validation data.
+        seed: Seed used to fix random number generation.
+    """
+
+    def __init__(
+        self,
+        data_module: RenateDataModule,
+        num_tasks: int,
+        chunk_id: int,
+        seed: int = defaults.SEED,
+    ) -> None:
+        super().__init__(data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed)
+        if not isinstance(data_module, WildTimeDataModule):
+            raise ValueError("This scenario is only compatible with `WildTimeDataModule`.")
+
+    def setup(self) -> None:
+        """Sets up the scenario."""
+        self._data_module.time_step = self._chunk_id
+        self._data_module.setup()
+        self._train_data = self._data_module.train_data()
+        self._val_data = self._data_module.val_data()
+        self._test_data = []
+        for i in range(self._num_tasks):
+            self._data_module.time_step = i
+            self._data_module.setup()
+            self._test_data.append(self._data_module.test_data())

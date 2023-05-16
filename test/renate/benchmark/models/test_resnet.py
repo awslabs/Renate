@@ -3,6 +3,7 @@
 import pytest
 import torch
 
+from renate.benchmark.models import ResNet18
 from renate.defaults import TASK_ID
 
 
@@ -67,3 +68,10 @@ def test_renate_resnet_get_params(sub_class, expected_num_params):
     for i in range(len(first_task_params) - 2, len(first_task_params)):
         # -2 because the last two parameters are weight and bias of a task specific linear layer
         assert not torch.equal(first_task_params[i], second_task_params[i])
+
+
+@pytest.mark.parametrize("gray_scale", (True, False), ids=("gray scale", "rgb"))
+def test_renate_resnet_gray_scale_parameter(gray_scale):
+    """Tests if gray_scale parameter correctly controls number of input channels."""
+    expected_in_channels = 1 if gray_scale else 3
+    assert ResNet18(gray_scale=gray_scale).get_backbone().conv1.in_channels == expected_in_channels
