@@ -47,20 +47,30 @@ class GDumbLearner(ReplayLearner):
             seed=seed,
             **kwargs,
         )
+        self.save_hyperparameters(
+            ignore=[
+                "model",
+                "loss_fn",
+                "components",
+                "train_transform",
+                "test_transform",
+                "buffer_transform",
+                "train_transform",
+                "train_target_transform",
+                "test_transform",
+                "test_target_transform",
+                "buffer_transform",
+                "buffer_target_transform",
+                "logged_metrics",
+            ]
+        )
+
         self._memory_buffer = GreedyClassBalancingBuffer(
             max_size=memory_size,
             seed=seed,
             transform=buffer_transform,
             target_transform=buffer_target_transform,
         )
-
-    # def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
-    #     """Restores the state of the learner."""
-    #     if not hasattr(self, "_memory_buffer"):
-    #         self._memory_buffer = GreedyClassBalancingBuffer()
-    #     Learner.load_state_dict(self, model, state_dict, **kwargs)
-    #     self._memory_batch_size = state_dict["memory_batch_size"]
-    #     self._memory_buffer.load_state_dict(state_dict["memory_buffer"])
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         super().on_load_checkpoint(checkpoint)

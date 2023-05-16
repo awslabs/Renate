@@ -125,49 +125,6 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
         for component in self._components.values():
             component.on_train_start(model=self._model)
 
-    # def state_dict(self, **kwargs) -> Dict[str, Any]:
-    #     """Returns the state of the learner."""
-    #     state_dict = super().state_dict(**kwargs)
-    #     state_dict.update(
-    #         {
-    #             "loss_weight": self._loss_weight,
-    #             "ema_memory_update_gamma": self._ema_memory_update_gamma,
-    #             "loss_normalization": self._use_loss_normalization,
-    #             "components": self._components.state_dict(),
-    #             "components_names": self._components_names,
-    #         }
-    #     )
-    #     return state_dict
-
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        super().on_save_checkpoint(checkpoint)
-        checkpoint["components"] = self._components.state_dict()
-
-    # def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-    #     super().on_load_checkpoint(checkpoint)
-    #     # self._components = self.components(model=self._model)
-    #     self._components.load_state_dict(checkpoint["components"])
-
-    # def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
-    #     """Restores the state of the learner."""
-    #     self._components_names = state_dict["components_names"]
-    #     super().load_state_dict(model, state_dict, **kwargs)
-    #     self._loss_weight = state_dict["loss_weight"]
-    #     self._ema_memory_update_gamma = state_dict["ema_memory_update_gamma"]
-    #     self._use_loss_normalization = state_dict["loss_normalization"]
-    # self._components = self.components(model=model)
-    #     self._components.load_state_dict(state_dict["components"])
-
-    def update_hyperparameters(self, args: Dict[str, Any]) -> None:
-        """Update the hyperparameters of the learner."""
-        super().update_hyperparameters(args)
-        if "loss_weight" in args:
-            self._loss_weight = args["loss_weight"]
-        if "ema_memory_update_gamma" in args:
-            self._ema_memory_update_gamma = args["ema_memory_update_gamma"]
-        if "loss_normalization" in args:
-            self._use_loss_normalization = args["loss_normalization"]
-
     def training_step(
         self, batch: Tuple[torch.Tensor, Tuple[NestedTensors, torch.Tensor]], batch_idx: int
     ) -> STEP_OUTPUT:
@@ -312,11 +269,6 @@ class ExperienceReplayLearner(BaseExperienceReplayLearner):
             }
         )
 
-    def update_hyperparameters(self, args: Dict[str, Any]) -> None:
-        super().update_hyperparameters(args)
-        if "alpha" in args:
-            self._components["memory_loss"].set_weight(args["alpha"])
-
 
 class DarkExperienceReplayLearner(ExperienceReplayLearner):
     """A Learner that implements Dark Experience Replay.
@@ -370,13 +322,6 @@ class DarkExperienceReplayLearner(ExperienceReplayLearner):
             }
         )
         return components
-
-    def update_hyperparameters(self, args: Dict[str, Any]) -> None:
-        super().update_hyperparameters(args)
-        if "alpha" in args:
-            self._components["mse_loss"].set_weight(args["alpha"])
-        if "beta" in args:
-            self._components["memory_loss"].set_weight(args["beta"])
 
 
 class PooledOutputDistillationExperienceReplayLearner(BaseExperienceReplayLearner):
@@ -441,17 +386,6 @@ class PooledOutputDistillationExperienceReplayLearner(BaseExperienceReplayLearne
             }
         )
 
-    def update_hyperparameters(self, args: Dict[str, Any]) -> None:
-        """Update the hyperparameters of the learner."""
-        super().update_hyperparameters(args)
-        component = self._components["pod_loss"]
-        if "alpha" in args:
-            component.set_weight(args["alpha"])
-        if "distillation_type" in args:
-            component.set_distillation_type(args["distillation_type"])
-        if "normalize" in args:
-            component.set_normalize(args["normalize"])
-
 
 class CLSExperienceReplayLearner(BaseExperienceReplayLearner):
     """A learner that implements a Complementary Learning Systems Based Experience Replay.
@@ -492,8 +426,7 @@ class CLSExperienceReplayLearner(BaseExperienceReplayLearner):
             stable_model_update_probability=stable_model_update_probability,
             plastic_model_update_probability=plastic_model_update_probability,
         )
-        # print(kwargs.keys())
-        # print(kwargs["components"])
+
         super().__init__(components=components, **kwargs)
         self.save_hyperparameters(
             ignore=[
@@ -540,28 +473,6 @@ class CLSExperienceReplayLearner(BaseExperienceReplayLearner):
                 ),
             }
         )
-
-    def update_hyperparameters(self, args: Dict[str, Any]) -> None:
-        super().update_hyperparameters(args)
-        memory_loss_component = self._components["memory_loss"]
-        if "alpha" in args:
-            memory_loss_component.set_weight(args["alpha"])
-
-        cls_component = self._components["cls_loss"]
-        if "beta" in args:
-            cls_component.set_weight(args["beta"])
-        if "stable_model_update_weight" in args:
-            cls_component.set_stable_model_update_weight(args["stable_model_update_weight"])
-        if "plastic_model_update_weight" in args:
-            cls_component.set_plastic_model_update_weight(args["plastic_model_update_weight"])
-        if "stable_model_update_probability" in args:
-            cls_component.set_stable_model_update_probability(
-                args["stable_model_update_probability"]
-            )
-        if "plastic_model_update_probability" in args:
-            cls_component.set_plastic_model_update_probability(
-                args["plastic_model_update_probability"]
-            )
 
 
 class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
@@ -692,41 +603,6 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
                 ),
             }
         )
-
-    def update_hyperparameters(self, args: Dict[str, Any]) -> None:
-        super().update_hyperparameters(args)
-        if "der_alpha" in args:
-            self._components["mse_loss"].set_weight(args["der_alpha"])
-        if "der_beta" in args:
-            self._components["memory_loss"].set_weight(args["der_beta"])
-        if "sp_mu" in args:
-            self._components["shrink_perturb"].set_shrink_factor(args["sp_mu"])
-        if "sp_sigma" in args:
-            self._components["shrink_perturb"].set_sigma(args["sp_sigma"])
-        if "pod_alpha" in args:
-            self._components["pod_loss"].set_weight(args["pod_alpha"])
-        if "pod_distillation_type" in args:
-            self._components["pod_loss"].set_distillation_type(args["pod_distillation_type"])
-        if "pod_normalize" in args:
-            self._components["pod_loss"].set_normalize(args["pod_normalize"])
-        if "cls_alpha" in args:
-            self._components["cls_loss"].set_weight(args["cls_alpha"])
-        if "cls_stable_model_update_weight" in args:
-            self._components["cls_loss"].set_stable_model_update_weight(
-                args["cls_stable_model_update_weight"]
-            )
-        if "cls_plastic_model_update_weight" in args:
-            self._components["cls_loss"].set_plastic_model_update_weight(
-                args["cls_plastic_model_update_weight"]
-            )
-        if "cls_stable_model_update_probability" in args:
-            self._components["cls_loss"].set_stable_model_update_probability(
-                args["cls_stable_model_update_probability"]
-            )
-        if "cls_plastic_model_update_probability" in args:
-            self._components["cls_loss"].set_plastic_model_update_probability(
-                args["cls_plastic_model_update_probability"]
-            )
 
 
 class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):

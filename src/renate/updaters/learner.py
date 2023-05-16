@@ -144,92 +144,19 @@ class Learner(LightningModule, abc.ABC):
             }
         )
 
-    # def state_dict(self, **kwargs) -> Dict[str, Any]:
-    #     """Returns the state of the learner."""
-    #     return {
-    #         "learner_class_name": self.__class__.__name__,
-    #         "optimizer": self._optimizer,
-    #         "learning_rate": self._learning_rate,
-    #         "learning_rate_scheduler": self._learning_rate_scheduler,
-    #         "learning_rate_scheduler_gamma": self._learning_rate_scheduler_gamma,
-    #         "learning_rate_scheduler_step_size": self._learning_rate_scheduler_step_size,
-    #         "momentum": self._momentum,
-    #         "weight_decay": self._weight_decay,
-    #         "batch_size": self._batch_size,
-    #         "seed": self._seed,
-    #         "task_id": self._task_id,
-    #         "val_memory_buffer": self._val_memory_buffer.state_dict(),
-    #     }
-
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         learner_state_dict = {
             "learner_class_name": self.__class__.__name__,
-            # "optimizer": self._optimizer,
-            # "learning_rate": self._learning_rate,
-            # "learning_rate_scheduler": self._learning_rate_scheduler,
-            # "learning_rate_scheduler_gamma": self._learning_rate_scheduler_gamma,
-            # "learning_rate_scheduler_step_size": self._learning_rate_scheduler_step_size,
-            # "momentum": self._momentum,
-            # "weight_decay": self._weight_decay,
-            # "batch_size": self._batch_size,
-            # "seed": self._seed,
-            # "task_id": self._task_id,
             "val_memory_buffer": self._val_memory_buffer.state_dict(),
         }
         checkpoint.update(learner_state_dict)
 
     def on_load_checkpoint(self, state_dict):
-        # self._learning_rate = state_dict["learning_rate"]
-        # self._learning_rate_scheduler = state_dict["learning_rate_scheduler"]
-        # self._learning_rate_scheduler_gamma = state_dict["learning_rate_scheduler_gamma"]
-        # self._learning_rate_scheduler_step_size = state_dict["learning_rate_scheduler_step_size"]
-        # self._momentum = state_dict["momentum"]
-        # self._weight_decay = state_dict["weight_decay"]
-        # self._batch_size = state_dict["batch_size"]
-        # self._seed = state_dict["seed"]
-        # self._task_id = state_dict["task_id"]
-        if not hasattr(self, "_val_memory_buffer"):
-            self._val_memory_buffer = InfiniteBuffer()
         self._val_memory_buffer.load_state_dict(state_dict["val_memory_buffer"])
-        # if "state_dict" in state_dict:
-        #     # It not deepspeed, we get this element. So we manually load that.
-        #     new_sd = {k.replace("_model.", "", 1): v for k, v in state_dict["state_dict"].items()}
-        #     self._model.load_state_dict(new_sd)
         if "optimizer" in state_dict:
             # It not deepspeed, we get this element. So we manually load that.
             self._optimizer = state_dict["optimizer"]
         self._post_init()
-
-    # def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
-    #     """Restores the state of the learner.
-
-    #     Even though this is a LightningModule, no modules are stored.
-
-    #     Args:
-    #         model: The model to be trained.
-    #         state_dict: Dictionary containing the state.
-    #     """
-    #     if self.__class__.__name__ != state_dict["learner_class_name"]:
-    #         raise RuntimeError(
-    #             f"Learner of class {self.__class__} was used to load a state dict created by class "
-    #             f"{state_dict['learner_class_name']}."
-    #         )
-    #     super().__init__()
-    #     self._model = model
-    #     self._optimizer = state_dict["optimizer"]
-    #     self._learning_rate = state_dict["learning_rate"]
-    #     self._learning_rate_scheduler = state_dict["learning_rate_scheduler"]
-    #     self._learning_rate_scheduler_gamma = state_dict["learning_rate_scheduler_gamma"]
-    #     self._learning_rate_scheduler_step_size = state_dict["learning_rate_scheduler_step_size"]
-    #     self._momentum = state_dict["momentum"]
-    #     self._weight_decay = state_dict["weight_decay"]
-    #     self._batch_size = state_dict["batch_size"]
-    #     self._seed = state_dict["seed"]
-    #     self._task_id = state_dict["task_id"]
-    #     if not hasattr(self, "_val_memory_buffer"):
-    #         self._val_memory_buffer = InfiniteBuffer()
-    #     self._val_memory_buffer.load_state_dict(state_dict["val_memory_buffer"])
-    #     self._post_init()
 
     def save(self, output_state_dir: str) -> None:
         val_buffer_dir = os.path.join(output_state_dir, "val_memory_buffer")
@@ -274,25 +201,6 @@ class Learner(LightningModule, abc.ABC):
                         for logged_metric_name in collection[collection_key]
                     ]
         return metric_name in logged_metrics
-
-    def update_hyperparameters(self, args: Dict[str, Any]) -> None:
-        """Update the hyperparameters of the learner."""
-        if "optimizer" in args:
-            self._optimizer = args["optimizer"]
-        if "learning_rate" in args:
-            self._learning_rate = args["learning_rate"]
-        if "learning_rate_scheduler" in args:
-            self._learning_rate_scheduler = args["learning_rate_scheduler"]
-        if "learning_rate_scheduler_gamma" in args:
-            self._learning_rate_scheduler_gamma = args["learning_rate_scheduler_gamma"]
-        if "learning_rate_scheduler_step_size" in args:
-            self._learning_rate_scheduler_step_size = args["learning_rate_scheduler_step_size"]
-        if "momentum" in args:
-            self._momentum = args["momentum"]
-        if "weight_decay" in args:
-            self._weight_decay = args["weight_decay"]
-        if "batch_size" in args:
-            self._batch_size = args["batch_size"]
 
     def on_model_update_start(
         self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
@@ -490,23 +398,13 @@ class ReplayLearner(Learner, abc.ABC):
         )
 
         self._memory_batch_size = min(memory_size, memory_batch_size)
+        self.hparams["memory_batch_size"] = self._memory_batch_size
         self._memory_buffer = ReservoirBuffer(
             max_size=memory_size,
             seed=seed,
             transform=buffer_transform,
             target_transform=buffer_target_transform,
         )
-
-    # def state_dict(self, **kwargs) -> Dict[str, Any]:
-    #     """Returns the state of the learner."""
-    #     state_dict = super().state_dict(**kwargs)
-    #     state_dict.update(
-    #         {
-    #             "memory_batch_size": self._memory_batch_size,
-    #             "memory_buffer": self._memory_buffer.state_dict(),
-    #         }
-    #     )
-    #     return state_dict
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         super().on_save_checkpoint(checkpoint)
@@ -518,14 +416,6 @@ class ReplayLearner(Learner, abc.ABC):
         if not hasattr(self, "_memory_buffer"):
             self._memory_buffer = ReservoirBuffer()
         self._memory_buffer.load_state_dict(checkpoint["memory_buffer"])
-
-    # def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
-    #     """Restores the state of the learner."""
-    #     super().load_state_dict(model, state_dict, **kwargs)
-    #     self._memory_batch_size = state_dict["memory_batch_size"]
-    #     if not hasattr(self, "_memory_buffer"):
-    #         self._memory_buffer = ReservoirBuffer()
-    #     self._memory_buffer.load_state_dict(state_dict["memory_buffer"])
 
     def save(self, output_state_dir: str) -> None:
         super().save(output_state_dir)

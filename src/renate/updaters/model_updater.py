@@ -4,7 +4,7 @@ import abc
 import logging
 import warnings
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Type
 
 import torch
 import torchmetrics
@@ -13,12 +13,11 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers.logger import Logger
 from syne_tune import Reporter
 from torch.utils.data import Dataset
-from pytorch_lightning.utilities.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
-from pytorch_lightning.utilities import rank_zero_only
 
 from renate import defaults
 from renate.utils.distributed_strategies import create_strategy
 from renate.utils.misc import int_or_str, unlink_file_or_folder
+from renate.utils.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
 from .learner import Learner, ReplayLearner
 from ..models import RenateModule
 
@@ -111,11 +110,6 @@ class RenateModelCheckpoint(ModelCheckpoint):
         else:
             self._syne_tune_callback = None
 
-    # def _save_checkpoint(self, trainer: Trainer, filepath: str) -> None:
-    #     # Path(self.dirpath).mkdir(parents=True, exist_ok=True)
-    # torch.save(self._model.state_dict(), defaults.model_file(self.dirpath))
-    #     super()._save_checkpoint(trainer=trainer, filepath=filepath)
-
     def on_train_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         super().on_train_epoch_end(trainer=trainer, pl_module=pl_module)
         if self._syne_tune_callback is not None:
@@ -126,19 +120,6 @@ class RenateModelCheckpoint(ModelCheckpoint):
         if self._syne_tune_callback is not None:
             self._syne_tune_callback.on_validation_epoch_end(trainer=trainer, pl_module=pl_module)
 
-    # def _load_best_checkpoint_and_save(self, trainer: Trainer, pl_module: LightningModule) -> None:
-    #     # Reload best state.
-    #     learner_state_path = Path(defaults.learner_state_file(self._output_state_folder))
-    #     if learner_state_path.exists():
-    #         self._model.load_state_dict(torch.load(defaults.model_file(self.dirpath)))
-    #         pl_module.load_state_dict(self._model, torch.load(learner_state_path)["state_dict"])
-    #     # Finalize model update.
-    #     pl_module.on_model_update_end()
-    #     # Save permanently.
-    #     pl_module.save(self._output_state_folder)
-    #     # Overwrite checkpoint.
-    #     self._save_checkpoint(trainer, learner_state_path)
-
     def _load_best_checkpoint_and_save(self, trainer: Trainer, pl_module: LightningModule) -> None:
         # Reload best state.
         learner_state_path = Path(defaults.learner_state_file(self._output_state_folder))
@@ -146,7 +127,6 @@ class RenateModelCheckpoint(ModelCheckpoint):
             loaded_state = trainer.strategy.load_checkpoint(learner_state_path)
             pl_module.on_load_checkpoint(loaded_state)
 
-        # print(pl_module._val_memory_buffer._indices)
         # Finalize model update.
         pl_module.on_model_update_end()
         # Save permanently.
@@ -154,27 +134,23 @@ class RenateModelCheckpoint(ModelCheckpoint):
         # Overwrite checkpoint.
         self._save_checkpoint(trainer, learner_state_path)
 
-    def teardown(self, trainer: Trainer, *args, **kwargs) -> None:
-        if trainer.is_global_zero:
+    def teardown(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
+        if trainer.is_global_zero and (stage == "fit"):
             learner_state_path = Path(defaults.learner_state_file(self._output_state_folder))
             if learner_state_path.exists() and learner_state_path.is_dir():
                 # Deepspeed zero saves everything as folders. We convert that to a single file.
                 # The flow is to create a temp file with the shards combined, and then
                 # delete the ZeRO folder, and then move it combined file to the learner.cpkt.
-                # I would ideally not have a temp file, but convert_zero_checkpoint... saves the
-                # dict without returning it.
-                temp_model_save_path = learner_state_path.parent / "temp_learner.cpkt"
-                convert_zero_checkpoint_to_fp32_state_dict(learner_state_path, temp_model_save_path)
+                combined_state_dict = convert_zero_checkpoint_to_fp32_state_dict(learner_state_path)
                 unlink_file_or_folder(learner_state_path)
-                temp_model_save_path.rename(learner_state_path)
-                self.teardown(trainer, *args, **kwargs)
+                torch.save(combined_state_dict, learner_state_path)
+                self.teardown(trainer, pl_module, stage)
             elif learner_state_path.exists() and learner_state_path.is_file():
                 ## This a normal file. We strip the model of any wrappers and save that.
                 state_dict = torch.load(learner_state_path)["state_dict"]
-                out_sd = {k.replace("_model.", ""): v for k, v in state_dict.items()}
+                out_sd = {k.replace("_model.", "", 1): v for k, v in state_dict.items()}
+                # Replace only 1 instance because we have to load it into RenateModule.
                 torch.save(out_sd, defaults.model_file(self.dirpath))
-        # This is needed to prevent other processes to exit/enter some UD state.
-        trainer.strategy.barrier()
 
     def on_exception(
         self, trainer: Trainer, pl_module: LightningModule, exception: BaseException
@@ -328,9 +304,7 @@ class ModelUpdater(abc.ABC):
         learner_class: Type[Learner],
         learner_kwargs: Dict[str, Any],
     ) -> Learner:
-        # self._learner_state_file = r"/home/ubuntu/Codes/Renate/renate_working_dir/output_state/learner.ckpt"
         if self._learner_state_file is None or not Path(self._learner_state_file).is_file():
-            # import pdb; pdb.set_trace()
             logging_logger.warning("No updater state available. Updating from scratch.")
             return learner_class(
                 model=self._model,
@@ -339,7 +313,6 @@ class ModelUpdater(abc.ABC):
                 **self._transforms_kwargs,
             )
         # learner = learner_class.__new__(learner_class)
-        logging_logger.warning("Updater state found. Updating existing model.")
         learner = learner_class.load_from_checkpoint(
             self._learner_state_file,
             model=self._model,
@@ -347,13 +320,7 @@ class ModelUpdater(abc.ABC):
             **self._transforms_kwargs,
             **learner_kwargs,
         )
-        # learner.load_state_dict(self._model, torch.load(self._learner_state_file))
-        # learner._model = self._model
-        # learner.on_load_checkpoint(torch.load(self._learner_state_file))
         learner.load(self._input_state_folder)
-        # learner.set_transforms(**self._transforms_kwargs)
-        # learner.set_logged_metrics(self._logged_metrics)
-        # learner.update_hyperparameters(learner_kwargs)
         return learner
 
     def _fit_learner(
@@ -395,7 +362,6 @@ class ModelUpdater(abc.ABC):
             deterministic=self._deterministic_trainer,
             strategy=strategy,
             precision=self._precision,
-            # limit_train_batches=10,
         )
         trainer.fit(learner)
         self._num_epochs_trained = trainer.current_epoch

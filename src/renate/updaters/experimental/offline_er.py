@@ -125,12 +125,6 @@ class OfflineExperienceReplayLearner(ReplayLearner):
             loss = alpha * loss + (1.0 - alpha) * loss_mem
         return {"loss": loss}
 
-    # def state_dict(self, **kwargs) -> Dict[str, Any]:
-    #     """Returns the state of the learner."""
-    #     state_dict = super().state_dict(**kwargs)
-    #     state_dict["loss_weight_new_data"] = self._loss_weight_new_data
-    #     state_dict["num_points_previous_tasks"] = self._num_points_previous_tasks
-    #     return state_dict
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         super().on_save_checkpoint(checkpoint)
         checkpoint["num_points_previous_tasks"] = self._num_points_previous_tasks
@@ -138,12 +132,6 @@ class OfflineExperienceReplayLearner(ReplayLearner):
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         super().on_load_checkpoint(checkpoint)
         self._num_points_previous_tasks = checkpoint["num_points_previous_tasks"]
-
-    # def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
-    #     """Restores the state of the learner."""
-    #     super().load_state_dict(model, state_dict, **kwargs)
-    #     self._loss_weight_new_data = state_dict["loss_weight_new_data"]
-    #     self._num_points_previous_tasks = state_dict["num_points_previous_tasks"]
 
 
 class OfflineExperienceReplayModelUpdater(SingleTrainingLoopUpdater):

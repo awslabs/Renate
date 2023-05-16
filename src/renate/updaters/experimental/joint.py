@@ -34,12 +34,6 @@ class JointLearner(Learner):
             target_transform=self._train_target_transform,
         )
 
-    # def state_dict(self, **kwargs) -> Dict[str, Any]:
-    #     """Returns the state of the learner."""
-    #     state_dict = super().state_dict(**kwargs)
-    #     state_dict["memory_buffer"] = self._memory_buffer.state_dict()
-    #     return state_dict
-
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         super().on_save_checkpoint(checkpoint=checkpoint)
         checkpoint["memory_buffer"] = self._memory_buffer.state_dict()
@@ -47,13 +41,6 @@ class JointLearner(Learner):
     def on_load_checkpoint(self, state_dict) -> None:
         super().on_load_checkpoint(state_dict)
         self._memory_buffer.load_state_dict(state_dict["memory_buffer"])
-
-    # def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
-    #     """Restores the state of the learner."""
-    #     if not hasattr(self, "_memory_buffer"):
-    #         self._memory_buffer = InfiniteBuffer()
-    #     super().load_state_dict(model, state_dict, **kwargs)
-    #     self._memory_buffer.load_state_dict(state_dict["memory_buffer"])
 
     def save(self, output_state_dir: str) -> None:
         super().save(output_state_dir)
