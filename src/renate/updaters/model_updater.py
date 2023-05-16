@@ -312,7 +312,6 @@ class ModelUpdater(abc.ABC):
                 logged_metrics=self._logged_metrics,
                 **self._transforms_kwargs,
             )
-        # learner = learner_class.__new__(learner_class)
         learner = learner_class.load_from_checkpoint(
             self._learner_state_file,
             model=self._model,
