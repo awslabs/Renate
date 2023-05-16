@@ -30,7 +30,12 @@ def get_model_and_learner_and_learner_kwargs(
 
 def check_learner_variables(learner: Learner, expected_variable_values: Dict[str, Any]):
     for attribute_name, attribute_value in expected_variable_values.items():
-        if attribute_name == "memory_size":
+        if attribute_name in [
+            "memory_size",
+            "learner_class_name",
+            "val_memory_buffer",
+            "memory_buffer",
+        ]:
             continue
         assert getattr(learner, f"_{attribute_name}") == attribute_value
 
@@ -38,23 +43,21 @@ def check_learner_variables(learner: Learner, expected_variable_values: Dict[str
 @pytest.mark.parametrize("learner_class", LEARNERS)
 def test_save_and_load_learner(tmpdir, learner_class):
     model, learner, learner_kwargs = get_model_and_learner_and_learner_kwargs(learner_class)
-    filename = os.path.join(tmpdir, "learner.pkl")
-    torch.save(learner.state_dict(), filename)
-    learner = learner_class.__new__(learner_class)
-    learner.load_state_dict(model, torch.load(filename))
-    check_learner_variables(learner, learner_kwargs)
+    checkpoint_dict = {}
+    learner.on_save_checkpoint(checkpoint=checkpoint_dict)
+    check_learner_variables(learner, checkpoint_dict)
 
 
 @pytest.mark.parametrize("learner_class", LEARNERS)
 def test_update_hyperparameters(learner_class):
     model, learner, learner_kwargs = get_model_and_learner_and_learner_kwargs(learner_class)
     check_learner_variables(learner, learner_kwargs)
-    learner.update_hyperparameters({})
+    learner.save_hyperparameters()
     check_learner_variables(learner, learner_kwargs)
-    learner.update_hyperparameters(LEARNER_HYPERPARAMETER_UPDATES[learner_class])
     learner_kwargs = dict(learner_kwargs)
     learner_kwargs.update(LEARNER_HYPERPARAMETER_UPDATES[learner_class])
-    check_learner_variables(learner, learner_kwargs)
+    new_learner = learner_class(model=model, **learner_kwargs)
+    check_learner_variables(new_learner, learner_kwargs)
 
 
 @pytest.mark.parametrize("learner_class", LEARNERS)

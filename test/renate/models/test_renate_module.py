@@ -12,6 +12,7 @@ from renate.benchmark.models.vision_transformer import VisionTransformer
 from renate.defaults import TASK_ID
 from renate.models import RenateModule
 from renate.models.renate_module import RenateWrapper
+from renate.utils.file import convert_to_tensor, recover_object_from_tensor
 
 
 def test_failing_to_init_abs_class():
@@ -36,6 +37,7 @@ def test_renate_model_save(tmpdir, model):
     state = torch.load(os.path.join(tmpdir, "test_model.pt"))
     os.remove(os.path.join(tmpdir, "test_model.pt"))
 
+    state["_extra_state"] = recover_object_from_tensor(state["_extra_state"])
     assert "constructor_arguments" in state["_extra_state"].keys()
     assert "tasks_params_ids" in state["_extra_state"].keys()
 
@@ -77,7 +79,7 @@ def test_renate_model_save(tmpdir, model):
                 test_num_samples=5,
             ),
             VisionTransformer,
-            torch.nn.MSELoss,
+            torch.nn.CrossEntropyLoss,
         ],
     ],
 )

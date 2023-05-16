@@ -42,7 +42,7 @@ def check_learner_settings(
         assert avalanche_learner.eval_every == expected_eval_every
         assert avalanche_learner.model == expected_model
         if expected_loss_fn is None:
-            assert avalanche_learner._criterion == expected_model.loss_fn
+            assert avalanche_learner._criterion == learner_kwargs["loss_fn"]
         else:
             assert avalanche_learner._criterion == expected_loss_fn
     assert avalanche_learner.optimizer == expected_optimizer

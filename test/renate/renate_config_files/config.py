@@ -37,3 +37,7 @@ def data_module_fn(
             class_groupings=class_groupings,
         )
     return data_module
+
+
+def loss_fn() -> torch.nn.Module:
+    return torch.nn.CrossEntropyLoss()

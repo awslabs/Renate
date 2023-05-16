@@ -73,7 +73,7 @@ def test_deterministic_updater():
 def test_model_updater_with_early_stopping(
     use_val, early_stopping_enabled, metric_monitored, updater_type
 ):
-    model, train_dataset, val_dataset = pytest.helpers.get_renate_module_mlp_and_data(
+    model, train_dataset, val_dataset, loss = pytest.helpers.get_renate_module_mlp_data_and_loss(
         num_inputs=10,
         num_outputs=10,
         hidden_size=8,
@@ -88,10 +88,13 @@ def test_model_updater_with_early_stopping(
         if updater_type == "DMC":
             model_updater = RepeatedDistillationModelUpdater(
                 model=model,
+                loss_fn=loss,
                 memory_size=50,
                 max_epochs=max_epochs,
                 early_stopping_enabled=early_stopping_enabled,
                 metric=metric_monitored,
+                accelerator="cpu",
+                devices=1,
             )
         else:
             model_updater = pytest.helpers.get_simple_updater(
@@ -204,7 +207,11 @@ def test_transforms_passed_to_simple_model_updater_will_be_used_by_learner(tmpdi
     check_learner_transforms(model_updater._learner, transforms_kwargs)
     model = model_updater.update(train_dataset, task_id=defaults.TASK_ID)
     model_updater = pytest.helpers.get_simple_updater(
-        model, input_state_folder=state_url, learner_class=learner_class, **transforms_kwargs
+        model,
+        input_state_folder=state_url,
+        learner_class=learner_class,
+        **transforms_kwargs,
+        learner_kwargs=LEARNER_KWARGS[learner_class],
     )
     check_learner_transforms(model_updater._learner, transforms_kwargs)
 

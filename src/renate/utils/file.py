@@ -288,6 +288,6 @@ def convert_to_tensor(obj):
 
 
 def recover_object_from_tensor(tensor):
-    """This fucntion converts a tensor to a byte stream that is passed through pickle
+    """This function converts a tensor to a byte stream that is passed through pickle
     to recover the underlying object. For usage with Deepspeed"""
     return pkl.loads(bytes(tensor.tolist()))

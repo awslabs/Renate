@@ -26,7 +26,7 @@ def get_model_and_dataset(dataset_size: int = 100):  # TODO: remove
 
 @pytest.mark.parametrize("provide_folder", [True, False])
 def test_avalanche_model_updater(tmpdir, provide_folder):
-    model, train_dataset, test_data = pytest.helpers.get_renate_module_mlp_and_data(
+    model, train_dataset, test_data, _ = pytest.helpers.get_renate_module_mlp_data_and_loss(
         num_inputs=10,
         num_outputs=10,
         hidden_size=32,
@@ -87,12 +87,14 @@ def test_experience_replay_buffer_size(tmpdir, batch_size, memory_size, memory_b
         "memory_size": memory_size,
         "memory_batch_size": memory_batch_size,
         "batch_size": batch_size,
+        "loss_fn": pytest.helpers.get_loss_fn(),
     }
     model_updater = ExperienceReplayAvalancheModelUpdater(
         output_state_folder=Path(tmpdir) / "0",
         model=model,
         **learner_kwargs,
         max_epochs=1,
+        accelerator="cpu",
     )
     model_updater.update(train_dataset=dataset)
     replay_plugin = plugin_by_class(ReplayPlugin, model_updater._learner.plugins)

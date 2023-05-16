@@ -36,6 +36,7 @@ def test_er_overall_memory_size_after_update(batch_size, memory_size, memory_bat
         "memory_size": memory_size,
         "memory_batch_size": memory_batch_size,
         "batch_size": batch_size,
+        "loss_fn": pytest.helpers.get_loss_fn(),
     }
     model_updater = pytest.helpers.get_simple_updater(
         model=model,
@@ -156,8 +157,8 @@ def test_er_components_save_and_load(tmpdir, cls, kwargs):
     )
     learner = cls(model=model, **kwargs)
     torch.save(learner.state_dict(), os.path.join(tmpdir, "learner.pt"))
-    learner = cls.__new__(cls)
-    learner.load_state_dict(model, torch.load(os.path.join(tmpdir, "learner.pt")))
+    learner = cls(model=model, **kwargs)
+    learner.load_state_dict(torch.load(os.path.join(tmpdir, "learner.pt")))
     if isinstance(learner, ExperienceReplayLearner) and not isinstance(
         learner, DarkExperienceReplayLearner
     ):
