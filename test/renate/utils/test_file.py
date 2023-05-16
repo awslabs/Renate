@@ -115,7 +115,7 @@ def test_copy_to_uri_locally(
                 },
             },
             "tasks_params_ids": "task_param_id_1",
-            "misc_args": tuple(range(10))
+            "misc_args": tuple(range(10)),
         }
     ],
 )

@@ -71,11 +71,12 @@ class RenateModule(torch.nn.Module, ABC):
             state_dict: The state dict of the model. This method works under the assumption that
                 this has been created by `RenateModule.state_dict()`.
         """
-        constructor_arguments = state_dict["_extra_state"]["constructor_arguments"]
+        extra_state = recover_object_from_tensor(state_dict["_extra_state"])
+        constructor_arguments = extra_state["constructor_arguments"]
         model = cls(**constructor_arguments)
-        for task in state_dict["_extra_state"]["tasks_params_ids"]:
+        for task in extra_state["tasks_params_ids"]:
             model.add_task_params(task)
-        model.load_state_dict(state_dict, strict=False)
+        model.load_state_dict(state_dict)
         return model
 
     def get_extra_state(self, encode: bool = True) -> Any:

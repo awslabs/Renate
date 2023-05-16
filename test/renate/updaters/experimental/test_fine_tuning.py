@@ -20,13 +20,17 @@ def get_model_and_dataset():
     return model, dataset
 
 
-def test_fine_tuning_updater():
+@pytest.mark.parametrize("devices", [None, 1])
+@pytest.mark.parametrize("strategy", [None, "ddp"])
+def test_fine_tuning_updater(devices, strategy):
     """This test checks that the memory buffer is updated correctly."""
     init_model, dataset = get_model_and_dataset()
 
     model = copy.deepcopy(init_model)
 
-    model_updater = FineTuningModelUpdater(model, max_epochs=1)
+    model_updater = FineTuningModelUpdater(
+        model, loss_fn=torch.nn.CrossEntropyLoss(), max_epochs=1, devices=devices, strategy=strategy
+    )
     model_updater.update(train_dataset=dataset, task_id=defaults.TASK_ID)
 
     for p1, p2 in zip(init_model.parameters(), model.parameters()):

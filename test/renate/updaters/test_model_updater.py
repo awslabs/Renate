@@ -207,3 +207,16 @@ def test_transforms_passed_to_simple_model_updater_will_be_used_by_learner(tmpdi
         model, input_state_folder=state_url, learner_class=learner_class, **transforms_kwargs
     )
     check_learner_transforms(model_updater._learner, transforms_kwargs)
+
+
+@pytest.mark.xfail(raises=(KeyError, TypeError))
+@pytest.mark.parametrize("learner", LEARNERS_USING_SIMPLE_UPDATER)
+def test_learner_fails_without_loss_fn(learner):
+    """This test checks that the updater crashes when it is supposed to.
+    This is to check for loss_fn and other misc arguments."""
+    _ = pytest.helpers.get_simple_updater(
+        model=torch.nn.Linear(1, 1),
+        learner_class=learner,
+        learner_kwargs={"learning_rate": 0.0},
+        max_epochs=1,
+    )

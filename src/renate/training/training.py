@@ -557,7 +557,8 @@ def _execute_training_and_tuning_job_locally(
             f"Tuning hyperparameters with respect to {metric} ({mode}) for {max_time} seconds on "
             f"{n_workers} worker(s)."
         )
-    # TODO: After bumping up SyneTune > 0.5, use the argument `num_gpus_per_trial`.
+    # TODO: After bumping up SyneTune >= 0.6, use the argument `num_gpus_per_trial`.
+
     backend = LocalBackend(entry_point=training_script, rotate_gpus=False if devices > 1 else True)
     if scheduler is None or not tune_hyperparameters:
         if scheduler is not None:

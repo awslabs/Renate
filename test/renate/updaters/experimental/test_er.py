@@ -91,8 +91,19 @@ def test_er_validation_buffer(tmpdir):
 @pytest.mark.parametrize(
     "cls,kwargs",
     [
-        [ExperienceReplayLearner, {"alpha": 0.2, "memory_size": 10, "memory_batch_size": 10}],
-        [DarkExperienceReplayLearner, {"alpha": 0.1, "beta": 0.3, "memory_size": 42}],
+        [
+            ExperienceReplayLearner,
+            {
+                "alpha": 0.2,
+                "memory_size": 10,
+                "memory_batch_size": 10,
+                "loss_fn": torch.nn.CrossEntropyLoss(),
+            },
+        ],
+        [
+            DarkExperienceReplayLearner,
+            {"alpha": 0.1, "beta": 0.3, "memory_size": 42, "loss_fn": torch.nn.CrossEntropyLoss()},
+        ],
         [
             CLSExperienceReplayLearner,
             {
@@ -103,11 +114,18 @@ def test_er_validation_buffer(tmpdir):
                 "stable_model_update_probability": 0.3,
                 "plastic_model_update_probability": 0.5,
                 "memory_size": 42,
+                "loss_fn": torch.nn.CrossEntropyLoss(),
             },
         ],
         [
             PooledOutputDistillationExperienceReplayLearner,
-            {"alpha": 0.3, "distillation_type": "pixel", "normalize": False, "memory_size": 42},
+            {
+                "alpha": 0.3,
+                "distillation_type": "pixel",
+                "normalize": False,
+                "memory_size": 42,
+                "loss_fn": torch.nn.CrossEntropyLoss(),
+            },
         ],
         [
             SuperExperienceReplayLearner,
@@ -125,6 +143,7 @@ def test_er_validation_buffer(tmpdir):
                 "pod_distillation_type": "pixel",
                 "pod_normalize": False,
                 "memory_size": 42,
+                "loss_fn": torch.nn.CrossEntropyLoss(),
             },
         ],
     ],

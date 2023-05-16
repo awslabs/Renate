@@ -295,10 +295,10 @@ def _execute_experiment_job_locally(
     transforms = get_transforms_kwargs(config_module, config_space)
     metrics = get_metrics(config_module)
 
-    # torch.save(
-    #     model.state_dict(),
-    #     model_url,
-    # )
+    torch.save(
+        model.state_dict(),
+        model_url,
+    )
 
     # TODO: evaluate's trainer has to use devices=1: See https://github.com/Lightning-AI/lightning/issues/2537
     # The fix is to launch evaluation in a seperate process like training.
