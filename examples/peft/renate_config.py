@@ -16,16 +16,11 @@ def model_fn(
     peft_type: Optional[str] = None,
     model_state_url: Optional[str] = None,
 ) -> RenateModule:
-    if model_state_url is None:
-        model = HuggingFaceSequenceClassificationTransformer(
-            pretrained_model_name=pretrained_model_name,
-            peft_type=peft_type,
-            num_outputs=num_outputs,
-        )
-    else:
-        state_dict = torch.load(model_state_url)
-        model = HuggingFaceSequenceClassificationTransformer.from_state_dict(state_dict)
-    return model
+    return HuggingFaceSequenceClassificationTransformer(
+        pretrained_model_name=pretrained_model_name,
+        peft_type=peft_type,
+        num_outputs=num_outputs,
+    )
 
 
 def data_module_fn(
