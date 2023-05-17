@@ -1,10 +1,8 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-import os
 from typing import Any, Dict, Tuple, Type
 
 import pytest
-import torch
 from torchvision.transforms import ToTensor
 
 from conftest import (
