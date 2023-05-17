@@ -4,7 +4,7 @@ from typing import Dict, Optional
 
 import torch
 import torch.nn as nn
-from peft import LoraConfig, get_peft_model
+from peft import LoraConfig, PrefixTuningConfig, TaskType, get_peft_model
 from torch import Tensor
 from transformers import AutoModelForSequenceClassification, T5ForConditionalGeneration
 
@@ -56,6 +56,11 @@ class HuggingFaceSequenceClassificationTransformer(RenateModule):
             if pretrained_model_name == "gpt2":
                 lora_kwargs["fan_in_fan_out"] = True
             peft_config = LoraConfig(**lora_kwargs)
+        elif peft_type == "prefix-tuning":
+            prefix_tuning_kwargs = {"num_virtual_tokens": 20}
+            peft_config = PrefixTuningConfig(
+                task_type=TaskType.SEQ_CLS, inference_mode=False, **prefix_tuning_kwargs
+            )
         else:
             raise ValueError(f"Unknown `peft_type` '{peft_type}'.")  # TODO: list types
         self._model = get_peft_model(self._model, peft_config)
