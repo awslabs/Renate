@@ -42,23 +42,28 @@ def search_key(state: Dict[str, Any], substring: str) -> str:
             return k
 
 
-# Modified script from https://github.com/Lightning-AI/lightning/blob/1.8.6/src/pytorch_lightning/utilities/deepspeed.py
-# which is modified from https://github.com/microsoft/DeepSpeed/blob/master/deepspeed/utils/zero_to_fp32.py
+# Modified script from
+# https://github.com/Lightning-AI/lightning/blob/1.8.6/src/pytorch_lightning/utilities/deepspeed.py
+# which is modified from
+# https://github.com/microsoft/DeepSpeed/blob/master/deepspeed/utils/zero_to_fp32.py
 def convert_zero_checkpoint_to_fp32_state_dict(
     checkpoint_dir: Union[str, Path], tag: Optional[str] = None
 ) -> Dict[str, Any]:
     """Convert ZeRO 2 or 3 checkpoint into a single fp32 consolidated ``state_dict`` file
-    that can be loaded with ``torch.load(file)`` + ``load_state_dict()`` and used for training without DeepSpeed.
-    Additionally the script has been modified to ensure we keep the lightning state inside the state dict for being able to run
-    ``LightningModule.load_from_checkpoint('...'). Modification to this version include the explicit handling of the
-    _extra_state element of state dict. Deepspeed's and Lightning get-fp-32... fucntions only collate trainable
-    parameters.```.
+    that can be loaded with ``torch.load(file)`` + ``load_state_dict()`` and used for training
+    without DeepSpeed.  Additionally the script has been modified to ensure we keep the
+    lightning state inside the state dict for being able to run
+    ``LightningModule.load_from_checkpoint('...')``. 
+    Modification to this version include the explicit handling of the _extra_state 
+    element of state dict. Deepspeed's and Lightning get-fp-32... functions only collate 
+    trainable parameters.
 
     Args:
         checkpoint_dir: path to the desired checkpoint folder.
             (one that contains the tag-folder, like ``global_step14``)
         tag: checkpoint tag used as a unique identifier for checkpoint. If not provided will attempt
-            to load tag in the file named ``latest`` in the checkpoint folder, e.g., ``global_step14``
+            to load tag in the file named ``latest`` in the checkpoint folder, 
+            e.g., ``global_step14``. 
     """
 
     state_dict = get_fp32_state_dict_from_zero_checkpoint(checkpoint_dir, tag)
