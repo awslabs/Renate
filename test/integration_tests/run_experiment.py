@@ -88,6 +88,6 @@ if __name__ == "__main__":
         max_time=args.max_time,
         seed=args.seed,
         job_name=args.job_name[:36],
-        devices=2,
+        devices=1,
         strategy="ddp",
     )
