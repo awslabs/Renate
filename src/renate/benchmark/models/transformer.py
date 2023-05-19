@@ -140,7 +140,7 @@ class HuggingFaceSequenceClassificationTransformerWithLora(
             pretrained_model_name=pretrained_model_name,
             num_outputs=num_outputs,
             loss_fn=loss_fn,
-            constructor_arguments=constructor_arguments,
+            constructor_arguments=constructor_arguments.copy(),
         )
         self._model = add_lora(
             model=self._model, pretrained_model_name=pretrained_model_name, **constructor_arguments
@@ -194,7 +194,7 @@ class HuggingFaceSequenceClassificationTransformerWithPrefixTuning(
             pretrained_model_name=pretrained_model_name,
             num_outputs=num_outputs,
             loss_fn=loss_fn,
-            constructor_arguments=constructor_arguments,
+            constructor_arguments=constructor_arguments.copy(),
         )
         self._model = add_prefix_tuning(model=self._model, **constructor_arguments)
 
@@ -249,7 +249,7 @@ class HuggingFaceSequenceClassificationTransformerWithPromptTuning(
             pretrained_model_name=pretrained_model_name,
             num_outputs=num_outputs,
             loss_fn=loss_fn,
-            constructor_arguments=constructor_arguments,
+            constructor_arguments=constructor_arguments.copy(),
         )
         self._model = add_prompt_tuning(model=self._model, **constructor_arguments)
 
@@ -307,7 +307,7 @@ class HuggingFaceSequenceClassificationTransformerWithPTuning(
             pretrained_model_name=pretrained_model_name,
             num_outputs=num_outputs,
             loss_fn=loss_fn,
-            constructor_arguments=constructor_arguments,
+            constructor_arguments=constructor_arguments.copy(),
         )
         self._model = add_p_tuning(model=self._model, **constructor_arguments)
 
