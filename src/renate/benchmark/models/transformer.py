@@ -106,9 +106,9 @@ class HuggingFaceSequenceClassificationTransformerWithLora(
         pretrained_model_name: Hugging Face model id.
         num_outputs: Number of outputs.
         loss_fn: The loss function to be optimized during the training.
-        r: Attention dimension of Lora.
         alpha: Alpha in Lora.
         dropout: Dropout in Lora.
+        r: Attention dimension of Lora.
         bias: Type of bias for Lora. Options: ``"none"``, ``"all"``, and ``"lora_only"``.
         modules_to_save: List of layers to be trained and saved in addition to Lora layers.
         init_lora_weights: Indicate whether to initialize Lora weights.
@@ -118,10 +118,10 @@ class HuggingFaceSequenceClassificationTransformerWithLora(
         self,
         pretrained_model_name: str,
         num_outputs: int,
+        alpha: int,
+        dropout: float,
         loss_fn: nn.Module = nn.CrossEntropyLoss(),
         r: int = 8,
-        alpha: Optional[int] = None,
-        dropout: Optional[float] = None,
         bias: str = "none",
         modules_to_save: Optional[List[str]] = None,
         init_lora_weights: bool = True,

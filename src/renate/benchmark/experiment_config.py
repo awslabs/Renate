@@ -101,6 +101,9 @@ def model_fn(
         model_kwargs["pretrained_model_name"] = pretrained_model_name
         if peft_type not in ["lora", None]:
             model_kwargs["num_virtual_tokens"] = num_virtual_tokens
+        else:
+            model_kwargs["alpha"] = 8
+            model_kwargs["dropout"] = 0.1
         if peft_type == "lora":
             model_class = HuggingFaceSequenceClassificationTransformerWithLora
         elif peft_type == "prefix-tuning":
