@@ -115,7 +115,6 @@ def model_fn(
     if num_outputs is not None:
         model_kwargs["num_outputs"] = num_outputs
     if model_state_url is None:
-        print(model_kwargs)
         model = model_class(**model_kwargs)
     else:
         state_dict = torch.load(model_state_url)

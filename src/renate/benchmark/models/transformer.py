@@ -247,7 +247,6 @@ class HuggingFaceSequenceClassificationTransformerWithPromptTuning(
             "prompt_tuning_init_text": prompt_tuning_init_text,
             "tokenizer_name_or_path": tokenizer_name_or_path,
         }
-        print(constructor_arguments)
 
         super().__init__(
             pretrained_model_name=pretrained_model_name,
@@ -439,7 +438,6 @@ def add_prompt_tuning(
         prompt_tuning_init_text: Text used to initialize the prompt embeddings if ``prompt_tuning_init=="TEXT"``.
         tokenizer_name_or_path: Name of tokenizer used to tokenize ``prompt_tuning_init_text``.
     """
-    print(num_virtual_tokens)
     return get_peft_model(
         model,
         PromptTuningConfig(
