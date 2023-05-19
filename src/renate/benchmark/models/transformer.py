@@ -127,8 +127,6 @@ class HuggingFaceSequenceClassificationTransformerWithLora(
         init_lora_weights: bool = True,
     ) -> None:
         constructor_arguments = {
-            "task_type": TaskType.SEQ_CLS,
-            "inference_mode": False,
             "r": r,
             "alpha": alpha,
             "dropout": dropout,
@@ -143,7 +141,11 @@ class HuggingFaceSequenceClassificationTransformerWithLora(
             constructor_arguments=constructor_arguments.copy(),
         )
         self._model = add_lora(
-            model=self._model, pretrained_model_name=pretrained_model_name, **constructor_arguments
+            model=self._model,
+            pretrained_model_name=pretrained_model_name,
+            task_type=TaskType.SEQ_CLS,
+            inference_mode=False,
+            **constructor_arguments,
         )
 
 
@@ -179,8 +181,6 @@ class HuggingFaceSequenceClassificationTransformerWithPrefixTuning(
         prefix_projection: bool = False,
     ) -> None:
         constructor_arguments = {
-            "task_type": TaskType.SEQ_CLS,
-            "inference_mode": False,
             "num_virtual_tokens": num_virtual_tokens,
             "token_dim": token_dim,
             "encoder_hidden_size": encoder_hidden_size,
@@ -194,6 +194,8 @@ class HuggingFaceSequenceClassificationTransformerWithPrefixTuning(
             pretrained_model_name=pretrained_model_name,
             num_outputs=num_outputs,
             loss_fn=loss_fn,
+            task_type=TaskType.SEQ_CLS,
+            inference_mode=False,
             constructor_arguments=constructor_arguments.copy(),
         )
         self._model = add_prefix_tuning(model=self._model, **constructor_arguments)
@@ -233,8 +235,6 @@ class HuggingFaceSequenceClassificationTransformerWithPromptTuning(
         tokenizer_name_or_path: Optional[str] = None,
     ) -> None:
         constructor_arguments = {
-            "task_type": TaskType.SEQ_CLS,
-            "inference_mode": False,
             "num_virtual_tokens": num_virtual_tokens,
             "token_dim": token_dim,
             "num_transformer_submodules": num_transformer_submodules,
@@ -249,6 +249,8 @@ class HuggingFaceSequenceClassificationTransformerWithPromptTuning(
             pretrained_model_name=pretrained_model_name,
             num_outputs=num_outputs,
             loss_fn=loss_fn,
+            task_type=TaskType.SEQ_CLS,
+            inference_mode=False,
             constructor_arguments=constructor_arguments.copy(),
         )
         self._model = add_prompt_tuning(model=self._model, **constructor_arguments)
@@ -290,8 +292,6 @@ class HuggingFaceSequenceClassificationTransformerWithPTuning(
         encoder_dropout: float = 0.0,
     ) -> None:
         constructor_arguments = {
-            "task_type": TaskType.SEQ_CLS,
-            "inference_mode": False,
             "num_virtual_tokens": num_virtual_tokens,
             "token_dim": token_dim,
             "num_transformer_submodules": num_transformer_submodules,
@@ -307,6 +307,8 @@ class HuggingFaceSequenceClassificationTransformerWithPTuning(
             pretrained_model_name=pretrained_model_name,
             num_outputs=num_outputs,
             loss_fn=loss_fn,
+            task_type=TaskType.SEQ_CLS,
+            inference_mode=False,
             constructor_arguments=constructor_arguments.copy(),
         )
         self._model = add_p_tuning(model=self._model, **constructor_arguments)
