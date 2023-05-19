@@ -3,22 +3,27 @@
 
 from renate.training import run_training_job
 
-config_space = {
-    # Training hyperparameters
+training_config = {
     "optimizer": "SGD",
     "momentum": 0.9,
     "weight_decay": 0.0,
     "learning_rate": 0.01,
     "batch_size": 32,
-    # Model
+}
+model_config = {
     "pretrained_model_name": "bert-base-uncased",
     "peft_type": "lora",
-    # Dataset
+    "lora_alpha": 8,
+    "lora_dropout": 0.1,
+}
+data_config = {
     "dataset_name": "rotten_tomatoes",
     "input_column": "text",
     "target_column": "label",
     "num_outputs": 2,
 }
+
+config_space = {**training_config, **model_config, **data_config}
 
 if __name__ == "__main__":
     # AWS_ID = boto3.client("sts").get_caller_identity().get("Account")
