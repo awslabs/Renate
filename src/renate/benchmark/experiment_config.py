@@ -25,7 +25,13 @@ from renate.benchmark.models import (
     VisionTransformerL16,
     VisionTransformerL32,
 )
-from renate.benchmark.models.transformer import HuggingFaceSequenceClassificationTransformer
+from renate.benchmark.models.transformer import (
+    HuggingFaceSequenceClassificationTransformer,
+    HuggingFaceSequenceClassificationTransformerWithLora,
+    HuggingFaceSequenceClassificationTransformerWithPTuning,
+    HuggingFaceSequenceClassificationTransformerWithPrefixTuning,
+    HuggingFaceSequenceClassificationTransformerWithPromptTuning,
+)
 from renate.benchmark.scenarios import (
     BenchmarkScenario,
     ClassIncrementalScenario,
@@ -70,6 +76,7 @@ def model_fn(
     dataset_name: Optional[str] = None,
     pretrained_model_name: Optional[str] = None,
     peft_type: Optional[str] = None,
+    num_virtual_tokens: Optional[int] = None,
 ) -> RenateModule:
     """Returns a model instance."""
     if model_name not in models:
@@ -92,7 +99,16 @@ def model_fn(
         if updater == "Avalanche-iCaRL":
             raise ValueError("Transformers do not support iCaRL.")
         model_kwargs["pretrained_model_name"] = pretrained_model_name
-        model_kwargs["peft_type"] = peft_type
+        if peft_type not in ["lora", None]:
+            model_kwargs["num_virtual_tokens"] = num_virtual_tokens
+        if peft_type == "lora":
+            model_class = HuggingFaceSequenceClassificationTransformerWithLora
+        elif peft_type == "prefix-tuning":
+            model_class = HuggingFaceSequenceClassificationTransformerWithPrefixTuning
+        elif peft_type == "prompt-tuning":
+            model_class = HuggingFaceSequenceClassificationTransformerWithPromptTuning
+        elif peft_type == "p-tuning":
+            model_class = HuggingFaceSequenceClassificationTransformerWithPTuning
     if num_outputs is not None:
         model_kwargs["num_outputs"] = num_outputs
     if model_state_url is None:
