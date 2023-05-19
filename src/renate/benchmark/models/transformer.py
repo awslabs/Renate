@@ -247,6 +247,7 @@ class HuggingFaceSequenceClassificationTransformerWithPromptTuning(
             "prompt_tuning_init_text": prompt_tuning_init_text,
             "tokenizer_name_or_path": tokenizer_name_or_path,
         }
+        print(constructor_arguments)
 
         super().__init__(
             pretrained_model_name=pretrained_model_name,
