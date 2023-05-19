@@ -194,11 +194,14 @@ class HuggingFaceSequenceClassificationTransformerWithPrefixTuning(
             pretrained_model_name=pretrained_model_name,
             num_outputs=num_outputs,
             loss_fn=loss_fn,
-            task_type=TaskType.SEQ_CLS,
-            inference_mode=False,
             constructor_arguments=constructor_arguments.copy(),
         )
-        self._model = add_prefix_tuning(model=self._model, **constructor_arguments)
+        self._model = add_prefix_tuning(
+            model=self._model,
+            task_type=TaskType.SEQ_CLS,
+            inference_mode=False,
+            **constructor_arguments,
+        )
 
 
 class HuggingFaceSequenceClassificationTransformerWithPromptTuning(
@@ -249,11 +252,14 @@ class HuggingFaceSequenceClassificationTransformerWithPromptTuning(
             pretrained_model_name=pretrained_model_name,
             num_outputs=num_outputs,
             loss_fn=loss_fn,
-            task_type=TaskType.SEQ_CLS,
-            inference_mode=False,
             constructor_arguments=constructor_arguments.copy(),
         )
-        self._model = add_prompt_tuning(model=self._model, **constructor_arguments)
+        self._model = add_prompt_tuning(
+            model=self._model,
+            task_type=TaskType.SEQ_CLS,
+            inference_mode=False,
+            **constructor_arguments,
+        )
 
 
 class HuggingFaceSequenceClassificationTransformerWithPTuning(
@@ -307,11 +313,14 @@ class HuggingFaceSequenceClassificationTransformerWithPTuning(
             pretrained_model_name=pretrained_model_name,
             num_outputs=num_outputs,
             loss_fn=loss_fn,
-            task_type=TaskType.SEQ_CLS,
-            inference_mode=False,
             constructor_arguments=constructor_arguments.copy(),
         )
-        self._model = add_p_tuning(model=self._model, **constructor_arguments)
+        self._model = add_p_tuning(
+            model=self._model,
+            task_type=TaskType.SEQ_CLS,
+            inference_mode=False,
+            **constructor_arguments,
+        )
 
 
 def add_lora(
