@@ -22,7 +22,7 @@ def experiment_job_kwargs():
         "max_time": 15,
         "seed": 0,
         "accelerator": "cpu",
-        "devices": 2,
+        "devices": 1,
     }
 
 
