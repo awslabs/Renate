@@ -53,17 +53,17 @@ def convert_zero_checkpoint_to_fp32_state_dict(
     that can be loaded with ``torch.load(file)`` + ``load_state_dict()`` and used for training
     without DeepSpeed.  Additionally the script has been modified to ensure we keep the
     lightning state inside the state dict for being able to run
-    ``LightningModule.load_from_checkpoint('...')``. 
-    Modification to this version include the explicit handling of the _extra_state 
-    element of state dict. Deepspeed's and Lightning get-fp-32... functions only collate 
+    ``LightningModule.load_from_checkpoint('...')``.
+    Modification to this version include the explicit handling of the _extra_state
+    element of state dict. Deepspeed's and Lightning get-fp-32... functions only collate
     trainable parameters.
 
     Args:
         checkpoint_dir: path to the desired checkpoint folder.
             (one that contains the tag-folder, like ``global_step14``)
         tag: checkpoint tag used as a unique identifier for checkpoint. If not provided will
-            attempt to load tag in the file named ``latest`` in the checkpoint folder, 
-            e.g., ``global_step14``. 
+            attempt to load tag in the file named ``latest`` in the checkpoint folder,
+            e.g., ``global_step14``.
     """
 
     state_dict = get_fp32_state_dict_from_zero_checkpoint(checkpoint_dir, tag)
