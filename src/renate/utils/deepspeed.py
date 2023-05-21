@@ -61,8 +61,8 @@ def convert_zero_checkpoint_to_fp32_state_dict(
     Args:
         checkpoint_dir: path to the desired checkpoint folder.
             (one that contains the tag-folder, like ``global_step14``)
-        tag: checkpoint tag used as a unique identifier for checkpoint. If not provided will attempt
-            to load tag in the file named ``latest`` in the checkpoint folder, 
+        tag: checkpoint tag used as a unique identifier for checkpoint. If not provided will
+            attempt to load tag in the file named ``latest`` in the checkpoint folder, 
             e.g., ``global_step14``. 
     """
 
