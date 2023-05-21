@@ -76,7 +76,10 @@ class RenateModule(torch.nn.Module, ABC):
         model = cls(**constructor_arguments)
         for task in extra_state["tasks_params_ids"]:
             model.add_task_params(task)
-        model.load_state_dict(state_dict)
+        # TODO: See https://github.com/awslabs/Renate/issues/236. 
+        # There are changes to the `class_means` or `componenets` of a model
+        # that are not loaded, and should probably not be stored. 
+        model.load_state_dict(state_dict, strict=False)
         return model
 
     def get_extra_state(self, encode: bool = True) -> Any:
