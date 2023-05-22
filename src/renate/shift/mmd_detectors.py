@@ -5,7 +5,8 @@ from typing import Optional
 import torch
 
 from renate.shift.detector import ShiftDetectorWithFeatureExtractor
-from renate.shift.mmd_helpers import mmd, RBFKernel
+from renate.shift.kernels import RBFKernel
+from renate.shift.mmd_helpers import mmd
 
 
 class MMDCovariateShiftDetector(ShiftDetectorWithFeatureExtractor):

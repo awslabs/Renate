@@ -3,37 +3,20 @@
 import pytest
 import torch
 
-from renate.shift.mmd_helpers import RBFKernel
+from renate.shift.kernels import RBFKernel
+from renate.shift.mmd_helpers import mmd
 
 
-@pytest.mark.parametrize("kernel", [RBFKernel()])
-@pytest.mark.parametrize(
-    "X1, X2",
-    [
-        (torch.randn(20, 2), torch.randn(20, 2)),
-        (torch.randn(10, 2), torch.randn(20, 2)),
-        (torch.randn(20, 2), torch.randn(10, 2)),
-    ],
-)
-def test_kernel_shapes(kernel, X1, X2):
-    K = kernel(X1, X2)
-    assert K.size() == (X1.size(0), X2.size(0))
+def test_mmd_identical_data():
+    """We expect high p-values for identical data."""
+    X = torch.randn(100, 2)
+    _, p_val = mmd(X, X, kernel=RBFKernel(), num_permutations=100)
+    assert p_val == 1.0
 
 
-@pytest.mark.parametrize("kernel", [RBFKernel()])
-def test_kernel_shape_mismatch(kernel):
-    with pytest.raises(Exception):
-        kernel(torch.randn(10, 2), torch.randn(20, 3))
-
-
-def test_rbf_kernel_limits():
-    """Tests limit behavior of RBF kernel"""
-    X = torch.randn(10, 2)
-    # Small lengthscales should result in vanishing off-diagonal terms.
-    kernel = RBFKernel(lengthscale=1e-8)
-    K = kernel(X, X)
-    assert torch.allclose(K, torch.eye(10))
-    # High lengthscales should result in
-    kernel = RBFKernel(lengthscale=1e8)
-    K = kernel(X, X)
-    assert torch.allclose(K, torch.ones(10))
+def test_shift_detector_disjoint_data():
+    """We expect low p-values for very different data (two disjoint Gaussian blobs)."""
+    X0 = torch.randn(100, 2)
+    X1 = torch.randn(100, 2) + 2.0
+    _, p_val = mmd(X0, X1, kernel=RBFKernel(), num_permutations=100)
+    assert p_val == 0.0
