@@ -18,6 +18,9 @@ class MMDCovariateShiftDetector(ShiftDetectorWithFeatureExtractor):
     We currently do not expose the choice of kernel. It defaults to an RBF kernel with a lengthscale
     set via the median heuristic.
 
+    The detector computes an approximate p-value via a permutation test. The `score` method returns
+    `1 - p_value` to conform to the convention that high scores indicate a shift.
+
     Args:
         feature_extractor: A pytorch model used as feature extractor.
         num_permutations: Number of permutations for permutation test.

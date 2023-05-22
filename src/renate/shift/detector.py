@@ -11,8 +11,15 @@ from renate.utils.pytorch import move_tensors_to_device
 class ShiftDetector:
     """Base class for distribution shift detectors.
 
+    The main interface consists of two methods `fit` and `score`, which expect pytorch Dataset
+    objects. One passes a reference dataset to the `fit` method. Then we can check query datasets
+    for distribution shifts (relative to the reference dataset) using the `score` method. The
+    `score` method returns a scalar shift score with the convention that high values indicate a
+    distribution shift. For most methods, this score will be in [0, 1].
+
     Args:
-        batch_size: Batch size used to iterate over datasets.
+        batch_size: Batch size used to iterate over datasets, e.g., for extracting features. This
+            choice does not affect the result of the shift detector, but might affect run time.
         num_preprocessing_workers: Number of workers used in data loaders.
         device: Device to use for computations inside the detector.
     """
