@@ -35,7 +35,7 @@ class MMDCovariateShiftDetector(ShiftDetectorWithFeatureExtractor):
         feature_extractor: Optional[torch.nn.Module] = None,
         num_permutations: int = 1000,
         batch_size: int = 32,
-        num_preprocessing_workers: int = 4,
+        num_preprocessing_workers: int = 0,
         device: str = "cpu",
     ) -> None:
         super().__init__(feature_extractor, batch_size, num_preprocessing_workers, device)
