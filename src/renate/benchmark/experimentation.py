@@ -300,7 +300,8 @@ def _execute_experiment_job_locally(
         model_url,
     )
 
-    # TODO: evaluate's trainer has to use devices=1: See https://github.com/Lightning-AI/lightning/issues/2537
+    # TODO: evaluate's trainer has to use devices=1:
+    # See https://github.com/Lightning-AI/lightning/issues/2537
     # The fix is to launch evaluation in a seperate process like training.
     results: Dict[str, List[List[float]]] = {}
     evaluate_and_record_results(

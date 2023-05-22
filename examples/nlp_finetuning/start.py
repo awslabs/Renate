@@ -40,7 +40,7 @@ if __name__ == "__main__":
         # to update it
         # input_state_url=f"s3://sagemaker-{AWS_REGION}-{AWS_ID}/renate-training-nlp-finetuning/",
         # backend="sagemaker",  # run on SageMaker, select "local" to run this locally
-        # role=get_execution_role(),
+        role=get_execution_role(),
         # instance_count=1,
         # instance_type="ml.g4dn.xlarge",
         # job_name="renate-training-nlp-finetuning",
