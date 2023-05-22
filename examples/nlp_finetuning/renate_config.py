@@ -29,9 +29,7 @@ def loss_fn() -> torch.nn.Module:
     return torch.nn.CrossEntropyLoss()
 
 
-def data_module_fn(
-    data_path: Union[Path, str], chunk_id: int, seed: int = defaults.SEED
-) -> RenateDataModule:
+def data_module_fn(data_path: str, chunk_id: int, seed: int = defaults.SEED) -> RenateDataModule:
     """Returns one of two movie review datasets depending on `chunk_id`."""
     tokenizer = transformers.DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
     dataset_name = "imdb" if chunk_id else "rotten_tomatoes"

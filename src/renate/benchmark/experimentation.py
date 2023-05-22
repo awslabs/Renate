@@ -266,7 +266,6 @@ def _execute_experiment_job_locally(
     output_state_url = defaults.output_state_folder(working_directory)
     data_url = defaults.data_folder(working_directory)
     model_url = defaults.model_file(input_state_url)
-    learner_url = defaults.learner_state_file(input_state_url)
     logs_url = defaults.logs_folder(working_directory)
 
     for url in [input_state_url, output_state_url, logs_url]:

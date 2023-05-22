@@ -58,7 +58,6 @@ class RenateModule(torch.nn.Module, ABC):
     def __init__(self, constructor_arguments: dict):
         super(RenateModule, self).__init__()
         self._constructor_arguments = copy.deepcopy(constructor_arguments)
-        ## Loss function is a part of learner.
         self._tasks_params_ids: Set[str] = set()
         self._intermediate_representation_cache: List[torch.Tensor] = []
         self._hooks: List[Callable] = []

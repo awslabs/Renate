@@ -151,12 +151,8 @@ class Learner(LightningModule, abc.ABC):
         }
         checkpoint.update(learner_state_dict)
 
-    def on_load_checkpoint(self, state_dict):
-        self._val_memory_buffer.load_state_dict(state_dict["val_memory_buffer"])
-        if "optimizer" in state_dict:
-            # It not deepspeed, we get this element. So we manually load that.
-            self._optimizer = state_dict["optimizer"]
-        self._post_init()
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]):
+        self._val_memory_buffer.load_state_dict(checkpoint["val_memory_buffer"])
 
     def save(self, output_state_dir: str) -> None:
         val_buffer_dir = os.path.join(output_state_dir, "val_memory_buffer")

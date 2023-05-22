@@ -38,9 +38,9 @@ class JointLearner(Learner):
         super().on_save_checkpoint(checkpoint=checkpoint)
         checkpoint["memory_buffer"] = self._memory_buffer.state_dict()
 
-    def on_load_checkpoint(self, state_dict) -> None:
-        super().on_load_checkpoint(state_dict)
-        self._memory_buffer.load_state_dict(state_dict["memory_buffer"])
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        super().on_load_checkpoint(checkpoint)
+        self._memory_buffer.load_state_dict(checkpoint["memory_buffer"])
 
     def save(self, output_state_dir: str) -> None:
         super().save(output_state_dir)

@@ -370,7 +370,6 @@ class PooledOutputDistillationExperienceReplayLearner(BaseExperienceReplayLearne
 
     def components(
         self,
-        # model: Optional[RenateModule] = None,
         alpha: float = defaults.POD_ALPHA,
         distillation_type: str = defaults.POD_DISTILLATION_TYPE,
         normalize: bool = defaults.POD_NORMALIZE,
