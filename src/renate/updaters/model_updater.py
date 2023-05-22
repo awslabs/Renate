@@ -126,6 +126,9 @@ class RenateModelCheckpoint(ModelCheckpoint):
         if learner_state_path.exists():
             loaded_state = trainer.strategy.load_checkpoint(learner_state_path)
             pl_module.on_load_checkpoint(loaded_state)
+            # This loads the state dict only if its not Deepspeed.
+            # Deepspeed load the state_dict automatically when load_checkpoint is called.
+            trainer.strategy.load_model_state_dict(loaded_state)
 
         # Finalize model update.
         pl_module.on_model_update_end()
