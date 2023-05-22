@@ -412,7 +412,6 @@ class ReplayLearner(Learner, abc.ABC):
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         super().on_load_checkpoint(checkpoint)
-        # self._memory_batch_size = checkpoint["memory_batch_size"]
         if not hasattr(self, "_memory_buffer"):
             self._memory_buffer = ReservoirBuffer()
         self._memory_buffer.load_state_dict(checkpoint["memory_buffer"])
