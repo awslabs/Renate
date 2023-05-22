@@ -4,10 +4,15 @@ import pytest
 import torch
 
 from renate.shift.mmd_detectors import MMDCovariateShiftDetector
+from renate.shift.ks_detector import KolmogorovSmirnovCovariateShiftDetector
 
 
 @pytest.mark.parametrize(
-    "detector", [MMDCovariateShiftDetector(feature_extractor=None, num_permutations=100)]
+    "detector",
+    [
+        MMDCovariateShiftDetector(feature_extractor=None, num_permutations=100),
+        KolmogorovSmirnovCovariateShiftDetector(),
+    ],
 )
 def test_shift_detector_identical_data(detector):
     """We expect low scores for identical data."""
@@ -18,7 +23,11 @@ def test_shift_detector_identical_data(detector):
 
 
 @pytest.mark.parametrize(
-    "detector", [MMDCovariateShiftDetector(feature_extractor=None, num_permutations=100)]
+    "detector",
+    [
+        MMDCovariateShiftDetector(feature_extractor=None, num_permutations=100),
+        KolmogorovSmirnovCovariateShiftDetector(),
+    ],
 )
 def test_shift_detector_disjoint_data(detector):
     """We expect high scores for very different data (two disjoint Gaussian blobs)."""
