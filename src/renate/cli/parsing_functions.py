@@ -290,7 +290,7 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
         "strategy": {
             "type": str,
             "default": defaults.DISTRIBUTED_STRATEGY,
-            "help": f"Distributed training strategy when devices > 1. Default:"
+            "help": "Distributed training strategy when devices > 1. Default:"
             + f"{defaults.DISTRIBUTED_STRATEGY}.",
             "argument_group": OPTIONAL_ARGS_GROUP,
             "choices": list(pl.strategies.StrategyRegistry.keys()),
@@ -298,8 +298,7 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
         "precision": {
             "type": str,
             "default": defaults.PRECISION,
-            "help": f"Distributed training strategy when devices > 1."
-            + f"Default: {defaults.PRECISION}.",
+            "help": f"Distributed training precision. Default: {defaults.PRECISION}.",
             "argument_group": OPTIONAL_ARGS_GROUP,
             "choices": ("16", "32", "64", "bf16"),
         },

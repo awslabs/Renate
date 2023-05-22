@@ -31,7 +31,7 @@ def test_fine_tuning_updater(devices, strategy, accelerator):
 
     model_updater = FineTuningModelUpdater(
         model,
-        loss_fn=torch.nn.CrossEntropyLoss(),
+        loss_fn=pytest.helpers.get_loss_fn(),
         max_epochs=1,
         devices=devices,
         strategy=strategy,

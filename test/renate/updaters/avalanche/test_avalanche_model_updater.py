@@ -26,7 +26,7 @@ def get_model_and_dataset(dataset_size: int = 100):  # TODO: remove
 
 @pytest.mark.parametrize("provide_folder", [True, False])
 def test_avalanche_model_updater(tmpdir, provide_folder):
-    model, train_dataset, test_data, _ = pytest.helpers.get_renate_module_mlp_data_and_loss(
+    model, train_dataset, test_data = pytest.helpers.get_renate_module_mlp_and_data(
         num_inputs=10,
         num_outputs=10,
         hidden_size=32,

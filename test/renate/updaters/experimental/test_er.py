@@ -98,12 +98,12 @@ def test_er_validation_buffer(tmpdir):
                 "alpha": 0.2,
                 "memory_size": 10,
                 "memory_batch_size": 10,
-                "loss_fn": torch.nn.CrossEntropyLoss(),
+                "loss_fn": pytest.helpers.get_loss_fn(),
             },
         ],
         [
             DarkExperienceReplayLearner,
-            {"alpha": 0.1, "beta": 0.3, "memory_size": 42, "loss_fn": torch.nn.CrossEntropyLoss()},
+            {"alpha": 0.1, "beta": 0.3, "memory_size": 42, "loss_fn": pytest.helpers.get_loss_fn()},
         ],
         [
             CLSExperienceReplayLearner,
@@ -115,7 +115,7 @@ def test_er_validation_buffer(tmpdir):
                 "stable_model_update_probability": 0.3,
                 "plastic_model_update_probability": 0.5,
                 "memory_size": 42,
-                "loss_fn": torch.nn.CrossEntropyLoss(),
+                "loss_fn": pytest.helpers.get_loss_fn(),
             },
         ],
         [
@@ -125,7 +125,7 @@ def test_er_validation_buffer(tmpdir):
                 "distillation_type": "pixel",
                 "normalize": False,
                 "memory_size": 42,
-                "loss_fn": torch.nn.CrossEntropyLoss(),
+                "loss_fn": pytest.helpers.get_loss_fn(),
             },
         ],
         [
@@ -144,7 +144,7 @@ def test_er_validation_buffer(tmpdir):
                 "pod_distillation_type": "pixel",
                 "pod_normalize": False,
                 "memory_size": 42,
-                "loss_fn": torch.nn.CrossEntropyLoss(),
+                "loss_fn": pytest.helpers.get_loss_fn(),
             },
         ],
     ],

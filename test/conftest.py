@@ -409,7 +409,7 @@ def get_simple_updater(
     input_state_folder=None,
     output_state_folder=None,
     learner_class=ExperienceReplayLearner,
-    learner_kwargs={"memory_size": 10, "loss_fn": torch.nn.CrossEntropyLoss()},
+    learner_kwargs={"memory_size": 10, "loss_fn": pytest.helpers.get_loss_fn()},
     max_epochs=5,
     train_transform=None,
     train_target_transform=None,
