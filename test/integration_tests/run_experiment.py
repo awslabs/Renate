@@ -44,7 +44,7 @@ if __name__ == "__main__":
         f"--test-suite",
         type=str,
         required=True,
-        choices=["quick"],
+        choices=["quick", "main"],
         help="Test suite that is run.",
     )
     parser.add_argument(
@@ -64,9 +64,7 @@ if __name__ == "__main__":
         args.scenario_file, args.model_file, args.updater_file, args.dataset_file
     )
     if args.backend == "local":
-        experiment_outputs_url = (
-            Path("tmp") / "renate-integration-tests" / args.test_suite / args.job_name
-        )
+        experiment_outputs_url = Path("tmp") / "renate-integration-tests" / "0.2.1" / args.job_name
         role = None
     else:
         AWS_ACCOUNT_ID = boto3.client("sts").get_caller_identity().get("Account")
