@@ -27,7 +27,7 @@ class ShiftDetector:
     def __init__(
         self,
         batch_size: int = 32,
-        num_preprocessing_workers: int = 4,
+        num_preprocessing_workers: int = 0,
         device: str = "cpu",
     ) -> None:
         self._batch_size = batch_size
