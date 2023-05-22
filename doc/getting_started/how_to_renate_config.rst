@@ -67,7 +67,7 @@ such as data subsampling or splitting.
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 43-66
+    :lines: 41-68
 
 Transforms
 ==========
@@ -112,7 +112,7 @@ These are optional as well but, if omitted, Renate will use :code:`train_transfo
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 73-90
+    :lines: 71-78
 
 Custom Metrics
 ==============
