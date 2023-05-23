@@ -2,12 +2,12 @@
 # Modifications: Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Any, Dict, Union, Optional
-from pathlib import Path
 import os
+import pickle as pkl
+from pathlib import Path
+from typing import Any, Dict, Optional, Union
 
 import torch
-
 from deepspeed.utils.zero_to_fp32 import (
     get_fp32_state_dict_from_zero_checkpoint,
     get_model_state_file,
@@ -98,3 +98,15 @@ def convert_zero_checkpoint_to_fp32_state_dict(
     client_state["state_dict"] = state_dict
 
     return client_state
+
+
+def convert_to_tensor(obj):
+    """This function converts a pickleable object to a torch tensor. This is only to
+    aid saving with Deepspeed."""
+    return torch.as_tensor(list(pkl.dumps(obj)))
+
+
+def recover_object_from_tensor(tensor):
+    """This function converts a tensor to a byte stream that is passed through pickle
+    to recover the underlying object. For usage with Deepspeed"""
+    return pkl.loads(bytes(tensor.tolist()))

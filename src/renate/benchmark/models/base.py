@@ -9,7 +9,7 @@ from torch import nn
 from renate import defaults
 from renate.models import RenateModule
 from renate.models.prediction_strategies import ICaRLClassificationStrategy, PredictionStrategy
-from renate.utils.file import convert_to_tensor, recover_object_from_tensor
+from renate.utils.deepspeed import convert_to_tensor, recover_object_from_tensor
 
 
 # TODO: merge unit tests for the submodules
@@ -84,14 +84,17 @@ class RenateBenchmarkingModule(RenateModule, ABC):
 
     def get_extra_state(self, encode=True) -> Any:
         """Get the constructor_arguments, loss and task ids necessary to reconstruct the model.
+
         Encode converts the state into a torch tensor so that Deepspeed serialization works.
-        We don't encode any of the super() calls, but encode only the final dict."""
+        We don't encode any of the super() calls, but encode only the final dict.
+        """
         extra_state = super().get_extra_state(encode=not encode)
         extra_state["prediction_strategy"] = self._prediction_strategy
         return convert_to_tensor(extra_state) if encode else extra_state
 
     def set_extra_state(self, state: Any, decode=True):
         """Extract the content of the ``_extra_state`` and set the related values in the module.
+
         decode flag is to decode the tensor of pkl bytes."""
         super().set_extra_state(state, decode=decode)
         self._prediction_strategy = (

@@ -12,7 +12,7 @@ from renate.benchmark.models.vision_transformer import VisionTransformer
 from renate.defaults import TASK_ID
 from renate.models import RenateModule
 from renate.models.renate_module import RenateWrapper
-from renate.utils.file import recover_object_from_tensor
+from renate.utils.deepspeed import recover_object_from_tensor
 
 
 def test_failing_to_init_abs_class():

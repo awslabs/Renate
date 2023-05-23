@@ -8,7 +8,7 @@ import torch
 
 from renate.models.layers import ContinualNorm
 from renate.types import NestedTensors
-from renate.utils.file import convert_to_tensor, recover_object_from_tensor
+from renate.utils.deepspeed import convert_to_tensor, recover_object_from_tensor
 
 
 class RenateModule(torch.nn.Module, ABC):

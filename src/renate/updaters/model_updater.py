@@ -15,11 +15,13 @@ from syne_tune import Reporter
 from torch.utils.data import Dataset
 
 from renate import defaults
-from renate.utils.distributed_strategies import create_strategy
-from renate.utils.misc import int_or_str, unlink_file_or_folder
 from renate.utils.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
-from .learner import Learner, ReplayLearner
+from renate.utils.distributed_strategies import create_strategy
+from renate.utils.file import unlink_file_or_folder
+from renate.utils.misc import int_or_str
+
 from ..models import RenateModule
+from .learner import Learner, ReplayLearner
 
 logging_logger = logging.getLogger(__name__)
 
