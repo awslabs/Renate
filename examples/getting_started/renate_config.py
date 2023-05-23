@@ -90,3 +90,7 @@ def buffer_transform() -> Callable:
 
 def metrics_fn() -> Dict:
     return {"my_accuracy": Accuracy()}
+
+
+def loss_fn() -> torch.nn.Module:
+    return torch.nn.CrossEntropyLoss()
