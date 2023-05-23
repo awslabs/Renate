@@ -5,7 +5,6 @@ from typing import Any, Dict, List, Optional
 import torch
 import torch.nn as nn
 from peft import (
-    AdaLoraConfig,
     LoraConfig,
     PeftModel,
     PrefixTuningConfig,
@@ -161,7 +160,8 @@ class HuggingFaceSequenceClassificationTransformerWithPrefixTuning(
         loss_fn: The loss function to be optimized during the training.
         token_dim (`int`): The hidden embedding dimension of the base transformer model.
         encoder_hidden_size: Hidden size of prompt encoder.
-        num_transformer_submodules (`int`): The number of transformer submodules in the base transformer model.
+        num_transformer_submodules (`int`): The number of transformer submodules in the base
+            transformer model.
         num_attention_heads (`int`): The number of attention heads in the base transformer model.
         num_layers (`int`): The number of layers in the base transformer model.
         prefix_projection: Project prefix embeddings.
@@ -215,11 +215,13 @@ class HuggingFaceSequenceClassificationTransformerWithPromptTuning(
         num_virtual_tokens (`int`): The number of virtual tokens to use.
         loss_fn: The loss function to be optimized during the training.
         token_dim (`int`): The hidden embedding dimension of the base transformer model.
-        num_transformer_submodules (`int`): The number of transformer submodules in the base transformer model.
+        num_transformer_submodules (`int`): The number of transformer submodules in the base
+            transformer model.
         num_attention_heads (`int`): The number of attention heads in the base transformer model.
         num_layers (`int`): The number of layers in the base transformer model.
         prompt_tuning_init: Initialization method for prompt embeddings. Default: ``"RANDOM"``.
-        prompt_tuning_init_text: Text used to initialize the prompt embeddings if ``prompt_tuning_init=="TEXT"``.
+        prompt_tuning_init_text: Text used to initialize the prompt embeddings if
+            ``prompt_tuning_init=="TEXT"``.
         tokenizer_name_or_path: Name of tokenizer used to tokenize ``prompt_tuning_init_text``.
     """
 
@@ -273,10 +275,12 @@ class HuggingFaceSequenceClassificationTransformerWithPTuning(
         num_virtual_tokens (`int`): The number of virtual tokens to use.
         loss_fn: The loss function to be optimized during the training.
         token_dim (`int`): The hidden embedding dimension of the base transformer model.
-        num_transformer_submodules (`int`): The number of transformer submodules in the base transformer model.
+        num_transformer_submodules (`int`): The number of transformer submodules in the base
+            transformer model.
         num_attention_heads (`int`): The number of attention heads in the base transformer model.
         num_layers (`int`): The number of layers in the base transformer model.
-        encoder_reparameterization_type: Reparameterization method for prompt encoder. Options: ``"MLP"`` or ``"LSTM"``.
+        encoder_reparameterization_type: Reparameterization method for prompt encoder.
+            Options: ``"MLP"`` or ``"LSTM"``.
         encoder_hidden_size: Prompt encoder hidden size.
         encoder_num_layers: Number of layers of the prompt encoder.
         encoder_dropout: Prompt encoder dropout.
@@ -388,7 +392,8 @@ def add_prefix_tuning(
         inference_mode: whether to load in inference mode
         num_virtual_tokens (`int`): The number of virtual tokens to use.
         token_dim (`int`): The hidden embedding dimension of the base transformer model.
-        num_transformer_submodules (`int`): The number of transformer submodules in the base transformer model.
+        num_transformer_submodules (`int`): The number of transformer submodules in the base
+            transformer model.
         num_attention_heads (`int`): The number of attention heads in the base transformer model.
         num_layers (`int`): The number of layers in the base transformer model.
         encoder_hidden_size: Hidden size of prompt encoder.
@@ -431,11 +436,13 @@ def add_prompt_tuning(
         inference_mode: whether to load in inference mode
         num_virtual_tokens (`int`): The number of virtual tokens to use.
         token_dim (`int`): The hidden embedding dimension of the base transformer model.
-        num_transformer_submodules (`int`): The number of transformer submodules in the base transformer model.
+        num_transformer_submodules (`int`): The number of transformer submodules in the base
+            transformer model.
         num_attention_heads (`int`): The number of attention heads in the base transformer model.
         num_layers (`int`): The number of layers in the base transformer model.
         prompt_tuning_init: Initialization method for prompt embeddings. Default: ``"RANDOM"``.
-        prompt_tuning_init_text: Text used to initialize the prompt embeddings if ``prompt_tuning_init=="TEXT"``.
+        prompt_tuning_init_text: Text used to initialize the prompt embeddings if
+            ``prompt_tuning_init=="TEXT"``.
         tokenizer_name_or_path: Name of tokenizer used to tokenize ``prompt_tuning_init_text``.
     """
     return get_peft_model(
@@ -477,7 +484,8 @@ def add_p_tuning(
         inference_mode: whether to load in inference mode
         num_virtual_tokens (`int`): The number of virtual tokens to use.
         token_dim (`int`): The hidden embedding dimension of the base transformer model.
-        num_transformer_submodules (`int`): The number of transformer submodules in the base transformer model.
+        num_transformer_submodules (`int`): The number of transformer submodules in the base
+            transformer model.
         num_attention_heads (`int`): The number of attention heads in the base transformer model.
         num_layers (`int`): The number of layers in the base transformer model.
         encoder_reparameterization_type: Reparameterization method for prompt encoder.
