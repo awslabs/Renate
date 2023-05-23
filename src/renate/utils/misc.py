@@ -1,7 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 from typing import Union
-from pathlib import Path
 
 
 def int_or_str(x: str) -> Union[str, int]:
