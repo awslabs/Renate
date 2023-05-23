@@ -1,0 +1,9 @@
+{
+  "scenario": "permutation-10updates.json",
+  "model": "mlp-200.json",
+  "updater": "avalanche-lwf.json",
+  "dataset": "fashionmnist.json",
+  "backend": "sagemaker",
+  "job_name": "permutation-mlp-avalanche-lwf",
+  "expected_accuracy": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+}

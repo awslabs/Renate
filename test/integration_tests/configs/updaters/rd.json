@@ -1,0 +1,9 @@
+{
+    "updater": "RD",
+    "optimizer": "Adam",
+    "learning_rate": 0.01,
+    "momentum": 0.0,
+    "weight_decay": 0.0,
+    "batch_size": 256,
+    "memory_size": 500
+}
