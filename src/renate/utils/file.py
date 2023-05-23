@@ -291,6 +291,4 @@ def unlink_file_or_folder(path: Path) -> None:
         if path.is_file():
             path.unlink(missing_ok=True)
         else:
-            for child in path.iterdir():
-                unlink_file_or_folder(child)
-            path.rmdir()
+            shutil.rmtree(path)

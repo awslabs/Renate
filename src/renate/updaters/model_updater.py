@@ -11,6 +11,7 @@ import torchmetrics
 from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers.logger import Logger
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from syne_tune import Reporter
 from torch.utils.data import Dataset
 
@@ -38,6 +39,7 @@ class SyneTuneCallback(Callback):
         self._report = Reporter()
         self._val_enabled = val_enabled
 
+    @rank_zero_only
     def _log(self, trainer: Trainer, training: bool) -> None:
         """Report the current epoch's results to Syne Tune.
 
@@ -45,14 +47,13 @@ class SyneTuneCallback(Callback):
         the validation epoch. Otherwise, they are reported at the end of the training epoch.
         """
 
-        if trainer.is_global_zero:
-            if trainer.sanity_checking or (training and self._val_enabled):
-                return
-            self._report(
-                **{k: v.item() for k, v in trainer.logged_metrics.items()},
-                step=trainer.current_epoch,
-                epoch=trainer.current_epoch + 1,
-            )
+        if trainer.sanity_checking or (training and self._val_enabled):
+            return
+        self._report(
+            **{k: v.item() for k, v in trainer.logged_metrics.items()},
+            step=trainer.current_epoch,
+            epoch=trainer.current_epoch + 1,
+        )
 
     def on_train_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         self._log(trainer=trainer, training=pl_module.training)
