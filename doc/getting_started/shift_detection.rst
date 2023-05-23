@@ -7,6 +7,16 @@ Renate provides methods for distribution shift detection that can help you decid
 your model.
 This functionality resides in the :py:mod:`renate.shift` subpackage.
 
+Shift Types
+===========
+
+In supervised machine learning tasks, one can distinguish different types of shifts in the joint
+distribution :math:`p(x, y)`.
+A common assumption is that of *covariate shift*, where we assume that :math:`p(x)` changes while
+:math:`p(y|x)` stays constant.
+In that case, one only needs to inspect :math:`x` data to detect a shift.
+Currently, Renate only supports covariate shift detection.
+
 Shift Detector Interface
 ========================
 
@@ -33,7 +43,7 @@ At the moment, Renate provides two method for covariate shift detection
 Both tests operate on features extracted from the raw data, which is passed using the
 :code:`feature_extractor` argument at initialization. The feature extractor is expected to map the
 raw input data to informative vectorial representations of moderate dimension. It may be based on
-a pretrained model.
+a pretrained model, e.g., by using its penultimate-layer embeddings (see also the example below).
 
 
 Example
