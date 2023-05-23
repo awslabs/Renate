@@ -75,7 +75,7 @@ class ShiftDetectorWithFeatureExtractor(ShiftDetector):
         self,
         feature_extractor: Optional[torch.nn.Module] = None,
         batch_size: int = 32,
-        num_preprocessing_workers: int = 4,
+        num_preprocessing_workers: int = 0,
         device: str = "cpu",
     ) -> None:
         super(ShiftDetectorWithFeatureExtractor, self).__init__(
