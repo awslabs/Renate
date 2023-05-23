@@ -29,7 +29,8 @@ def model_fn(
     Args:
         pretrained_model_name: Hugging Face pretrained model id.
         num_outputs: Number of classes.
-        peft_type: Indicator for this example that allows for switching between finetuning and PEFT with LoRa.
+        peft_type: Indicator for this example that allows for switching between finetuning and PEFT
+            with LoRa.
         model_state_url: Only for continual learning. Location of old model checkpoint.
         lora_r: Attention dimension of LoRa.
         lora_alpha: Alpha term used in LoRa.
