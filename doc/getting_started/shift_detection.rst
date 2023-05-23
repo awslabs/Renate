@@ -37,8 +37,9 @@ a pretrained model, e.g., using the penultimate layer activations of a ResNet fo
 Example
 =======
 
-The following example
+The following example applies the MMD covariate shift detector to an example where we simulate a
+shift in image data by adding Gaussian blur. We use a pretrained ResNet model as the feature
+extractor.
 
-.. literalinclude:: ../../examples/getting_started/renate_config.py
+.. literalinclude:: ../../examples/shift_detection/image_shift_detection.py
     :caption: Example
-    :lines: 14-40
