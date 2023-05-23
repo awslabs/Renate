@@ -8,6 +8,7 @@ updates:
     schedule:
       interval: "weekly"
     target-branch: "dev"
+    open-pull-requests-limit: 20
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
