@@ -67,7 +67,6 @@ if __name__ == "__main__":
         experiment_outputs_url = (
             Path("tmp")
             / "renate-integration-tests"
-            / "0.2.1"
             / args.test_suite
             / args.job_name
             / str(args.seed)
