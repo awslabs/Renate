@@ -57,6 +57,7 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
     ) -> None:
         self._components_names = list(components.keys())
         super().__init__(**kwargs)
+        self._memory_loader: Optional[DataLoader] = None  # previously post_init
         self.save_hyperparameters(
             ignore=[
                 "model",
@@ -79,10 +80,6 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
         self._loss_weight = loss_weight
         self._ema_memory_update_gamma = ema_memory_update_gamma
         self._use_loss_normalization = bool(loss_normalization)
-
-    def _post_init(self) -> None:
-        super()._post_init()
-        self._memory_loader: Optional[DataLoader] = None
 
     def _create_metrics_collections(
         self, logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None

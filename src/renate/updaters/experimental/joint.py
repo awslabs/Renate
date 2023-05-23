@@ -52,19 +52,6 @@ class JointLearner(Learner):
         super().load(input_state_dir)
         self._memory_buffer.load(os.path.join(input_state_dir, "memory_buffer"))
 
-    def set_transforms(
-        self,
-        train_transform: Optional[Callable] = None,
-        train_target_transform: Optional[Callable] = None,
-        test_transform: Optional[Callable] = None,
-        test_target_transform: Optional[Callable] = None,
-    ) -> None:
-        """Update the transformations applied to the data."""
-        super().set_transforms(
-            train_transform, train_target_transform, test_transform, test_target_transform
-        )
-        self._memory_buffer.set_transforms(train_transform, train_target_transform)
-
     def on_model_update_start(
         self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
     ) -> None:

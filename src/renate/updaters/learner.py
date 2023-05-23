@@ -93,7 +93,7 @@ class Learner(LightningModule, abc.ABC):
 
         self._val_memory_buffer: DataBuffer = InfiniteBuffer()
         self._create_metrics_collections(logged_metrics)
-        self._post_init()
+        self._rng = get_generator(self._seed)  # previously post_init
         self.save_hyperparameters(
             ignore=[
                 "model",
@@ -111,9 +111,6 @@ class Learner(LightningModule, abc.ABC):
                 "logged_metrics",
             ]
         )
-
-    def _post_init(self) -> None:
-        self._rng = get_generator(self._seed)
 
     def _create_metrics_collections(
         self, logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None
@@ -161,25 +158,6 @@ class Learner(LightningModule, abc.ABC):
 
     def load(self, input_state_dir: str) -> None:
         self._val_memory_buffer.load(os.path.join(input_state_dir, "val_memory_buffer"))
-
-    def set_transforms(
-        self,
-        train_transform: Optional[Callable] = None,
-        train_target_transform: Optional[Callable] = None,
-        test_transform: Optional[Callable] = None,
-        test_target_transform: Optional[Callable] = None,
-    ) -> None:
-        """Update the transformations applied to the data."""
-        self._train_transform = train_transform
-        self._train_target_transform = train_target_transform
-        self._test_transform = test_transform
-        self._test_target_transform = test_target_transform
-
-    def set_logged_metrics(
-        self, logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None
-    ) -> None:
-        """Sets the additional metrics logged during training and evaluation."""
-        self._create_metrics_collections(logged_metrics)
 
     def is_logged_metric(self, metric_name: str) -> bool:
         """Returns `True` if there is a metric with name `metric_name`."""
@@ -394,7 +372,6 @@ class ReplayLearner(Learner, abc.ABC):
         )
 
         self._memory_batch_size = min(memory_size, memory_batch_size)
-        self.hparams["memory_batch_size"] = self._memory_batch_size
         self._memory_buffer = ReservoirBuffer(
             max_size=memory_size,
             seed=seed,
@@ -408,8 +385,6 @@ class ReplayLearner(Learner, abc.ABC):
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         super().on_load_checkpoint(checkpoint)
-        if not hasattr(self, "_memory_buffer"):
-            self._memory_buffer = ReservoirBuffer()
         self._memory_buffer.load_state_dict(checkpoint["memory_buffer"])
 
     def save(self, output_state_dir: str) -> None:
@@ -421,21 +396,3 @@ class ReplayLearner(Learner, abc.ABC):
     def load(self, input_state_dir: str) -> None:
         super().load(input_state_dir)
         self._memory_buffer.load(os.path.join(input_state_dir, "memory_buffer"))
-
-    def set_transforms(
-        self,
-        train_transform: Optional[Callable] = None,
-        train_target_transform: Optional[Callable] = None,
-        test_transform: Optional[Callable] = None,
-        test_target_transform: Optional[Callable] = None,
-        buffer_transform: Optional[Callable] = None,
-        buffer_target_transform: Optional[Callable] = None,
-    ) -> None:
-        """Update the transformations applied to the data."""
-        super().set_transforms(
-            train_transform=train_transform,
-            train_target_transform=train_target_transform,
-            test_transform=test_transform,
-            test_target_transform=test_target_transform,
-        )
-        self._memory_buffer.set_transforms(buffer_transform, buffer_target_transform)
