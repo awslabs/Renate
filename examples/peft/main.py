@@ -1,5 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+import boto3
+from syne_tune.backend.sagemaker_backend.sagemaker_utils import get_execution_role
 
 from renate.training import run_training_job
 
@@ -26,19 +28,19 @@ data_config = {
 config_space = {**training_config, **model_config, **data_config}
 
 if __name__ == "__main__":
-    # AWS_ID = boto3.client("sts").get_caller_identity().get("Account")
-    # AWS_REGION = "us-west-2"  # use your AWS preferred region here
+    AWS_ID = boto3.client("sts").get_caller_identity().get("Account")
+    AWS_REGION = "us-west-2"  # use your AWS preferred region here
 
     run_training_job(
         config_space=config_space,
         mode="max",
         metric="val_accuracy",
-        updater="FineTuning",  # we train with Experience Replay
+        updater="FineTuning",
         max_epochs=5,
         config_file="renate_config.py",
-        output_state_url="tmp",  # f"s3://sagemaker-{AWS_REGION}-{AWS_ID}/renate-peft/",
+        output_state_url=f"s3://sagemaker-{AWS_REGION}-{AWS_ID}/renate-peft/",
         backend="local",
-        # role=get_execution_role(),
+        role=get_execution_role(),
         instance_count=1,
         instance_type="ml.g4dn.xlarge",
         job_name="renate-peft",
