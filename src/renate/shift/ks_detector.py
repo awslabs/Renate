@@ -27,6 +27,6 @@ class KolmogorovSmirnovCovariateShiftDetector(ShiftDetectorWithFeatureExtractor)
         ]
         # Bonferroni correction: Reject only if the minimal p-value among the multiple tests is
         # lower than `alpha / num_tests`, where `alpha` is the significance level. Equivalently, we
-        # multiple the p-value by `num_tests`.
+        # multiply the p-value by `num_tests`.
         p_val = min(1.0, min(p_vals) * n_features)
         return 1.0 - p_val

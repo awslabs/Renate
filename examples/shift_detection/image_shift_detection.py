@@ -27,7 +27,7 @@ dataset_query_out = _TransformedDataset(dataset_query_in, transform)
 
 # As a feature extractor, we use a pre-trained ResNet and chop off the output layer.
 feature_extractor = resnet18(weights=ResNet18_Weights.DEFAULT)
-feature_extractor.linear = torch.nn.Identity()  # Replace output layer with identity.
+feature_extractor.fc = torch.nn.Identity()  # Replace output layer with identity.
 feature_extractor.eval()  # Eval mode to use frozen batchnorm stats.
 
 # Now we can instantiate a shift detector and run the test.
