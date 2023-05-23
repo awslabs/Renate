@@ -44,7 +44,7 @@ if __name__ == "__main__":
         f"--test-suite",
         type=str,
         required=True,
-        choices=["quick"],
+        choices=["quick", "main"],
         help="Test suite that is run.",
     )
     parser.add_argument(
@@ -65,14 +65,18 @@ if __name__ == "__main__":
     )
     if args.backend == "local":
         experiment_outputs_url = (
-            Path("tmp") / "renate-integration-tests" / args.test_suite / args.job_name
+            Path("tmp")
+            / "renate-integration-tests"
+            / args.test_suite
+            / args.job_name
+            / str(args.seed)
         )
         role = None
     else:
         AWS_ACCOUNT_ID = boto3.client("sts").get_caller_identity().get("Account")
         experiment_outputs_url = (
             f"s3://sagemaker-us-west-2-{AWS_ACCOUNT_ID}/renate-integration-tests/"
-            f"{args.test_suite}/{args.job_name}/"
+            f"{args.test_suite}/{args.job_name}/{args.seed}"
         )
         role = get_execution_role()
     execute_experiment_job(

@@ -1,0 +1,9 @@
+{
+  "scenario": "rotation-10updates.json",
+  "model": "mlp-200.json",
+  "updater": "avalanche-ewc.json",
+  "dataset": "mnist.json",
+  "backend": "sagemaker",
+  "job_name": "rotation-mlp-avalanche-ewc",
+  "expected_accuracy": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+}
