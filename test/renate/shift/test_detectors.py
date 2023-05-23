@@ -11,7 +11,7 @@ from renate.shift.ks_detector import KolmogorovSmirnovCovariateShiftDetector
     "detector",
     [
         MMDCovariateShiftDetector(feature_extractor=None, num_permutations=100),
-        KolmogorovSmirnovCovariateShiftDetector(),
+        KolmogorovSmirnovCovariateShiftDetector(feature_extractor=None),
     ],
 )
 def test_shift_detector_identical_data(detector):
@@ -26,7 +26,7 @@ def test_shift_detector_identical_data(detector):
     "detector",
     [
         MMDCovariateShiftDetector(feature_extractor=None, num_permutations=100),
-        KolmogorovSmirnovCovariateShiftDetector(),
+        KolmogorovSmirnovCovariateShiftDetector(feature_extractor=None),
     ],
 )
 def test_shift_detector_disjoint_data(detector):
