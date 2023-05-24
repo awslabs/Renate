@@ -49,9 +49,49 @@ a pretrained model, e.g., by using its penultimate-layer embeddings (see also th
 Example
 =======
 
-The following example applies the MMD covariate shift detector to an example where we simulate a
-shift in image data by adding Gaussian blur. We use a pretrained ResNet model as the feature
-extractor.
+The following example illustrates how to apply the MMD covariate shift detector.
+We will work with the CIFAR-10 dataset, which we can conveniently load using Renate's
+:py:class:`~renate.benchmark.datasets.vision_datasets.TorchVisionDataModule`.
+In practice, you would ingest your own data here, see the documentation for
+:py:class:`~renate.data.data_module.RenateDataModule`.
 
 .. literalinclude:: ../../examples/shift_detection/image_shift_detection.py
-    :caption: Example
+    :lines: 13-16
+
+For the purpose of this demonstration, we now generate a reference dataset as well as two query
+datasets: one from the same distribution, and one where we simulate a distribution shift by
+blurring images.
+In practice, the reference dataset should represent your expected data distribution.
+It could, e.g., be the validation set you used during the previous training of your model.
+The query dataset would be the data you want to check for distribution shift, e.g., data collected
+during the deployment of your model.
+
+.. literalinclude:: ../../examples/shift_detection/image_shift_detection.py
+    :lines: 22-26
+
+Shift detection methods rely on informative (and relatively low-dimensional) features.
+Here, we use a pretrained ResNet model and chop of its output layer.
+This leads to 512-dimensional vectorial features.
+
+.. literalinclude:: ../../examples/shift_detection/image_shift_detection.py
+    :lines: 31-33
+
+You can use any :py:class:`torch.nn.Module`, which may be a pretrained model or use a custom model
+that has been trained on the data at hand.
+Generally, we have observed very good result when using generic pre-trained models such as ResNets
+for image data or BERT models for text.
+
+Now we can instantiate an MMD-based shift detector. We first fit it to our reference datasets and
+then score both the in-distribution query dataset as well as the out-of-distribution query dataset.
+
+.. literalinclude:: ../../examples/shift_detection/image_shift_detection.py
+    :lines: 39-47
+
+In this toy example, the shift is quite obvious and we will see a very high score for the
+out-of-distribution data::
+
+    Fitting detector...
+    Scoring in-distribution data...
+    score = 0.5410000085830688
+    Scoring out-of-distribution data...
+    score = 1.0
