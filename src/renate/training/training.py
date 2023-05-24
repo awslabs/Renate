@@ -24,9 +24,9 @@ from syne_tune.optimizer.schedulers.transfer_learning import (
     RUSHScheduler,
     TransferLearningTaskEvaluations,
 )
+from syne_tune.results_callback import StoreResultsCallback
 from syne_tune.stopping_criterion import StoppingCriterion
 from syne_tune.tuner import Tuner
-from syne_tune.tuner_callback import StoreResultsCallback
 from syne_tune.util import experiment_path
 
 import renate
