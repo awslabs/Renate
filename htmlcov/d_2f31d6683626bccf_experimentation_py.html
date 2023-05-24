@@ -64,8 +64,8 @@
             <a id="indexLink" class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a id="nextFileLink" class="nav" href="d_47d23511aabdc071___init___py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.2.5">coverage.py v7.2.5</a>,
-            created at 2023-05-10 16:28 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.2.6">coverage.py v7.2.6</a>,
+            created at 2023-05-24 10:07 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"/>
@@ -334,7 +334,7 @@
     <p class="pln"><span class="n"><a id="t252" href="#t252">252</a></span><span class="t"><span class="str">    See renate.benchmark.experimentation.execute_experiment_job for more details.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t253" href="#t253">253</a></span><span class="t"><span class="str">    """</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t254" href="#t254">254</a></span><span class="t">    <span class="nam">logger</span><span class="op">.</span><span class="nam">info</span><span class="op">(</span><span class="str">"Start experiment."</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t255" href="#t255">255</a></span><span class="t">    <span class="nam">seed_everything</span><span class="op">(</span><span class="nam">seed</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t255" href="#t255">255</a></span><span class="t">    <span class="nam">seed_everything</span><span class="op">(</span><span class="nam">seed</span><span class="op">,</span> <span class="key">True</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t256" href="#t256">256</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t257" href="#t257">257</a></span><span class="t">    <span class="nam">input_state_url</span> <span class="op">=</span> <span class="nam">defaults</span><span class="op">.</span><span class="nam">input_state_folder</span><span class="op">(</span><span class="nam">working_directory</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t258" href="#t258">258</a></span><span class="t">    <span class="nam">output_state_url</span> <span class="op">=</span> <span class="nam">defaults</span><span class="op">.</span><span class="nam">output_state_folder</span><span class="op">(</span><span class="nam">working_directory</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
@@ -459,8 +459,11 @@
     <p class="pln"><span class="n"><a id="t377" href="#t377">377</a></span><span class="t">        <span class="nam">experiment_outputs_url</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t378" href="#t378">378</a></span><span class="t">    <span class="op">)</span><span class="op">,</span> <span class="str">f"experiment_outputs_url {experiment_outputs_url} is not on S3."</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t379" href="#t379">379</a></span><span class="t">    <span class="key">return</span> <span class="nam">submit_remote_job</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t380" href="#t380">380</a></span><span class="t">        <span class="nam">source_dir</span><span class="op">=</span><span class="key">None</span><span class="op">,</span> <span class="nam">experiment_outputs_url</span><span class="op">=</span><span class="nam">experiment_outputs_url</span><span class="op">,</span> <span class="op">**</span><span class="nam">job_kwargs</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t381" href="#t381">381</a></span><span class="t">    <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t380" href="#t380">380</a></span><span class="t">        <span class="nam">source_dir</span><span class="op">=</span><span class="key">None</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t381" href="#t381">381</a></span><span class="t">        <span class="nam">experiment_outputs_url</span><span class="op">=</span><span class="nam">experiment_outputs_url</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t382" href="#t382">382</a></span><span class="t">        <span class="nam">optional_dependencies</span><span class="op">=</span><span class="str">"benchmark"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t383" href="#t383">383</a></span><span class="t">        <span class="op">**</span><span class="nam">job_kwargs</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t384" href="#t384">384</a></span><span class="t">    <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
 </main>
 <footer>
     <div class="content">
@@ -469,8 +472,8 @@
             <a id="indexLink" class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a id="nextFileLink" class="nav" href="d_47d23511aabdc071___init___py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.2.5">coverage.py v7.2.5</a>,
-            created at 2023-05-10 16:28 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.2.6">coverage.py v7.2.6</a>,
+            created at 2023-05-24 10:07 +0000
         </p>
     </div>
 </footer>
