@@ -144,8 +144,6 @@ def test_verify_validation_set_for_hpo_and_checkpointing(tmpdir, val_size, tune_
             metric=expected_metric,
             mode=expected_mode,
             working_directory=tmpdir,
-            chunk_id=0,
-            seed=0,
         )
 
     if tune_hyperparameters and val_size == 0:

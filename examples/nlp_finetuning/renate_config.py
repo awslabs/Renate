@@ -6,7 +6,7 @@ import torch
 import transformers
 
 import renate.defaults as defaults
-from renate.benchmark.datasets.nlp_datasets import HuggingfaceTextDataModule
+from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
 from renate.data.data_module import RenateDataModule
 from renate.models import RenateModule
 from renate.models.renate_module import RenateWrapper
@@ -28,7 +28,7 @@ def data_module_fn(data_path: str, chunk_id: int, seed: int = defaults.SEED) -> 
     """Returns one of two movie review datasets depending on `chunk_id`."""
     tokenizer = transformers.DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
     dataset_name = "imdb" if chunk_id else "rotten_tomatoes"
-    data_module = HuggingfaceTextDataModule(
+    data_module = HuggingFaceTextDataModule(
         data_path,
         dataset_name=dataset_name,
         tokenizer=tokenizer,

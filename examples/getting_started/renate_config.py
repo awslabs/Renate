@@ -1,6 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Callable, Dict, Literal, Optional
+from typing import Callable, Dict, Optional
 
 import torch
 import torchvision
@@ -49,24 +49,21 @@ class MyMNISTDataModule(RenateDataModule):
         # streamline data loading when using multiple training jobs during HPO.
         torchvision.datasets.MNIST(self._data_path, download=True)
 
-    def setup(self, stage: Optional[Literal["train", "val", "test"]] = None) -> None:
+    def setup(self) -> None:
         # This sets up train/val/test datasets, assuming data has already been downloaded.
-        if stage in ["train", "val"] or stage is None:
-            train_data = torchvision.datasets.MNIST(
-                self._data_path,
-                train=True,
-                transform=transforms.ToTensor(),
-                target_transform=transforms.Lambda(lambda x: torch.tensor(x, dtype=torch.long)),
-            )
-            self._train_data, self._val_data = self._split_train_val_data(train_data)
-
-        if stage == "test" or stage is None:
-            self._test_data = torchvision.datasets.MNIST(
-                self._data_path,
-                train=False,
-                transform=transforms.ToTensor(),
-                target_transform=transforms.Lambda(lambda x: torch.tensor(x, dtype=torch.long)),
-            )
+        train_data = torchvision.datasets.MNIST(
+            self._data_path,
+            train=True,
+            transform=transforms.ToTensor(),
+            target_transform=transforms.Lambda(lambda x: torch.tensor(x, dtype=torch.long)),
+        )
+        self._train_data, self._val_data = self._split_train_val_data(train_data)
+        self._test_data = torchvision.datasets.MNIST(
+            self._data_path,
+            train=False,
+            transform=transforms.ToTensor(),
+            target_transform=transforms.Lambda(lambda x: torch.tensor(x, dtype=torch.long)),
+        )
 
 
 def data_module_fn(data_path: str, seed: int) -> RenateDataModule:
