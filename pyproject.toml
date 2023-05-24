@@ -25,7 +25,7 @@ benchmark = [
     "wild-time-data==0.1.0",
 ]
 dev = [
-    "black==23.1.0",
+    "black==23.3.0",
     "avalanche_lib==0.3.1",
     "wild-time-data==0.1.0",
     "torch>=1.10.0, <1.12.2",
