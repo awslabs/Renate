@@ -219,7 +219,7 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
 
     def _set_memory_loader(self) -> None:
         """Create a memory loader from a memory buffer."""
-        if self._memory_loader is None and self._memory_batch_size >= len(self._memory_buffer):
+        if self._memory_loader is None and len(self._memory_buffer) >= self._memory_batch_size:
             self._memory_loader = DataLoader(
                 dataset=self._memory_buffer,
                 batch_size=self._memory_batch_size,

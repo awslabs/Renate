@@ -434,7 +434,7 @@ class ReplayLearner(Learner, abc.ABC):
         state_dict.update(
             {
                 "batch_memory_frac": self._batch_memory_frac,
-                "memory_batch_size": self._memory_batch_size,  # This will become obsolete when Checkpointing PR is merged
+                "memory_batch_size": self._memory_batch_size,  # Delete after Prabhu's PR.
                 "memory_buffer": self._memory_buffer.state_dict(),
             }
         )
