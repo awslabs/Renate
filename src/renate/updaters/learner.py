@@ -444,6 +444,7 @@ class ReplayLearner(Learner, abc.ABC):
         """Restores the state of the learner."""
         super().load_state_dict(model, state_dict, **kwargs)
         self._batch_memory_frac = state_dict["batch_memory_frac"]
+        self._memory_batch_size = state_dict["memory_batch_size"]
         if not hasattr(self, "_memory_buffer"):
             self._memory_buffer = ReservoirBuffer()
         self._memory_buffer.load_state_dict(state_dict["memory_buffer"])
