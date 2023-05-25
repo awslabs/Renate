@@ -154,18 +154,20 @@ class RenateModelCheckpoint(ModelCheckpoint):
         1. If deepspeed is being used:
         The learner_state_path (which the checkpointing func) uses is a directory and not a file.
         This directory has sharded state_dicts (of model and optimizers, depending on which
-        deepspeed stage is used. There are three steps here:
-            a. combine all the shards into one big state dict.
-            b. The learner_state_path is a dir (learner.cpkt/). This needs to be deleted first.
-            c. Write the combined state_dict as the learner.cpkt file as a single file.
-            d. Extract the state_dict element from the learner and save that as the model.cpkt.
+        deepspeed stage is used. There are three steps here
+
+        a. combine all the shards into one big state dict.
+        b. The learner_state_path is a dir (learner.cpkt/). This needs to be deleted first.
+        c. Write the combined state_dict as the learner.cpkt file as a single file.
+        d. Extract the state_dict element from the learner and save that as the model.cpkt.
 
         2. If not deepspeed (say DDP or single device):
         The steps are much simpler.
-            a. Load the learner.cpkt and extract the state_dict element.
-            b. Sanitize the extracted state_dict. Learner has the model in a _model attribute. So
-            strip the first "_model." from the keys of the state_dict.
-            c. Save the sanitized model to model.cpkt
+
+        a. Load the learner.cpkt and extract the state_dict element.
+        b. | Sanitize the extracted state_dict. Learner has the model in a _model attribute.
+           | So strip the first "_model." from the keys of the state_dict.
+        c. Save the sanitized model to model.cpkt.
 
         Case 2 is needs to be done even for Case 1 (step d). So teardown is a recursive call in
         Case 1 which automatically goes to Case 2 as learner.cpkt is file now.
