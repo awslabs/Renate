@@ -15,7 +15,6 @@ class HuggingFaceSequenceClassificationTransformer(RenateModule):
     Args:
         pretrained_model_name: Hugging Face model id.
         num_outputs: Number of outputs.
-        loss_fn: The loss function to be optimized during the training.
     """
 
     def __init__(

@@ -34,7 +34,6 @@ class VisionTransformer(RenateBenchmarkingModule):
         norm_layer: Normalization layer.
         conv_stem_configs: List of ConvStemConfig. Each ConvStemConfig corresponds to a
             convolutional stem.
-        loss: Loss function.
         prediction_strategy: Continual learning strategies may alter the prediction at train or test
             time.
         add_icarl_class_means: If ``True``, additional parameters used only by the

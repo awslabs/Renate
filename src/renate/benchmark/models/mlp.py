@@ -18,7 +18,6 @@ class MultiLayerPerceptron(RenateBenchmarkingModule):
         num_hidden_layers: Number of hidden layers.
         hidden_size: Uniform hidden size or the list or tuple of hidden sizes for individual hidden
             layers.
-        loss: Loss function to be used for training.
         activation: Activation name, matching activation name in `torch.nn` to be used between the
             hidden layers.
         batch_normalization: Whether to use Batch Normalization after the activation. By default the

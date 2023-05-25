@@ -24,7 +24,6 @@ class RenateBenchmarkingModule(RenateModule, ABC):
         embedding_size: Representation size of the model after the backbone.
         num_outputs: The number of outputs of the model.
         constructor_arguments: Arguments needed to instantiate the model.
-        loss_fn: The loss function to be optimized during the training.
         prediction_strategy: By default a forward pass through the model. Some ModelUpdater must
             be combined with specific prediction strategies to work as intended.
         add_icarl_class_means: Specific parameters for iCaRL. Can be set to ``False`` if any other
@@ -83,7 +82,7 @@ class RenateBenchmarkingModule(RenateModule, ABC):
         )
 
     def get_extra_state(self, encode=True) -> Any:
-        """Get the constructor_arguments, loss and task ids necessary to reconstruct the model.
+        """Get the constructor_arguments and task ids necessary to reconstruct the model.
 
         Encode converts the state into a torch tensor so that Deepspeed serialization works.
         We don't encode any of the super() calls, but encode only the final dict.

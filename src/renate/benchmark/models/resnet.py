@@ -29,7 +29,6 @@ class ResNet(RenateBenchmarkingModule):
         norm_layer: What kind of normalization layer to use, following convolutions.
         cifar_stem: Whether to use a stem for CIFAR-sized images.
         gray_scale: Whether input images are gray-scale images, i.e. only 1 color channel.
-        loss: Loss function to be used for training.
         prediction_strategy: Continual learning strategies may alter the prediction at train or test
             time.
         add_icarl_class_means: If ``True``, additional parameters used only by the

@@ -21,7 +21,7 @@ class RenateModule(torch.nn.Module, ABC):
     in replay-based CL methods.
 
     When implementing a subclass of ``RenateModule``, make sure to call the base class' constructor
-    and provide your model's constructor arguments and loss function. Besides that, you can define a
+    and provide your model's constructor arguments. Besides that, you can define a
     ``RenateModule`` just like ``torch.nn.Module``.
 
     Example::
@@ -52,7 +52,6 @@ class RenateModule(torch.nn.Module, ABC):
 
     Args:
         constructor_arguments: Arguments needed to instantiate the model.
-        loss_fn: The loss function to be optimized during the training.
     """
 
     def __init__(self, constructor_arguments: dict):
@@ -246,7 +245,6 @@ class RenateWrapper(RenateModule):
 
     Args:
         model: The torch model to be wrapped.
-        loss_fn: The loss function to be optimized during the training.
     """
 
     def __init__(self, model: torch.nn.Module) -> None:
