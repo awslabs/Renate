@@ -44,11 +44,9 @@ class GDumbLearner(ReplayLearner):
     ) -> None:
         super().__init__(
             memory_size=memory_size,
-            batch_memory_frac=0.0,  # Dummy value
             seed=seed,
             **kwargs,
         )
-
         self._memory_buffer = GreedyClassBalancingBuffer(
             max_size=memory_size,
             seed=seed,
