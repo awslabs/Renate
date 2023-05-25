@@ -13,11 +13,9 @@ from renate.models import RenateModule
 
 class MyMNISTMLP(RenateModule):
     def __init__(self, num_hidden: int) -> None:
-        # Model hyperparameters as well as the loss function need to registered via RenateModule's
+        # Model hyperparameters need to registered via RenateModule's
         # constructor, see documentation. Otherwise, this is a standard torch model.
-        super().__init__(
-            constructor_arguments={"num_hidden": num_hidden}, loss_fn=torch.nn.CrossEntropyLoss()
-        )
+        super().__init__(constructor_arguments={"num_hidden": num_hidden})
         self._fc1 = torch.nn.Linear(28 * 28, num_hidden)
         self._fc2 = torch.nn.Linear(num_hidden, 10)
 
@@ -92,3 +90,7 @@ def buffer_transform() -> Callable:
 
 def metrics_fn() -> Dict:
     return {"my_accuracy": Accuracy()}
+
+
+def loss_fn() -> torch.nn.Module:
+    return torch.nn.CrossEntropyLoss()

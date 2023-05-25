@@ -8,6 +8,7 @@ import torch
 
 from renate.models.layers import ContinualNorm
 from renate.types import NestedTensors
+from renate.utils.deepspeed import convert_to_tensor, recover_object_from_tensor
 
 
 class RenateModule(torch.nn.Module, ABC):
@@ -20,7 +21,7 @@ class RenateModule(torch.nn.Module, ABC):
     in replay-based CL methods.
 
     When implementing a subclass of ``RenateModule``, make sure to call the base class' constructor
-    and provide your model's constructor arguments and loss function. Besides that, you can define a
+    and provide your model's constructor arguments. Besides that, you can define a
     ``RenateModule`` just like ``torch.nn.Module``.
 
     Example::
@@ -51,13 +52,11 @@ class RenateModule(torch.nn.Module, ABC):
 
     Args:
         constructor_arguments: Arguments needed to instantiate the model.
-        loss_fn: The loss function to be optimized during the training.
     """
 
-    def __init__(self, constructor_arguments: dict, loss_fn: torch.nn.Module):
+    def __init__(self, constructor_arguments: dict):
         super(RenateModule, self).__init__()
         self._constructor_arguments = copy.deepcopy(constructor_arguments)
-        self.loss_fn = loss_fn
         self._tasks_params_ids: Set[str] = set()
         self._intermediate_representation_cache: List[torch.Tensor] = []
         self._hooks: List[Callable] = []
@@ -70,26 +69,30 @@ class RenateModule(torch.nn.Module, ABC):
             state_dict: The state dict of the model. This method works under the assumption that
                 this has been created by `RenateModule.state_dict()`.
         """
-        constructor_arguments = state_dict["_extra_state"]["constructor_arguments"]
+        extra_state = recover_object_from_tensor(state_dict["_extra_state"])
+        constructor_arguments = extra_state["constructor_arguments"]
         model = cls(**constructor_arguments)
-        for task in state_dict["_extra_state"]["tasks_params_ids"]:
+        for task in extra_state["tasks_params_ids"]:
             model.add_task_params(task)
-        model.load_state_dict(state_dict)
+        # TODO: See https://github.com/awslabs/Renate/issues/236.
+        # There are changes to the `class_means` or `componenets` of a model
+        # that are not loaded, and should probably not be stored.
+        model.load_state_dict(state_dict, strict=False)
         return model
 
-    def get_extra_state(self) -> Any:
-        """Get the constructor_arguments, loss and task ids necessary to reconstruct the model."""
-        return {
+    def get_extra_state(self, encode: bool = True) -> Any:
+        """Get the constructor_arguments, and task ids necessary to reconstruct the model."""
+        extra_state = {
             "constructor_arguments": self._constructor_arguments,
             "tasks_params_ids": self._tasks_params_ids,
-            "loss_fn": self.loss_fn,
         }
+        return convert_to_tensor(extra_state) if encode else extra_state
 
-    def set_extra_state(self, state: Any):
+    def set_extra_state(self, state: Any, decode: bool = True):
         """Extract the content of the ``_extra_state`` and set the related values in the module."""
-        self._constructor_arguments = state["constructor_arguments"]
-        self._tasks_params_ids = state["tasks_params_ids"]
-        self.loss_fn = state["loss_fn"]
+        extra_state = recover_object_from_tensor(state) if decode else state
+        self._constructor_arguments = extra_state["constructor_arguments"]
+        self._tasks_params_ids = extra_state["tasks_params_ids"]
 
     @abstractmethod
     def forward(self, x: NestedTensors, task_id: Optional[str] = None) -> torch.Tensor:
@@ -242,11 +245,10 @@ class RenateWrapper(RenateModule):
 
     Args:
         model: The torch model to be wrapped.
-        loss_fn: The loss function to be optimized during the training.
     """
 
-    def __init__(self, model: torch.nn.Module, loss_fn: torch.nn.Module) -> None:
-        super().__init__(constructor_arguments={}, loss_fn=loss_fn)
+    def __init__(self, model: torch.nn.Module) -> None:
+        super().__init__(constructor_arguments={})
         self._model = model
 
     def forward(self, x: NestedTensors, task_id: Optional[str] = None) -> torch.Tensor:

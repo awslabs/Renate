@@ -18,7 +18,6 @@ class MultiLayerPerceptron(RenateBenchmarkingModule):
         num_hidden_layers: Number of hidden layers.
         hidden_size: Uniform hidden size or the list or tuple of hidden sizes for individual hidden
             layers.
-        loss: Loss function to be used for training.
         activation: Activation name, matching activation name in `torch.nn` to be used between the
             hidden layers.
         batch_normalization: Whether to use Batch Normalization after the activation. By default the
@@ -35,7 +34,6 @@ class MultiLayerPerceptron(RenateBenchmarkingModule):
         num_outputs: int,
         num_hidden_layers: int,
         hidden_size: Union[int, List[int], Tuple[int]],
-        loss: nn.Module = nn.CrossEntropyLoss(),
         activation: str = "ReLU",
         batch_normalization: bool = False,
         prediction_strategy: Optional[PredictionStrategy] = None,
@@ -52,7 +50,6 @@ class MultiLayerPerceptron(RenateBenchmarkingModule):
                 "activation": activation,
                 "batch_normalization": batch_normalization,
             },
-            loss_fn=loss,
             prediction_strategy=prediction_strategy,
             add_icarl_class_means=add_icarl_class_means,
         )

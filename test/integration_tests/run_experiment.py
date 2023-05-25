@@ -44,7 +44,7 @@ if __name__ == "__main__":
         f"--test-suite",
         type=str,
         required=True,
-        choices=["quick"],
+        choices=["quick", "main"],
         help="Test suite that is run.",
     )
     parser.add_argument(
@@ -88,4 +88,6 @@ if __name__ == "__main__":
         max_time=args.max_time,
         seed=args.seed,
         job_name=args.job_name[:36],
+        devices=1,
+        strategy="ddp",
     )

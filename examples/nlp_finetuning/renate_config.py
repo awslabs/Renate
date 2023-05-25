@@ -17,11 +17,15 @@ def model_fn(model_state_url: Optional[str] = None) -> RenateModule:
     transformer_model = transformers.DistilBertForSequenceClassification.from_pretrained(
         "distilbert-base-uncased", num_labels=2, return_dict=False
     )
-    model = RenateWrapper(transformer_model, loss_fn=torch.nn.CrossEntropyLoss())
+    model = RenateWrapper(transformer_model)
     if model_state_url is not None:
         state_dict = torch.load(model_state_url)
         model.load_state_dict(state_dict)
     return model
+
+
+def loss_fn() -> torch.nn.Module:
+    return torch.nn.CrossEntropyLoss()
 
 
 def data_module_fn(data_path: str, chunk_id: int, seed: int = defaults.SEED) -> RenateDataModule:

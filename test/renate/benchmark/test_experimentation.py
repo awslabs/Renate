@@ -19,8 +19,10 @@ def experiment_job_kwargs():
         "mode": "max",
         "metric": "val_accuracy",
         "num_updates": 2,
-        "max_time": 15,
+        "max_time": 30,
         "seed": 0,
+        "accelerator": "cpu",
+        "devices": 1,
     }
 
 

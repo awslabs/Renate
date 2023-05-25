@@ -12,7 +12,7 @@ from renate import defaults
 from renate.memory import GreedyClassBalancingBuffer
 from renate.models import RenateModule
 from renate.types import NestedTensors
-from renate.updaters.learner import Learner, ReplayLearner
+from renate.updaters.learner import ReplayLearner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
 from renate.utils.pytorch import reinitialize_model_parameters
 
@@ -48,6 +48,7 @@ class GDumbLearner(ReplayLearner):
             seed=seed,
             **kwargs,
         )
+
         self._memory_buffer = GreedyClassBalancingBuffer(
             max_size=memory_size,
             seed=seed,
@@ -55,26 +56,9 @@ class GDumbLearner(ReplayLearner):
             target_transform=buffer_target_transform,
         )
 
-    def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
-        """Restores the state of the learner."""
-        if not hasattr(self, "_memory_buffer"):
-            self._memory_buffer = GreedyClassBalancingBuffer()
-        Learner.load_state_dict(self, model, state_dict, **kwargs)
-        self._batch_memory_frac = state_dict["batch_memory_frac"]
-        self._memory_batch_size = state_dict["memory_batch_size"]  # Delete after Prabhu's PR.
-        self._memory_buffer.load_state_dict(state_dict["memory_buffer"])
-
-    def state_dict(self, **kwargs) -> Dict[str, Any]:
-        """Returns the state of the learner."""
-        state_dict = super().state_dict(**kwargs)
-        state_dict.update(
-            {
-                "batch_memory_frac": self._batch_memory_frac,
-                "memory_batch_size": self._memory_batch_size,  # Delete after Prabhu's PR.
-                "memory_buffer": self._memory_buffer.state_dict(),
-            }
-        )
-        return state_dict
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        super().on_load_checkpoint(checkpoint)
+        self._memory_buffer.load_state_dict(checkpoint["memory_buffer"])
 
     def on_model_update_start(
         self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
@@ -107,6 +91,7 @@ class GDumbModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         memory_size: int,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
@@ -132,6 +117,8 @@ class GDumbModelUpdater(SingleTrainingLoopUpdater):
         logger: Logger = defaults.LOGGER(**defaults.LOGGER_KWARGS),
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
+        strategy: str = defaults.DISTRIBUTED_STRATEGY,
+        precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
@@ -146,6 +133,7 @@ class GDumbModelUpdater(SingleTrainingLoopUpdater):
             "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
+            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
@@ -167,5 +155,7 @@ class GDumbModelUpdater(SingleTrainingLoopUpdater):
             logger=logger,
             accelerator=accelerator,
             devices=devices,
+            strategy=strategy,
+            precision=precision,
             deterministic_trainer=deterministic_trainer,
         )

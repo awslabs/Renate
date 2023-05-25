@@ -147,6 +147,8 @@ def execute_experiment_job(
     devices: int = defaults.DEVICES,
     deterministic_trainer: bool = True,
     job_name: str = defaults.JOB_NAME,
+    strategy: str = defaults.DISTRIBUTED_STRATEGY,
+    precision: str = defaults.PRECISION,
 ) -> None:
     """Executes the experiment job.
 
@@ -202,6 +204,8 @@ def execute_experiment_job(
             devices=devices,
             deterministic_trainer=deterministic_trainer,
             seed=seed,
+            strategy=strategy,
+            precision=precision,
         )
     _execute_experiment_job_remotely(
         job_name=job_name,
@@ -226,6 +230,8 @@ def execute_experiment_job(
         instance_type=instance_type,
         instance_count=instance_count,
         instance_max_time=instance_max_time,
+        strategy=strategy,
+        precision=precision,
     )
 
 
@@ -246,6 +252,8 @@ def _execute_experiment_job_locally(
     max_num_trials_finished: int,
     n_workers: int,
     deterministic_trainer: bool,
+    strategy: str,
+    precision: str,
 ) -> None:
     """Runs an experiment, combining hyperparameter tuning and model for multiple updates.
 
@@ -291,6 +299,9 @@ def _execute_experiment_job_locally(
         model_url,
     )
 
+    # TODO: evaluate's trainer has to use devices=1:
+    # See https://github.com/Lightning-AI/lightning/issues/2537
+    # The fix is to launch evaluation in a seperate process like training.
     results: Dict[str, List[List[float]]] = {}
     evaluate_and_record_results(
         results,
@@ -301,7 +312,9 @@ def _execute_experiment_job_locally(
         logged_metrics=metrics,
         metric_postfix="_init",
         accelerator=accelerator,
-        devices=devices,
+        devices=1,
+        strategy=strategy,
+        precision=precision,
     )
 
     for update_id in range(num_updates):
@@ -329,6 +342,8 @@ def _execute_experiment_job_locally(
             seed=seed,
             accelerator=accelerator,
             devices=devices,
+            precision=precision,
+            strategy=strategy,
             deterministic_trainer=deterministic_trainer,
         )
         move_to_uri(output_state_url, input_state_url)
@@ -347,7 +362,7 @@ def _execute_experiment_job_locally(
             target_transform=transforms.get("target_test_transform"),
             logged_metrics=metrics,
             accelerator=accelerator,
-            devices=devices,
+            devices=1,
         )
         df = individual_metrics_summary(results, update_id + 1, num_updates)
         save_pandas_df_to_csv(

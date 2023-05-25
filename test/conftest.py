@@ -76,6 +76,7 @@ LEARNER_KWARGS = {
         "weight_decay": 0.5,
         "batch_size": 50,
         "seed": 1,
+        "loss_fn": torch.nn.CrossEntropyLoss(),
     },
     Learner: {
         "optimizer": "SGD",
@@ -84,6 +85,7 @@ LEARNER_KWARGS = {
         "weight_decay": 0.005,
         "batch_size": 10,
         "seed": 42,
+        "loss_fn": torch.nn.CrossEntropyLoss(),
     },
     GDumbLearner: {
         "optimizer": "SGD",
@@ -93,6 +95,7 @@ LEARNER_KWARGS = {
         "batch_size": 10,
         "seed": 42,
         "memory_size": 30,
+        "loss_fn": torch.nn.CrossEntropyLoss(),
     },
     JointLearner: {
         "optimizer": "SGD",
@@ -101,6 +104,7 @@ LEARNER_KWARGS = {
         "weight_decay": 0.001,
         "batch_size": 10,
         "seed": 3,
+        "loss_fn": torch.nn.CrossEntropyLoss(),
     },
     RepeatedDistillationLearner: {
         "optimizer": "SGD",
@@ -110,6 +114,7 @@ LEARNER_KWARGS = {
         "batch_size": 10,
         "seed": 42,
         "memory_size": 30,
+        "loss_fn": torch.nn.CrossEntropyLoss(),
     },
     OfflineExperienceReplayLearner: {
         "memory_size": 30,
@@ -121,6 +126,7 @@ LEARNER_KWARGS = {
         "weight_decay": 0.5,
         "batch_size": 50,
         "seed": 1,
+        "loss_fn": torch.nn.CrossEntropyLoss(),
     },
 }
 AVALANCHE_LEARNER_KWARGS = {
@@ -133,6 +139,7 @@ AVALANCHE_LEARNER_KWARGS = {
         "weight_decay": 0.5,
         "batch_size": 50,
         "seed": 1,
+        "loss_fn": torch.nn.CrossEntropyLoss(),
     },
     AvalancheEWCLearner: {
         "ewc_lambda": 0.1,
@@ -142,6 +149,7 @@ AVALANCHE_LEARNER_KWARGS = {
         "weight_decay": 0.5,
         "batch_size": 50,
         "seed": 1,
+        "loss_fn": torch.nn.CrossEntropyLoss(),
     },
     AvalancheLwFLearner: {
         "alpha": 0.1,
@@ -152,6 +160,7 @@ AVALANCHE_LEARNER_KWARGS = {
         "weight_decay": 0.5,
         "batch_size": 50,
         "seed": 1,
+        "loss_fn": torch.nn.CrossEntropyLoss(),
     },
     AvalancheICaRLLearner: {
         "memory_size": 30,
@@ -162,6 +171,7 @@ AVALANCHE_LEARNER_KWARGS = {
         "weight_decay": 0.5,
         "batch_size": 50,
         "seed": 1,
+        "loss_fn": torch.nn.CrossEntropyLoss(),
     },
 }
 LEARNER_HYPERPARAMETER_UPDATES = {
@@ -171,12 +181,14 @@ LEARNER_HYPERPARAMETER_UPDATES = {
         "momentum": 0.5,
         "weight_decay": 0.01,
         "batch_size": 128,
+        "loss_fn": torch.nn.CrossEntropyLoss(),
     },
     Learner: {
         "optimizer": "Adam",
         "learning_rate": 3.0,
         "weight_decay": 0.01,
         "batch_size": 128,
+        "loss_fn": torch.nn.CrossEntropyLoss(),
     },
     GDumbLearner: {
         "optimizer": "Adam",
@@ -185,18 +197,21 @@ LEARNER_HYPERPARAMETER_UPDATES = {
         "weight_decay": 0.03,
         "batch_size": 128,
         "memory_size": 50,
+        "loss_fn": torch.nn.CrossEntropyLoss(),
     },
     JointLearner: {
         "optimizer": "Adam",
         "learning_rate": 2.0,
         "weight_decay": 0.01,
         "batch_size": 128,
+        "loss_fn": torch.nn.CrossEntropyLoss(),
     },
     RepeatedDistillationLearner: {
         "optimizer": "Adam",
         "learning_rate": 2.0,
         "weight_decay": 0.01,
         "batch_size": 128,
+        "loss_fn": torch.nn.CrossEntropyLoss(),
     },
     OfflineExperienceReplayLearner: {
         "optimizer": "Adam",
@@ -204,6 +219,7 @@ LEARNER_HYPERPARAMETER_UPDATES = {
         "momentum": 0.5,
         "weight_decay": 0.01,
         "batch_size": 128,
+        "loss_fn": torch.nn.CrossEntropyLoss(),
     },
 }
 AVALANCHE_LEARNER_HYPERPARAMETER_UPDATES = {
@@ -252,6 +268,11 @@ def get_renate_module_mlp(
         hidden_size,
         add_icarl_class_means=add_icarl_class_means,
     )
+
+
+@pytest.helpers.register
+def get_loss_fn() -> torch.nn.Module:
+    return torch.nn.CrossEntropyLoss()
 
 
 @pytest.helpers.register
@@ -339,6 +360,31 @@ def get_renate_module_mlp_and_data(
 
 
 @pytest.helpers.register
+def get_renate_module_mlp_data_and_loss(
+    num_inputs,
+    num_outputs,
+    num_hidden_layers,
+    hidden_size,
+    train_num_samples,
+    test_num_samples,
+    val_num_samples=0,
+    add_icarl_class_means=False,
+):
+    model, ds, test_data = get_renate_module_mlp_and_data(
+        num_inputs,
+        num_outputs,
+        num_hidden_layers,
+        hidden_size,
+        train_num_samples,
+        test_num_samples,
+        val_num_samples,
+        add_icarl_class_means,
+    )
+
+    return model, ds, test_data, get_loss_fn()
+
+
+@pytest.helpers.register
 def get_renate_vision_module_and_data(
     input_size,
     num_outputs,
@@ -363,7 +409,7 @@ def get_simple_updater(
     input_state_folder=None,
     output_state_folder=None,
     learner_class=ExperienceReplayLearner,
-    learner_kwargs={"memory_size": 10},
+    learner_kwargs={"memory_size": 10, "loss_fn": pytest.helpers.get_loss_fn()},
     max_epochs=5,
     train_transform=None,
     train_target_transform=None,
@@ -406,7 +452,7 @@ def get_avalanche_updater(
     input_state_folder=None,
     output_state_folder=None,
     learner_class=AvalancheReplayLearner,
-    learner_kwargs={"memory_size": 10},
+    learner_kwargs={"memory_size": 10, "loss_fn": torch.nn.CrossEntropyLoss()},
     max_epochs=5,
     train_transform=None,
     train_target_transform=None,

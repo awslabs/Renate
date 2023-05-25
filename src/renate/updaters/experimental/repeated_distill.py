@@ -94,6 +94,7 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         memory_size: int,
         optimizer: str = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
@@ -117,6 +118,8 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
         logger: Logger = defaults.LOGGER(**defaults.LOGGER_KWARGS),
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
+        strategy: str = defaults.DISTRIBUTED_STRATEGY,
+        precision: str = defaults.PRECISION,
         logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None,
         seed: Optional[int] = None,
         early_stopping_enabled=False,
@@ -133,6 +136,7 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
             "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
+            "loss_fn": loss_fn,
         }
         super().__init__(
             model=model,
@@ -152,6 +156,8 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
             logger=logger,
             accelerator=accelerator,
             devices=devices,
+            strategy=strategy,
+            precision=precision,
             early_stopping_enabled=early_stopping_enabled,
             logged_metrics=logged_metrics,
             deterministic_trainer=deterministic_trainer,
@@ -208,6 +214,7 @@ class RepeatedDistillationLearner(ReplayLearner):
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         memory_size: int,
         optimizer: str = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
@@ -246,6 +253,7 @@ class RepeatedDistillationLearner(ReplayLearner):
             test_target_transform=test_target_transform,
             logged_metrics=logged_metrics,
             seed=seed,
+            loss_fn=loss_fn,
         )
         self._expert_logits: Optional[torch.Tensor] = None
 

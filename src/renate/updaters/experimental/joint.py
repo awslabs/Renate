@@ -34,18 +34,13 @@ class JointLearner(Learner):
             target_transform=self._train_target_transform,
         )
 
-    def state_dict(self, **kwargs) -> Dict[str, Any]:
-        """Returns the state of the learner."""
-        state_dict = super().state_dict(**kwargs)
-        state_dict["memory_buffer"] = self._memory_buffer.state_dict()
-        return state_dict
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        super().on_save_checkpoint(checkpoint=checkpoint)
+        checkpoint["memory_buffer"] = self._memory_buffer.state_dict()
 
-    def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
-        """Restores the state of the learner."""
-        if not hasattr(self, "_memory_buffer"):
-            self._memory_buffer = InfiniteBuffer()
-        super().load_state_dict(model, state_dict, **kwargs)
-        self._memory_buffer.load_state_dict(state_dict["memory_buffer"])
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        super().on_load_checkpoint(checkpoint)
+        self._memory_buffer.load_state_dict(checkpoint["memory_buffer"])
 
     def save(self, output_state_dir: str) -> None:
         super().save(output_state_dir)
@@ -56,19 +51,6 @@ class JointLearner(Learner):
     def load(self, input_state_dir: str) -> None:
         super().load(input_state_dir)
         self._memory_buffer.load(os.path.join(input_state_dir, "memory_buffer"))
-
-    def set_transforms(
-        self,
-        train_transform: Optional[Callable] = None,
-        train_target_transform: Optional[Callable] = None,
-        test_transform: Optional[Callable] = None,
-        test_target_transform: Optional[Callable] = None,
-    ) -> None:
-        """Update the transformations applied to the data."""
-        super().set_transforms(
-            train_transform, train_target_transform, test_transform, test_target_transform
-        )
-        self._memory_buffer.set_transforms(train_transform, train_target_transform)
 
     def on_model_update_start(
         self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
@@ -101,6 +83,7 @@ class JointModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
         learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
@@ -123,6 +106,8 @@ class JointModelUpdater(SingleTrainingLoopUpdater):
         logger: Logger = defaults.LOGGER(**defaults.LOGGER_KWARGS),
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
+        strategy: str = defaults.DISTRIBUTED_STRATEGY,
+        precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
@@ -136,6 +121,7 @@ class JointModelUpdater(SingleTrainingLoopUpdater):
             "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
+            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
@@ -155,5 +141,7 @@ class JointModelUpdater(SingleTrainingLoopUpdater):
             logger=logger,
             accelerator=accelerator,
             devices=devices,
+            strategy=strategy,
+            precision=precision,
             deterministic_trainer=deterministic_trainer,
         )

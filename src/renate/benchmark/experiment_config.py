@@ -231,6 +231,10 @@ def get_scenario(
     raise ValueError(f"Unknown scenario `{scenario_name}`.")
 
 
+def loss_fn() -> torch.nn.Module:
+    return torch.nn.CrossEntropyLoss()
+
+
 def data_module_fn(
     data_path: str,
     chunk_id: int,
