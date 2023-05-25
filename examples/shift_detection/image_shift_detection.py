@@ -33,7 +33,7 @@ feature_extractor.fc = torch.nn.Identity()
 feature_extractor.eval()  # Eval mode to use frozen batchnorm stats.
 
 # Now we can instantiate an MMD-based shift detector. We first fit it to our reference datasets and
-# then score both the in-distribution query dataset as well as the out-of-distribution query dataset.
+# then score the in-distribution query dataset as well as the out-of-distribution query dataset.
 # In this toy example, the shift is quite obvious and we will see a very high score for the
 # out-of-distribution data.
 detector = MMDCovariateShiftDetector(feature_extractor=feature_extractor)
