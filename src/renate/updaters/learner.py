@@ -414,12 +414,12 @@ class ReplayLearner(Learner, abc.ABC):
                 f"Expecting batch_memory_frac to be in [0, 1], received {batch_memory_frac}."
             )
         self._memory_batch_size = round(batch_memory_frac * self._batch_size)
-        if memory_size < self._memory_batch_size:
-            raise ValueError(
-                "Expecting memory_size to exceed batch_memory_frac * batch_size. Received "
-                f"memory_size={memory_size}, batch_memory_frac={batch_memory_frac}, "
-                f"batch_size={self._batch_size}."
-            )
+        # if memory_size < self._memory_batch_size:
+        #     raise ValueError(
+        #         "Expecting memory_size to exceed batch_memory_frac * batch_size. Received "
+        #         f"memory_size={memory_size}, batch_memory_frac={batch_memory_frac}, "
+        #         f"batch_size={self._batch_size}."
+        #     )
         self._batch_memory_frac = batch_memory_frac
         self._memory_buffer = ReservoirBuffer(
             max_size=memory_size,
@@ -444,7 +444,7 @@ class ReplayLearner(Learner, abc.ABC):
         """Restores the state of the learner."""
         super().load_state_dict(model, state_dict, **kwargs)
         self._batch_memory_frac = state_dict["batch_memory_frac"]
-        self._memory_batch_size = state_dict["memory_batch_size"]
+        self._memory_batch_size = state_dict["memory_batch_size"]  # Delete after Prabhu's PR
         if not hasattr(self, "_memory_buffer"):
             self._memory_buffer = ReservoirBuffer()
         self._memory_buffer.load_state_dict(state_dict["memory_buffer"])

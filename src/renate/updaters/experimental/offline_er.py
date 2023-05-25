@@ -67,7 +67,7 @@ class OfflineExperienceReplayLearner(ReplayLearner):
     def train_dataloader(self) -> DataLoader:
         """Returns the dataloader for training the model."""
         memory_batch_size = (
-            self._memory_batch_size if self._memory_batch_size >= len(self._memory_buffer) else 0
+            self._memory_batch_size if len(self._memory_buffer) >= self._memory_batch_size else 0
         )
         train_dataset = _TransformedDataset(
             self._train_dataset,

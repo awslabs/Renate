@@ -61,7 +61,20 @@ class GDumbLearner(ReplayLearner):
             self._memory_buffer = GreedyClassBalancingBuffer()
         Learner.load_state_dict(self, model, state_dict, **kwargs)
         self._batch_memory_frac = state_dict["batch_memory_frac"]
+        self._memory_batch_size = state_dict["memory_batch_size"]  # Delete after Prabhu's PR.
         self._memory_buffer.load_state_dict(state_dict["memory_buffer"])
+
+    def state_dict(self, **kwargs) -> Dict[str, Any]:
+        """Returns the state of the learner."""
+        state_dict = super().state_dict(**kwargs)
+        state_dict.update(
+            {
+                "batch_memory_frac": self._batch_memory_frac,
+                "memory_batch_size": self._memory_batch_size,  # Delete after Prabhu's PR.
+                "memory_buffer": self._memory_buffer.state_dict(),
+            }
+        )
+        return state_dict
 
     def on_model_update_start(
         self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
