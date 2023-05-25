@@ -47,23 +47,6 @@ class GDumbLearner(ReplayLearner):
             seed=seed,
             **kwargs,
         )
-        self.save_hyperparameters(
-            ignore=[
-                "model",
-                "loss_fn",
-                "components",
-                "train_transform",
-                "test_transform",
-                "buffer_transform",
-                "train_transform",
-                "train_target_transform",
-                "test_transform",
-                "test_target_transform",
-                "buffer_transform",
-                "buffer_target_transform",
-                "logged_metrics",
-            ]
-        )
 
         self._memory_buffer = GreedyClassBalancingBuffer(
             max_size=memory_size,

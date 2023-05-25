@@ -256,23 +256,6 @@ class RepeatedDistillationLearner(ReplayLearner):
             loss_fn=loss_fn,
         )
         self._expert_logits: Optional[torch.Tensor] = None
-        self.save_hyperparameters(
-            ignore=[
-                "model",
-                "loss_fn",
-                "components",
-                "train_transform",
-                "test_transform",
-                "buffer_transform",
-                "train_transform",
-                "train_target_transform",
-                "test_transform",
-                "test_target_transform",
-                "buffer_transform",
-                "buffer_target_transform",
-                "logged_metrics",
-            ]
-        )
 
     def update_expert_logits(self, new_expert_logits: torch.Tensor) -> None:
         """Update expert logits."""

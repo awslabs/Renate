@@ -51,23 +51,6 @@ class OfflineExperienceReplayLearner(ReplayLearner):
             )
         self._loss_weight_new_data = loss_weight_new_data
         self._num_points_previous_tasks: int = 0
-        self.save_hyperparameters(
-            ignore=[
-                "model",
-                "loss_fn",
-                "components",
-                "train_transform",
-                "test_transform",
-                "buffer_transform",
-                "train_transform",
-                "train_target_transform",
-                "test_transform",
-                "test_target_transform",
-                "buffer_transform",
-                "buffer_target_transform",
-                "logged_metrics",
-            ]
-        )
 
     def _create_metrics_collections(
         self, logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None
