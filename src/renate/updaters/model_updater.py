@@ -127,10 +127,15 @@ class RenateModelCheckpoint(ModelCheckpoint):
         # Reload best state.
         learner_state_path = Path(defaults.learner_state_file(self._output_state_folder))
         if learner_state_path.exists():
+            # There are three obvious steps that are handled by lightning if
+            # we use the load_from_checkpoint mechanism. Here we do those manually.
+            # See for reference
+            # https://github.com/Lightning-AI/lightning/blob/1.8.6/src/pytorch_lightning/core/saving.py#L225
+            # 1. Load the state_dict from the checkpoint file.
+            # 2. Call the on_load_checkpoint (which is a callback)
+            # 3. Load the state_dict into the model. Note the strategy.load_model_state_dict call.
             loaded_state = trainer.strategy.load_checkpoint(learner_state_path)
             pl_module.on_load_checkpoint(loaded_state)
-            # This loads the state dict only if its not Deepspeed.
-            # Deepspeed load the state_dict automatically when load_checkpoint is called.
             trainer.strategy.load_model_state_dict(loaded_state)
 
         # Finalize model update.
@@ -141,12 +146,35 @@ class RenateModelCheckpoint(ModelCheckpoint):
         self._save_checkpoint(trainer, learner_state_path)
 
     def teardown(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
+        """
+        teardown implements the separation of learner and model at the end of training.
+
+        There are two cases two handle.
+
+        1. If deepspeed is being used:
+        The learner_state_path (which the checkpointing func) uses is a directory and not a file.
+        This directory has sharded state_dicts (of model and optimizers, depending on which
+        deepspeed stage is used. There are three steps here:
+            a. combine all the shards into one big state dict.
+            b. The learner_state_path is a dir (learner.cpkt/). This needs to be deleted first.
+            c. Write the combined state_dict as the learner.cpkt file as a single file.
+            d. Extract the state_dict element from the learner and save that as the model.cpkt.
+
+        2. If not deepspeed (say DDP or single device):
+        The steps are much simpler.
+            a. Load the learner.cpkt and extract the state_dict element.
+            b. Sanitize the extracted state_dict. Learner has the model in a _model attribute. So
+            strip the first "_model." from the keys of the state_dict.
+            c. Save the sanitized model to model.cpkt
+
+        Case 2 is needs to be done even for Case 1 (step d). So teardown is a recursive call in
+        Case 1 which automatically goes to Case 2 as learner.cpkt is file now.
+        """
+
         if trainer.is_global_zero and (stage == "fit"):
             learner_state_path = Path(defaults.learner_state_file(self._output_state_folder))
             if learner_state_path.exists() and learner_state_path.is_dir():
-                # Deepspeed zero saves everything as folders. We convert that to a single file.
-                # The flow is to create a temp file with the shards combined, and then
-                # delete the ZeRO folder, and then move it combined file to the learner.cpkt.
+                # Deepspeed zero saves everything as folders.
                 combined_state_dict = convert_zero_checkpoint_to_fp32_state_dict(learner_state_path)
                 unlink_file_or_folder(learner_state_path)
                 torch.save(combined_state_dict, learner_state_path)
