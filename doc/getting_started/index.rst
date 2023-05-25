@@ -7,7 +7,7 @@ of a model. The content is intended to explain the basic steps to be taken when 
 training pipeline based on Renate.
 
 If your goal is to test multiple Renate algorithms on your dataset or to test a specific algorithm on
-multiple datasets and scenarios, you will be better served by the benchmarking functionalities 
+multiple datasets and scenarios, you will be better served by the benchmarking functionalities
 provided in :doc:`../benchmarking/renate_benchmarks`.
 
 .. toctree::
@@ -19,3 +19,4 @@ provided in :doc:`../benchmarking/renate_benchmarks`.
     output
     supported_algorithms
     avalanche
+    shift_detection
