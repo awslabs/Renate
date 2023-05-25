@@ -73,7 +73,7 @@ class AvalancheReplayLearner(ReplayLearner, AvalancheLoaderMixin):
     def create_avalanche_learner(
         self, plugins: List[SupervisedPlugin], **kwargs: Any
     ) -> BaseSGDTemplate:
-        memory_batch_size = int(self._batch_memory_frac * self._batch_size)
+        memory_batch_size = round(self._batch_memory_frac * self._batch_size)
         replay_plugin = ReplayPlugin(
             mem_size=self._memory_buffer._max_size,
             batch_size=self._batch_size,

@@ -413,12 +413,13 @@ class ReplayLearner(Learner, abc.ABC):
             raise ValueError(
                 f"Expecting batch_memory_frac to be in [0, 1], received {batch_memory_frac}."
             )
-        # if memory_size < self._batch_size * batch_memory_frac:
-        #     raise ValueError(
-        #         "Expected memory_size to exceed batch_memory_frac * batch_size. Received "
-        #         f"memory_size={memory_size}, batch_memory_frac={batch_memory_frac}, "
-        #         f"batch_size={self._batch_size}."
-        #     )
+        self._memory_batch_size = round(batch_memory_frac * self._batch_size)
+        if memory_size < self._memory_batch_size:
+            raise ValueError(
+                "Expecting memory_size to exceed batch_memory_frac * batch_size. Received "
+                f"memory_size={memory_size}, batch_memory_frac={batch_memory_frac}, "
+                f"batch_size={self._batch_size}."
+            )
         self._batch_memory_frac = batch_memory_frac
         self._memory_buffer = ReservoirBuffer(
             max_size=memory_size,
@@ -427,18 +428,13 @@ class ReplayLearner(Learner, abc.ABC):
             target_transform=buffer_target_transform,
         )
 
-    def _memory_batch_size(self):
-        memory_batch_size = int(self._batch_memory_frac * self._batch_size)
-        if memory_batch_size < len(self._memory_buffer):
-            return 0
-        return memory_batch_size
-
     def state_dict(self, **kwargs) -> Dict[str, Any]:
         """Returns the state of the learner."""
         state_dict = super().state_dict(**kwargs)
         state_dict.update(
             {
                 "batch_memory_frac": self._batch_memory_frac,
+                "memory_batch_size": self._memory_batch_size,  # This will become obsolete when Checkpointing PR is merged
                 "memory_buffer": self._memory_buffer.state_dict(),
             }
         )

@@ -31,7 +31,7 @@ def get_model_and_dataset():
     [[20, 10, 0.5], [30, 10, 0.33], [20, 100, 0.5], [10, 30, 0.1], [100, 10, 0.03]],
 )
 def test_er_overall_memory_size_after_update(batch_size, memory_size, batch_memory_frac):
-    memory_batch_size = int(batch_memory_frac * batch_size)
+    memory_batch_size = round(batch_memory_frac * batch_size)
     model, dataset = get_model_and_dataset()
     learner_kwargs = {
         "memory_size": memory_size,
