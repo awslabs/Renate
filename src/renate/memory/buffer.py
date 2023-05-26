@@ -126,6 +126,17 @@ class DataBuffer(Dataset):
             self._add_metadata_like({key: values})
         self._metadata[key][: len(self)] = values.cpu()
 
+    def state_dict(self) -> Dict:
+        return {
+            "buffer_class_name": self.__class__.__name__,
+            "max_size": self._max_size,
+            "seed": self._seed,
+            "count": self._count,
+            "indices": self._indices,
+            "data_point_prototype": self._data_point_prototype,
+            "metadata": self._metadata,
+        }
+
     def load_state_dict(self, state_dict: Dict) -> None:
         if self.__class__.__name__ != state_dict["buffer_class_name"]:
             raise RuntimeError(
