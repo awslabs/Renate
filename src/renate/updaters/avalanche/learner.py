@@ -76,7 +76,7 @@ class AvalancheReplayLearner(ReplayLearner, AvalancheLoaderMixin):
         memory_batch_size = round(self._batch_memory_frac * self._batch_size)
         replay_plugin = ReplayPlugin(
             mem_size=self._memory_buffer._max_size,
-            batch_size=self._batch_size,
+            batch_size=self._batch_size - memory_batch_size,
             batch_size_mem=memory_batch_size,
         )
         plugins.append(replay_plugin)
