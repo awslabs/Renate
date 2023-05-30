@@ -141,7 +141,8 @@ class RenateModelCheckpoint(ModelCheckpoint):
         # Finalize model update.
         pl_module.on_model_update_end()
         # Save permanently.
-        pl_module.save(self._output_state_folder)
+        if trainer.is_global_zero:
+            pl_module.save(self._output_state_folder)
         # Overwrite checkpoint.
         self._save_checkpoint(trainer, learner_state_path)
 
