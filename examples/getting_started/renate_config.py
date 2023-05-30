@@ -93,4 +93,4 @@ def metrics_fn() -> Dict:
 
 
 def loss_fn() -> torch.nn.Module:
-    return torch.nn.CrossEntropyLoss()
+    return torch.nn.CrossEntropyLoss(reduction="none")

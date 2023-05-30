@@ -25,7 +25,7 @@ def model_fn(model_state_url: Optional[str] = None) -> RenateModule:
 
 
 def loss_fn() -> torch.nn.Module:
-    return torch.nn.CrossEntropyLoss()
+    return torch.nn.CrossEntropyLoss(reduction="none")
 
 
 def data_module_fn(data_path: str, chunk_id: int, seed: int = defaults.SEED) -> RenateDataModule:

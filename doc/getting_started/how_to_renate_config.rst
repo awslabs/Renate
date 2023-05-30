@@ -59,12 +59,13 @@ signature
     
     def loss_fn() -> torch.nn.Module:
 
-An example of this for the task of MNIST classfication above as
+An example of this for the task of MNIST classification above as
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Loss function example
     :lines: 95-96
 
+Please note, loss functions should not be reduced.
 
 Data Preparation
 ================

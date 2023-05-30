@@ -48,3 +48,7 @@ def model_fn(model_state_url: Optional[str] = None) -> RenateModule:
 def train_transform() -> Callable:
     """Returns a transform function to be used in the training."""
     return transforms.Lambda(lambda x: torch.flatten(x))
+
+
+def loss_fn() -> torch.nn.Module:
+    return torch.nn.CrossEntropyLoss(reduction="none")

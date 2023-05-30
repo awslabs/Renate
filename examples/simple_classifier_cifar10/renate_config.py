@@ -61,3 +61,7 @@ def test_transform() -> Callable:
 def buffer_transform() -> Callable:
     """Returns a transform function to be used in the Memory Buffer."""
     return train_transform()
+
+
+def loss_fn() -> torch.nn.Module:
+    return torch.nn.CrossEntropyLoss(reduction="none")
