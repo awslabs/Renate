@@ -16,7 +16,13 @@ from renate.cli.parsing_functions import (
     parse_arguments,
 )
 from renate.utils.file import maybe_download_from_s3, move_to_uri
-from renate.utils.module import get_and_setup_data_module, get_metrics, get_model, import_module
+from renate.utils.module import (
+    get_and_setup_data_module,
+    get_loss_fn,
+    get_metrics,
+    get_model,
+    import_module,
+)
 from renate.utils.syne_tune import redirect_to_tmp
 
 logger = logging.getLogger(__name__)
@@ -95,6 +101,7 @@ class ModelUpdaterCLI:
                 "buffer_transform",
                 "metrics_fn",
                 "scheduler_fn",
+                "loss_fn",
             ],
             ignore_args=["data_path", "model_state_url"],
         )
@@ -113,6 +120,10 @@ class ModelUpdaterCLI:
             model_state_url=self._current_model_file,
             **get_function_kwargs(args=args, function_args=function_args["model_fn"]),
         )
+        loss_fn = get_loss_fn(
+            config_module,
+            **get_function_kwargs(args=args, function_args=function_args["loss_fn"]),
+        )
 
         metrics = get_metrics(config_module)
 
@@ -128,8 +139,11 @@ class ModelUpdaterCLI:
             logged_metrics=metrics,
             accelerator=args.accelerator,
             devices=args.devices,
+            precision=args.precision,
+            strategy=args.strategy,
             early_stopping_enabled=args.early_stopping,
             deterministic_trainer=args.deterministic_trainer,
+            loss_fn=loss_fn,
             **learner_kwargs,
             **get_transforms_dict(config_module, args, function_args),
         )

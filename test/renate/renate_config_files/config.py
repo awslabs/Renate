@@ -28,3 +28,7 @@ def data_module_fn(
     bool_param: bool = False,
 ) -> RenateDataModule:
     return DummyTorchVisionDataModule(transform=None, val_size=val_size, seed=seed)
+
+
+def loss_fn() -> torch.nn.Module:
+    return torch.nn.CrossEntropyLoss()

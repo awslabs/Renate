@@ -3,7 +3,6 @@
 from typing import Any, Dict, List, Optional
 
 import torch
-import torch.nn as nn
 from peft import (
     LoraConfig,
     PeftModel,
@@ -42,14 +41,12 @@ class HuggingFaceSequenceClassificationTransformer(RenateModule):
     Args:
         pretrained_model_name: Hugging Face model id.
         num_outputs: Number of outputs.
-        loss_fn: The loss function to be optimized during the training.
     """
 
     def __init__(
         self,
         pretrained_model_name: str,
         num_outputs: int,
-        loss_fn: nn.Module = nn.CrossEntropyLoss(),
         constructor_arguments: Optional[Dict[str, Any]] = None,
     ) -> None:
         if constructor_arguments is None:
@@ -60,7 +57,7 @@ class HuggingFaceSequenceClassificationTransformer(RenateModule):
                 "num_outputs": num_outputs,
             }
         )
-        super().__init__(constructor_arguments=constructor_arguments, loss_fn=loss_fn)
+        super().__init__(constructor_arguments=constructor_arguments)
         self._model = from_pretrained(
             pretrained_model_name, num_labels=num_outputs, return_dict=False
         )
@@ -104,7 +101,6 @@ class HuggingFaceSequenceClassificationTransformerWithLora(
     Args:
         pretrained_model_name: Hugging Face model id.
         num_outputs: Number of outputs.
-        loss_fn: The loss function to be optimized during the training.
         alpha: Alpha in Lora.
         dropout: Dropout in Lora.
         r: Attention dimension of Lora.
@@ -119,7 +115,6 @@ class HuggingFaceSequenceClassificationTransformerWithLora(
         num_outputs: int,
         alpha: int,
         dropout: float,
-        loss_fn: nn.Module = nn.CrossEntropyLoss(),
         r: int = 8,
         bias: str = "none",
         modules_to_save: Optional[List[str]] = None,
@@ -136,7 +131,6 @@ class HuggingFaceSequenceClassificationTransformerWithLora(
         super().__init__(
             pretrained_model_name=pretrained_model_name,
             num_outputs=num_outputs,
-            loss_fn=loss_fn,
             constructor_arguments=constructor_arguments.copy(),
         )
         self._model = add_lora(
@@ -157,7 +151,6 @@ class HuggingFaceSequenceClassificationTransformerWithPrefixTuning(
         pretrained_model_name: Hugging Face model id.
         num_outputs: Number of outputs.
         num_virtual_tokens (`int`): The number of virtual tokens to use.
-        loss_fn: The loss function to be optimized during the training.
         token_dim (`int`): The hidden embedding dimension of the base transformer model.
         encoder_hidden_size: Hidden size of prompt encoder.
         num_transformer_submodules (`int`): The number of transformer submodules in the base
@@ -172,7 +165,6 @@ class HuggingFaceSequenceClassificationTransformerWithPrefixTuning(
         pretrained_model_name: str,
         num_outputs: int,
         num_virtual_tokens: int,
-        loss_fn: nn.Module = nn.CrossEntropyLoss(),
         token_dim: Optional[int] = None,
         encoder_hidden_size: Optional[int] = None,
         num_transformer_submodules: Optional[int] = None,
@@ -193,7 +185,6 @@ class HuggingFaceSequenceClassificationTransformerWithPrefixTuning(
         super().__init__(
             pretrained_model_name=pretrained_model_name,
             num_outputs=num_outputs,
-            loss_fn=loss_fn,
             constructor_arguments=constructor_arguments.copy(),
         )
         self._model = add_prefix_tuning(
@@ -213,7 +204,6 @@ class HuggingFaceSequenceClassificationTransformerWithPromptTuning(
         pretrained_model_name: Hugging Face model id.
         num_outputs: Number of outputs.
         num_virtual_tokens (`int`): The number of virtual tokens to use.
-        loss_fn: The loss function to be optimized during the training.
         token_dim (`int`): The hidden embedding dimension of the base transformer model.
         num_transformer_submodules (`int`): The number of transformer submodules in the base
             transformer model.
@@ -230,7 +220,6 @@ class HuggingFaceSequenceClassificationTransformerWithPromptTuning(
         pretrained_model_name: str,
         num_outputs: int,
         num_virtual_tokens: int,
-        loss_fn: nn.Module = nn.CrossEntropyLoss(),
         token_dim: Optional[int] = None,
         num_transformer_submodules: Optional[int] = None,
         num_attention_heads: Optional[int] = None,
@@ -253,7 +242,6 @@ class HuggingFaceSequenceClassificationTransformerWithPromptTuning(
         super().__init__(
             pretrained_model_name=pretrained_model_name,
             num_outputs=num_outputs,
-            loss_fn=loss_fn,
             constructor_arguments=constructor_arguments.copy(),
         )
         self._model = add_prompt_tuning(
@@ -273,7 +261,6 @@ class HuggingFaceSequenceClassificationTransformerWithPTuning(
         pretrained_model_name: Hugging Face model id.
         num_outputs: Number of outputs.
         num_virtual_tokens (`int`): The number of virtual tokens to use.
-        loss_fn: The loss function to be optimized during the training.
         token_dim (`int`): The hidden embedding dimension of the base transformer model.
         num_transformer_submodules (`int`): The number of transformer submodules in the base
             transformer model.
@@ -291,7 +278,6 @@ class HuggingFaceSequenceClassificationTransformerWithPTuning(
         pretrained_model_name: str,
         num_outputs: int,
         num_virtual_tokens: int,
-        loss_fn: nn.Module = nn.CrossEntropyLoss(),
         token_dim: Optional[int] = None,
         num_transformer_submodules: Optional[int] = None,
         num_attention_heads: Optional[int] = None,
@@ -316,7 +302,6 @@ class HuggingFaceSequenceClassificationTransformerWithPTuning(
         super().__init__(
             pretrained_model_name=pretrained_model_name,
             num_outputs=num_outputs,
-            loss_fn=loss_fn,
             constructor_arguments=constructor_arguments.copy(),
         )
         self._model = add_p_tuning(

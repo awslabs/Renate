@@ -69,7 +69,7 @@ def test_run_training_job(
                     "val_size": val_size,
                 },
                 metric="val_accuracy",
-                max_time=15,
+                max_time=30,
                 scheduler=scheduler,
             )
 

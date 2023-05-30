@@ -57,6 +57,7 @@ class Learner(LightningModule, abc.ABC):
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
         learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
@@ -74,6 +75,7 @@ class Learner(LightningModule, abc.ABC):
     ) -> None:
         super().__init__()
         self._model = model
+        self._loss_fn = loss_fn
         self._optimizer = optimizer
         self._learning_rate = learning_rate
         self._learning_rate_scheduler = learning_rate_scheduler
@@ -91,10 +93,24 @@ class Learner(LightningModule, abc.ABC):
 
         self._val_memory_buffer: DataBuffer = InfiniteBuffer()
         self._create_metrics_collections(logged_metrics)
-        self._post_init()
-
-    def _post_init(self) -> None:
         self._rng = get_generator(self._seed)
+        self.save_hyperparameters(
+            ignore=[
+                "model",
+                "loss_fn",
+                "components",
+                "train_transform",
+                "test_transform",
+                "buffer_transform",
+                "train_transform",
+                "train_target_transform",
+                "test_transform",
+                "test_target_transform",
+                "buffer_transform",
+                "buffer_target_transform",
+                "logged_metrics",
+            ]
+        )
 
     def _create_metrics_collections(
         self, logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None
@@ -125,53 +141,15 @@ class Learner(LightningModule, abc.ABC):
             }
         )
 
-    def state_dict(self, **kwargs) -> Dict[str, Any]:
-        """Returns the state of the learner."""
-        return {
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        learner_state_dict = {
             "learner_class_name": self.__class__.__name__,
-            "optimizer": self._optimizer,
-            "learning_rate": self._learning_rate,
-            "learning_rate_scheduler": self._learning_rate_scheduler,
-            "learning_rate_scheduler_gamma": self._learning_rate_scheduler_gamma,
-            "learning_rate_scheduler_step_size": self._learning_rate_scheduler_step_size,
-            "momentum": self._momentum,
-            "weight_decay": self._weight_decay,
-            "batch_size": self._batch_size,
-            "seed": self._seed,
-            "task_id": self._task_id,
             "val_memory_buffer": self._val_memory_buffer.state_dict(),
         }
+        checkpoint.update(learner_state_dict)
 
-    def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
-        """Restores the state of the learner.
-
-        Even though this is a LightningModule, no modules are stored.
-
-        Args:
-            model: The model to be trained.
-            state_dict: Dictionary containing the state.
-        """
-        if self.__class__.__name__ != state_dict["learner_class_name"]:
-            raise RuntimeError(
-                f"Learner of class {self.__class__} was used to load a state dict created by class "
-                f"{state_dict['learner_class_name']}."
-            )
-        super().__init__()
-        self._model = model
-        self._optimizer = state_dict["optimizer"]
-        self._learning_rate = state_dict["learning_rate"]
-        self._learning_rate_scheduler = state_dict["learning_rate_scheduler"]
-        self._learning_rate_scheduler_gamma = state_dict["learning_rate_scheduler_gamma"]
-        self._learning_rate_scheduler_step_size = state_dict["learning_rate_scheduler_step_size"]
-        self._momentum = state_dict["momentum"]
-        self._weight_decay = state_dict["weight_decay"]
-        self._batch_size = state_dict["batch_size"]
-        self._seed = state_dict["seed"]
-        self._task_id = state_dict["task_id"]
-        if not hasattr(self, "_val_memory_buffer"):
-            self._val_memory_buffer = InfiniteBuffer()
-        self._val_memory_buffer.load_state_dict(state_dict["val_memory_buffer"])
-        self._post_init()
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]):
+        self._val_memory_buffer.load_state_dict(checkpoint["val_memory_buffer"])
 
     def save(self, output_state_dir: str) -> None:
         val_buffer_dir = os.path.join(output_state_dir, "val_memory_buffer")
@@ -180,25 +158,6 @@ class Learner(LightningModule, abc.ABC):
 
     def load(self, input_state_dir: str) -> None:
         self._val_memory_buffer.load(os.path.join(input_state_dir, "val_memory_buffer"))
-
-    def set_transforms(
-        self,
-        train_transform: Optional[Callable] = None,
-        train_target_transform: Optional[Callable] = None,
-        test_transform: Optional[Callable] = None,
-        test_target_transform: Optional[Callable] = None,
-    ) -> None:
-        """Update the transformations applied to the data."""
-        self._train_transform = train_transform
-        self._train_target_transform = train_target_transform
-        self._test_transform = test_transform
-        self._test_target_transform = test_target_transform
-
-    def set_logged_metrics(
-        self, logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None
-    ) -> None:
-        """Sets the additional metrics logged during training and evaluation."""
-        self._create_metrics_collections(logged_metrics)
 
     def is_logged_metric(self, metric_name: str) -> bool:
         """Returns `True` if there is a metric with name `metric_name`."""
@@ -216,25 +175,6 @@ class Learner(LightningModule, abc.ABC):
                         for logged_metric_name in collection[collection_key]
                     ]
         return metric_name in logged_metrics
-
-    def update_hyperparameters(self, args: Dict[str, Any]) -> None:
-        """Update the hyperparameters of the learner."""
-        if "optimizer" in args:
-            self._optimizer = args["optimizer"]
-        if "learning_rate" in args:
-            self._learning_rate = args["learning_rate"]
-        if "learning_rate_scheduler" in args:
-            self._learning_rate_scheduler = args["learning_rate_scheduler"]
-        if "learning_rate_scheduler_gamma" in args:
-            self._learning_rate_scheduler_gamma = args["learning_rate_scheduler_gamma"]
-        if "learning_rate_scheduler_step_size" in args:
-            self._learning_rate_scheduler_step_size = args["learning_rate_scheduler_step_size"]
-        if "momentum" in args:
-            self._momentum = args["momentum"]
-        if "weight_decay" in args:
-            self._weight_decay = args["weight_decay"]
-        if "batch_size" in args:
-            self._batch_size = args["batch_size"]
 
     def on_model_update_start(
         self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
@@ -298,7 +238,7 @@ class Learner(LightningModule, abc.ABC):
         outputs = self(inputs)
         intermediate_representation = self._model.get_intermediate_representation()
         self._model.reset_intermediate_representation_cache()
-        loss = self._model.loss_fn(outputs, targets)
+        loss = self._loss_fn(outputs, targets)
         self._update_metrics(outputs, targets, "train")
         self._loss_collections["train_losses"]["base_loss"](loss)
         return {
@@ -323,7 +263,7 @@ class Learner(LightningModule, abc.ABC):
         """PyTorch Lightning function to estimate validation metrics."""
         (inputs, targets), _ = batch
         outputs = self(inputs)
-        loss = self._model.loss_fn(outputs, targets)
+        loss = self._loss_fn(outputs, targets)
         self._update_metrics(outputs, targets, "val")
         self._loss_collections["val_losses"]["loss"](loss)
 
@@ -373,6 +313,7 @@ class Learner(LightningModule, abc.ABC):
                 on_step=False,
                 on_epoch=True,
                 logger=True,
+                sync_dist=True,
             )
             self._metric_collections[f"{prefix}_metrics"].reset()
 
@@ -383,6 +324,7 @@ class Learner(LightningModule, abc.ABC):
                     on_step=False,
                     on_epoch=True,
                     logger=True,
+                    sync_dist=True,
                 )
                 loss.reset()
 
@@ -419,24 +361,13 @@ class ReplayLearner(Learner, abc.ABC):
             target_transform=buffer_target_transform,
         )
 
-    def state_dict(self, **kwargs) -> Dict[str, Any]:
-        """Returns the state of the learner."""
-        state_dict = super().state_dict(**kwargs)
-        state_dict.update(
-            {
-                "memory_batch_size": self._memory_batch_size,
-                "memory_buffer": self._memory_buffer.state_dict(),
-            }
-        )
-        return state_dict
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        super().on_save_checkpoint(checkpoint)
+        checkpoint["memory_buffer"] = self._memory_buffer.state_dict()
 
-    def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
-        """Restores the state of the learner."""
-        super().load_state_dict(model, state_dict, **kwargs)
-        self._memory_batch_size = state_dict["memory_batch_size"]
-        if not hasattr(self, "_memory_buffer"):
-            self._memory_buffer = ReservoirBuffer()
-        self._memory_buffer.load_state_dict(state_dict["memory_buffer"])
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        super().on_load_checkpoint(checkpoint)
+        self._memory_buffer.load_state_dict(checkpoint["memory_buffer"])
 
     def save(self, output_state_dir: str) -> None:
         super().save(output_state_dir)
@@ -447,21 +378,3 @@ class ReplayLearner(Learner, abc.ABC):
     def load(self, input_state_dir: str) -> None:
         super().load(input_state_dir)
         self._memory_buffer.load(os.path.join(input_state_dir, "memory_buffer"))
-
-    def set_transforms(
-        self,
-        train_transform: Optional[Callable] = None,
-        train_target_transform: Optional[Callable] = None,
-        test_transform: Optional[Callable] = None,
-        test_target_transform: Optional[Callable] = None,
-        buffer_transform: Optional[Callable] = None,
-        buffer_target_transform: Optional[Callable] = None,
-    ) -> None:
-        """Update the transformations applied to the data."""
-        super().set_transforms(
-            train_transform=train_transform,
-            train_target_transform=train_target_transform,
-            test_transform=test_transform,
-            test_target_transform=test_target_transform,
-        )
-        self._memory_buffer.set_transforms(buffer_transform, buffer_target_transform)

@@ -34,7 +34,6 @@ class VisionTransformer(RenateBenchmarkingModule):
         norm_layer: Normalization layer.
         conv_stem_configs: List of ConvStemConfig. Each ConvStemConfig corresponds to a
             convolutional stem.
-        loss: Loss function.
         prediction_strategy: Continual learning strategies may alter the prediction at train or test
             time.
         add_icarl_class_means: If ``True``, additional parameters used only by the
@@ -56,7 +55,6 @@ class VisionTransformer(RenateBenchmarkingModule):
         norm_layer: Callable[..., nn.Module] = partial(nn.LayerNorm, eps=1e-6),
         conv_stem_configs: Optional[List[ConvStemConfig]] = None,
         weights: Optional[WeightsEnum] = None,
-        loss: nn.Module = nn.CrossEntropyLoss(),
         prediction_strategy: Optional[PredictionStrategy] = None,
         add_icarl_class_means: bool = True,
     ) -> None:
@@ -90,7 +88,6 @@ class VisionTransformer(RenateBenchmarkingModule):
                 "norm_layer": norm_layer,
                 "conv_stem_configs": conv_stem_configs,
             },
-            loss_fn=loss,
             prediction_strategy=prediction_strategy,
             add_icarl_class_means=add_icarl_class_means,
         )

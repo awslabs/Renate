@@ -52,7 +52,7 @@ def model_fn(
             dropout=lora_dropout,
             bias=lora_bias,
             modules_to_save=lora_modules_to_save,
-            init_lora_weight=lora_init_lora_weights,
+            init_lora_weights=lora_init_lora_weights,
         )
 
 

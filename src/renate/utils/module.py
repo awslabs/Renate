@@ -5,6 +5,7 @@ import sys
 from types import ModuleType
 from typing import Any, Callable, Dict, List, Optional, Union
 
+import torch
 import torchmetrics
 
 from renate import defaults
@@ -26,6 +27,8 @@ def evaluate_and_record_results(
     batch_size: int = defaults.BATCH_SIZE,
     accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
     devices: Optional[int] = None,
+    strategy: str = defaults.DISTRIBUTED_STRATEGY,
+    precision: str = defaults.PRECISION,
 ) -> Dict[str, List[List[float]]]:
     """A helper function that performs the evaluation on test data and records quantitative metrics
     in a dictionary.
@@ -58,6 +61,8 @@ def evaluate_and_record_results(
         logged_metrics=logged_metrics,
         accelerator=accelerator,
         devices=devices,
+        strategy=strategy,
+        precision=precision,
     )
     for key, value in update_results.items():
         if key not in results:
@@ -74,6 +79,11 @@ def get_model(config_module: ModuleType, **kwargs: Any) -> RenateModule:
 def get_data_module(config_module: ModuleType, **kwargs: Any) -> RenateDataModule:
     """Creates and returns a data module instance."""
     return getattr(config_module, "data_module_fn")(**kwargs)
+
+
+def get_loss_fn(config_module: ModuleType, **kwargs: Any) -> torch.nn.Module:
+    """Creates and returns the loss function from config"""
+    return getattr(config_module, "loss_fn")(**kwargs)
 
 
 def get_metrics(config_module: ModuleType) -> Dict[str, torchmetrics.Metric]:

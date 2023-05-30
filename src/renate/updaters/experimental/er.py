@@ -57,14 +57,11 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
     ) -> None:
         self._components_names = list(components.keys())
         super().__init__(**kwargs)
+        self._memory_loader: Optional[DataLoader] = None
         self._components = components
         self._loss_weight = loss_weight
         self._ema_memory_update_gamma = ema_memory_update_gamma
         self._use_loss_normalization = bool(loss_normalization)
-
-    def _post_init(self) -> None:
-        super()._post_init()
-        self._memory_loader: Optional[DataLoader] = None
 
     def _create_metrics_collections(
         self, logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None
@@ -106,40 +103,6 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
         super().on_train_start()
         for component in self._components.values():
             component.on_train_start(model=self._model)
-
-    def state_dict(self, **kwargs) -> Dict[str, Any]:
-        """Returns the state of the learner."""
-        state_dict = super().state_dict(**kwargs)
-        state_dict.update(
-            {
-                "loss_weight": self._loss_weight,
-                "ema_memory_update_gamma": self._ema_memory_update_gamma,
-                "loss_normalization": self._use_loss_normalization,
-                "components": self._components.state_dict(),
-                "components_names": self._components_names,
-            }
-        )
-        return state_dict
-
-    def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
-        """Restores the state of the learner."""
-        self._components_names = state_dict["components_names"]
-        super().load_state_dict(model, state_dict, **kwargs)
-        self._loss_weight = state_dict["loss_weight"]
-        self._ema_memory_update_gamma = state_dict["ema_memory_update_gamma"]
-        self._use_loss_normalization = state_dict["loss_normalization"]
-        self._components = self.components(model=model)
-        self._components.load_state_dict(state_dict["components"])
-
-    def update_hyperparameters(self, args: Dict[str, Any]) -> None:
-        """Update the hyperparameters of the learner."""
-        super().update_hyperparameters(args)
-        if "loss_weight" in args:
-            self._loss_weight = args["loss_weight"]
-        if "ema_memory_update_gamma" in args:
-            self._ema_memory_update_gamma = args["ema_memory_update_gamma"]
-        if "loss_normalization" in args:
-            self._use_loss_normalization = args["loss_normalization"]
 
     def training_step(
         self, batch: Tuple[torch.Tensor, Tuple[NestedTensors, torch.Tensor]], batch_idx: int
@@ -254,24 +217,19 @@ class ExperienceReplayLearner(BaseExperienceReplayLearner):
     """
 
     def __init__(self, alpha: float = defaults.ER_ALPHA, **kwargs) -> None:
-        components = self.components(model=kwargs["model"], alpha=alpha)
+        components = self.components(loss_fn=kwargs["loss_fn"], alpha=alpha)
         super().__init__(components=components, **kwargs)
 
     def components(
-        self, model: Optional[RenateModule] = None, alpha: float = defaults.ER_ALPHA
+        self, loss_fn: Optional[torch.nn.Module] = None, alpha: float = defaults.ER_ALPHA
     ) -> nn.ModuleDict:
         return nn.ModuleDict(
             {
                 "memory_loss": WeightedCustomLossComponent(
-                    loss_fn=model.loss_fn, weight=alpha, sample_new_memory_batch=True
+                    loss_fn=loss_fn, weight=alpha, sample_new_memory_batch=True
                 )
             }
         )
-
-    def update_hyperparameters(self, args: Dict[str, Any]) -> None:
-        super().update_hyperparameters(args)
-        if "alpha" in args:
-            self._components["memory_loss"].set_weight(args["alpha"])
 
 
 class DarkExperienceReplayLearner(ExperienceReplayLearner):
@@ -291,15 +249,15 @@ class DarkExperienceReplayLearner(ExperienceReplayLearner):
         self, alpha: float = defaults.DER_ALPHA, beta: float = defaults.DER_BETA, **kwargs
     ) -> None:
         super().__init__(alpha=beta, **kwargs)
-        self._components = self.components(model=kwargs["model"], alpha=alpha, beta=beta)
+        self._components = self.components(loss_fn=kwargs["loss_fn"], alpha=alpha, beta=beta)
 
     def components(
         self,
-        model: Optional[RenateModule] = None,
+        loss_fn: Optional[torch.nn.Module] = None,
         alpha: float = defaults.DER_ALPHA,
         beta: float = defaults.DER_BETA,
     ) -> nn.ModuleDict:
-        components = super().components(model=model, alpha=beta)
+        components = super().components(loss_fn=loss_fn, alpha=beta)
         components.update(
             {
                 "mse_loss": WeightedMeanSquaredErrorLossComponent(
@@ -308,13 +266,6 @@ class DarkExperienceReplayLearner(ExperienceReplayLearner):
             }
         )
         return components
-
-    def update_hyperparameters(self, args: Dict[str, Any]) -> None:
-        super().update_hyperparameters(args)
-        if "alpha" in args:
-            self._components["mse_loss"].set_weight(args["alpha"])
-        if "beta" in args:
-            self._components["memory_loss"].set_weight(args["beta"])
 
 
 class PooledOutputDistillationExperienceReplayLearner(BaseExperienceReplayLearner):
@@ -346,7 +297,6 @@ class PooledOutputDistillationExperienceReplayLearner(BaseExperienceReplayLearne
 
     def components(
         self,
-        model: Optional[RenateModule] = None,
         alpha: float = defaults.POD_ALPHA,
         distillation_type: str = defaults.POD_DISTILLATION_TYPE,
         normalize: bool = defaults.POD_NORMALIZE,
@@ -361,17 +311,6 @@ class PooledOutputDistillationExperienceReplayLearner(BaseExperienceReplayLearne
                 )
             }
         )
-
-    def update_hyperparameters(self, args: Dict[str, Any]) -> None:
-        """Update the hyperparameters of the learner."""
-        super().update_hyperparameters(args)
-        component = self._components["pod_loss"]
-        if "alpha" in args:
-            component.set_weight(args["alpha"])
-        if "distillation_type" in args:
-            component.set_distillation_type(args["distillation_type"])
-        if "normalize" in args:
-            component.set_normalize(args["normalize"])
 
 
 class CLSExperienceReplayLearner(BaseExperienceReplayLearner):
@@ -405,6 +344,7 @@ class CLSExperienceReplayLearner(BaseExperienceReplayLearner):
     ):
         components = self.components(
             model=kwargs["model"],
+            loss_fn=kwargs["loss_fn"],
             alpha=alpha,
             beta=beta,
             stable_model_update_weight=stable_model_update_weight,
@@ -412,11 +352,13 @@ class CLSExperienceReplayLearner(BaseExperienceReplayLearner):
             stable_model_update_probability=stable_model_update_probability,
             plastic_model_update_probability=plastic_model_update_probability,
         )
+
         super().__init__(components=components, **kwargs)
 
     def components(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         alpha: float = defaults.CLS_ALPHA,
         beta: float = defaults.CLS_BETA,
         plastic_model_update_weight: float = defaults.CLS_PLASTIC_MODEL_UPDATE_WEIGHT,
@@ -427,7 +369,7 @@ class CLSExperienceReplayLearner(BaseExperienceReplayLearner):
         return nn.ModuleDict(
             {
                 "memory_loss": WeightedCustomLossComponent(
-                    loss_fn=model.loss_fn, weight=alpha, sample_new_memory_batch=True
+                    loss_fn=loss_fn, weight=alpha, sample_new_memory_batch=True
                 ),
                 "cls_loss": WeightedCLSLossComponent(
                     weight=beta,
@@ -440,28 +382,6 @@ class CLSExperienceReplayLearner(BaseExperienceReplayLearner):
                 ),
             }
         )
-
-    def update_hyperparameters(self, args: Dict[str, Any]) -> None:
-        super().update_hyperparameters(args)
-        memory_loss_component = self._components["memory_loss"]
-        if "alpha" in args:
-            memory_loss_component.set_weight(args["alpha"])
-
-        cls_component = self._components["cls_loss"]
-        if "beta" in args:
-            cls_component.set_weight(args["beta"])
-        if "stable_model_update_weight" in args:
-            cls_component.set_stable_model_update_weight(args["stable_model_update_weight"])
-        if "plastic_model_update_weight" in args:
-            cls_component.set_plastic_model_update_weight(args["plastic_model_update_weight"])
-        if "stable_model_update_probability" in args:
-            cls_component.set_stable_model_update_probability(
-                args["stable_model_update_probability"]
-            )
-        if "plastic_model_update_probability" in args:
-            cls_component.set_plastic_model_update_probability(
-                args["plastic_model_update_probability"]
-            )
 
 
 class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
@@ -510,6 +430,7 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
     ) -> None:
         components = self.components(
             model=kwargs["model"],
+            loss_fn=kwargs["loss_fn"],
             der_alpha=der_alpha,
             der_beta=der_beta,
             sp_shrink_factor=sp_shrink_factor,
@@ -532,6 +453,7 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
     def components(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         der_alpha: float = defaults.SER_DER_ALPHA,
         der_beta: float = defaults.SER_DER_BETA,
         sp_shrink_factor: float = defaults.SER_SP_SHRINK_FACTOR,
@@ -551,7 +473,7 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
                     weight=der_alpha, sample_new_memory_batch=True
                 ),
                 "memory_loss": WeightedCustomLossComponent(
-                    loss_fn=model.loss_fn, weight=der_beta, sample_new_memory_batch=True
+                    loss_fn=loss_fn, weight=der_beta, sample_new_memory_batch=True
                 ),
                 "cls_loss": WeightedCLSLossComponent(
                     weight=cls_alpha,
@@ -574,46 +496,12 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
             }
         )
 
-    def update_hyperparameters(self, args: Dict[str, Any]) -> None:
-        super().update_hyperparameters(args)
-        if "der_alpha" in args:
-            self._components["mse_loss"].set_weight(args["der_alpha"])
-        if "der_beta" in args:
-            self._components["memory_loss"].set_weight(args["der_beta"])
-        if "sp_mu" in args:
-            self._components["shrink_perturb"].set_shrink_factor(args["sp_mu"])
-        if "sp_sigma" in args:
-            self._components["shrink_perturb"].set_sigma(args["sp_sigma"])
-        if "pod_alpha" in args:
-            self._components["pod_loss"].set_weight(args["pod_alpha"])
-        if "pod_distillation_type" in args:
-            self._components["pod_loss"].set_distillation_type(args["pod_distillation_type"])
-        if "pod_normalize" in args:
-            self._components["pod_loss"].set_normalize(args["pod_normalize"])
-        if "cls_alpha" in args:
-            self._components["cls_loss"].set_weight(args["cls_alpha"])
-        if "cls_stable_model_update_weight" in args:
-            self._components["cls_loss"].set_stable_model_update_weight(
-                args["cls_stable_model_update_weight"]
-            )
-        if "cls_plastic_model_update_weight" in args:
-            self._components["cls_loss"].set_plastic_model_update_weight(
-                args["cls_plastic_model_update_weight"]
-            )
-        if "cls_stable_model_update_probability" in args:
-            self._components["cls_loss"].set_stable_model_update_probability(
-                args["cls_stable_model_update_probability"]
-            )
-        if "cls_plastic_model_update_probability" in args:
-            self._components["cls_loss"].set_plastic_model_update_probability(
-                args["cls_plastic_model_update_probability"]
-            )
-
 
 class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         loss_weight: float = defaults.LOSS_WEIGHT,
@@ -644,6 +532,8 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         logger: Logger = defaults.LOGGER(**defaults.LOGGER_KWARGS),
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
+        strategy: str = defaults.DISTRIBUTED_STRATEGY,
+        precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
@@ -663,6 +553,7 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
+            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
@@ -684,6 +575,8 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             logger=logger,
             accelerator=accelerator,
             devices=devices,
+            strategy=strategy,
+            precision=precision,
             deterministic_trainer=deterministic_trainer,
         )
 
@@ -692,6 +585,7 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         loss_weight: float = defaults.LOSS_WEIGHT,
@@ -723,6 +617,8 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         logger: Logger = defaults.LOGGER(**defaults.LOGGER_KWARGS),
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
+        strategy: str = defaults.DISTRIBUTED_STRATEGY,
+        precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
@@ -743,6 +639,7 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
+            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
@@ -764,6 +661,8 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             logger=logger,
             accelerator=accelerator,
             devices=devices,
+            strategy=strategy,
+            precision=precision,
             deterministic_trainer=deterministic_trainer,
         )
 
@@ -772,6 +671,7 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         loss_weight: float = defaults.LOSS_WEIGHT,
@@ -804,6 +704,8 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
         logger: Logger = defaults.LOGGER(**defaults.LOGGER_KWARGS),
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
+        strategy: str = defaults.DISTRIBUTED_STRATEGY,
+        precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
@@ -825,6 +727,7 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
             "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
+            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
@@ -846,6 +749,8 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
             logger=logger,
             accelerator=accelerator,
             devices=devices,
+            strategy=strategy,
+            precision=precision,
             deterministic_trainer=deterministic_trainer,
         )
 
@@ -854,6 +759,7 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         loss_weight: float = defaults.LOSS_WEIGHT,
@@ -889,6 +795,8 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         logger: Logger = defaults.LOGGER(**defaults.LOGGER_KWARGS),
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
+        strategy: str = defaults.DISTRIBUTED_STRATEGY,
+        precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
@@ -913,6 +821,7 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
+            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
@@ -934,6 +843,8 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             logger=logger,
             accelerator=accelerator,
             devices=devices,
+            strategy=strategy,
+            precision=precision,
             deterministic_trainer=deterministic_trainer,
         )
 
@@ -942,6 +853,7 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         loss_weight: float = defaults.LOSS_WEIGHT,
@@ -983,6 +895,8 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         logger: Logger = defaults.LOGGER(**defaults.LOGGER_KWARGS),
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
+        strategy: str = defaults.DISTRIBUTED_STRATEGY,
+        precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
@@ -1013,6 +927,7 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
+            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
@@ -1034,5 +949,7 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             logger=logger,
             accelerator=accelerator,
             devices=devices,
+            strategy=strategy,
+            precision=precision,
             deterministic_trainer=deterministic_trainer,
         )

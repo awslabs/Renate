@@ -97,35 +97,31 @@ class OfflineExperienceReplayLearner(ReplayLearner):
             alpha = self._loss_weight_new_data
         inputs, targets = batch["current_task"]
         outputs = self(inputs)
-        loss = self._model.loss_fn(outputs, targets)
+        loss = self._loss_fn(outputs, targets)
         self._loss_collections["train_losses"]["base_loss"](loss)
         self._update_metrics(outputs, targets, "train")
         if "memory" in batch:
             (inputs_mem, targets_mem), _ = batch["memory"]
             outputs_mem = self(inputs_mem)
-            loss_mem = self._model.loss_fn(outputs_mem, targets_mem)
+            loss_mem = self._loss_fn(outputs_mem, targets_mem)
             self._loss_collections["train_losses"]["memory_loss"](loss_mem)
             loss = alpha * loss + (1.0 - alpha) * loss_mem
         return {"loss": loss}
 
-    def state_dict(self, **kwargs) -> Dict[str, Any]:
-        """Returns the state of the learner."""
-        state_dict = super().state_dict(**kwargs)
-        state_dict["loss_weight_new_data"] = self._loss_weight_new_data
-        state_dict["num_points_previous_tasks"] = self._num_points_previous_tasks
-        return state_dict
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        super().on_save_checkpoint(checkpoint)
+        checkpoint["num_points_previous_tasks"] = self._num_points_previous_tasks
 
-    def load_state_dict(self, model: RenateModule, state_dict: Dict[str, Any], **kwargs) -> None:
-        """Restores the state of the learner."""
-        super().load_state_dict(model, state_dict, **kwargs)
-        self._loss_weight_new_data = state_dict["loss_weight_new_data"]
-        self._num_points_previous_tasks = state_dict["num_points_previous_tasks"]
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        super().on_load_checkpoint(checkpoint)
+        self._num_points_previous_tasks = checkpoint["num_points_previous_tasks"]
 
 
 class OfflineExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         loss_weight_new_data: Optional[float] = None,
@@ -153,6 +149,8 @@ class OfflineExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         logger: Logger = defaults.LOGGER(**defaults.LOGGER_KWARGS),
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
+        strategy: str = defaults.DISTRIBUTED_STRATEGY,
+        precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
@@ -169,6 +167,7 @@ class OfflineExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
+            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
@@ -190,5 +189,7 @@ class OfflineExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             logger=logger,
             accelerator=accelerator,
             devices=devices,
+            strategy=strategy,
+            precision=precision,
             deterministic_trainer=deterministic_trainer,
         )
