@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import importlib.util
 import sys
+import warnings
 from types import ModuleType
 from typing import Any, Callable, Dict, List, Optional, Union
 
@@ -81,9 +82,22 @@ def get_data_module(config_module: ModuleType, **kwargs: Any) -> RenateDataModul
     return getattr(config_module, "data_module_fn")(**kwargs)
 
 
-def get_loss_fn(config_module: ModuleType, **kwargs: Any) -> torch.nn.Module:
+def convert_loss(loss_fn: torch.nn.Module):
+    """Changes PyTorch loss such that it uses no reduction."""
+    if hasattr(loss_fn, "reduction") and loss_fn.reduction != "none":
+        warnings.warn(
+            "Renate assumes that your loss function returns a loss value for each data point."
+            f"Your loss function uses reduction={loss_fn.reduction}, changing to `none`."
+        )
+        loss_fn.reduction = "none"
+
+
+def get_loss_fn(config_module: ModuleType, convert: bool, **kwargs: Any) -> torch.nn.Module:
     """Creates and returns the loss function from config"""
-    return getattr(config_module, "loss_fn")(**kwargs)
+    loss_fn = getattr(config_module, "loss_fn")(**kwargs)
+    if convert:
+        convert_loss(loss_fn)
+    return loss_fn
 
 
 def get_metrics(config_module: ModuleType) -> Dict[str, torchmetrics.Metric]:

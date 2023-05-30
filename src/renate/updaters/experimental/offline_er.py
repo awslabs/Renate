@@ -14,6 +14,7 @@ from renate.models import RenateModule
 from renate.types import NestedTensors
 from renate.updaters.learner import ReplayLearner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
+from renate.utils.pytorch import move_tensors_to_device
 
 
 class OfflineExperienceReplayLearner(ReplayLearner):
@@ -96,16 +97,31 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         else:
             alpha = self._loss_weight_new_data
         inputs, targets = batch["current_task"]
-        outputs = self(inputs)
-        loss = self._loss_fn(outputs, targets)
-        self._loss_collections["train_losses"]["base_loss"](loss)
-        self._update_metrics(outputs, targets, "train")
+        device = inputs.device
+        batch_size_current = len(inputs)
+        batch_size_mem = 0
         if "memory" in batch:
             (inputs_mem, targets_mem), _ = batch["memory"]
-            outputs_mem = self(inputs_mem)
-            loss_mem = self._loss_fn(outputs_mem, targets_mem)
-            self._loss_collections["train_losses"]["memory_loss"](loss_mem)
-            loss = alpha * loss + (1.0 - alpha) * loss_mem
+            batch_size_mem = len(inputs_mem)
+            inputs = torch.cat((inputs, inputs_mem), 0)
+            targets = torch.cat((targets, targets_mem), 0)
+        outputs = self(inputs)
+        loss = self._loss_fn(outputs, targets)
+        if "memory" in batch:
+            weights = torch.Tensor(
+                [
+                    [alpha for _ in range(batch_size_current)]
+                    + [(1 - alpha) for _ in range(batch_size_mem)]
+                ]
+            )
+            self._loss_collections["train_losses"]["memory_loss"](loss[batch_size_current:].mean())
+            self._loss_collections["train_losses"]["base_loss"](loss[:batch_size_current].mean())
+            weights = move_tensors_to_device(weights, device=device)
+            loss = weights / weights.mean() * loss
+        else:
+            self._loss_collections["train_losses"]["base_loss"](loss[:batch_size_current].mean())
+        loss = loss.mean()
+        self._update_metrics(outputs, targets, "train")
         return {"loss": loss}
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:

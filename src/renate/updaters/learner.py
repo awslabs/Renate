@@ -238,7 +238,7 @@ class Learner(LightningModule, abc.ABC):
         outputs = self(inputs)
         intermediate_representation = self._model.get_intermediate_representation()
         self._model.reset_intermediate_representation_cache()
-        loss = self._loss_fn(outputs, targets)
+        loss = self._loss_fn(outputs, targets).mean()
         self._update_metrics(outputs, targets, "train")
         self._loss_collections["train_losses"]["base_loss"](loss)
         return {

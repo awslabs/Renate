@@ -122,6 +122,7 @@ class ModelUpdaterCLI:
         )
         loss_fn = get_loss_fn(
             config_module,
+            not args.updater.startswith("Avalanche-"),
             **get_function_kwargs(args=args, function_args=function_args["loss_fn"]),
         )
 
