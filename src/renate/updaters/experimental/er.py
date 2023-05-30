@@ -155,7 +155,7 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
 
     def _sample_from_buffer(self, device: torch.device) -> Optional[Tuple[NestedTensors, DataDict]]:
         """Function to sample from the buffer, if buffer is populated."""
-        if self._memory_loader is not None:
+        if self._memory_loader is not None and len(self._memory_buffer) >= self._memory_batch_size:
             memory_batch = next(iter(self._memory_loader))
             return move_tensors_to_device(memory_batch, device)
         else:
