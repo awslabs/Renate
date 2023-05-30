@@ -82,7 +82,7 @@ def get_data_module(config_module: ModuleType, **kwargs: Any) -> RenateDataModul
     return getattr(config_module, "data_module_fn")(**kwargs)
 
 
-def convert_loss(loss_fn: torch.nn.Module):
+def _convert_loss(loss_fn: torch.nn.Module):
     """Changes PyTorch loss such that it uses no reduction."""
     if hasattr(loss_fn, "reduction") and loss_fn.reduction != "none":
         warnings.warn(
@@ -96,7 +96,7 @@ def get_loss_fn(config_module: ModuleType, convert: bool, **kwargs: Any) -> torc
     """Creates and returns the loss function from config"""
     loss_fn = getattr(config_module, "loss_fn")(**kwargs)
     if convert:
-        convert_loss(loss_fn)
+        _convert_loss(loss_fn)
     return loss_fn
 
 
