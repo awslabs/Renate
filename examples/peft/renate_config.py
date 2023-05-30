@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 from typing import List, Optional
 
+import torch
 from transformers import AutoTokenizer, GPT2Tokenizer, GPT2TokenizerFast
 
 from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
@@ -89,3 +90,7 @@ def data_module_fn(
         val_size=val_size,
         seed=seed,
     )
+
+
+def loss_fn() -> torch.nn.Module:
+    return torch.nn.CrossEntropyLoss()
