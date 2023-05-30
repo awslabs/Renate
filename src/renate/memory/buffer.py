@@ -162,8 +162,7 @@ class DataBuffer(Dataset):
             data_point=self._data_point_prototype,
             length=len(self),
         )
-        for i in range(len(self)):
-            storage[i] = self[i][0]  # Drop metadata.
+        storage.dump_dataset(self)
         self._datasets = [storage]
         self._indices = {i: (0, i) for i in range(len(self))}
         self._transform, self._target_transform = transforms

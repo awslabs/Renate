@@ -32,6 +32,9 @@ class Storage(torch.utils.data.Dataset):
     def __setitem__(self, idx: int, data_point: Any) -> None:
         raise NotImplementedError()
 
+    def dump_dataset(self, ds: torch.utils.data.Dataset) -> None:
+        raise NotImplementedError()
+
 
 class MemoryMappedTensorStorage(Storage):
     """A class implementing permanent storage of nested tensor datasets.
@@ -114,3 +117,7 @@ class MemoryMappedTensorStorage(Storage):
     def __setitem__(self, idx: int, data_point: NestedTensors) -> None:
         """Set the item stored at index `idx`."""
         self._set(self._storage, idx, data_point)
+
+    def dump_dataset(self, ds):
+        for i in range(len(self)):
+            self[i] = ds[i][0]  # Drop metadata.
