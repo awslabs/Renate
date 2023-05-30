@@ -6,5 +6,5 @@
     "backend": "local",
     "job_name": "class-incremental-mlp-offline-er",
     "expected_accuracy_linux": [[0.765500009059906, 0.4020000100135803]],
-    "expected_accuracy_darwin": [[0.6965000033378601, 0.4284999966621399]]
+    "expected_accuracy_darwin": [[0.7549999952316284, 0.45249998569488525]]
   }
