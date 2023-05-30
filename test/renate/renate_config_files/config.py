@@ -30,5 +30,7 @@ def data_module_fn(
     return DummyTorchVisionDataModule(transform=None, val_size=val_size, seed=seed)
 
 
-def loss_fn() -> torch.nn.Module:
-    return torch.nn.CrossEntropyLoss()
+def loss_fn(updater: Optional[str] = None) -> torch.nn.Module:
+    if updater.startswith("Avalanche-"):
+        return torch.nn.CrossEntropyLoss()
+    return torch.nn.CrossEntropyLoss(reduction="none")

@@ -17,7 +17,7 @@ from renate.utils.deepspeed import recover_object_from_tensor
 
 def test_failing_to_init_abs_class():
     with pytest.raises(TypeError):
-        RenateModule({"toy_hyperparam": 1.0}, torch.nn.CrossEntropyLoss())
+        RenateModule({"toy_hyperparam": 1.0}, torch.nn.CrossEntropyLoss(reduction="none"))
 
 
 @pytest.mark.parametrize(

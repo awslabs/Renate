@@ -76,7 +76,7 @@ LEARNER_KWARGS = {
         "weight_decay": 0.5,
         "batch_size": 50,
         "seed": 1,
-        "loss_fn": torch.nn.CrossEntropyLoss(),
+        "loss_fn": torch.nn.CrossEntropyLoss(reduction="none"),
     },
     Learner: {
         "optimizer": "SGD",
@@ -85,7 +85,7 @@ LEARNER_KWARGS = {
         "weight_decay": 0.005,
         "batch_size": 10,
         "seed": 42,
-        "loss_fn": torch.nn.CrossEntropyLoss(),
+        "loss_fn": torch.nn.CrossEntropyLoss(reduction="none"),
     },
     GDumbLearner: {
         "optimizer": "SGD",
@@ -95,7 +95,7 @@ LEARNER_KWARGS = {
         "batch_size": 10,
         "seed": 42,
         "memory_size": 30,
-        "loss_fn": torch.nn.CrossEntropyLoss(),
+        "loss_fn": torch.nn.CrossEntropyLoss(reduction="none"),
     },
     JointLearner: {
         "optimizer": "SGD",
@@ -104,7 +104,7 @@ LEARNER_KWARGS = {
         "weight_decay": 0.001,
         "batch_size": 10,
         "seed": 3,
-        "loss_fn": torch.nn.CrossEntropyLoss(),
+        "loss_fn": torch.nn.CrossEntropyLoss(reduction="none"),
     },
     RepeatedDistillationLearner: {
         "optimizer": "SGD",
@@ -114,7 +114,7 @@ LEARNER_KWARGS = {
         "batch_size": 10,
         "seed": 42,
         "memory_size": 30,
-        "loss_fn": torch.nn.CrossEntropyLoss(),
+        "loss_fn": torch.nn.CrossEntropyLoss(reduction="none"),
     },
     OfflineExperienceReplayLearner: {
         "memory_size": 30,
@@ -126,7 +126,7 @@ LEARNER_KWARGS = {
         "weight_decay": 0.5,
         "batch_size": 50,
         "seed": 1,
-        "loss_fn": torch.nn.CrossEntropyLoss(),
+        "loss_fn": torch.nn.CrossEntropyLoss(reduction="none"),
     },
 }
 AVALANCHE_LEARNER_KWARGS = {
@@ -181,14 +181,14 @@ LEARNER_HYPERPARAMETER_UPDATES = {
         "momentum": 0.5,
         "weight_decay": 0.01,
         "batch_size": 128,
-        "loss_fn": torch.nn.CrossEntropyLoss(),
+        "loss_fn": torch.nn.CrossEntropyLoss(reduction="none"),
     },
     Learner: {
         "optimizer": "Adam",
         "learning_rate": 3.0,
         "weight_decay": 0.01,
         "batch_size": 128,
-        "loss_fn": torch.nn.CrossEntropyLoss(),
+        "loss_fn": torch.nn.CrossEntropyLoss(reduction="none"),
     },
     GDumbLearner: {
         "optimizer": "Adam",
@@ -197,21 +197,21 @@ LEARNER_HYPERPARAMETER_UPDATES = {
         "weight_decay": 0.03,
         "batch_size": 128,
         "memory_size": 50,
-        "loss_fn": torch.nn.CrossEntropyLoss(),
+        "loss_fn": torch.nn.CrossEntropyLoss(reduction="none"),
     },
     JointLearner: {
         "optimizer": "Adam",
         "learning_rate": 2.0,
         "weight_decay": 0.01,
         "batch_size": 128,
-        "loss_fn": torch.nn.CrossEntropyLoss(),
+        "loss_fn": torch.nn.CrossEntropyLoss(reduction="none"),
     },
     RepeatedDistillationLearner: {
         "optimizer": "Adam",
         "learning_rate": 2.0,
         "weight_decay": 0.01,
         "batch_size": 128,
-        "loss_fn": torch.nn.CrossEntropyLoss(),
+        "loss_fn": torch.nn.CrossEntropyLoss(reduction="none"),
     },
     OfflineExperienceReplayLearner: {
         "optimizer": "Adam",
@@ -219,7 +219,7 @@ LEARNER_HYPERPARAMETER_UPDATES = {
         "momentum": 0.5,
         "weight_decay": 0.01,
         "batch_size": 128,
-        "loss_fn": torch.nn.CrossEntropyLoss(),
+        "loss_fn": torch.nn.CrossEntropyLoss(reduction="none"),
     },
 }
 AVALANCHE_LEARNER_HYPERPARAMETER_UPDATES = {
@@ -272,7 +272,7 @@ def get_renate_module_mlp(
 
 @pytest.helpers.register
 def get_loss_fn() -> torch.nn.Module:
-    return torch.nn.CrossEntropyLoss()
+    return torch.nn.CrossEntropyLoss(reduction="none")
 
 
 @pytest.helpers.register

@@ -42,7 +42,10 @@ def test_joint_learner_model_reset():
     model_updater = pytest.helpers.get_simple_updater(
         model=model,
         learner_class=JointLearner,
-        learner_kwargs={"learning_rate": 0.0, "loss_fn": torch.nn.CrossEntropyLoss()},
+        learner_kwargs={
+            "learning_rate": 0.0,
+            "loss_fn": torch.nn.CrossEntropyLoss(reduction="none"),
+        },
         max_epochs=1,
     )
     model = model_updater.update(train_dataset=dataset, task_id=defaults.TASK_ID)
