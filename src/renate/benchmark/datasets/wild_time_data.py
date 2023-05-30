@@ -61,8 +61,7 @@ class WildTimeDataModule(RenateDataModule):
         If s3 bucket is given, the data is downloaded from s3, otherwise from the original source.
         """
         if self._src_bucket is None:
-            from wild_time_data import load_dataset
-            from wild_time_data.core import available_time_steps
+            from wild_time_data import available_time_steps, load_dataset
 
             load_dataset(
                 dataset_name=self._dataset_name,
@@ -83,8 +82,7 @@ class WildTimeDataModule(RenateDataModule):
 
     def setup(self) -> None:
         """Set up train, test and val datasets."""
-        from wild_time_data import load_dataset
-        from wild_time_data.core import available_time_steps
+        from wild_time_data import available_time_steps, load_dataset
 
         kwargs = {
             "dataset_name": self._dataset_name,
