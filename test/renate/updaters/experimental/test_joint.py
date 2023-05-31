@@ -44,7 +44,7 @@ def test_joint_learner_model_reset():
         learner_class=JointLearner,
         learner_kwargs={
             "learning_rate": 0.0,
-            "loss_fn": torch.nn.CrossEntropyLoss(reduction="none"),
+            "loss_fn": pytest.helpers.get_loss_fn(),
         },
         max_epochs=1,
     )

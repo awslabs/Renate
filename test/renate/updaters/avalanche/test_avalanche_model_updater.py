@@ -5,7 +5,6 @@ from pathlib import Path
 import pytest
 import torch
 from avalanche.training.plugins import ReplayPlugin
-from torch.nn import CrossEntropyLoss
 
 from conftest import AVALANCHE_LEARNER_KWARGS
 from renate import defaults
@@ -88,7 +87,7 @@ def test_experience_replay_buffer_size(tmpdir, batch_size, memory_size, memory_b
         "memory_size": memory_size,
         "memory_batch_size": memory_batch_size,
         "batch_size": batch_size,
-        "loss_fn": CrossEntropyLoss(),
+        "loss_fn": pytest.helpers.get_loss_fn("mean"),
     }
     model_updater = ExperienceReplayAvalancheModelUpdater(
         output_state_folder=Path(tmpdir) / "0",

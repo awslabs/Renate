@@ -271,8 +271,8 @@ def get_renate_module_mlp(
 
 
 @pytest.helpers.register
-def get_loss_fn() -> torch.nn.Module:
-    return torch.nn.CrossEntropyLoss(reduction="none")
+def get_loss_fn(reduction="none") -> torch.nn.Module:
+    return torch.nn.CrossEntropyLoss(reduction=reduction)
 
 
 @pytest.helpers.register
