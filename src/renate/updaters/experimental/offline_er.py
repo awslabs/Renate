@@ -98,11 +98,11 @@ class OfflineExperienceReplayLearner(ReplayLearner):
             alpha = self._loss_weight_new_data
         inputs, targets = batch["current_task"]
         device = inputs.device
-        batch_size_current = len(inputs)
+        batch_size_current = inputs.shape[0]
         batch_size_mem = 0
         if "memory" in batch:
             (inputs_mem, targets_mem), _ = batch["memory"]
-            batch_size_mem = len(inputs_mem)
+            batch_size_mem = inputs_mem.shape[0]
             inputs = torch.cat((inputs, inputs_mem), 0)
             targets = torch.cat((targets, targets_mem), 0)
         outputs = self(inputs)
