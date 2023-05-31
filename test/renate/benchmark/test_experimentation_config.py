@@ -10,6 +10,7 @@ from renate.benchmark.experiment_config import (
     data_module_fn,
     get_data_module,
     get_scenario,
+    loss_fn,
     model_fn,
     models,
     train_transform,
@@ -306,3 +307,8 @@ def test_prediction_strategy_is_correctly_set(model_name, updater):
             assert not hasattr(model, "_prediction_strategy") or model._prediction_strategy is None
         else:
             assert isinstance(model._prediction_strategy, ICaRLClassificationStrategy)
+
+
+def test_loss_fn_returns_correct_reduction_type():
+    assert loss_fn("ER").reduction == "none"
+    assert loss_fn("Avalanche-ER").reduction == "mean"
