@@ -141,7 +141,7 @@ or created ad-hoc by implementing the same interface
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 91-
+    :lines: 93-
 
 To enable the usage of additional metrics in Renate it is sufficient to implement the
 :code:`metrics_fn` function, returning a dictionary where the key is a string containing the
