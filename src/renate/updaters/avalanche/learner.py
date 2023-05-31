@@ -35,7 +35,7 @@ class AvalancheLoaderMixin:
             avalanche_learner.plugins = replace_plugin(plugin, avalanche_learner.plugins)
         avalanche_learner.model = self._model
         avalanche_learner.optimizer = optimizer
-        avalanche_learner._criterion = self._model.loss_fn
+        avalanche_learner._criterion = self._loss_fn
         avalanche_learner.train_epochs = max_epochs
         avalanche_learner.train_mb_size = self._batch_size
         avalanche_learner.eval_mb_size = self._batch_size
@@ -55,7 +55,7 @@ class AvalancheLoaderMixin:
         return SupervisedTemplate(
             model=self._model,
             optimizer=optimizer,
-            criterion=self._model.loss_fn,
+            criterion=self._loss_fn,
             train_mb_size=self._batch_size,
             eval_mb_size=self._batch_size,
             train_epochs=train_epochs,

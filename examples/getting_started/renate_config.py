@@ -1,6 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Callable, Dict, Literal, Optional
+from typing import Callable, Dict, Optional
 
 import torch
 import torchvision
@@ -13,11 +13,9 @@ from renate.models import RenateModule
 
 class MyMNISTMLP(RenateModule):
     def __init__(self, num_hidden: int) -> None:
-        # Model hyperparameters as well as the loss function need to registered via RenateModule's
+        # Model hyperparameters need to registered via RenateModule's
         # constructor, see documentation. Otherwise, this is a standard torch model.
-        super().__init__(
-            constructor_arguments={"num_hidden": num_hidden}, loss_fn=torch.nn.CrossEntropyLoss()
-        )
+        super().__init__(constructor_arguments={"num_hidden": num_hidden})
         self._fc1 = torch.nn.Linear(28 * 28, num_hidden)
         self._fc2 = torch.nn.Linear(num_hidden, 10)
 
@@ -49,24 +47,21 @@ class MyMNISTDataModule(RenateDataModule):
         # streamline data loading when using multiple training jobs during HPO.
         torchvision.datasets.MNIST(self._data_path, download=True)
 
-    def setup(self, stage: Optional[Literal["train", "val", "test"]] = None) -> None:
+    def setup(self) -> None:
         # This sets up train/val/test datasets, assuming data has already been downloaded.
-        if stage in ["train", "val"] or stage is None:
-            train_data = torchvision.datasets.MNIST(
-                self._data_path,
-                train=True,
-                transform=transforms.ToTensor(),
-                target_transform=transforms.Lambda(lambda x: torch.tensor(x, dtype=torch.long)),
-            )
-            self._train_data, self._val_data = self._split_train_val_data(train_data)
-
-        if stage == "test" or stage is None:
-            self._test_data = torchvision.datasets.MNIST(
-                self._data_path,
-                train=False,
-                transform=transforms.ToTensor(),
-                target_transform=transforms.Lambda(lambda x: torch.tensor(x, dtype=torch.long)),
-            )
+        train_data = torchvision.datasets.MNIST(
+            self._data_path,
+            train=True,
+            transform=transforms.ToTensor(),
+            target_transform=transforms.Lambda(lambda x: torch.tensor(x, dtype=torch.long)),
+        )
+        self._train_data, self._val_data = self._split_train_val_data(train_data)
+        self._test_data = torchvision.datasets.MNIST(
+            self._data_path,
+            train=False,
+            transform=transforms.ToTensor(),
+            target_transform=transforms.Lambda(lambda x: torch.tensor(x, dtype=torch.long)),
+        )
 
 
 def data_module_fn(data_path: str, seed: int) -> RenateDataModule:
@@ -95,3 +90,7 @@ def buffer_transform() -> Callable:
 
 def metrics_fn() -> Dict:
     return {"my_accuracy": Accuracy()}
+
+
+def loss_fn() -> torch.nn.Module:
+    return torch.nn.CrossEntropyLoss()

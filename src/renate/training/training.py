@@ -24,9 +24,9 @@ from syne_tune.optimizer.schedulers.transfer_learning import (
     RUSHScheduler,
     TransferLearningTaskEvaluations,
 )
+from syne_tune.results_callback import StoreResultsCallback
 from syne_tune.stopping_criterion import StoppingCriterion
 from syne_tune.tuner import Tuner
-from syne_tune.tuner_callback import StoreResultsCallback
 from syne_tune.util import experiment_path
 
 import renate
@@ -69,7 +69,7 @@ def run_training_job(
     max_epochs: int = defaults.MAX_EPOCHS,
     limit_train_batches: Union[int, float] = 1.0,
     task_id: str = defaults.TASK_ID,
-    chunk_id: int = defaults.CHUNK_ID,
+    chunk_id: Optional[int] = None,
     input_state_url: Optional[str] = None,
     output_state_url: Optional[str] = None,
     working_directory: Optional[str] = defaults.WORKING_DIRECTORY,
@@ -91,6 +91,8 @@ def run_training_job(
     seed: int = defaults.SEED,
     accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
     devices: int = defaults.DEVICES,
+    strategy: str = defaults.DISTRIBUTED_STRATEGY,
+    precision: str = defaults.PRECISION,
     deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     job_name: str = defaults.JOB_NAME,
 ) -> Optional[Tuner]:
@@ -134,6 +136,8 @@ def run_training_job(
         seed: Seed used for ensuring reproducibility.
         accelerator: Type of accelerator to use.
         devices: Number of devices to use.
+        strategy: Name of the distributed training strategy to use.
+        precision: Type of bit precision to use.
         deterministic_trainer: When true the Trainer adopts a deterministic behaviour also on GPU.
         job_name: Prefix for the name of the SageMaker training job.
     """
@@ -171,6 +175,8 @@ def run_training_job(
             seed=seed,
             accelerator=accelerator,
             devices=devices,
+            strategy=strategy,
+            precision=precision,
             deterministic_trainer=deterministic_trainer,
         )
     submit_remote_job(
@@ -203,13 +209,18 @@ def run_training_job(
         seed=seed,
         accelerator=accelerator,
         devices=devices,
+        strategy=strategy,
+        precision=precision,
         deterministic_trainer=deterministic_trainer,
         job_name=job_name,
     )
 
 
 def _prepare_remote_job(
-    tmp_dir: str, requirements_file: Optional[str], **job_kwargs: Any
+    tmp_dir: str,
+    requirements_file: Optional[str],
+    optional_dependencies: Optional[str] = None,
+    **job_kwargs: Any,
 ) -> List[str]:
     """Prepares a SageMaker job."""
     dependencies = list(renate.__path__ + [job_kwargs["config_file"]])
@@ -227,7 +238,12 @@ def _prepare_remote_job(
     if requirements_file is None:
         requirements_file = os.path.join(tmp_dir, "requirements.txt")
         with open(requirements_file, "w") as f:
-            f.write(f"renate=={renate.__version__}")
+            f.write(
+                "Renate{}=={}".format(
+                    "" if optional_dependencies is None else f"[{optional_dependencies}]",
+                    renate.__version__,
+                )
+            )
     dependencies.append(requirements_file)
     return dependencies
 
@@ -409,8 +425,6 @@ def _verify_validation_set_for_hpo_and_checkpointing(
     metric: str,
     mode: defaults.SUPPORTED_TUNING_MODE_TYPE,
     working_directory: str,
-    chunk_id: int,
-    seed: int,
 ) -> Tuple[str, defaults.SUPPORTED_TUNING_MODE_TYPE]:
     """Checks if validation set is provided when needed and updates config_space such that
     checkpointing works.
@@ -511,6 +525,8 @@ def _execute_training_and_tuning_job_locally(
     accelerator: str,
     devices: int,
     deterministic_trainer: bool,
+    strategy: str,
+    precision: str,
 ):
     """Executes the training job locally.
 
@@ -522,12 +538,15 @@ def _execute_training_and_tuning_job_locally(
     config_space["limit_train_batches"] = limit_train_batches
     config_space["config_file"] = config_file
     config_space["prepare_data"] = False
-    config_space["chunk_id"] = chunk_id
+    if chunk_id is not None:
+        config_space["chunk_id"] = chunk_id
     config_space["task_id"] = task_id
     config_space["working_directory"] = working_directory
     config_space["seed"] = seed
     config_space["accelerator"] = accelerator
     config_space["devices"] = devices
+    config_space["strategy"] = strategy
+    config_space["precision"] = precision
     config_space["deterministic_trainer"] = deterministic_trainer
     if input_state_url is not None:
         config_space["input_state_url"] = input_state_url
@@ -539,8 +558,6 @@ def _execute_training_and_tuning_job_locally(
         metric=metric,
         mode=mode,
         working_directory=working_directory,
-        chunk_id=chunk_id,
-        seed=seed,
     )
 
     training_script = str(Path(renate.__path__[0]) / "cli" / "run_training.py")
@@ -551,7 +568,9 @@ def _execute_training_and_tuning_job_locally(
             f"Tuning hyperparameters with respect to {metric} ({mode}) for {max_time} seconds on "
             f"{n_workers} worker(s)."
         )
-    backend = LocalBackend(entry_point=training_script)
+    # TODO: After bumping up SyneTune >= 0.6, use the argument `num_gpus_per_trial`.
+
+    backend = LocalBackend(entry_point=training_script, rotate_gpus=False if devices > 1 else True)
     if scheduler is None or not tune_hyperparameters:
         if scheduler is not None:
             warnings.warn(
@@ -619,6 +638,7 @@ def submit_remote_job(
     instance_count: int,
     instance_max_time: float,
     job_name: str,
+    optional_dependencies: Optional[str] = None,
     **job_kwargs: Any,
 ) -> str:
     """Executes the training job on SageMaker.
@@ -628,7 +648,9 @@ def submit_remote_job(
     job_timestamp = defaults.current_timestamp()
     job_name = f"{job_name}-{job_timestamp}"
     tmp_dir = tempfile.mkdtemp()
-    dependencies = _prepare_remote_job(tmp_dir=tmp_dir, **job_kwargs)
+    dependencies = _prepare_remote_job(
+        tmp_dir=tmp_dir, optional_dependencies=optional_dependencies, **job_kwargs
+    )
     PyTorch(
         entry_point=tuning_script,
         source_dir=None if source_dir is None else str(source_dir),

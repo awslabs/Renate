@@ -3,7 +3,6 @@
 from typing import Dict, Optional
 
 import torch
-import torch.nn as nn
 from torch import Tensor
 from transformers import AutoModelForSequenceClassification
 
@@ -16,21 +15,18 @@ class HuggingFaceSequenceClassificationTransformer(RenateModule):
     Args:
         pretrained_model_name: Hugging Face model id.
         num_outputs: Number of outputs.
-        loss_fn: The loss function to be optimized during the training.
     """
 
     def __init__(
         self,
         pretrained_model_name: str,
         num_outputs: int,
-        loss_fn: nn.Module = nn.CrossEntropyLoss(),
     ) -> None:
         super().__init__(
             constructor_arguments={
                 "pretrained_model_name": pretrained_model_name,
                 "num_outputs": num_outputs,
             },
-            loss_fn=loss_fn,
         )
         self._model = AutoModelForSequenceClassification.from_pretrained(
             pretrained_model_name, num_labels=num_outputs, return_dict=False

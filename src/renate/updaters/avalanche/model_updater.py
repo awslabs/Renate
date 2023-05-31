@@ -223,6 +223,7 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
@@ -248,6 +249,8 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
         early_stopping_enabled: bool = False,
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
+        strategy: Optional[str] = defaults.DISTRIBUTED_STRATEGY,
+        precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
@@ -263,6 +266,7 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
             "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
+            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
@@ -283,6 +287,8 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
             early_stopping_enabled=early_stopping_enabled,
             accelerator=accelerator,
             devices=devices,
+            strategy=strategy,
+            precision=precision,
         )
 
 
@@ -290,6 +296,7 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         ewc_lambda: float = defaults.EWC_LAMBDA,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
@@ -314,6 +321,8 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
         early_stopping_enabled: bool = False,
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
+        strategy: Optional[str] = defaults.DISTRIBUTED_STRATEGY,
+        precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
@@ -328,6 +337,7 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
             "batch_size": batch_size,
             "ewc_lambda": ewc_lambda,
             "seed": seed,
+            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
@@ -348,6 +358,8 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
             early_stopping_enabled=early_stopping_enabled,
             accelerator=accelerator,
             devices=devices,
+            strategy=strategy,
+            precision=precision,
         )
 
 
@@ -355,6 +367,7 @@ class LearningWithoutForgettingModelUpdater(AvalancheModelUpdater):
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         alpha: float = defaults.LWF_ALPHA,
         temperature: float = defaults.LWF_TEMPERATURE,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
@@ -381,6 +394,8 @@ class LearningWithoutForgettingModelUpdater(AvalancheModelUpdater):
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
         seed: int = defaults.SEED,
+        strategy: Optional[str] = defaults.DISTRIBUTED_STRATEGY,
+        precision: str = defaults.PRECISION,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
         learner_kwargs = {
@@ -395,6 +410,7 @@ class LearningWithoutForgettingModelUpdater(AvalancheModelUpdater):
             "alpha": alpha,
             "temperature": temperature,
             "seed": seed,
+            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
@@ -415,6 +431,8 @@ class LearningWithoutForgettingModelUpdater(AvalancheModelUpdater):
             early_stopping_enabled=early_stopping_enabled,
             accelerator=accelerator,
             devices=devices,
+            strategy=strategy,
+            precision=precision,
         )
 
 
@@ -422,6 +440,7 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
@@ -447,6 +466,8 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
         early_stopping_enabled: bool = False,
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
+        strategy: Optional[str] = defaults.DISTRIBUTED_STRATEGY,
+        precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
@@ -462,6 +483,7 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
             "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
+            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
@@ -482,4 +504,6 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
             early_stopping_enabled=early_stopping_enabled,
             accelerator=accelerator,
             devices=devices,
+            strategy=strategy,
+            precision=precision,
         )

@@ -28,7 +28,7 @@ class ResNet(RenateBenchmarkingModule):
         replace_stride_with_dilation: Whether to replace the stride with a dilation to save memory.
         norm_layer: What kind of normalization layer to use, following convolutions.
         cifar_stem: Whether to use a stem for CIFAR-sized images.
-        loss: Loss function to be used for training.
+        gray_scale: Whether input images are gray-scale images, i.e. only 1 color channel.
         prediction_strategy: Continual learning strategies may alter the prediction at train or test
             time.
         add_icarl_class_means: If ``True``, additional parameters used only by the
@@ -46,7 +46,7 @@ class ResNet(RenateBenchmarkingModule):
         replace_stride_with_dilation: Optional[List[bool]] = None,
         norm_layer: Type[nn.Module] = nn.BatchNorm2d,
         cifar_stem: bool = True,
-        loss: nn.Module = nn.CrossEntropyLoss(),
+        gray_scale: bool = False,
         prediction_strategy: Optional[PredictionStrategy] = None,
         add_icarl_class_means: bool = True,
     ) -> None:
@@ -72,8 +72,8 @@ class ResNet(RenateBenchmarkingModule):
                 "replace_stride_with_dilation": replace_stride_with_dilation,
                 "norm_layer": norm_layer,
                 "cifar_stem": cifar_stem,
+                "gray_scale": gray_scale,
             },
-            loss_fn=loss,
             prediction_strategy=prediction_strategy,
             add_icarl_class_means=add_icarl_class_means,
         )
@@ -81,6 +81,15 @@ class ResNet(RenateBenchmarkingModule):
         if cifar_stem:
             self._backbone.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
             self._backbone.maxpool = nn.Identity()
+        if gray_scale:
+            self._backbone.conv1 = nn.Conv2d(
+                1,
+                self._backbone.conv1.out_channels,
+                kernel_size=self._backbone.conv1.kernel_size,
+                stride=self._backbone.conv1.stride,
+                padding=self._backbone.conv1.padding,
+                bias=self._backbone.conv1.bias is not None,
+            )
         self._backbone.fc = nn.Identity()
 
         for m in self.modules():

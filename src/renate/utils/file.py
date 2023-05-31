@@ -12,6 +12,7 @@ import boto3
 import pandas as pd
 import requests
 from botocore.exceptions import ClientError
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 logger = logging.getLogger(__name__)
 
@@ -277,3 +278,17 @@ def save_pandas_df_to_csv(df: pd.DataFrame, file_path: Union[str, Path]) -> pd.D
     """
     df.to_csv(file_path, index=False)
     return df
+
+
+@rank_zero_only
+def unlink_file_or_folder(path: Path) -> None:
+    """Funtion to remove files and folders.
+
+    Unlink works for files, rmdir for empty folders, but not for non-empty ones. Hence a
+    recursive solution.
+    """
+    if path.exists():
+        if path.is_file():
+            path.unlink(missing_ok=True)
+        else:
+            shutil.rmtree(path)

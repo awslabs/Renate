@@ -29,7 +29,7 @@ method, which automatically handles model hyperparameters.
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 14-39
+    :lines: 14-40
 
 If you are using a torch model with **no or fixed hyperparameters**, you can use
 :py:class:`~renate.models.renate_module.RenateWrapper`.
@@ -47,6 +47,23 @@ method, but simply reinstantiate your model and call :code:`load_state_dict`.
             state_dict = torch.load(str(model_state_url))
             model.load_state_dict(state_dict)
         return model
+
+
+Loss Definition
+================
+
+This function returns a :code:`torch.nn.Module` object that computes the loss with the 
+signature 
+
+.. code-block:: python 
+    
+    def loss_fn() -> torch.nn.Module:
+
+An example of this for the task of MNIST classfication above as
+
+.. literalinclude:: ../../examples/getting_started/renate_config.py
+    :caption: Loss function example
+    :lines: 95-96
 
 
 Data Preparation
@@ -67,7 +84,7 @@ such as data subsampling or splitting.
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 43-69
+    :lines: 41-68
 
 Transforms
 ==========
@@ -112,7 +129,7 @@ These are optional as well but, if omitted, Renate will use :code:`train_transfo
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 76-93
+    :lines: 71-78
 
 Custom Metrics
 ==============
@@ -124,7 +141,7 @@ or created ad-hoc by implementing the same interface
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 96-
+    :lines: 93-
 
 To enable the usage of additional metrics in Renate it is sufficient to implement the
 :code:`metrics_fn` function, returning a dictionary where the key is a string containing the

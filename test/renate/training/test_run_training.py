@@ -69,7 +69,7 @@ def test_run_training_job(
                     "val_size": val_size,
                 },
                 metric="val_accuracy",
-                max_time=15,
+                max_time=30,
                 scheduler=scheduler,
             )
 
@@ -144,8 +144,6 @@ def test_verify_validation_set_for_hpo_and_checkpointing(tmpdir, val_size, tune_
             metric=expected_metric,
             mode=expected_mode,
             working_directory=tmpdir,
-            chunk_id=0,
-            seed=0,
         )
 
     if tune_hyperparameters and val_size == 0:

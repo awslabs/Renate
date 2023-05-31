@@ -172,15 +172,19 @@ class TorchVisionDataModule(RenateDataModule):
             self._data_path,
             train=True,
             transform=transforms.ToTensor(),
-            target_transform=transforms.Lambda(lambda x: torch.tensor(x, dtype=torch.long)),
+            target_transform=transforms.Lambda(to_long),
         )
         self._train_data, self._val_data = self._split_train_val_data(train_data)
         self._test_data = cls(
             self._data_path,
             train=False,
             transform=transforms.ToTensor(),
-            target_transform=transforms.Lambda(lambda x: torch.tensor(x, dtype=torch.long)),
+            target_transform=transforms.Lambda(to_long),
         )
+
+
+def to_long(x):
+    return torch.tensor(x, dtype=torch.long)
 
 
 class CLEARDataModule(RenateDataModule):

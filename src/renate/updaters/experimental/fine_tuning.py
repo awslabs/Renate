@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 from typing import Callable, Dict, Optional, Union
 
+import torch
 import torchmetrics
 from pytorch_lightning.loggers.logger import Logger
 
@@ -15,6 +16,7 @@ class FineTuningModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
         optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
         learning_rate: float = defaults.LEARNING_RATE,
         learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
@@ -38,6 +40,8 @@ class FineTuningModelUpdater(SingleTrainingLoopUpdater):
         logger: Logger = defaults.LOGGER(**defaults.LOGGER_KWARGS),
         accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
         devices: Optional[int] = None,
+        strategy: str = defaults.DISTRIBUTED_STRATEGY,
+        precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
@@ -51,6 +55,7 @@ class FineTuningModelUpdater(SingleTrainingLoopUpdater):
             "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
+            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
@@ -72,4 +77,6 @@ class FineTuningModelUpdater(SingleTrainingLoopUpdater):
             accelerator=accelerator,
             devices=devices,
             deterministic_trainer=deterministic_trainer,
+            strategy=strategy,
+            precision=precision,
         )

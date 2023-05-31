@@ -12,13 +12,17 @@ from renate.benchmark.experimentation import execute_experiment_job
 def experiment_job_kwargs():
     return {
         "backend": "local",
-        "config_file": str(Path(__file__).parent.parent / "renate_config_files" / "config.py"),
-        "config_space": {"updater": "ER", "use_scenario": True, "max_epochs": 5},
+        "config_file": str(
+            Path(__file__).parent.parent / "renate_config_files" / "config_scenario.py"
+        ),
+        "config_space": {"updater": "ER", "max_epochs": 5},
         "mode": "max",
         "metric": "val_accuracy",
         "num_updates": 2,
-        "max_time": 15,
+        "max_time": 30,
         "seed": 0,
+        "accelerator": "cpu",
+        "devices": 1,
     }
 
 

@@ -1,19 +1,18 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import logging
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import datasets
 import torch
 import transformers
-from datasets import get_dataset_infos
 
 from renate import defaults
 from renate.data.data_module import RenateDataModule
 
 
 class _InputTargetWrapper(torch.utils.data.Dataset):
-    """Make a huggingface dataset comply with the `(input, target)` format."""
+    """Make a Hugging Face dataset comply with the `(input, target)` format."""
 
     def __init__(self, dataset, target_column: str = "label"):
         self._dataset = dataset
@@ -28,10 +27,10 @@ class _InputTargetWrapper(torch.utils.data.Dataset):
         return item, target
 
 
-class HuggingfaceTextDataModule(RenateDataModule):
-    """Data module wrapping Huggingface text datasets.
+class HuggingFaceTextDataModule(RenateDataModule):
+    """Data module wrapping Hugging Face text datasets.
 
-    This is a convenience wrapper to expose a hugginface dataset as a `RenateDataModule`. Datasets
+    This is a convenience wrapper to expose a Hugging Face dataset as a `RenateDataModule`. Datasets
     will be pre-tokenized and will return `input, target = dataset[i]`, where `input` is a
     dictionary with fields `["input_ids", "attention_mask"]`, and `target` is a tensor.
 
@@ -41,14 +40,15 @@ class HuggingfaceTextDataModule(RenateDataModule):
 
     Args:
         data_path: the path to the folder containing the dataset files.
+        tokenizer: Tokenizer to apply to the dataset. See https://huggingface.co/docs/tokenizers/
+            for more information on tokenizers.
         dataset_name: Name of the dataset, see https://huggingface.co/datasets. This is a wrapper
             for text datasets only.
         input_column: Name of the column containing the input text.
         target_column: Name of the column containing the target (e.g., class label).
-        tokenizer: Tokenizer to apply to the dataset. See https://huggingface.co/docs/tokenizers/
-            for more information on tokenizers.
-        tokenize_kwargs: Keyword arguments to be passed to the tokenizer. Typical options are
-           `max_length`, `padding` and `truncation`. See https://huggingface.co/docs/tokenizers/
+        tokenizer_kwargs: Keyword arguments passed when calling the tokenizer's ``__call__``
+           function. Typical options are `max_length`, `padding` and `truncation`.
+           See https://huggingface.co/docs/tokenizers/
            for more information on tokenizers. If `None` is passed, this defaults to
            `{"padding": "max_length", max_length: 128, truncation: True}`.
         val_size: Fraction of the training data to be used for validation.
@@ -58,15 +58,15 @@ class HuggingfaceTextDataModule(RenateDataModule):
     def __init__(
         self,
         data_path: str,
+        tokenizer: transformers.PreTrainedTokenizer,
         dataset_name: str = "ag_news",
         input_column: str = "text",
         target_column: str = "label",
-        tokenizer: Optional[transformers.PreTrainedTokenizer] = None,
-        tokenizer_kwargs: Optional[dict] = None,
+        tokenizer_kwargs: Optional[Dict[str, Any]] = None,
         val_size: float = defaults.VALIDATION_SIZE,
         seed: int = defaults.SEED,
     ):
-        super(HuggingfaceTextDataModule, self).__init__(
+        super(HuggingFaceTextDataModule, self).__init__(
             data_path=data_path,
             val_size=val_size,
             seed=seed,
@@ -84,7 +84,10 @@ class HuggingfaceTextDataModule(RenateDataModule):
             raise RuntimeError(f"Dataset {self._dataset_name} does not contain a 'train' split.")
         if "test" not in split_names:
             raise RuntimeError(f"Dataset {self._dataset_name} does not contain a 'test' split.")
-        available_columns = list(get_dataset_infos(self._dataset_name)["default"].features)
+        self._train_data = datasets.load_dataset(
+            self._dataset_name, split="train", cache_dir=self._data_path
+        )
+        available_columns = list(self._train_data.features)
         if self._input_column not in available_columns:
             raise ValueError(
                 f"Input column '{self._input_column}' does not exist in {self._dataset_name}. "
@@ -95,9 +98,6 @@ class HuggingfaceTextDataModule(RenateDataModule):
                 f"Target column '{self._target_column}' does not exist in {self._dataset_name}. "
                 f"Available columns: {available_columns}."
             )
-        self._train_data = datasets.load_dataset(
-            self._dataset_name, split="train", cache_dir=self._data_path
-        )
         self._test_data = datasets.load_dataset(
             self._dataset_name, split="test", cache_dir=self._data_path
         )
@@ -124,13 +124,13 @@ class HuggingfaceTextDataModule(RenateDataModule):
 
         self._train_data = self._train_data.map(tokenize_fn, batched=True)
         self._train_data.set_format(type="torch", columns=columns)
-        self._train_data = _InputTargetWrapper(self._train_data)
+        self._train_data = _InputTargetWrapper(self._train_data, self._target_column)
         self._test_data = self._test_data.map(tokenize_fn, batched=True)
         self._test_data.set_format(type="torch", columns=columns)
-        self._test_data = _InputTargetWrapper(self._test_data)
+        self._test_data = _InputTargetWrapper(self._test_data, self._target_column)
         if self._val_data is not None:
             self._val_data = self._val_data.map(tokenize_fn, batched=True)
             self._val_data.set_format(type="torch", columns=columns)
-            self._val_data = _InputTargetWrapper(self._val_data)
+            self._val_data = _InputTargetWrapper(self._val_data, self._target_column)
         else:
             self._train_data, self._val_data = self._split_train_val_data(self._train_data)

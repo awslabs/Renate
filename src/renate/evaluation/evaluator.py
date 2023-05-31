@@ -13,6 +13,8 @@ from renate import defaults
 from renate.data.datasets import _TransformedDataset
 from renate.evaluation.metrics.utils import create_metrics
 from renate.models import RenateModule
+from renate.utils.distributed_strategies import create_strategy
+from renate.utils.misc import int_or_str
 
 
 class Evaluator(LightningModule, abc.ABC):
@@ -114,6 +116,8 @@ def evaluate(
     logger: Logger = defaults.LOGGER(**defaults.LOGGER_KWARGS),
     accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
     devices: Optional[int] = None,
+    strategy: str = defaults.DISTRIBUTED_STRATEGY,
+    precision: str = defaults.PRECISION,
 ) -> Dict[str, List[float]]:
     """Evaluate the model on the test dataset or a set of test datasets corresponding to distinct
     tasks.
@@ -159,6 +163,8 @@ def evaluate(
         logger=logger,
         enable_checkpointing=False,
         enable_progress_bar=False,
+        strategy=create_strategy(devices, strategy),
+        precision=int_or_str(precision),
     )
 
     results = {}
