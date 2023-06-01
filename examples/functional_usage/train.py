@@ -31,7 +31,13 @@ updater = FineTuningModelUpdater(
     learning_rate=3e-4,
     batch_size=32,
     max_epochs=3,
+    strategy="deepspeed_stage_2",
+    precision="32",
     input_state_folder=None,
     output_state_folder="renate_output",
 )
 updater.update(data_module.train_data(), data_module.val_data())
+
+
+### Do something with model, e.g., save its weights for later use.
+torch.save(model.state_dict(), "model_weights.pt")
