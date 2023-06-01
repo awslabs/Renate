@@ -31,8 +31,6 @@ updater = FineTuningModelUpdater(
     learning_rate=3e-4,
     batch_size=32,
     max_epochs=3,
-    strategy="deepspeed_stage_2",
-    precision="32",
     input_state_folder=None,
     output_state_folder="renate_output",
 )
