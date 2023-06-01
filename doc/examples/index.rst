@@ -8,4 +8,4 @@ Examples
     train_mlp_locally
     train_classifier_sagemaker
     nlp_finetuning
-    functional_usage
+    custom_training_script
