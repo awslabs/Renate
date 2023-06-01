@@ -1,4 +1,4 @@
-name: Integration Tests
+name: SageMaker Tests
 
 # All tests in this file:
 # 1. Run when launched manually
@@ -6,6 +6,10 @@ name: Integration Tests
 
 on:
   workflow_dispatch:
+    inputs:
+      seed:
+        description: "Seed for the run"
+        required: true
   pull_request:
     branches:
       - main
@@ -55,6 +59,6 @@ jobs:
     uses: ./.github/workflows/run_renate.yml
     with:
       path: test/integration_tests
-      script: run_test.py --test-file ${{ matrix.suite }}
+      script: run_test.py --test-file ${{ matrix.suite }} --seed 0
       requires-aws-credentials: true
     secrets: inherit
