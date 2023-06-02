@@ -133,7 +133,7 @@ def run_training_job(
         scheduler_kwargs: Only required if custom scheduler is provided.
         seed: Seed used for ensuring reproducibility.
         accelerator: Type of accelerator to use.
-        devices: Number of devices to use.
+        devices: Number of devices to use per worker (set in n_workers).
         strategy: Name of the distributed training strategy to use.
         precision: Type of bit precision to use.
         deterministic_trainer: When true the Trainer adopts a deterministic behaviour also on GPU.
