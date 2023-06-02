@@ -31,7 +31,7 @@ dev = [
     "torch>=1.10.0, <1.12.2",
     # PyTest Dependencies
     "pytest==7.3.1",
-    "pytest-cov==4.0.0",
+    "pytest-cov==4.1.0",
     "pytest-helpers-namespace==2021.12.29",
     ]
 
