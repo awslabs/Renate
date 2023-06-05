@@ -9,7 +9,7 @@ def generate_requirements_file_for_sagemaker_training_jobs(toml_file: str, keys:
     dependencies = []
 
     # create a copy of the main requirements.txt file
-    shutil.copyfile('./requirements.txt', "test/integration_tests/requirements.txt")
+    shutil.copyfile('./requirements.txt', "test/integration_tests/requirements-tmp.txt")
 
     # Parse the .toml file
     with open(toml_file, 'r') as file:

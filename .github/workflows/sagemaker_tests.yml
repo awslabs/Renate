@@ -24,11 +24,12 @@ jobs:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
       with:
-        python-version: 3.x
+        python-version: 3.9
     - name: Install toml library
       run: pip install toml
     - name: Write requirements-tmp.txt for SageMaker training jobs
-      run: python test/integration_tests/generate_requirements.py
+      run: |
+        python ./test/integration_tests/generate_requirements.py
       shell: python
     - name: Prepare Inputs
       id: set-matrix
