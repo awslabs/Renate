@@ -15,8 +15,12 @@ env:
   AWS_DEFAULT_REGION: us-west-2
   AWS_ROLE: ${{ secrets.PROD_AWS_END_TO_END_TEST_ROLE_ARN }}
 
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read  # This is required for actions/checkout
+
 jobs:
-  prepare:
+  launch-sagemaker-jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
