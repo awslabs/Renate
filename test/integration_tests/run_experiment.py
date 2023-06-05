@@ -59,6 +59,12 @@ if __name__ == "__main__":
         default=12 * 3600,
         help="Maximum execution time.",
     )
+    parser.add_argument(
+        f"--requirements-file",
+        type=str,
+        required=False,
+        help="Path to requirements file",
+    )
     args = parser.parse_args()
     config_space = load_config(
         args.scenario_file, args.model_file, args.updater_file, args.dataset_file
@@ -94,4 +100,5 @@ if __name__ == "__main__":
         job_name=args.job_name[:36],
         devices=1,
         strategy="ddp",
+        requirements_file=args.requirements_file,
     )

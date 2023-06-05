@@ -20,6 +20,12 @@ if __name__ == "__main__":
         required=True,
         help="Seed.",
     )
+    parser.add_argument(
+        f"--requirements-file",
+        type=str,
+        required=False,
+        help="Path to requirements file",
+    )
     args = parser.parse_args()
     test_suite = "main"
     current_folder = Path(os.path.dirname(__file__))
@@ -50,6 +56,8 @@ if __name__ == "__main__":
             test_suite,
             "--seed",
             str(args.seed),
+            "--requirements-file",
+            args.requirements_file,
         ]
     )
     process.wait()

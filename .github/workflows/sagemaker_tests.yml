@@ -6,14 +6,10 @@ name: SageMaker Tests
 
 on:
   workflow_dispatch:
-    inputs:
-      seed:
-        description: "Seed for the run"
-        required: true
-  pull_request:
-    branches:
-      - main
-      - dev
+  pull_request: # UNCOMMENT FOR TESTING
+    branches:   # UNCOMMENT FOR TESTING
+      - main    # UNCOMMENT FOR TESTING
+      - dev     # UNCOMMENT FOR TESTING
 
 env:
   AWS_DEFAULT_REGION: us-west-2
@@ -29,6 +25,11 @@ jobs:
     - uses: actions/setup-python@v4
       with:
         python-version: 3.x
+    - name: Install toml library
+      run: pip install toml
+    - name: Write requirements-tmp.txt for SageMaker training jobs
+      run: python test/integration_tests/generate_requirements.py
+      shell: python
     - name: Prepare Inputs
       id: set-matrix
       run: |
@@ -49,7 +50,6 @@ jobs:
 
       shell: python
 
-
   tests:
     needs: prepare
     strategy:
@@ -59,6 +59,6 @@ jobs:
     uses: ./.github/workflows/run_renate.yml
     with:
       path: test/integration_tests
-      script: run_test.py --test-file ${{ matrix.suite }} --seed 0
+      script: run_test.py --test-file ${{ matrix.suite }} --seed 0 --requirements-file test/integration_tests/requirements-tmp.txt
       requires-aws-credentials: true
     secrets: inherit
