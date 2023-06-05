@@ -29,7 +29,7 @@ jobs:
       run: pip install toml
     - name: Write requirements-tmp.txt for SageMaker training jobs
       run: |
-        python ./test/integration_tests/generate_requirements.py
+        python test/integration_tests/generate_requirements.py
       shell: python
     - name: Prepare Inputs
       id: set-matrix
