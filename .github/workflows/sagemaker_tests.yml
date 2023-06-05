@@ -25,40 +25,43 @@ jobs:
     - uses: actions/setup-python@v4
       with:
         python-version: 3.9
+        cache: 'pip'
+    - name: Install Renate
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -e '.[dev]'
     - name: Install toml library
       run: pip install toml
     - name: Write requirements-tmp.txt for SageMaker training jobs
       run: |
         python test/integration_tests/generate_requirements.py
-    - name: Prepare Inputs
-      id: set-matrix
+    - name: Get Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: ${{ secrets.PROD_AWS_END_TO_END_TEST_ROLE_ARN }}
+        role-session-name: integtestsession
+        aws-region: ${{ env.AWS_DEFAULT_REGION }}
+    - name: Launch SageMaker Jobs
       run: |
         import os
-        import json
-
+        import subprocess
+        
         target_directory = 'test/integration_tests/configs/suites/main'
         files = [f for f in os.listdir(target_directory) if os.path.isfile(os.path.join(target_directory, f))]
-        matrix_json = json.dumps(files)
-        print(matrix_json)
-        with open('matrix.json', 'w') as f:
-            f.write(matrix_json)
         
-        name = "matrix"
-        value = matrix_json
-        with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
-          print(f'{name}={value}', file=fh)
+        for file in files:
+          process = subprocess.Popen(
+            [
+              "python",
+              "test/integration_tests/run_test.py",
+              "--test-file",
+              file,
+              "--seed",
+              "0",
+              "--requirements-file",
+              "test/integration_tests/requirements-tmp.txt",
+            ]
+          )
+        process.wait()
 
       shell: python
-
-  tests:
-    needs: prepare
-    strategy:
-      fail-fast: false
-      matrix:
-        suite: ${{ fromJSON(needs.prepare.outputs.matrix)}}
-    uses: ./.github/workflows/run_renate.yml
-    with:
-      path: test/integration_tests
-      script: run_test.py --test-file ${{ matrix.suite }} --seed 0 --requirements-file test/integration_tests/requirements-tmp.txt
-      requires-aws-credentials: true
-    secrets: inherit
