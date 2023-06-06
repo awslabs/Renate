@@ -6,10 +6,10 @@ name: SageMaker Tests
 
 on:
   workflow_dispatch:
-  pull_request: # UNCOMMENT FOR TESTING
-    branches:   # UNCOMMENT FOR TESTING
-      - main    # UNCOMMENT FOR TESTING
-      - dev     # UNCOMMENT FOR TESTING
+#  pull_request: # UNCOMMENT FOR TESTING
+#    branches:   # UNCOMMENT FOR TESTING
+#      - main    # UNCOMMENT FOR TESTING
+#      - dev     # UNCOMMENT FOR TESTING
 
 env:
   AWS_DEFAULT_REGION: us-west-2
@@ -36,7 +36,7 @@ jobs:
         python -m pip install -e '.[dev]'
     - name: Install toml library
       run: pip install toml
-    - name: Write requirements-tmp.txt for SageMaker training jobs
+    - name: Write requirements.txt for SageMaker training jobs
       run: |
         python test/integration_tests/generate_requirements.py
     - name: Get Credentials
