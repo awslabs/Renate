@@ -63,7 +63,7 @@ jobs:
               "--seed",
               "0",
               "--requirements-file",
-              "test/integration_tests/requirements-tmp.txt",
+              "test/integration_tests/requirements.txt",
             ]
           )
         process.wait()
