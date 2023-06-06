@@ -72,7 +72,7 @@ def run_training_job(
     input_state_url: Optional[str] = None,
     output_state_url: Optional[str] = None,
     working_directory: Optional[str] = defaults.WORKING_DIRECTORY,
-    source_dir: Optional[str] = None,
+    dependencies: Optional[List[str]] = None,
     config_file: Optional[str] = None,
     requirements_file: Optional[str] = None,
     role: Optional[str] = None,
@@ -111,7 +111,7 @@ def run_training_job(
         input_state_url: Path to the Renate model state.
         output_state_url: Path where Renate model state will be stored.
         working_directory: Path to the working directory.
-        source_dir: (SageMaker backend only) Root directory which will be moved to SageMaker.
+        dependencies: (SageMaker backend only) List of files and directories moved to SageMaker.
         config_file: File containing the definition of `model_fn` and `data_module_fn`.
         requirements_file: (SageMaker backend only) Path to requirements.txt containing environment
             dependencies.
@@ -188,7 +188,7 @@ def run_training_job(
         max_epochs=max_epochs,
         task_id=task_id,
         chunk_id=chunk_id,
-        source_dir=source_dir,
+        dependencies=dependencies or [],
         requirements_file=requirements_file,
         role=role,
         instance_type=instance_type,
@@ -625,7 +625,7 @@ def _execute_training_and_tuning_job_locally(
 
 
 def submit_remote_job(
-    source_dir: Union[str, None],
+    dependencies: List[str],
     role: str,
     instance_type: str,
     instance_count: int,
@@ -641,12 +641,11 @@ def submit_remote_job(
     job_timestamp = defaults.current_timestamp()
     job_name = f"{job_name}-{job_timestamp}"
     tmp_dir = tempfile.mkdtemp()
-    dependencies = _prepare_remote_job(
+    dependencies += _prepare_remote_job(
         tmp_dir=tmp_dir, optional_dependencies=optional_dependencies, **job_kwargs
     )
     PyTorch(
         entry_point=tuning_script,
-        source_dir=None if source_dir is None else str(source_dir),
         instance_type=instance_type,
         instance_count=instance_count,
         py_version=defaults.PYTHON_VERSION,
