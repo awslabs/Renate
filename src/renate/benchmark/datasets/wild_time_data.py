@@ -4,8 +4,6 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 from transformers import PreTrainedTokenizer
-from wild_time_data import load_dataset
-from wild_time_data.core import available_time_steps, dataset_classes
 
 from renate import defaults
 from renate.data.data_module import RenateDataModule
@@ -63,6 +61,8 @@ class WildTimeDataModule(RenateDataModule):
         If s3 bucket is given, the data is downloaded from s3, otherwise from the original source.
         """
         if self._src_bucket is None:
+            from wild_time_data import available_time_steps, load_dataset
+
             load_dataset(
                 dataset_name=self._dataset_name,
                 time_step=available_time_steps(self._dataset_name)[0],
@@ -70,6 +70,8 @@ class WildTimeDataModule(RenateDataModule):
                 data_dir=self._data_path,
             )
         else:
+            from wild_time_data.core import dataset_classes
+
             dst_dir = Path(self._data_path) / dataset_classes[self._dataset_name].file_name
             if not dst_dir.exists():
                 download_folder_from_s3(
@@ -80,6 +82,8 @@ class WildTimeDataModule(RenateDataModule):
 
     def setup(self) -> None:
         """Set up train, test and val datasets."""
+        from wild_time_data import available_time_steps, load_dataset
+
         kwargs = {
             "dataset_name": self._dataset_name,
             "time_step": available_time_steps(self._dataset_name)[self.time_step],
