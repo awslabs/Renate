@@ -2,7 +2,7 @@
     :target: #
     :alt: PyPI - Status
 .. image:: https://img.shields.io/github/v/release/awslabs/Renate
-    :target: https://github.com/awslabs/Renate/releases/tag/v0.2.0
+    :target: https://github.com/awslabs/Renate/releases/tag/v0.3.1
     :alt: Latest Release
 .. image:: https://img.shields.io/pypi/dm/Renate
     :target: https://pypistats.org/packages/renate
