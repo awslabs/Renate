@@ -9,7 +9,7 @@
 | src/renate/benchmark/datasets/\_\_init\_\_.py                     |        0 |        0 |    100% |           |
 | src/renate/benchmark/datasets/nlp\_datasets.py                    |       59 |        6 |     90% |22, 84, 86, 110-114, 136 |
 | src/renate/benchmark/datasets/vision\_datasets.py                 |      108 |       68 |     37% |45-52, 56-57, 68-72, 76-97, 150, 157-162, 170-178, 238-243, 254-260, 265, 269-292 |
-| src/renate/benchmark/datasets/wild\_time\_data.py                 |       28 |       11 |     61% |65-75, 83-93 |
+| src/renate/benchmark/datasets/wild\_time\_data.py                 |       29 |       14 |     52% |63-77, 85-97 |
 | src/renate/benchmark/experiment\_config.py                        |       90 |        2 |     98% |    99-100 |
 | src/renate/benchmark/experimentation.py                           |      104 |        6 |     94% |47, 65, 206, 265, 376-379 |
 | src/renate/benchmark/models/\_\_init\_\_.py                       |        4 |        0 |    100% |           |
@@ -74,7 +74,7 @@
 | src/renate/utils/optimizer.py                                     |       17 |        0 |    100% |           |
 | src/renate/utils/pytorch.py                                       |       40 |        4 |     90% |34-35, 78, 86 |
 | src/renate/utils/syne\_tune.py                                    |       46 |        5 |     89% |38-39, 46, 80, 88 |
-|                                                         **TOTAL** | **3702** |  **527** | **86%** |           |
+|                                                         **TOTAL** | **3703** |  **530** | **86%** |           |
 
 
 ## Setup coverage badge
