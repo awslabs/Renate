@@ -4,7 +4,7 @@ import pytest
 import torch
 from torch.utils.data import Dataset
 
-from renate.memory.storage import MemoryMappedTensorStorage, FlattenedMemoryMappedTensorStorage
+from renate.memory.storage import MemoryMappedTensorStorage, FileTensorStorage
 
 
 def nested_tensors_equal(t1, t2):
@@ -30,11 +30,11 @@ def make_dataset_same_sizes(dataset_length, return_type):
 
         def __getitem__(self, index):
             if self.return_type == "tensor":
-                return self.x[index], self.y[index]
+                return self.x[index]
             elif self.return_type == "tuple":
-                return (self.x[index], self.y[index]), "metadata"
+                return (self.x[index], self.y[index])
             elif self.return_type == "dict":
-                return {"x": self.x[index], "y": self.y[index]}, "metadata"
+                return {"x": self.x[index], "y": self.y[index]}
 
         def __len__(self):
             return self.x.shape[0]
@@ -45,44 +45,21 @@ def make_dataset_same_sizes(dataset_length, return_type):
     return CustomDataset(data_x, data_y, return_type=return_type)
 
 
-# @pytest.mark.parametrize("length", [0, 1, 10])
-# @pytest.mark.parametrize(
-#     "data_point",
-#     [
-#         torch.tensor(1),
-#         torch.ones(3),
-#         (torch.ones(3), torch.tensor(1)),
-#         ({"a": torch.ones(2, 3, 3), "b": torch.zeros(2)}, torch.tensor(4)),
-#         {"a": (torch.ones(2, 3, 3), torch.zeros(2)), "b": torch.tensor(2)},
-#     ],
-# )
-# def test_storage(tmpdir, length, data_point):
-#     """Tests the memory-mapped tensor storage for different nested tensor structures."""
-#     storage = MemoryMappedTensorStorage(tmpdir, data_point, length)
-#     for i in range(length):
-#         storage[i] = data_point
-
-#     del storage
-#     storage = MemoryMappedTensorStorage(tmpdir, data_point, length)
-
-#     for i in range(length):
-#         assert nested_tensors_equal(storage[i], data_point)
-
 
 @pytest.mark.parametrize("length", [1, 10])
 @pytest.mark.parametrize("return_type", ["tuple", "dict", "tensor"])
 @pytest.mark.parametrize(
-    "StorageClass", [MemoryMappedTensorStorage, FlattenedMemoryMappedTensorStorage]
+    "StorageClass", [MemoryMappedTensorStorage, FileTensorStorage]
 )
 def test_memory_storage_same_size(tmpdir, length, return_type, StorageClass):
     ds = make_dataset_same_sizes(length, return_type)
-    storage = StorageClass(tmpdir, ds[0][0], length)
+    storage = StorageClass(tmpdir)
     storage.dump_dataset(ds)
 
     del storage
-    storage = StorageClass(tmpdir, ds[0][0], length)
+    storage = StorageClass(tmpdir)
     for i in range(length):
-        assert nested_tensors_equal(storage[i], ds[i][0])
+        assert nested_tensors_equal(storage[i], ds[i])
 
 
 def make_dataset_different_sizes(dataset_length, return_type):
@@ -96,9 +73,9 @@ def make_dataset_different_sizes(dataset_length, return_type):
             if self.return_type == "tensor":
                 return x, y
             elif self.return_type == "tuple":
-                return (x, y), "metadata"
+                return x, y
             elif self.return_type == "dict":
-                return {"x": x, "y": y}, "metadata"
+                return {"x": x, "y": y}
 
         def __len__(self):
             return dataset_length
@@ -110,10 +87,10 @@ def make_dataset_different_sizes(dataset_length, return_type):
 @pytest.mark.parametrize("return_type", ["tuple", "dict", "tensor"])
 def test_memory_storage_different_sizes(tmpdir, length, return_type):
     ds = make_dataset_different_sizes(length, return_type)
-    storage = FlattenedMemoryMappedTensorStorage(tmpdir, ds[0][0], length)
+    storage = FileTensorStorage(tmpdir)
     storage.dump_dataset(ds)
 
     del storage
-    storage = FlattenedMemoryMappedTensorStorage(tmpdir, ds[0][0], length)
+    storage = FileTensorStorage(tmpdir)
     for i in range(length):
-        assert nested_tensors_equal(storage[i], ds[i][0])
+        assert nested_tensors_equal(storage[i], ds[i])

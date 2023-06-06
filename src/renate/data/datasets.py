@@ -105,6 +105,35 @@ class NestedTensorDataset(Dataset):
         return self._get(self._nested_tensors, idx)
 
 
+class IndexedSubsetDataset(Dataset):
+    """A dataset wrapper to keep specified indexes of a dataset element.
+
+    Subset is indexing rows of a (tensor-)dataset, whereas IndexedSubset keeps specified columns. 
+    It currently handles Datasets whose elements are tuples. 
+
+    Args:
+        dataset: The dataset to wrap
+        indexes_to_keep: An list or tuple of indices that are to be retained.
+    """
+
+    def __init__(self, dataset: Dataset, indexes_to_keep: List | Tuple | int) -> None:
+        self.dataset = dataset
+        if isinstance(indexes_to_keep, int):
+            indexes_to_keep = [indexes_to_keep]
+        self.indexes_to_keep = set(indexes_to_keep)
+
+    def __getitem__(self, index) -> Any:
+        curr_item = self.dataset[index]
+        # Special handling if indexes_to_keep is a single int
+        if len(ret_val:= [ci for i, ci in enumerate(curr_item) if i in self.indexes_to_keep]) == 1:
+            return ret_val[0]
+        else:
+            return tuple(x)
+
+    def __len__(self):
+        return len(self.dataset)
+
+
 class _TransformedDataset(Dataset):
     """A dataset wrapper that applies transformations.
 
