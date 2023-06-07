@@ -306,6 +306,13 @@ def train_transform(dataset_name: str) -> Optional[transforms.Compose]:
                 _get_normalize_transform(dataset_name),
             ]
         )
+    if dataset_name in ["CLEAR10", "CLEAR100"]:
+        return transforms.Compose(
+            [
+                transforms.RandomCrop(224),
+                _get_normalize_transform(dataset_name),
+            ]
+        )
     raise ValueError(f"Unknown dataset `{dataset_name}`.")
 
 
@@ -318,4 +325,11 @@ def test_transform(dataset_name: str) -> Optional[transforms.Normalize]:
         return None
     if dataset_name in ["CIFAR10", "CIFAR100"]:
         return _get_normalize_transform(dataset_name)
+    if dataset_name in ["CLEAR10", "CLEAR100"]:
+        return transforms.Compose(
+            [
+                transforms.CenterCrop(224),
+                _get_normalize_transform(dataset_name),
+            ]
+        )
     raise ValueError(f"Unknown dataset `{dataset_name}`.")
