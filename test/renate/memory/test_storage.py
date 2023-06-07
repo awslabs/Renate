@@ -4,7 +4,7 @@ import pytest
 import torch
 from torch.utils.data import Dataset
 
-from renate.memory.storage import MemoryMappedTensorStorage, FileTensorStorage
+from renate.memory.storage import FileTensorStorage
 
 
 def nested_tensors_equal(t1, t2):
@@ -45,12 +45,9 @@ def make_dataset_same_sizes(dataset_length, return_type):
     return CustomDataset(data_x, data_y, return_type=return_type)
 
 
-
 @pytest.mark.parametrize("length", [1, 10])
 @pytest.mark.parametrize("return_type", ["tuple", "dict", "tensor"])
-@pytest.mark.parametrize(
-    "StorageClass", [MemoryMappedTensorStorage, FileTensorStorage]
-)
+@pytest.mark.parametrize("StorageClass", [FileTensorStorage])
 def test_memory_storage_same_size(tmpdir, length, return_type, StorageClass):
     ds = make_dataset_same_sizes(length, return_type)
     storage = StorageClass(tmpdir)

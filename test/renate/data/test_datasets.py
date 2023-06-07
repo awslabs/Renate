@@ -70,4 +70,4 @@ def test_indexed_dataset(indexes_to_keep):
     else:
         curr_x = X[indexes_to_keep]
     ds_elements = torch.tensor([subset[i] for i in range(len(subset))])
-    assert torch.equal(curr_x,  ds_elements)
+    assert torch.equal(curr_x, ds_elements)

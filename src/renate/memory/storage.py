@@ -123,7 +123,6 @@ class MemoryMappedTensorStorage(Storage):
 
     def dump_dataset(self, ds):
         self._length = len(ds)
-        print(ds[0])
         self._storage = self._create_mmap_tensors(self._directory, ds[0], self._length)
         for idx in range(len(self)):
             self._set(self._storage, idx, ds[idx])
@@ -143,6 +142,7 @@ class FileTensorStorage(Storage):
     Args:
         directory: Path to a directory.
     """
+
     def __init__(self, directory: str) -> None:
         super().__init__(directory)
 
