@@ -309,6 +309,7 @@ def train_transform(dataset_name: str) -> Optional[transforms.Compose]:
     if dataset_name in ["CLEAR10", "CLEAR100"]:
         return transforms.Compose(
             [
+                transforms.Resize(224),
                 transforms.RandomCrop(224),
                 _get_normalize_transform(dataset_name),
             ]
@@ -328,6 +329,7 @@ def test_transform(dataset_name: str) -> Optional[transforms.Normalize]:
     if dataset_name in ["CLEAR10", "CLEAR100"]:
         return transforms.Compose(
             [
+                transforms.Resize(224),
                 transforms.CenterCrop(224),
                 _get_normalize_transform(dataset_name),
             ]
