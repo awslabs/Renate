@@ -63,8 +63,8 @@ class MemoryMappedTensorStorage(Storage):
 
     def __init__(self, directory: str) -> None:
         warn(
-            f"""{self.__class__.__name__} will be deprecated very soon. Use FileTensorStorage 
-            instead. {self.__class__.__name__} is currently not fully functional, as some of the 
+            f"""{self.__class__.__name__} will be deprecated very soon. Use FileTensorStorage
+            instead. {self.__class__.__name__} is currently not fully functional, as some of the
             necessary parts of the interface have been modified and simplified. """,
             DeprecationWarning,
             stacklevel=2,
