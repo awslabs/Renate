@@ -4,6 +4,7 @@ import math
 import os
 from typing import Any, Tuple, Union, Optional
 from pathlib import Path
+from warnings import warn
 
 import torch
 
@@ -61,6 +62,13 @@ class MemoryMappedTensorStorage(Storage):
     """
 
     def __init__(self, directory: str) -> None:
+        warn(
+            f"""{self.__class__.__name__} will be deprecated very soon. Use FileTensorStorage 
+            instead. {self.__class__.__name__} is currently not fully functional, as some of the 
+            necessary parts of the interface have been modified and simplified. """,
+            DeprecationWarning,
+            stacklevel=2,
+        )
         super().__init__(directory)
         self._storage: Optional[NestedTensors] = None
 
