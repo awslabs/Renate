@@ -156,13 +156,15 @@ class FileTensorStorage(Storage):
 
     def dump_dataset(self, ds: torch.utils.data.Dataset) -> None:
         for i in range(len(ds)):
-            ith_sample = ds[i]
-            save_name = os.path.join(self._directory, f"{i}.pt")
-            torch.save(ith_sample, save_name)
+            torch.save(ds[i], self._compose_file_path_from_index(i))
 
     def __getitem__(self, idx: int) -> Any:
-        load_name = os.path.join(self._directory, f"{idx}.pt")
-        return torch.load(load_name)
+        if not hasattr(self, "_length"):
+            self.load_dataset(None)
+        return torch.load(self._compose_file_path_from_index(idx))
 
     def load_dataset(self, directory: Union[str, Path]):
-        pass
+        self._length = len([x for x in os.listdir(self._directory) if x.endswith(".pt")])
+
+    def _compose_file_path_from_index(self, idx: int) -> str:
+        return os.path.join(self._directory, f"{idx}.pt")

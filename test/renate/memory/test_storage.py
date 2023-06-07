@@ -35,6 +35,8 @@ def make_dataset_same_sizes(dataset_length, return_type):
                 return (self.x[index], self.y[index])
             elif self.return_type == "dict":
                 return {"x": self.x[index], "y": self.y[index]}
+            elif self.return_type == "list":
+                return [self.x[index], self.y[index]]
 
         def __len__(self):
             return self.x.shape[0]
@@ -45,22 +47,8 @@ def make_dataset_same_sizes(dataset_length, return_type):
     return CustomDataset(data_x, data_y, return_type=return_type)
 
 
-@pytest.mark.parametrize("length", [1, 10])
-@pytest.mark.parametrize("return_type", ["tuple", "dict", "tensor"])
-@pytest.mark.parametrize("StorageClass", [FileTensorStorage])
-def test_memory_storage_same_size(tmpdir, length, return_type, StorageClass):
-    ds = make_dataset_same_sizes(length, return_type)
-    storage = StorageClass(tmpdir)
-    storage.dump_dataset(ds)
-
-    del storage
-    storage = StorageClass(tmpdir)
-    for i in range(length):
-        assert nested_tensors_equal(storage[i], ds[i])
-
-
 def make_dataset_different_sizes(dataset_length, return_type):
-    class CustomDataset2(Dataset):
+    class CustomDataset(Dataset):
         def __init__(self, return_type="tensor") -> None:
             self.return_type = return_type
 
@@ -68,22 +56,27 @@ def make_dataset_different_sizes(dataset_length, return_type):
             x = torch.ones(index + 2, index + 3).float() * (index + 1)
             y = torch.ones(index + 2, index + 3).int() * (index + 2)
             if self.return_type == "tensor":
-                return x, y
+                return x
             elif self.return_type == "tuple":
-                return x, y
+                return (x, y)
             elif self.return_type == "dict":
                 return {"x": x, "y": y}
+            elif self.return_type == "list":
+                return [x, y]
 
         def __len__(self):
             return dataset_length
 
-    return CustomDataset2(return_type=return_type)
+    return CustomDataset(return_type=return_type)
 
 
 @pytest.mark.parametrize("length", [1, 10])
-@pytest.mark.parametrize("return_type", ["tuple", "dict", "tensor"])
-def test_memory_storage_different_sizes(tmpdir, length, return_type):
-    ds = make_dataset_different_sizes(length, return_type)
+@pytest.mark.parametrize("return_type", ["tuple", "dict", "tensor", "list"])
+@pytest.mark.parametrize(
+    "dataset_maker_fn", [make_dataset_same_sizes, make_dataset_different_sizes]
+)
+def test_memory_storage_different_sizes(tmpdir, length, return_type, dataset_maker_fn):
+    ds = dataset_maker_fn(length, return_type)
     storage = FileTensorStorage(tmpdir)
     storage.dump_dataset(ds)
 
