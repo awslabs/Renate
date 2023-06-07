@@ -1,7 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Any, Callable, Optional, Tuple
-from typing import List
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import torch
 from PIL import Image
@@ -116,7 +115,7 @@ class IndexedSubsetDataset(Dataset):
         indexes_to_keep: An list or tuple of indices that are to be retained.
     """
 
-    def __init__(self, dataset: Dataset, indexes_to_keep: List | Tuple | int) -> None:
+    def __init__(self, dataset: Dataset, indexes_to_keep: Union[List, Tuple, int]) -> None:
         self.dataset = dataset
         if isinstance(indexes_to_keep, int):
             indexes_to_keep = [indexes_to_keep]
