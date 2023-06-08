@@ -2,26 +2,34 @@
 # SPDX-License-Identifier: Apache-2.0
 import math
 import os
-from typing import Any, Tuple
+from typing import Any, Tuple, Union, Optional
+from pathlib import Path
+from warnings import warn
 
 import torch
 
 from renate.types import NestedTensors
 
 
-def mmap_tensor(filename: str, size: Tuple[int, ...], dtype: torch.dtype) -> torch.Tensor:
+def mmap_tensor(
+    filename: str, size: Union[int, Tuple[int, ...]], dtype: torch.dtype
+) -> torch.Tensor:
     """Creates or accesses a memory-mapped tensor."""
-    t = torch.from_file(filename, shared=True, size=math.prod(size), dtype=dtype, device="cpu")
+    t = torch.from_file(
+        filename,
+        shared=True,
+        size=math.prod(size) if isinstance(size, tuple) else size,
+        dtype=dtype,
+        device="cpu",
+    )
     return t.view(size)
 
 
 class Storage(torch.utils.data.Dataset):
     """An abstract class for permanent storage of datasets."""
 
-    def __init__(self, directory: str, data_point: Any, length: int) -> None:
+    def __init__(self, directory: str) -> None:
         self._directory = directory
-        self._data_point = data_point
-        self._length = length
 
     def __len__(self) -> int:
         return self._length
@@ -29,7 +37,10 @@ class Storage(torch.utils.data.Dataset):
     def __getitem__(self, idx: int) -> Any:
         raise NotImplementedError()
 
-    def __setitem__(self, idx: int, data_point: Any) -> None:
+    def dump_dataset(self, ds: torch.utils.data.Dataset) -> None:
+        raise NotImplementedError()
+
+    def load_dataset(self, directory: Union[str, Path]):
         raise NotImplementedError()
 
 
@@ -38,7 +49,7 @@ class MemoryMappedTensorStorage(Storage):
 
     This implements storage for `length` data points consisting of nested tensors of fixed types
     and shapes. `Storage` implements `__len__` and `__getitem__` and therefore can be used as a
-    torch `Datasets`. To populate the storage, it also implements `__setitem__`. It does _not_ keep
+    torch `Dataset`. To populate the storage, it also implements `dump_dataset`. It does _not_ keep
     track which slots have or have not been populated.
 
     `Storage` is given a path to a directory, where it creates (or accesses, if they already exist)
@@ -50,9 +61,16 @@ class MemoryMappedTensorStorage(Storage):
         length: Number of items to be stored.
     """
 
-    def __init__(self, directory: str, data_point: NestedTensors, length: int) -> None:
-        super().__init__(directory, data_point, length)
-        self._storage = self._create_mmap_tensors(directory, data_point, length)
+    def __init__(self, directory: str) -> None:
+        warn(
+            f"""{self.__class__.__name__} will be deprecated very soon. Use FileTensorStorage
+            instead. {self.__class__.__name__} is currently not fully functional, as some of the
+            necessary parts of the interface have been modified and simplified. """,
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(directory)
+        self._storage: Optional[NestedTensors] = None
 
     @staticmethod
     def _create_mmap_tensors(path: str, data_point: NestedTensors, length: int) -> NestedTensors:
@@ -63,14 +81,14 @@ class MemoryMappedTensorStorage(Storage):
         elif isinstance(data_point, tuple):
             return tuple(
                 MemoryMappedTensorStorage._create_mmap_tensors(
-                    os.path.join(path, f"{i}"), data_point[i], length
+                    os.path.join(path, f"{i}.pt"), data_point[i], length
                 )
                 for i in range(len(data_point))
             )
         elif isinstance(data_point, dict):
             return {
                 key: MemoryMappedTensorStorage._create_mmap_tensors(
-                    os.path.join(path, key), data_point[key], length
+                    os.path.join(path, f"{key}.pt"), data_point[key], length
                 )
                 for key in data_point
             }
@@ -111,6 +129,42 @@ class MemoryMappedTensorStorage(Storage):
         else:
             raise TypeError(f"Expected nested tuple/dict of tensors, found {type(storage)}.")
 
-    def __setitem__(self, idx: int, data_point: NestedTensors) -> None:
-        """Set the item stored at index `idx`."""
-        self._set(self._storage, idx, data_point)
+    def dump_dataset(self, ds):
+        self._length = len(ds)
+        self._storage = self._create_mmap_tensors(self._directory, ds[0], self._length)
+        for idx in range(len(self)):
+            self._set(self._storage, idx, ds[idx])
+
+
+class FileTensorStorage(Storage):
+    """A class implementing permanent storage of nested tensor datasets to disk as pickle files.
+
+    This implements storage for `length` data points consisting of nested tensors of fixed types
+    and shapes. `Storage` implements `__len__` and `__getitem__` and therefore can be used as a
+    torch `Dataset`. To populate the storage, it also implements `dump_dataset`. It does _not_ keep
+    track which slots have or have not been populated.
+
+    `Storage` is given a path to a directory, where it creates (or accesses, if they already exist)
+    pickle files one for each point in the dataset.
+
+    Args:
+        directory: Path to a directory.
+    """
+
+    def __init__(self, directory: str) -> None:
+        super().__init__(directory)
+
+    def dump_dataset(self, ds: torch.utils.data.Dataset) -> None:
+        for i in range(len(ds)):
+            torch.save(ds[i], self._compose_file_path_from_index(i))
+
+    def __getitem__(self, idx: int) -> Any:
+        if not hasattr(self, "_length"):
+            self.load_dataset(None)
+        return torch.load(self._compose_file_path_from_index(idx))
+
+    def load_dataset(self, directory: Union[str, Path]):
+        self._length = len([x for x in os.listdir(self._directory) if x.endswith(".pt")])
+
+    def _compose_file_path_from_index(self, idx: int) -> str:
+        return os.path.join(self._directory, f"{idx}.pt")

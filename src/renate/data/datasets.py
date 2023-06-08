@@ -1,7 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Any, Callable, Optional, Tuple
-from typing import List
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import torch
 from PIL import Image
@@ -103,6 +102,35 @@ class NestedTensorDataset(Dataset):
     def __getitem__(self, idx: int) -> NestedTensors:
         """Read the item stored at index `idx`."""
         return self._get(self._nested_tensors, idx)
+
+
+class IndexedSubsetDataset(Dataset):
+    """A dataset wrapper to keep specified indexes of a dataset element.
+
+    Subset is indexing rows of a (tensor-)dataset, whereas IndexedSubset keeps specified columns.
+    It currently handles Datasets whose elements are tuples.
+
+    Args:
+        dataset: The dataset to wrap
+        indexes_to_keep: An list or tuple of indices that are to be retained.
+    """
+
+    def __init__(self, dataset: Dataset, indexes_to_keep: Union[List, Tuple, int]) -> None:
+        self.dataset = dataset
+        if isinstance(indexes_to_keep, int):
+            indexes_to_keep = [indexes_to_keep]
+        self.indexes_to_keep = set(indexes_to_keep)
+
+    def __getitem__(self, index) -> Any:
+        curr_item = self.dataset[index]
+        # Special handling if indexes_to_keep is a single int
+        if len(ret_val := [ci for i, ci in enumerate(curr_item) if i in self.indexes_to_keep]) == 1:
+            return ret_val[0]
+        else:
+            return tuple(ret_val)
+
+    def __len__(self):
+        return len(self.dataset)
 
 
 class _TransformedDataset(Dataset):

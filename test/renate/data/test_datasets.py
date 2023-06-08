@@ -10,7 +10,7 @@ from PIL import Image
 from torch.utils.data import TensorDataset
 
 from renate.data import ImageDataset
-from renate.data.datasets import _EnumeratedDataset, _TransformedDataset
+from renate.data.datasets import _EnumeratedDataset, _TransformedDataset, IndexedSubsetDataset
 
 
 class MulTransform:
@@ -58,3 +58,16 @@ def test_image_dataset(tmpdir):
     data, target = dataset[0]
     assert torch.equal(data, torch.ones(3, 10, 10) * 2)
     assert torch.equal(target, torch.tensor(3 * 3))
+
+
+@pytest.mark.parametrize("indexes_to_keep", [1, 0, [0, 1], (0, 1)])
+def test_indexed_dataset(indexes_to_keep):
+    X = [torch.arange(10), torch.arange(20)[::2]]
+    ds = TensorDataset(*X)
+    subset = IndexedSubsetDataset(ds, indexes_to_keep=indexes_to_keep)
+    if isinstance(indexes_to_keep, (list, tuple)):
+        curr_x = torch.vstack([X[ind] for ind in indexes_to_keep]).T
+    else:
+        curr_x = X[indexes_to_keep]
+    ds_elements = torch.tensor([subset[i] for i in range(len(subset))])
+    assert torch.equal(curr_x, ds_elements)
