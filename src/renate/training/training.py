@@ -111,7 +111,8 @@ def run_training_job(
         input_state_url: Path to the Renate model state.
         output_state_url: Path where Renate model state will be stored.
         working_directory: Path to the working directory.
-        dependencies: (SageMaker backend only) List of files and directories moved to SageMaker.
+        dependencies: (SageMaker backend only) List of strings containing absolute or relative paths
+            to files and directories that will be uploaded as part of the SageMaker training job.
         config_file: File containing the definition of `model_fn` and `data_module_fn`.
         requirements_file: (SageMaker backend only) Path to requirements.txt containing environment
             dependencies.
