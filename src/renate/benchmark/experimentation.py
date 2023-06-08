@@ -384,6 +384,10 @@ def _execute_experiment_job_locally(
     cumulative_metrics = create_cumulative_metrics("classification")
     df = cumulative_metrics_summary(results, cumulative_metrics, num_updates - 1)
     save_pandas_df_to_csv(df, defaults.metric_summary_file(logs_url))
+    if not retain_intermediate_state:
+        move_to_uri(
+            defaults.hpo_file(working_directory), defaults.logs_folder(experiment_outputs_url)
+        )
     logger.info("### Cumulative results: ###")
     logger.info(df)
 
