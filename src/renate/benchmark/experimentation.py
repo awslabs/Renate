@@ -182,8 +182,9 @@ def execute_experiment_job(
         job_name: Name of the experiment job.
         strategy: String denoting lightning distributed strategy.
         precision: String for which precision to use.
-        retain_intermediate_state: Flag to retain intermediate models and buffer states.
-            This is useful when training with large datasets that might cause storage issues.
+        retain_intermediate_state: Flag to retain intermediate models and buffer states after each
+            task update. This is useful when training with large datasets that might cause storage
+            issues.
     """
     assert (
         mode in defaults.SUPPORTED_TUNING_MODE
