@@ -36,6 +36,9 @@ if __name__ == "__main__":
     with open(test_file) as f:
         test_config = json.load(f)
     job_name = f"{test_config['job_name']}"
+    requirements_file = args.requirements_file
+    if not requirements_file:
+        requirements_file = current_folder.parent.parent / "requirements.txt"
     process = subprocess.Popen(
         [
             "python",
@@ -57,7 +60,7 @@ if __name__ == "__main__":
             "--seed",
             str(args.seed),
             "--requirements-file",
-            args.requirements_file,
+            requirements_file,
         ]
     )
     process.wait()

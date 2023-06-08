@@ -3,6 +3,7 @@
 import argparse
 import json
 from pathlib import Path
+import os
 
 import boto3
 from syne_tune.backend.sagemaker_backend.sagemaker_utils import get_execution_role
@@ -69,6 +70,11 @@ if __name__ == "__main__":
     config_space = load_config(
         args.scenario_file, args.model_file, args.updater_file, args.dataset_file
     )
+    current_folder = Path(os.path.dirname(__file__))
+    requirements_file = args.requirements_file
+    if not requirements_file:
+        requirements_file = current_folder.parent.parent / "requirements.txt"
+
     if args.backend == "local":
         experiment_outputs_url = (
             Path("tmp")
