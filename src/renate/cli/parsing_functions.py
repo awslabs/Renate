@@ -373,7 +373,8 @@ def _add_optimizer_arguments(
                 "weight_decay": {
                     "type": float,
                     "default": defaults.WEIGHT_DECAY,
-                    "help": f"Weight decay used during model update. Default: {defaults.WEIGHT_DECAY}.",
+                    "help": "Weight decay used during model update. Default: "
+                    f"{defaults.WEIGHT_DECAY}.",
                 },
             }
         )
