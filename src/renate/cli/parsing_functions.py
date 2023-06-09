@@ -172,7 +172,7 @@ def parse_arguments(
         to all functions specified in ``function_names``.
     """
     arguments = _standard_arguments()
-    _add_hyperparameter_arguments(arguments)
+    _add_hyperparameter_arguments(arguments, "optimizer_fn" in vars(config_module))
     function_args = {}
     for function_name in function_names:
         function_args[function_name] = get_function_args(
@@ -326,7 +326,9 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
     }
 
 
-def _add_hyperparameter_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+def _add_hyperparameter_arguments(
+    arguments: Dict[str, Dict[str, Any]], add_optimizer_args: bool
+) -> None:
     """Adds arguments for the specified updater."""
     updater: Optional[str] = None
     for i, arg in enumerate(sys.argv):
@@ -338,56 +340,45 @@ def _add_hyperparameter_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
 
     assert updater in parse_by_updater, f"Unknown updater {updater}."
     parse_by_updater[updater](arguments)
-    _add_optimizer_arguments(arguments)
+    _add_optimizer_arguments(arguments, add_optimizer_args)
     for value in arguments.values():
         if "argument_group" not in value:
             value["argument_group"] = HYPERPARAMETER_ARGS_GROUP
 
 
-def _add_optimizer_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+def _add_optimizer_arguments(
+    arguments: Dict[str, Dict[str, Any]], add_optimizer_args: bool
+) -> None:
     """A helper function that adds optimizer arguments."""
+    if add_optimizer_args:
+        arguments.update(
+            {
+                "optimizer": {
+                    "type": str,
+                    "default": defaults.OPTIMIZER,
+                    "help": "Optimizer used for training. Options: SGD or Adam. Default: "
+                    f"{defaults.OPTIMIZER}.",
+                },
+                "learning_rate": {
+                    "type": float,
+                    "default": defaults.LEARNING_RATE,
+                    "help": "Learning rate used during model update. Default: "
+                    f"{defaults.LEARNING_RATE}.",
+                },
+                "momentum": {
+                    "type": float,
+                    "default": defaults.MOMENTUM,
+                    "help": f"Momentum used during model update. Default: {defaults.MOMENTUM}.",
+                },
+                "weight_decay": {
+                    "type": float,
+                    "default": defaults.WEIGHT_DECAY,
+                    "help": f"Weight decay used during model update. Default: {defaults.WEIGHT_DECAY}.",
+                },
+            }
+        )
     arguments.update(
         {
-            "optimizer": {
-                "type": str,
-                "default": defaults.OPTIMIZER,
-                "help": "Optimizer used for training. Options: SGD or Adam. Default: "
-                f"{defaults.OPTIMIZER}.",
-            },
-            "learning_rate": {
-                "type": float,
-                "default": defaults.LEARNING_RATE,
-                "help": "Learning rate used during model update. Default: "
-                f"{defaults.LEARNING_RATE}.",
-            },
-            "learning_rate_scheduler": {
-                "type": str,
-                "default": defaults.LEARNING_RATE_SCHEDULER,
-                "help": "Learning rate scheduler used during model update. Default: "
-                f"{defaults.LEARNING_RATE_SCHEDULER}.",
-            },
-            "learning_rate_scheduler_step_size": {
-                "type": int,
-                "default": defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-                "help": "Step size for learning rate scheduler. Default: "
-                f"{defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE}.",
-            },
-            "learning_rate_scheduler_gamma": {
-                "type": float,
-                "default": defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-                "help": "Gamma for learning rate scheduler. Default: "
-                f"{defaults.LEARNING_RATE_SCHEDULER_GAMMA}.",
-            },
-            "momentum": {
-                "type": float,
-                "default": defaults.MOMENTUM,
-                "help": f"Momentum used during model update. Default: {defaults.MOMENTUM}.",
-            },
-            "weight_decay": {
-                "type": float,
-                "default": defaults.WEIGHT_DECAY,
-                "help": f"Weight decay used during model update. Default: {defaults.WEIGHT_DECAY}.",
-            },
             "batch_size": {
                 "type": int,
                 "default": defaults.BATCH_SIZE,

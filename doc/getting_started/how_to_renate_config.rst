@@ -101,13 +101,13 @@ outlined in the example below.
 Learning Rate Schedulers
 ========================
 
-Optimizers such as ``SGD`` or ``Adam`` can be selected by passing the corresponding arguments.
-If you want to use other optimizers, you can do so by returning a partial optimizer object as
-outlined in the example below.
+A learning rate scheduler can be provided by creating a function as demonstrated below.
+This function will need to return a partial object of a learning rate scheduler as well as a string
+that indicates whether the scheduler is updated after each ``epoch`` or after each ``step``.
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 102-103
+    :lines: 106-107
 
 Transforms
 ==========

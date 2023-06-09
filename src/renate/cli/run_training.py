@@ -141,10 +141,14 @@ class ModelUpdaterCLI:
                 momentum=args.momentum,
                 weight_decay=args.weight_decay,
             )
-        partial_lr_scheduler = get_learning_rate_scheduler(
+        lr_scheduler_config = get_learning_rate_scheduler(
             config_module,
             **get_function_kwargs(args=args, function_args=function_args["lr_scheduler_fn"]),
         )
+        lr_scheduler_kwargs = {}
+        if lr_scheduler_config is not None:
+            lr_scheduler_kwargs["learning_rate_scheduler"] = lr_scheduler_config[0]
+            lr_scheduler_kwargs["learning_rate_scheduler_interval"] = lr_scheduler_config[1]
         metrics = get_metrics(config_module)
 
         model_updater_class, learner_kwargs = get_updater_and_learner_kwargs(args)
@@ -152,7 +156,6 @@ class ModelUpdaterCLI:
         model_updater = model_updater_class(
             model=model,
             optimizer=partial_optimizer,
-            learning_rate_scheduler=partial_lr_scheduler,
             input_state_folder=self._input_state_folder,
             output_state_folder=self._output_state_folder,
             max_epochs=args.max_epochs,
@@ -167,6 +170,7 @@ class ModelUpdaterCLI:
             deterministic_trainer=args.deterministic_trainer,
             loss_fn=loss_fn,
             **learner_kwargs,
+            **lr_scheduler_kwargs,
             **get_transforms_dict(config_module, args, function_args),
         )
 

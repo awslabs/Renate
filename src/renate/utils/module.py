@@ -5,7 +5,7 @@ import sys
 import warnings
 from functools import partial
 from types import ModuleType
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 import torchmetrics
@@ -101,21 +101,23 @@ def get_loss_fn(config_module: ModuleType, convert: bool, **kwargs: Any) -> torc
     return loss_fn
 
 
-def get_optimizer(config_module: ModuleType, **kwargs: Any) -> partial:
+def get_optimizer(config_module: ModuleType, **kwargs: Any) -> Optional[partial]:
     """Creates partial optimizer object from config."""
     optimizer_fn_name = "optimizer_fn"
     if optimizer_fn_name in vars(config_module):
-        return partial(getattr(config_module, optimizer_fn_name)(**kwargs))
+        return getattr(config_module, optimizer_fn_name)(**kwargs)
 
 
-def get_learning_rate_scheduler(config_module: ModuleType, **kwargs: Any) -> partial:
+def get_learning_rate_scheduler(
+    config_module: ModuleType, **kwargs: Any
+) -> Optional[Tuple[partial, defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE]]:
     """Creates partial learning rate scheduler object from config."""
     lr_scheduler_fn_name = "lr_scheduler_fn"
     if lr_scheduler_fn_name in vars(config_module):
-        return partial(getattr(config_module, lr_scheduler_fn_name)(**kwargs))
+        return getattr(config_module, lr_scheduler_fn_name)(**kwargs)
 
 
-def get_metrics(config_module: ModuleType) -> Dict[str, torchmetrics.Metric]:
+def get_metrics(config_module: ModuleType) -> Optional[Dict[str, torchmetrics.Metric]]:
     """Creates and returns a dictionary of metrics."""
     metrics_fn_name = "metrics_fn"
     if metrics_fn_name in vars(config_module):
