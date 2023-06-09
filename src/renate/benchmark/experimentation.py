@@ -386,7 +386,7 @@ def _execute_experiment_job_locally(
     save_pandas_df_to_csv(df, defaults.metric_summary_file(logs_url))
     if not retain_intermediate_state:
         move_to_uri(
-            defaults.hpo_file(working_directory), defaults.logs_folder(experiment_outputs_url)
+            defaults.hpo_file(input_state_url), defaults.logs_folder(experiment_outputs_url)
         )
     logger.info("### Cumulative results: ###")
     logger.info(df)
