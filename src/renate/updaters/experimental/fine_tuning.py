@@ -48,6 +48,7 @@ class FineTuningModelUpdater(SingleTrainingLoopUpdater):
         }
         super().__init__(
             model,
+            loss_fn=loss_fn,
             optimizer=optimizer,
             learner_class=Learner,
             learner_kwargs=learner_kwargs,

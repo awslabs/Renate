@@ -40,9 +40,10 @@ class Learner(LightningModule, abc.ABC):
     Args:
         model: The model to be trained.
         optimizer: Partial optimizer used to create an optimizer by passing the model parameters.
-        learning_rate_scheduler: Partial object of learning rate scheduler that will be created by passing the
-            optimizer.
-        learning_rate_scheduler_interval: When to update the learning rate scheduler. Options: `epoch` and `step`.
+        learning_rate_scheduler: Partial object of learning rate scheduler that will be created by
+            passing the optimizer.
+        learning_rate_scheduler_interval: When to update the learning rate scheduler.
+            Options: `epoch` and `step`.
         batch_size: Training batch size.
         train_transform: The transformation applied during training.
         train_target_transform: The target transformation applied during testing.

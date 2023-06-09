@@ -1,9 +1,12 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Callable, Dict, Optional
+from functools import partial
+from typing import Callable, Dict, Optional, Tuple
 
 import torch
 import torchvision
+from torch.optim import AdamW
+from torch.optim.lr_scheduler import StepLR
 from torchmetrics import Accuracy
 from torchvision.transforms import transforms
 
@@ -94,3 +97,11 @@ def metrics_fn() -> Dict:
 
 def loss_fn() -> torch.nn.Module:
     return torch.nn.CrossEntropyLoss(reduction="none")
+
+
+def optimizer_fn() -> partial:
+    return partial(AdamW, lr=0.01, weight_decay=0.0)
+
+
+def lr_scheduler_fn() -> Tuple[partial, str]:
+    return partial(StepLR, step_size=10, gamma=0.1), "epoch"

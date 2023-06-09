@@ -16,7 +16,7 @@ def create_partial_optimizer(
     """Creates a partial optimizer object.
 
     Args:
-        optimizer: The name of the optimizer to be used. Currently 'Adam' and 'SGD' are supported.
+        optimizer: The name of the optimizer to be used. Options: `Adam` or `SGD`.
         lr: Learning rate to be used.
         momentum: Value for the momentum hyperparameter (if relevant).
         weight_decay: Value for the weight_decay hyperparameter (if relevant).
