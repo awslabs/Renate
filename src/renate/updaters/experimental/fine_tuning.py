@@ -20,7 +20,7 @@ class FineTuningModelUpdater(SingleTrainingLoopUpdater):
         loss_fn: torch.nn.Module,
         optimizer: partial,
         learning_rate_scheduler: Optional[partial] = None,
-        learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,
+        learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
