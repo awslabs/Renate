@@ -2,12 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 import os
 import shutil
-from typing import Callable, Dict
+from typing import Callable, Dict, Literal
 
 import pytest
 import torch
 from pytorch_lightning.loggers import TensorBoardLogger
 
+from renate import defaults
 from renate.benchmark.models import (
     MultiLayerPerceptron,
     ResNet18,
@@ -40,6 +41,7 @@ from renate.updaters.experimental.offline_er import OfflineExperienceReplayLearn
 from renate.updaters.experimental.repeated_distill import RepeatedDistillationLearner
 from renate.updaters.learner import Learner, ReplayLearner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
+from renate.utils.optimizer import create_partial_optimizer
 
 pytest_plugins = ["helpers_namespace"]
 
@@ -360,31 +362,6 @@ def get_renate_module_mlp_and_data(
 
 
 @pytest.helpers.register
-def get_renate_module_mlp_data_and_loss(
-    num_inputs,
-    num_outputs,
-    num_hidden_layers,
-    hidden_size,
-    train_num_samples,
-    test_num_samples,
-    val_num_samples=0,
-    add_icarl_class_means=False,
-):
-    model, ds, test_data = get_renate_module_mlp_and_data(
-        num_inputs,
-        num_outputs,
-        num_hidden_layers,
-        hidden_size,
-        train_num_samples,
-        test_num_samples,
-        val_num_samples,
-        add_icarl_class_means,
-    )
-
-    return model, ds, test_data, get_loss_fn()
-
-
-@pytest.helpers.register
 def get_renate_vision_module_and_data(
     input_size,
     num_outputs,
@@ -406,10 +383,11 @@ def get_renate_vision_module_and_data(
 @pytest.helpers.register
 def get_simple_updater(
     model,
+    partial_optimizer=None,
     input_state_folder=None,
     output_state_folder=None,
     learner_class=ExperienceReplayLearner,
-    learner_kwargs={"memory_size": 10, "loss_fn": pytest.helpers.get_loss_fn()},
+    learner_kwargs=None,
     max_epochs=5,
     train_transform=None,
     train_target_transform=None,
@@ -421,6 +399,8 @@ def get_simple_updater(
     metric=None,
     deterministic_trainer=False,
 ):
+    if learner_kwargs is None:
+        learner_kwargs = {"memory_size": 10}
     transforms_kwargs = {
         "train_transform": train_transform,
         "train_target_transform": train_target_transform,
@@ -432,6 +412,8 @@ def get_simple_updater(
         transforms_kwargs["buffer_target_transform"] = buffer_target_transform
     return SingleTrainingLoopUpdater(
         model=model,
+        loss_fn=get_loss_fn(),
+        optimizer=partial_optimizer or get_partial_optimizer(),
         learner_class=learner_class,
         learner_kwargs=learner_kwargs,
         input_state_folder=input_state_folder,
@@ -452,7 +434,7 @@ def get_avalanche_updater(
     input_state_folder=None,
     output_state_folder=None,
     learner_class=AvalancheReplayLearner,
-    learner_kwargs={"memory_size": 10, "loss_fn": torch.nn.CrossEntropyLoss()},
+    learner_kwargs=None,
     max_epochs=5,
     train_transform=None,
     train_target_transform=None,
@@ -461,6 +443,8 @@ def get_avalanche_updater(
     early_stopping_enabled=False,
     metric=None,
 ):
+    if learner_kwargs is None:
+        learner_kwargs = {"memory_size": 10}
     transforms_kwargs = {
         "train_transform": train_transform,
         "train_target_transform": train_target_transform,
@@ -469,6 +453,8 @@ def get_avalanche_updater(
     }
     return AvalancheModelUpdater(
         model=model,
+        loss_fn=get_loss_fn("mean"),
+        optimizer=get_partial_optimizer(),
         learner_class=learner_class,
         learner_kwargs=learner_kwargs,
         input_state_folder=input_state_folder,
@@ -478,6 +464,18 @@ def get_avalanche_updater(
         early_stopping_enabled=early_stopping_enabled,
         metric=metric,
         **transforms_kwargs,
+    )
+
+
+@pytest.helpers.register
+def get_partial_optimizer(
+    optimizer: Literal["Adam", "SGD"] = defaults.OPTIMIZER,
+    lr: float = defaults.LEARNING_RATE,
+    momentum: float = defaults.MOMENTUM,
+    weight_decay: float = defaults.WEIGHT_DECAY,
+):
+    return create_partial_optimizer(
+        optimizer=optimizer, lr=lr, momentum=momentum, weight_decay=weight_decay
     )
 
 

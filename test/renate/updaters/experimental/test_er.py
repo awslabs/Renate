@@ -36,10 +36,11 @@ def test_er_overall_memory_size_after_update(batch_size, memory_size, memory_bat
         "memory_size": memory_size,
         "memory_batch_size": memory_batch_size,
         "batch_size": batch_size,
-        "loss_fn": pytest.helpers.get_loss_fn(),
     }
     model_updater = pytest.helpers.get_simple_updater(
         model=model,
+        loss_fn=pytest.helpers.get_loss_fn(),
+        optimizer=pytest.helpers.get_partial_optimizer(),
         learner_class=ExperienceReplayLearner,
         learner_kwargs=learner_kwargs,
         max_epochs=1,
@@ -94,16 +95,11 @@ def test_er_validation_buffer(tmpdir):
     [
         [
             ExperienceReplayLearner,
-            {
-                "alpha": 0.2,
-                "memory_size": 10,
-                "memory_batch_size": 10,
-                "loss_fn": pytest.helpers.get_loss_fn(),
-            },
+            {"alpha": 0.2, "memory_size": 10, "memory_batch_size": 10},
         ],
         [
             DarkExperienceReplayLearner,
-            {"alpha": 0.1, "beta": 0.3, "memory_size": 42, "loss_fn": pytest.helpers.get_loss_fn()},
+            {"alpha": 0.1, "beta": 0.3, "memory_size": 42},
         ],
         [
             CLSExperienceReplayLearner,
@@ -115,18 +111,11 @@ def test_er_validation_buffer(tmpdir):
                 "stable_model_update_probability": 0.3,
                 "plastic_model_update_probability": 0.5,
                 "memory_size": 42,
-                "loss_fn": pytest.helpers.get_loss_fn(),
             },
         ],
         [
             PooledOutputDistillationExperienceReplayLearner,
-            {
-                "alpha": 0.3,
-                "distillation_type": "pixel",
-                "normalize": False,
-                "memory_size": 42,
-                "loss_fn": pytest.helpers.get_loss_fn(),
-            },
+            {"alpha": 0.3, "distillation_type": "pixel", "normalize": False, "memory_size": 42},
         ],
         [
             SuperExperienceReplayLearner,
@@ -144,7 +133,6 @@ def test_er_validation_buffer(tmpdir):
                 "pod_distillation_type": "pixel",
                 "pod_normalize": False,
                 "memory_size": 42,
-                "loss_fn": pytest.helpers.get_loss_fn(),
             },
         ],
     ],
@@ -155,9 +143,19 @@ def test_er_components_save_and_load(tmpdir, cls, kwargs):
     model = pytest.helpers.get_renate_module_mlp(
         num_inputs=10, num_outputs=10, hidden_size=32, num_hidden_layers=3
     )
-    learner = cls(model=model, **kwargs)
+    learner = cls(
+        model=model,
+        loss_fn=pytest.helpers.get_loss_fn(),
+        optimizer=pytest.helpers.get_partial_optimizer(),
+        **kwargs,
+    )
     torch.save(learner.state_dict(), os.path.join(tmpdir, "learner.pt"))
-    learner = cls(model=model, **kwargs)
+    learner = cls(
+        model=model,
+        loss_fn=pytest.helpers.get_loss_fn(),
+        optimizer=pytest.helpers.get_partial_optimizer(),
+        **kwargs,
+    )
     learner.load_state_dict(torch.load(os.path.join(tmpdir, "learner.pt")))
     if isinstance(learner, ExperienceReplayLearner) and not isinstance(
         learner, DarkExperienceReplayLearner

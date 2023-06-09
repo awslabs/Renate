@@ -26,8 +26,9 @@ def test_joint_learner_memory_append():
     dataset_len = len(dataset)
     model_updater = pytest.helpers.get_simple_updater(
         model=model,
+        loss_fn=pytest.helpers.get_loss_fn(),
+        optimizer=pytest.helpers.get_partial_optimizer(),
         learner_class=JointLearner,
-        learner_kwargs={"loss_fn": pytest.helpers.get_loss_fn()},
         max_epochs=1,
     )
     model_updater.update(train_dataset=dataset, task_id=defaults.TASK_ID)
@@ -41,11 +42,9 @@ def test_joint_learner_model_reset():
     model, dataset = get_model_and_dataset()
     model_updater = pytest.helpers.get_simple_updater(
         model=model,
+        loss_fn=pytest.helpers.get_loss_fn(),
+        optimizer=pytest.helpers.get_partial_optimizer(lr=0.0),
         learner_class=JointLearner,
-        learner_kwargs={
-            "learning_rate": 0.0,
-            "loss_fn": pytest.helpers.get_loss_fn(),
-        },
         max_epochs=1,
     )
     model = model_updater.update(train_dataset=dataset, task_id=defaults.TASK_ID)
