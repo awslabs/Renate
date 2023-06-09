@@ -172,7 +172,7 @@ def parse_arguments(
         to all functions specified in ``function_names``.
     """
     arguments = _standard_arguments()
-    _add_hyperparameter_arguments(arguments, "optimizer_fn" in vars(config_module))
+    _add_hyperparameter_arguments(arguments, "optimizer_fn" not in vars(config_module))
     function_args = {}
     for function_name in function_names:
         function_args[function_name] = get_function_args(
