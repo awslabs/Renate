@@ -3,6 +3,7 @@
 import abc
 import logging
 import warnings
+from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Type
 
@@ -20,9 +21,8 @@ from renate.utils.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
 from renate.utils.distributed_strategies import create_strategy
 from renate.utils.file import unlink_file_or_folder
 from renate.utils.misc import int_or_str
-
-from ..models import RenateModule
 from .learner import Learner, ReplayLearner
+from ..models import RenateModule
 
 logging_logger = logging.getLogger(__name__)
 
@@ -155,7 +155,7 @@ class RenateModelCheckpoint(ModelCheckpoint):
 
         1. If deepspeed is being used:
         The learner_state_path (which the checkpointing func) uses is a directory and not a file.
-        This directory has sharded state_dicts (of model and optimizers, depending on which
+        This directory has sharded state_dicts (of model and optimizers), depending on which
         deepspeed stage is used. There are three steps here
 
         a. combine all the shards into one big state dict.
@@ -184,7 +184,7 @@ class RenateModelCheckpoint(ModelCheckpoint):
                 torch.save(combined_state_dict, learner_state_path)
                 self.teardown(trainer, pl_module, stage)
             elif learner_state_path.exists() and learner_state_path.is_file():
-                ## This a normal file. We strip the model of any wrappers and save that.
+                # This a normal file. We strip the model of any wrappers and save that.
                 state_dict = torch.load(learner_state_path)["state_dict"]
                 out_sd = {k.replace("_model.", "", 1): v for k, v in state_dict.items()}
                 # Replace only 1 instance because we have to load it into RenateModule.
@@ -239,11 +239,15 @@ class ModelUpdater(abc.ABC):
     def __init__(
         self,
         model: RenateModule,
+        loss_fn: torch.nn.Module,
+        optimizer: partial,
         learner_class: Type[Learner],
         learner_kwargs: Optional[Dict[str, Any]] = None,
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
+        learning_rate_scheduler: Optional[partial] = None,
+        learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
         test_transform: Optional[Callable] = None,
@@ -262,6 +266,13 @@ class ModelUpdater(abc.ABC):
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
         self._learner_kwargs = learner_kwargs or {}
+        self._learner_kwargs["loss_fn"] = loss_fn
+        self._learner_kwargs["optimizer"] = optimizer
+        if learning_rate_scheduler is not None:
+            self._learner_kwargs["learning_rate_scheduler"] = learning_rate_scheduler
+            self._learner_kwargs[
+                "learning_rate_scheduler_interval"
+            ] = learning_rate_scheduler_interval
         self._model = model
         self._learner_state_file: Optional[str] = None
         if input_state_folder is not None:

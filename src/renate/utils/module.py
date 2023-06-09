@@ -3,6 +3,7 @@
 import importlib.util
 import sys
 import warnings
+from functools import partial
 from types import ModuleType
 from typing import Any, Callable, Dict, List, Optional, Union
 
@@ -98,6 +99,20 @@ def get_loss_fn(config_module: ModuleType, convert: bool, **kwargs: Any) -> torc
     if convert:
         _convert_loss(loss_fn)
     return loss_fn
+
+
+def get_optimizer(config_module: ModuleType, **kwargs: Any) -> partial:
+    """Creates partial optimizer object from config."""
+    optimizer_fn_name = "optimizer_fn"
+    if optimizer_fn_name in vars(config_module):
+        return partial(getattr(config_module, optimizer_fn_name)(**kwargs))
+
+
+def get_learning_rate_scheduler(config_module: ModuleType, **kwargs: Any) -> partial:
+    """Creates partial learning rate scheduler object from config."""
+    lr_scheduler_fn_name = "lr_scheduler_fn"
+    if lr_scheduler_fn_name in vars(config_module):
+        return partial(getattr(config_module, lr_scheduler_fn_name)(**kwargs))
 
 
 def get_metrics(config_module: ModuleType) -> Dict[str, torchmetrics.Metric]:

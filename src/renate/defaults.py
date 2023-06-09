@@ -10,6 +10,9 @@ from syne_tune.optimizer.schedulers import FIFOScheduler
 OPTIMIZER = "Adam"
 SUPPORTED_OPTIMIZERS = ["Adam", "SGD"]
 SUPPORTED_OPTIMIZERS_TYPE = Literal["Adam", "SGD"]
+LR_SCHEDULER_INTERVAL = "epoch"
+SUPPORTED_LR_SCHEDULER_INTERVAL = ["epoch", "step"]
+SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = Literal["epoch", "step"]
 LEARNING_RATE = 3e-4
 LEARNING_RATE_SCHEDULER = "ConstantLR"
 LEARNING_RATE_SCHEDULER_GAMMA = 1.0

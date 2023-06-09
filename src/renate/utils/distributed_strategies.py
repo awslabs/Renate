@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 import warnings
 from typing import Optional
-from pytorch_lightning.strategies import Strategy, StrategyRegistry
 
+from pytorch_lightning.strategies import Strategy, StrategyRegistry
 
 _SUPPORTED_STRATEGIES = [
     "ddp_find_unused_parameters_false",

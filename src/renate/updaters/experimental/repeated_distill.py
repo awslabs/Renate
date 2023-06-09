@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import copy
+from functools import partial
 from typing import Callable, Dict, Optional, Tuple
 
 import torch
@@ -46,7 +47,7 @@ def extract_logits(
     model: torch.nn.Module,
     dataset: Dataset,
     batch_size: int,
-    task_id: int = defaults.TASK_ID,
+    task_id: Optional[str] = defaults.TASK_ID,
 ) -> torch.Tensor:
     """Extracts logits from a model for each point in a dataset.
 
@@ -95,14 +96,10 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
+        optimizer: partial,
         memory_size: int,
-        optimizer: str = defaults.OPTIMIZER,
-        learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
-        learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-        learning_rate_scheduler_step_size: float = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-        momentum: float = defaults.MOMENTUM,
-        weight_decay: float = defaults.WEIGHT_DECAY,
+        learning_rate_scheduler: Optional[partial] = None,
+        learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
@@ -125,26 +122,18 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
         early_stopping_enabled=False,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
-        learner_kwargs = {
-            "memory_size": memory_size,
-            "optimizer": optimizer,
-            "learning_rate": learning_rate,
-            "learning_rate_scheduler": learning_rate_scheduler,
-            "learning_rate_scheduler_gamma": learning_rate_scheduler_gamma,
-            "learning_rate_scheduler_step_size": learning_rate_scheduler_step_size,
-            "momentum": momentum,
-            "weight_decay": weight_decay,
-            "batch_size": batch_size,
-            "seed": seed,
-            "loss_fn": loss_fn,
-        }
+        learner_kwargs = {"memory_size": memory_size, "batch_size": batch_size, "seed": seed}
         super().__init__(
             model=model,
+            loss_fn=loss_fn,
+            optimizer=optimizer,
             learner_class=RepeatedDistillationLearner,
             learner_kwargs=learner_kwargs,
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            learning_rate_scheduler=learning_rate_scheduler,
+            learning_rate_scheduler_interval=learning_rate_scheduler_interval,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,
@@ -211,50 +200,8 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
 class RepeatedDistillationLearner(ReplayLearner):
     """A learner performing distillation."""
 
-    def __init__(
-        self,
-        model: RenateModule,
-        loss_fn: torch.nn.Module,
-        memory_size: int,
-        optimizer: str = defaults.OPTIMIZER,
-        learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
-        learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-        learning_rate_scheduler_step_size: float = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-        momentum: float = defaults.MOMENTUM,
-        weight_decay: float = defaults.WEIGHT_DECAY,
-        batch_size: int = defaults.BATCH_SIZE,
-        train_transform: Optional[Callable] = None,
-        train_target_transform: Optional[Callable] = None,
-        test_transform: Optional[Callable] = None,
-        test_target_transform: Optional[Callable] = None,
-        buffer_transform: Optional[Callable] = None,
-        buffer_target_transform: Optional[Callable] = None,
-        logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None,
-        seed: Optional[int] = None,
-    ) -> None:
-        super().__init__(
-            model=model,
-            memory_size=memory_size,
-            memory_batch_size=batch_size,
-            buffer_transform=buffer_transform,
-            buffer_target_transform=buffer_target_transform,
-            optimizer=optimizer,
-            learning_rate=learning_rate,
-            learning_rate_scheduler=learning_rate_scheduler,
-            learning_rate_scheduler_gamma=learning_rate_scheduler_gamma,
-            learning_rate_scheduler_step_size=learning_rate_scheduler_step_size,
-            momentum=momentum,
-            weight_decay=weight_decay,
-            batch_size=batch_size,
-            train_transform=train_transform,
-            train_target_transform=train_target_transform,
-            test_transform=test_transform,
-            test_target_transform=test_target_transform,
-            logged_metrics=logged_metrics,
-            seed=seed,
-            loss_fn=loss_fn,
-        )
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
         self._expert_logits: Optional[torch.Tensor] = None
 
     def update_expert_logits(self, new_expert_logits: torch.Tensor) -> None:

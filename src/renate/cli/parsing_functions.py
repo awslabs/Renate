@@ -4,11 +4,11 @@ import argparse
 import ast
 import inspect
 import sys
-import pytorch_lightning as pl
 from importlib.util import find_spec
 from types import ModuleType
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
+import pytorch_lightning as pl
 from syne_tune.optimizer.scheduler import TrialScheduler
 
 from renate import defaults
@@ -48,17 +48,7 @@ def get_updater_and_learner_kwargs(
     """Returns the model updater class and the keyword arguments for the learner."""
     if args.updater.startswith("Avalanche-") and find_spec("avalanche", None) is None:
         raise ImportError("Avalanche is not installed. Please run `pip install Renate[avalanche]`.")
-    learner_args = [
-        "optimizer",
-        "learning_rate",
-        "learning_rate_scheduler",
-        "learning_rate_scheduler_step_size",
-        "learning_rate_scheduler_gamma",
-        "momentum",
-        "weight_decay",
-        "batch_size",
-        "seed",
-    ]
+    learner_args = ["batch_size", "seed"]
     base_er_args = learner_args + [
         "loss_weight",
         "ema_memory_update_gamma",

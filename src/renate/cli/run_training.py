@@ -18,11 +18,14 @@ from renate.cli.parsing_functions import (
 from renate.utils.file import maybe_download_from_s3, move_to_uri
 from renate.utils.module import (
     get_and_setup_data_module,
+    get_learning_rate_scheduler,
     get_loss_fn,
     get_metrics,
     get_model,
+    get_optimizer,
     import_module,
 )
+from renate.utils.optimizer import create_partial_optimizer
 from renate.utils.syne_tune import redirect_to_tmp
 
 logger = logging.getLogger(__name__)
@@ -99,9 +102,11 @@ class ModelUpdaterCLI:
                 "train_transform",
                 "test_transform",
                 "buffer_transform",
-                "metrics_fn",
                 "scheduler_fn",
                 "loss_fn",
+                "optimizer_fn",
+                "lr_scheduler_fn",
+                "metrics_fn",
             ],
             ignore_args=["data_path", "model_state_url"],
         )
@@ -125,13 +130,29 @@ class ModelUpdaterCLI:
             not args.updater.startswith("Avalanche-"),
             **get_function_kwargs(args=args, function_args=function_args["loss_fn"]),
         )
-
+        partial_optimizer = get_optimizer(
+            config_module,
+            **get_function_kwargs(args=args, function_args=function_args["optimizer_fn"]),
+        )
+        if partial_optimizer is None:
+            partial_optimizer = create_partial_optimizer(
+                optimizer=args.optimizer,
+                lr=args.learning_rate,
+                momentum=args.momentum,
+                weight_decay=args.weight_decay,
+            )
+        partial_lr_scheduler = get_learning_rate_scheduler(
+            config_module,
+            **get_function_kwargs(args=args, function_args=function_args["lr_scheduler_fn"]),
+        )
         metrics = get_metrics(config_module)
 
         model_updater_class, learner_kwargs = get_updater_and_learner_kwargs(args)
 
         model_updater = model_updater_class(
             model=model,
+            optimizer=partial_optimizer,
+            learning_rate_scheduler=partial_lr_scheduler,
             input_state_folder=self._input_state_folder,
             output_state_folder=self._output_state_folder,
             max_epochs=args.max_epochs,

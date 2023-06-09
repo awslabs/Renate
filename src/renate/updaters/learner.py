@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import abc
 import os
+from functools import partial
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import torch
@@ -10,6 +11,7 @@ import torchmetrics
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch import Tensor
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset
 
 from renate import defaults
@@ -18,7 +20,6 @@ from renate.evaluation.metrics.utils import create_metrics
 from renate.memory import DataBuffer, InfiniteBuffer, ReservoirBuffer
 from renate.models import RenateModule
 from renate.types import NestedTensors
-from renate.utils.optimizer import create_optimizer, create_scheduler
 from renate.utils.pytorch import get_generator
 
 
@@ -38,13 +39,10 @@ class Learner(LightningModule, abc.ABC):
 
     Args:
         model: The model to be trained.
-        optimizer: Optimizer used for training. Options: `Adam` or `SGD`.
-        learning_rate: Initial learning rate used for training.
-        learning_rate_scheduler: Learning rate scheduler used for training.
-        learning_rate_scheduler_gamma: Learning rate scheduler gamma.
-        learning_rate_scheduler_step_size: Learning rate scheduler step size.
-        momentum: Momentum term (only relevant for optimizer `SGD`).
-        weight_decay: L2 regularization applied to all model weights.
+        optimizer: Partial optimizer used to create an optimizer by passing the model parameters.
+        learning_rate_scheduler: Partial object of learning rate scheduler that will be created by passing the
+            optimizer.
+        learning_rate_scheduler_interval: When to update the learning rate scheduler. Options: `epoch` and `step`.
         batch_size: Training batch size.
         train_transform: The transformation applied during training.
         train_target_transform: The target transformation applied during testing.
@@ -58,13 +56,9 @@ class Learner(LightningModule, abc.ABC):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
-        learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
-        learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-        learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-        momentum: float = defaults.MOMENTUM,
-        weight_decay: float = defaults.WEIGHT_DECAY,
+        optimizer: partial,
+        learning_rate_scheduler: Optional[partial] = None,
+        learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
@@ -77,12 +71,8 @@ class Learner(LightningModule, abc.ABC):
         self._model = model
         self._loss_fn = loss_fn
         self._optimizer = optimizer
-        self._learning_rate = learning_rate
         self._learning_rate_scheduler = learning_rate_scheduler
-        self._learning_rate_scheduler_gamma = learning_rate_scheduler_gamma
-        self._learning_rate_scheduler_step_size = learning_rate_scheduler_step_size
-        self._momentum = momentum
-        self._weight_decay = weight_decay
+        self._learning_rate_scheduler_interval = learning_rate_scheduler_interval
         self._batch_size = batch_size
         self._train_transform = train_transform
         self._train_target_transform = train_target_transform
@@ -274,22 +264,16 @@ class Learner(LightningModule, abc.ABC):
 
     def configure_optimizers(
         self,
-    ) -> Tuple[List[torch.optim.Optimizer], List[torch.optim.lr_scheduler._LRScheduler]]:
-        """PyTorch Lightning function to create an optimizer."""
-        optimizer = create_optimizer(
-            params=self._model.get_params(self._task_id),
-            optimizer=self._optimizer,
-            lr=self._learning_rate,
-            momentum=self._momentum,
-            weight_decay=self._weight_decay,
-        )
-        scheduler = create_scheduler(
-            scheduler=self._learning_rate_scheduler,
-            optimizer=optimizer,
-            gamma=self._learning_rate_scheduler_gamma,
-            step_size=self._learning_rate_scheduler_step_size,
-        )
-        return [optimizer], [scheduler]
+    ) -> Union[Optimizer, Tuple[List[Optimizer], List[Dict[str, Any]]]]:
+        """PyTorch Lightning function to create optimizers and learning rate schedulers."""
+        optimizer = self._optimizer(self._model.get_params(self._task_id))
+        if self._learning_rate_scheduler is None:
+            return optimizer
+        lr_scheduler_config = {
+            "scheduler": self._learning_rate_scheduler(optimizer),
+            "interval": self._learning_rate_scheduler_interval,
+        }
+        return [optimizer], [lr_scheduler_config]
 
     def _update_metrics(
         self,
