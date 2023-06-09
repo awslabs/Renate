@@ -26,7 +26,7 @@ def test_joint_learner_memory_append():
     dataset_len = len(dataset)
     model_updater = pytest.helpers.get_simple_updater(
         model=model,
-        optimizer=pytest.helpers.get_partial_optimizer(),
+        partial_optimizer=pytest.helpers.get_partial_optimizer(),
         learner_class=JointLearner,
         max_epochs=1,
     )
@@ -41,7 +41,7 @@ def test_joint_learner_model_reset():
     model, dataset = get_model_and_dataset()
     model_updater = pytest.helpers.get_simple_updater(
         model=model,
-        optimizer=pytest.helpers.get_partial_optimizer(lr=0.0),
+        partial_optimizer=pytest.helpers.get_partial_optimizer(lr=0.0),
         learner_class=JointLearner,
         max_epochs=1,
     )

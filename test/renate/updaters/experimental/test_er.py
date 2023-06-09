@@ -39,7 +39,7 @@ def test_er_overall_memory_size_after_update(batch_size, memory_size, memory_bat
     }
     model_updater = pytest.helpers.get_simple_updater(
         model=model,
-        optimizer=pytest.helpers.get_partial_optimizer(),
+        partial_optimizer=pytest.helpers.get_partial_optimizer(),
         learner_class=ExperienceReplayLearner,
         learner_kwargs=learner_kwargs,
         max_epochs=1,
