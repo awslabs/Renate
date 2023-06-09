@@ -28,6 +28,7 @@ def test_joint_learner_memory_append():
         model=model,
         partial_optimizer=pytest.helpers.get_partial_optimizer(),
         learner_class=JointLearner,
+        learner_kwargs={},
         max_epochs=1,
     )
     model_updater.update(train_dataset=dataset, task_id=defaults.TASK_ID)
@@ -43,6 +44,7 @@ def test_joint_learner_model_reset():
         model=model,
         partial_optimizer=pytest.helpers.get_partial_optimizer(lr=0.0),
         learner_class=JointLearner,
+        learner_kwargs={},
         max_epochs=1,
     )
     model = model_updater.update(train_dataset=dataset, task_id=defaults.TASK_ID)
