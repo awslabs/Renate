@@ -72,7 +72,7 @@ def test_dmc_memory_size_after_update(memory_size, dataset_size):
 
 @pytest.mark.parametrize("provide_folder", [True, False])
 def test_dmc_model_updater(tmpdir, provide_folder):
-    model, train_dataset, test_data = pytest.helpers.get_renate_module_mlp_data(
+    model, train_dataset, test_data = pytest.helpers.get_renate_module_mlp_and_data(
         num_inputs=10,
         num_outputs=10,
         hidden_size=32,
@@ -97,7 +97,7 @@ def test_dmc_model_updater(tmpdir, provide_folder):
 
 
 def test_continuation_of_training_with_dmc_model_updater(tmpdir):
-    model, train_dataset, _ = pytest.helpers.get_renate_module_mlp_data(
+    model, train_dataset, _ = pytest.helpers.get_renate_module_mlp_and_data(
         num_inputs=10,
         num_outputs=10,
         hidden_size=32,

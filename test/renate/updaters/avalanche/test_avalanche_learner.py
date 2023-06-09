@@ -83,7 +83,12 @@ def test_update_settings(learner_class):
     expected_optimizer = SGD(expected_model.parameters(), lr=0.1)
     expected_device = torch.device("cpu")
     expected_eval_every = -1
-    learner = learner_class(model=expected_model, **learner_kwargs)
+    learner = learner_class(
+        model=expected_model,
+        optimizer=None,
+        loss_fn=pytest.helpers.get_loss_fn("mean"),
+        **learner_kwargs,
+    )
     avalanche_learner = learner.create_avalanche_learner(
         plugins=plugins,
         optimizer=expected_optimizer,
