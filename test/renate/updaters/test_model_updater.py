@@ -73,7 +73,7 @@ def test_deterministic_updater():
 def test_model_updater_with_early_stopping(
     use_val, early_stopping_enabled, metric_monitored, updater_type
 ):
-    model, train_dataset, val_dataset, loss = pytest.helpers.get_renate_module_mlp_data_and_loss(
+    model, train_dataset, val_dataset = pytest.helpers.get_renate_module_mlp_data(
         num_inputs=10,
         num_outputs=10,
         hidden_size=8,
@@ -88,7 +88,7 @@ def test_model_updater_with_early_stopping(
         if updater_type == "DMC":
             model_updater = RepeatedDistillationModelUpdater(
                 model=model,
-                loss_fn=loss,
+                loss_fn=pytest.helpers.get_loss_fn(),
                 memory_size=50,
                 max_epochs=max_epochs,
                 early_stopping_enabled=early_stopping_enabled,
