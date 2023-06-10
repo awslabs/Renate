@@ -23,26 +23,31 @@ from renate.training.training import (
 from renate.utils.syne_tune import is_syne_tune_config_space
 
 config_file = str(Path(__file__).parent.parent / "renate_config_files" / "config.py")
+config_file_custom_optimizer = str(
+    Path(__file__).parent.parent / "renate_config_files" / "config_custom_optimizer.py"
+)
 
 
 @pytest.mark.parametrize(
-    "num_chunks, val_size, raises, fixed_search_space, scheduler",
+    "num_chunks, val_size, raises, fixed_search_space, scheduler, configuration_file",
     [
-        (2, 0.9, False, False, "rush"),
-        (1, 0.0, True, False, "rush"),
-        (2, 0.9, False, True, None),
-        (2, 0.0, False, True, None),
+        (2, 0.9, False, False, "rush", config_file),
+        (1, 0.0, True, False, "rush", config_file),
+        (2, 0.9, False, True, None, config_file),
+        (2, 0.0, False, True, None, config_file),
+        (1, 0.0, False, True, None, config_file_custom_optimizer),
     ],
     ids=[
         "transfer-hpo-with-val",
         "transfer-hpo-without-val-raises-exception",
         "training-single-config-with-val",
         "training-single-config-without-val",
+        "training-single-config-without-val-custom-optimizer",
     ],
 )
 @pytest.mark.parametrize("updater", ("ER", "Avalanche-iCaRL"))
 def test_run_training_job(
-    tmpdir, num_chunks, val_size, raises, fixed_search_space, scheduler, updater
+    tmpdir, num_chunks, val_size, raises, fixed_search_space, scheduler, updater, configuration_file
 ):
     """Simply running tuning job to check if anything fails.
 
@@ -50,24 +55,28 @@ def test_run_training_job(
     Case 2: HPO without validation set fails.
     Case 3: Training of single configuration with validation set.
     Case 4: Training of single configuration without validation set.
+    Case 5: Training of single configuration without validation set using custom optimizer and
+        learning rate scheduler..
     """
     state_url = None
     tmpdir = str(tmpdir)
     for _ in range(num_chunks):
 
         def execute_job():
+            config_space = {"val_size": val_size}
+            if configuration_file == config_file:
+                config_space["learning_rate"] = (
+                    0.1 if fixed_search_space else loguniform(10e-5, 0.1)
+                )
             run_training_job(
                 updater=updater,
                 max_epochs=5,
-                config_file=config_file,
+                config_file=configuration_file,
                 input_state_url=state_url,
                 output_state_url=tmpdir,
                 backend="local",
                 mode="max",
-                config_space={
-                    "learning_rate": 0.1 if fixed_search_space else loguniform(10e-5, 0.1),
-                    "val_size": val_size,
-                },
+                config_space=config_space,
                 metric="val_accuracy",
                 max_time=30,
                 scheduler=scheduler,
