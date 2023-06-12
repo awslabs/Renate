@@ -29,7 +29,7 @@ method, which automatically handles model hyperparameters.
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 18-44
+    :lines: 18-42
 
 If you are using a torch model with **no or fixed hyperparameters**, you can use
 :py:class:`~renate.models.renate_module.RenateWrapper`.
@@ -63,7 +63,7 @@ An example of this for the task of MNIST classification above as
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Loss function example
-    :lines: 98-99
+    :lines: 99-100
 
 Please note, loss functions should not be reduced.
 

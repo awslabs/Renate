@@ -56,7 +56,7 @@ In practice, you would ingest your own data here, see the documentation for
 :py:class:`~renate.data.data_module.RenateDataModule`.
 
 .. literalinclude:: ../../examples/shift_detection/image_shift_detection.py
-    :lines: 13-16
+    :lines: 12-15
 
 For the purpose of this demonstration, we now generate a reference dataset as well as two query
 datasets: one from the same distribution, and one where we simulate a distribution shift by
@@ -67,14 +67,14 @@ The query dataset would be the data you want to check for distribution shift, e.
 during the deployment of your model.
 
 .. literalinclude:: ../../examples/shift_detection/image_shift_detection.py
-    :lines: 22-26
+    :lines: 21-25
 
 Shift detection methods rely on informative (and relatively low-dimensional) features.
 Here, we use a pretrained ResNet model and chop of its output layer.
 This leads to 512-dimensional vectorial features.
 
 .. literalinclude:: ../../examples/shift_detection/image_shift_detection.py
-    :lines: 31-33
+    :lines: 30-32
 
 You can use any :py:class:`torch.nn.Module`, which may be a pretrained model or use a custom model
 that has been trained on the data at hand.
@@ -85,7 +85,7 @@ Now we can instantiate an MMD-based shift detector. We first fit it to our refer
 then score both the in-distribution query dataset as well as the out-of-distribution query dataset.
 
 .. literalinclude:: ../../examples/shift_detection/image_shift_detection.py
-    :lines: 39-47
+    :lines: 38-46
 
 In this toy example, the shift is quite obvious and we will see a very high score for the
 out-of-distribution data::
