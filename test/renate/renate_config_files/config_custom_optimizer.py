@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 from functools import partial
-from typing import Callable, Generator, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 
 import torch
 from torch.nn import Parameter
@@ -35,7 +35,7 @@ def loss_fn(updater: Optional[str] = None) -> torch.nn.Module:
     return torch.nn.CrossEntropyLoss(reduction="none")
 
 
-def optimizer_fn() -> Callable[[Generator[Parameter]], Optimizer]:
+def optimizer_fn() -> Callable[[List[Parameter]], Optimizer]:
     return partial(SGD, lr=0.01)
 
 
