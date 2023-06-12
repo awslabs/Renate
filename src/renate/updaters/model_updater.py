@@ -4,7 +4,7 @@ import abc
 import logging
 import warnings
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Type
 
 import torch
 import torchmetrics
@@ -242,7 +242,7 @@ class ModelUpdater(abc.ABC):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: Callable[[Generator[Parameter]], Optimizer],
+        optimizer: Callable[[List[Parameter]], Optimizer],
         learner_class: Type[Learner],
         learner_kwargs: Optional[Dict[str, Any]] = None,
         input_state_folder: Optional[str] = None,

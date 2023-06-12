@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 from functools import partial
-from typing import Any, Callable, Dict, Generator, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
 import torchmetrics
@@ -94,7 +94,7 @@ class GDumbModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: Callable[[Generator[Parameter]], Optimizer],
+        optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         learning_rate_scheduler: Optional[partial] = None,

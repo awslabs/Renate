@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import abc
 from functools import partial
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -505,7 +505,7 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: Callable[[Generator[Parameter]], Optimizer],
+        optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         loss_weight: float = defaults.LOSS_WEIGHT,
@@ -581,7 +581,7 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: Callable[[Generator[Parameter]], Optimizer],
+        optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         loss_weight: float = defaults.LOSS_WEIGHT,
@@ -659,7 +659,7 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: Callable[[Generator[Parameter]], Optimizer],
+        optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         loss_weight: float = defaults.LOSS_WEIGHT,
@@ -739,7 +739,7 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: Callable[[Generator[Parameter]], Optimizer],
+        optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         loss_weight: float = defaults.LOSS_WEIGHT,
@@ -825,7 +825,7 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: Callable[[Generator[Parameter]], Optimizer],
+        optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         loss_weight: float = defaults.LOSS_WEIGHT,

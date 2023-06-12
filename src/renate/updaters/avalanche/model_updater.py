@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import logging
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Type
 
 import torch
 import torchmetrics
@@ -239,7 +239,7 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: Callable[[Generator[Parameter]], Optimizer],
+        optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         learning_rate_scheduler: Optional[Callable[[Optimizer], _LRScheduler]] = None,
@@ -304,7 +304,7 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: Callable[[Generator[Parameter]], Optimizer],
+        optimizer: Callable[[List[Parameter]], Optimizer],
         ewc_lambda: float = defaults.EWC_LAMBDA,
         learning_rate_scheduler: Optional[Callable[[Optimizer], _LRScheduler]] = None,
         learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
@@ -367,7 +367,7 @@ class LearningWithoutForgettingModelUpdater(AvalancheModelUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: Callable[[Generator[Parameter]], Optimizer],
+        optimizer: Callable[[List[Parameter]], Optimizer],
         alpha: float = defaults.LWF_ALPHA,
         temperature: float = defaults.LWF_TEMPERATURE,
         learning_rate_scheduler: Optional[Callable[[Optimizer], _LRScheduler]] = None,
@@ -432,7 +432,7 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: Callable[[Generator[Parameter]], Optimizer],
+        optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         learning_rate_scheduler: Optional[Callable[[Optimizer], _LRScheduler]] = None,

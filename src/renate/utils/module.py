@@ -4,7 +4,7 @@ import importlib.util
 import sys
 import warnings
 from types import ModuleType
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 import torchmetrics
@@ -105,7 +105,7 @@ def get_loss_fn(config_module: ModuleType, convert: bool, **kwargs: Any) -> torc
 
 def get_optimizer(
     config_module: ModuleType, **kwargs: Any
-) -> Optional[Callable[[Generator[Parameter]], Optimizer]]:
+) -> Optional[Callable[[List[Parameter]], Optimizer]]:
     """Creates partial optimizer object from config."""
     optimizer_fn_name = "optimizer_fn"
     if optimizer_fn_name in vars(config_module):

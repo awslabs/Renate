@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import abc
 import os
-from typing import Any, Callable, Dict, Generator, List, Literal, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -58,7 +58,7 @@ class Learner(LightningModule, abc.ABC):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: Callable[[Generator[Parameter]], Optimizer],
+        optimizer: Callable[[List[Parameter]], Optimizer],
         learning_rate_scheduler: Optional[Optional[Callable[[Optimizer], _LRScheduler]]] = None,
         learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
@@ -90,6 +90,8 @@ class Learner(LightningModule, abc.ABC):
             ignore=[
                 "model",
                 "loss_fn",
+                "optimizer",
+                "learning_rate_scheduler",
                 "components",
                 "train_transform",
                 "test_transform",

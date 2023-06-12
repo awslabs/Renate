@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import copy
 from functools import partial
-from typing import Callable, Dict, Generator, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 import torch
 import torchmetrics
@@ -98,7 +98,7 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: Callable[[Generator[Parameter]], Optimizer],
+        optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
         learning_rate_scheduler: Optional[partial] = None,
         learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
