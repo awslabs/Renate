@@ -7,7 +7,6 @@ from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
 from renate.models.renate_module import RenateWrapper
 from renate.updaters.experimental.fine_tuning import FineTuningModelUpdater
 
-
 ### Create model.
 transformer_model = transformers.DistilBertForSequenceClassification.from_pretrained(
     "distilbert-base-uncased", num_labels=2, return_dict=False

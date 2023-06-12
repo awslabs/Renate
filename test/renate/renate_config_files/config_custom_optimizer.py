@@ -1,11 +1,12 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 from functools import partial
-from typing import Optional, Tuple
+from typing import Callable, Generator, Optional, Tuple
 
 import torch
-from torch.optim import SGD
-from torch.optim.lr_scheduler import StepLR
+from torch.nn import Parameter
+from torch.optim import Optimizer, SGD
+from torch.optim.lr_scheduler import StepLR, _LRScheduler
 
 from dummy_datasets import DummyTorchVisionDataModule
 from renate.benchmark.models.mlp import MultiLayerPerceptron
@@ -34,9 +35,9 @@ def loss_fn(updater: Optional[str] = None) -> torch.nn.Module:
     return torch.nn.CrossEntropyLoss(reduction="none")
 
 
-def optimizer_fn() -> partial:
+def optimizer_fn() -> Callable[[Generator[Parameter]], Optimizer]:
     return partial(SGD, lr=0.01)
 
 
-def lr_scheduler_fn() -> Tuple[partial, str]:
+def lr_scheduler_fn() -> Tuple[Callable[[Optimizer], _LRScheduler], str]:
     return partial(StepLR, step_size=10, gamma=0.1), "epoch"

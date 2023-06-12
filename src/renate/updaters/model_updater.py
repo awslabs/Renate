@@ -3,9 +3,8 @@
 import abc
 import logging
 import warnings
-from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, Generator, List, Optional, Type
 
 import torch
 import torchmetrics
@@ -14,6 +13,9 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers.logger import Logger
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from syne_tune import Reporter
+from torch.nn import Parameter
+from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import Dataset
 
 from renate import defaults
@@ -240,13 +242,13 @@ class ModelUpdater(abc.ABC):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: partial,
+        optimizer: Callable[[Generator[Parameter]], Optimizer],
         learner_class: Type[Learner],
         learner_kwargs: Optional[Dict[str, Any]] = None,
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
         max_epochs: int = defaults.MAX_EPOCHS,
-        learning_rate_scheduler: Optional[partial] = None,
+        learning_rate_scheduler: Optional[Optional[Callable[[Optimizer], _LRScheduler]]] = None,
         learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         train_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,

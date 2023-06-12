@@ -2,13 +2,15 @@
 # SPDX-License-Identifier: Apache-2.0
 import abc
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
 import torchmetrics
 from pytorch_lightning.loggers.logger import Logger
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+from torch.nn import Parameter
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset, Subset
 
 from renate import defaults
@@ -503,7 +505,7 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: partial,
+        optimizer: Callable[[Generator[Parameter]], Optimizer],
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         loss_weight: float = defaults.LOSS_WEIGHT,
@@ -579,7 +581,7 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: partial,
+        optimizer: Callable[[Generator[Parameter]], Optimizer],
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         loss_weight: float = defaults.LOSS_WEIGHT,
@@ -657,7 +659,7 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: partial,
+        optimizer: Callable[[Generator[Parameter]], Optimizer],
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         loss_weight: float = defaults.LOSS_WEIGHT,
@@ -737,7 +739,7 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: partial,
+        optimizer: Callable[[Generator[Parameter]], Optimizer],
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         loss_weight: float = defaults.LOSS_WEIGHT,
@@ -823,7 +825,7 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: partial,
+        optimizer: Callable[[Generator[Parameter]], Optimizer],
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
         loss_weight: float = defaults.LOSS_WEIGHT,

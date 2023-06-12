@@ -2,12 +2,14 @@
 # SPDX-License-Identifier: Apache-2.0
 import os
 from functools import partial
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Generator, Optional, Tuple
 
 import torch
 import torchmetrics
 from pytorch_lightning.loggers.logger import Logger
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+from torch.nn import Parameter
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset
 
 from renate import defaults
@@ -85,7 +87,7 @@ class JointModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: partial,
+        optimizer: Callable[[Generator[Parameter]], Optimizer],
         learning_rate_scheduler: Optional[partial] = None,
         learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,

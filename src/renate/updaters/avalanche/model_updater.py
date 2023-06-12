@@ -1,9 +1,8 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import logging
-from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Type
+from typing import Any, Callable, Dict, Generator, Optional, Type
 
 import torch
 import torchmetrics
@@ -12,7 +11,9 @@ from avalanche.training.plugins import LRSchedulerPlugin
 from avalanche.training.supervised.icarl import _ICaRLPlugin
 from avalanche.training.templates import BaseSGDTemplate
 from syne_tune import Reporter
+from torch.nn import Parameter
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import Dataset
 
 from renate import defaults
@@ -238,10 +239,10 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: partial,
+        optimizer: Callable[[Generator[Parameter]], Optimizer],
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
-        learning_rate_scheduler: Optional[partial] = None,
+        learning_rate_scheduler: Optional[Callable[[Optimizer], _LRScheduler]] = None,
         learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         input_state_folder: Optional[str] = None,
@@ -303,9 +304,9 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: partial,
+        optimizer: Callable[[Generator[Parameter]], Optimizer],
         ewc_lambda: float = defaults.EWC_LAMBDA,
-        learning_rate_scheduler: Optional[partial] = None,
+        learning_rate_scheduler: Optional[Callable[[Optimizer], _LRScheduler]] = None,
         learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         input_state_folder: Optional[str] = None,
@@ -366,10 +367,10 @@ class LearningWithoutForgettingModelUpdater(AvalancheModelUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: partial,
+        optimizer: Callable[[Generator[Parameter]], Optimizer],
         alpha: float = defaults.LWF_ALPHA,
         temperature: float = defaults.LWF_TEMPERATURE,
-        learning_rate_scheduler: Optional[partial] = None,
+        learning_rate_scheduler: Optional[Callable[[Optimizer], _LRScheduler]] = None,
         learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         input_state_folder: Optional[str] = None,
@@ -431,10 +432,10 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: partial,
+        optimizer: Callable[[Generator[Parameter]], Optimizer],
         memory_size: int,
         memory_batch_size: int = defaults.BATCH_SIZE,
-        learning_rate_scheduler: Optional[partial] = None,
+        learning_rate_scheduler: Optional[Callable[[Optimizer], _LRScheduler]] = None,
         learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         input_state_folder: Optional[str] = None,

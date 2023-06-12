@@ -1,11 +1,13 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 from functools import partial
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Generator, Optional
 
 import torch
 import torchmetrics
 from pytorch_lightning.loggers.logger import Logger
+from torch.nn import Parameter
+from torch.optim import Optimizer
 
 from renate import defaults
 from renate.models import RenateModule
@@ -18,7 +20,7 @@ class FineTuningModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: partial,
+        optimizer: Callable[[Generator[Parameter]], Optimizer],
         learning_rate_scheduler: Optional[partial] = None,
         learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,

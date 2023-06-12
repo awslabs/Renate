@@ -10,7 +10,7 @@ from PIL import Image
 from torch.utils.data import TensorDataset
 
 from renate.data import ImageDataset
-from renate.data.datasets import _EnumeratedDataset, _TransformedDataset, IndexedSubsetDataset
+from renate.data.datasets import IndexedSubsetDataset, _EnumeratedDataset, _TransformedDataset
 
 
 class MulTransform:

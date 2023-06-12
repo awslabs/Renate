@@ -29,7 +29,7 @@ method, which automatically handles model hyperparameters.
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 17-43
+    :lines: 18-44
 
 If you are using a torch model with **no or fixed hyperparameters**, you can use
 :py:class:`~renate.models.renate_module.RenateWrapper`.
@@ -85,7 +85,7 @@ such as data subsampling or splitting.
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 44-71
+    :lines: 45-72
 
 Optimizer
 =========
@@ -96,7 +96,7 @@ outlined in the example below.
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 102-103
+    :lines: 103-104
 
 Learning Rate Schedulers
 ========================
@@ -107,7 +107,7 @@ that indicates whether the scheduler is updated after each ``epoch`` or after ea
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 106-107
+    :lines: 107-108
 
 Transforms
 ==========
@@ -152,7 +152,7 @@ These are optional as well but, if omitted, Renate will use :code:`train_transfo
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 74-81
+    :lines: 75-82
 
 Custom Metrics
 ==============
@@ -164,7 +164,7 @@ or created ad-hoc by implementing the same interface
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 96-
+    :lines: 95-96
 
 To enable the usage of additional metrics in Renate it is sufficient to implement the
 :code:`metrics_fn` function, returning a dictionary where the key is a string containing the

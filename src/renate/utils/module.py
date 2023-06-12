@@ -3,12 +3,14 @@
 import importlib.util
 import sys
 import warnings
-from functools import partial
 from types import ModuleType
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
 import torchmetrics
+from torch.nn import Parameter
+from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
 
 from renate import defaults
 from renate.benchmark.scenarios import Scenario
@@ -101,7 +103,9 @@ def get_loss_fn(config_module: ModuleType, convert: bool, **kwargs: Any) -> torc
     return loss_fn
 
 
-def get_optimizer(config_module: ModuleType, **kwargs: Any) -> Optional[partial]:
+def get_optimizer(
+    config_module: ModuleType, **kwargs: Any
+) -> Optional[Callable[[Generator[Parameter]], Optimizer]]:
     """Creates partial optimizer object from config."""
     optimizer_fn_name = "optimizer_fn"
     if optimizer_fn_name in vars(config_module):
@@ -110,7 +114,9 @@ def get_optimizer(config_module: ModuleType, **kwargs: Any) -> Optional[partial]
 
 def get_learning_rate_scheduler(
     config_module: ModuleType, **kwargs: Any
-) -> Optional[Tuple[partial, defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE]]:
+) -> Optional[
+    Tuple[Callable[[Optimizer], _LRScheduler], defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE]
+]:
     """Creates partial learning rate scheduler object from config."""
     lr_scheduler_fn_name = "lr_scheduler_fn"
     if lr_scheduler_fn_name in vars(config_module):

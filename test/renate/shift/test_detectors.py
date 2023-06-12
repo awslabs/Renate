@@ -3,8 +3,8 @@
 import pytest
 import torch
 
-from renate.shift.mmd_detectors import MMDCovariateShiftDetector
 from renate.shift.ks_detector import KolmogorovSmirnovCovariateShiftDetector
+from renate.shift.mmd_detectors import MMDCovariateShiftDetector
 
 
 @pytest.mark.parametrize(

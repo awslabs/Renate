@@ -3,8 +3,8 @@
 from typing import Any, Dict, Tuple, Type
 
 import pytest
-from conftest import LEARNER_KWARGS, LEARNERS
 
+from conftest import LEARNERS, LEARNER_KWARGS
 from renate.models import RenateModule
 from renate.updaters.learner import Learner
 

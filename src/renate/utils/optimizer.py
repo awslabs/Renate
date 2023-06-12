@@ -1,8 +1,11 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 from functools import partial
+from typing import Callable, Generator
 
 import torch
+from torch.nn import Parameter
+from torch.optim import Optimizer
 
 import renate.defaults as defaults
 
@@ -12,7 +15,7 @@ def create_partial_optimizer(
     lr: float = defaults.LEARNING_RATE,
     momentum: float = defaults.MOMENTUM,
     weight_decay: float = defaults.WEIGHT_DECAY,
-) -> partial:
+) -> Callable[[Generator[Parameter]], Optimizer]:
     """Creates a partial optimizer object.
 
     Args:
