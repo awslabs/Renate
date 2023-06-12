@@ -18,8 +18,10 @@ dynamic = ["version", "readme", "dependencies"]
 
 [project.optional-dependencies]
 avalanche = [
-    "avalanche_lib==0.3.1",
-    "torch>=1.10.0, <1.12.2",
+    "avalanche_lib @ git+https://github.com/ContinualAI/avalanche.git@main",
+]
+peft = [
+    "peft==0.3.0",
 ]
 benchmark = [
     "wild-time-data==0.1.0",
@@ -28,12 +30,12 @@ dev = [
     "black==23.3.0",
     "avalanche_lib==0.3.1",
     "wild-time-data==0.1.0",
-    "torch>=1.10.0, <1.12.2",
+    "peft==0.3.0",
     # PyTest Dependencies
     "pytest==7.3.1",
     "pytest-cov==4.1.0",
     "pytest-helpers-namespace==2021.12.29",
-    ]
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

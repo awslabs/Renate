@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple, Union
 import torch
 import wild_time_data
 from torchvision.transforms import transforms
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, GPT2Tokenizer, GPT2TokenizerFast
 
 from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
 from renate.benchmark.datasets.vision_datasets import CLEARDataModule, TorchVisionDataModule
@@ -25,7 +25,13 @@ from renate.benchmark.models import (
     VisionTransformerL16,
     VisionTransformerL32,
 )
-from renate.benchmark.models.transformer import HuggingFaceSequenceClassificationTransformer
+from renate.benchmark.models.transformer import (
+    HuggingFaceSequenceClassificationTransformer,
+    HuggingFaceSequenceClassificationTransformerWithLora,
+    HuggingFaceSequenceClassificationTransformerWithPTuning,
+    HuggingFaceSequenceClassificationTransformerWithPrefixTuning,
+    HuggingFaceSequenceClassificationTransformerWithPromptTuning,
+)
 from renate.benchmark.scenarios import (
     BenchmarkScenario,
     ClassIncrementalScenario,
@@ -69,6 +75,8 @@ def model_fn(
     hidden_size: Optional[Tuple[int]] = None,
     dataset_name: Optional[str] = None,
     pretrained_model_name: Optional[str] = None,
+    peft_type: Optional[str] = None,
+    num_virtual_tokens: Optional[int] = None,
 ) -> RenateModule:
     """Returns a model instance."""
     if model_name not in models:
@@ -91,6 +99,19 @@ def model_fn(
         if updater == "Avalanche-iCaRL":
             raise ValueError("Transformers do not support iCaRL.")
         model_kwargs["pretrained_model_name"] = pretrained_model_name
+        if peft_type not in ["lora", None]:
+            model_kwargs["num_virtual_tokens"] = num_virtual_tokens
+        elif peft_type == "lora":
+            model_kwargs["alpha"] = 8
+            model_kwargs["dropout"] = 0.1
+        if peft_type == "lora":
+            model_class = HuggingFaceSequenceClassificationTransformerWithLora
+        elif peft_type == "prefix-tuning":
+            model_class = HuggingFaceSequenceClassificationTransformerWithPrefixTuning
+        elif peft_type == "prompt-tuning":
+            model_class = HuggingFaceSequenceClassificationTransformerWithPromptTuning
+        elif peft_type == "p-tuning":
+            model_class = HuggingFaceSequenceClassificationTransformerWithPTuning
     if num_outputs is not None:
         model_kwargs["num_outputs"] = num_outputs
     if model_state_url is None:
@@ -133,6 +154,9 @@ def get_data_module(
 
     if dataset_name.startswith("hfd-"):
         tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name)
+
+        if isinstance(tokenizer, (GPT2Tokenizer, GPT2TokenizerFast)):
+            tokenizer.pad_token = tokenizer.eos_token
         return HuggingFaceTextDataModule(
             data_path=data_path,
             dataset_name=dataset_name[4:],
