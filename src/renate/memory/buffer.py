@@ -158,8 +158,14 @@ class DataBuffer(Dataset):
 
         transforms = self._transform, self._target_transform
         self._transform, self._target_transform = None, None
-        storage = FileTensorStorage(target_dir)
-        storage.dump_dataset(IndexedSubsetDataset(self, [0]))
+        storage = FileTensorStorage(
+            target_dir,
+            data_point=self._data_point_prototype,
+            length=len(self),
+        )
+        indexed_dataset = IndexedSubsetDataset(self, [0])
+        for i in range(len(self)):
+            storage[i] = indexed_dataset[i]
         self._datasets = [storage]
         self._indices = {i: (0, i) for i in range(len(self))}
         self._transform, self._target_transform = transforms
@@ -168,7 +174,11 @@ class DataBuffer(Dataset):
         if not len(self):
             return
 
-        storage = FileTensorStorage(source_dir)
+        storage = FileTensorStorage(
+            source_dir,
+            data_point=self._data_point_prototype,
+            length=len(self),
+        )
         self._datasets = [storage]
 
     def _add_metadata_like(self, metadata: DataDict):
