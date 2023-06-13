@@ -256,10 +256,20 @@ class HuggingFaceExtractiveQADataModule(RenateDataModule):
             self._preprocess_training_examples,
             batched=True,
             remove_columns=raw_datasets["train"].column_names,
+            num_proc=5,
         )
+        self._train_data.set_format("torch")
 
-        self._test_data = raw_datasets["validation"].map(
-            self._preprocess_validation_examples,
-            batched=True,
-            remove_columns=raw_datasets["validation"].column_names,
+        self._test_data = (
+            raw_datasets["validation"]
+            .map(
+                self._preprocess_validation_examples,
+                batched=True,
+                remove_columns=raw_datasets["validation"].column_names,
+                num_proc=5,
+            )
+            .remove_columns(["example_id", "offset_mapping"])
         )
+        self._test_data.set_format("torch")
+
+        self._val_data = self._test_data

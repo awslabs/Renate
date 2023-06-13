@@ -11,12 +11,19 @@ import transformers
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers.logger import Logger
+from transformers import default_data_collator
 
 from renate import defaults
-from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
-from renate.benchmark.models.transformer import HuggingFaceSequenceClassificationTransformer
+from renate.benchmark.datasets.nlp_datasets import (
+    HuggingFaceTextDataModule,
+    HuggingFaceExtractiveQADataModule,
+)
+from renate.benchmark.models.transformer import (
+    HuggingFaceSequenceClassificationTransformer,
+    HuggingFaceQuestionAnsweringTransformer,
+)
 from renate.data.data_module import RenateDataModule
-from renate.updaters.peft_learner import PeftLearner
+from renate.updaters.peft_learner import PeftLearner, QAPeft
 from renate.updaters.learner import Learner
 from renate.utils.file import upload_folder_to_s3
 from renate.utils.misc import int_or_str
@@ -28,7 +35,7 @@ def get_data(
     dataset_name: str, pretrained_model_name: str, data_path: Union[str, Path], seed: int = 123
 ) -> RenateDataModule:
     tokenizer = transformers.AutoTokenizer.from_pretrained(pretrained_model_name)
-    data_module = HuggingFaceTextDataModule(
+    data_module = HuggingFaceExtractiveQADataModule(
         data_path=str(data_path),
         dataset_name=dataset_name,
         tokenizer=tokenizer,
@@ -59,11 +66,11 @@ def get_trainer(
     callbacks = [model_checkpoint_callback]
     return Trainer(
         accelerator=accelerator,
-        devices=1,
+        devices=devices,
         max_epochs=max_epochs,
         callbacks=callbacks,
         logger=logger,
-        enable_progress_bar=False,
+        # enable_progress_bar=False,
         deterministic=deterministic_trainer,
         strategy=strategy,
         precision=int_or_str(precision),
@@ -78,16 +85,20 @@ def main(pretrained_model_name: str, dataset_name: str, s3url: str, num_outputs:
     checkpointpath = Path.home().joinpath("checkpoint")
     checkpointpath.mkdir(exist_ok=True)
 
-    model = HuggingFaceSequenceClassificationTransformer(
-        pretrained_model_name=pretrained_model_name, num_outputs=num_outputs
-    )
+    # model = HuggingFaceSequenceClassificationTransformer(
+    #     pretrained_model_name=pretrained_model_name, num_outputs=num_outputs
+    # )
+    model = HuggingFaceQuestionAnsweringTransformer(pretrained_model_name=pretrained_model_name)
     lossfunction = torch.nn.CrossEntropyLoss()
-    optimizer = partial(torch.optim.AdamW, lr=1e-3)  # Specify your optimizer params here
-    module = PeftLearner(
+    lossfunction = lambda x, y: x
+    optimizer = partial(
+        torch.optim.AdamW, lr=1e-5, weight_decay=1e-2
+    )  # Specify your optimizer params here
+    module = QAPeft(
         model,
         loss_fn=lossfunction,
         optimizer=optimizer,
-        batch_size=defaults.BATCH_SIZE,
+        batch_size=12,
         logged_metrics={},
     )
 
@@ -96,8 +107,10 @@ def main(pretrained_model_name: str, dataset_name: str, s3url: str, num_outputs:
     module.on_model_update_start(
         train_dataset=data_module.train_data(),
         val_dataset=data_module.val_data(),
+        train_dataset_collate_fn=default_data_collator,
+        val_dataset_collate_fn=default_data_collator,
     )
-    trainer = get_trainer(checkpoint_path=checkpointpath)
+    trainer = get_trainer(checkpoint_path=checkpointpath, precision="16")
 
     # print(data_module.train_data()[20])
     # Fit the model
