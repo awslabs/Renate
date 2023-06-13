@@ -139,7 +139,7 @@ stride = 128
 
 
 class HuggingFaceExtractiveQADataModule(RenateDataModule):
-    """Data module wrapping Hugging Face datasets for extractive question answerining.
+    """Data module wrapping Hugging Face datasets for extractive question answering.
 
     TODO:"""
 
