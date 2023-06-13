@@ -92,3 +92,29 @@ class PeftLearner(Learner):
         loss = self._loss_fn(outputs, targets)
         self._update_metrics(outputs, targets, "val")
         self._loss_collections["val_losses"]["loss"](loss)
+
+
+class QAPeft(PeftLearner):
+    def validation_step(self, batch, batch_idx) -> None:
+        """PyTorch Lightning function to estimate validation metrics."""
+        inputs = batch
+        outputs = self(inputs)
+        targets = None
+        loss = self._loss_fn(outputs, targets)
+        self._update_metrics(outputs, targets, "val")
+        self._loss_collections["val_losses"]["loss"](loss)
+
+    def training_step(self, batch, batch_idx):
+        """PyTorch Lightning function to return the training loss."""
+        inputs, targets = batch, None
+        outputs = self(inputs)
+        intermediate_representation = self._model.get_intermediate_representation()
+        self._model.reset_intermediate_representation_cache()
+        loss = self._loss_fn(outputs, targets).mean()
+        self._update_metrics(outputs, targets, "train")
+        self._loss_collections["train_losses"]["base_loss"](loss)
+        return {
+            "loss": loss,
+            "outputs": outputs,
+            "intermediate_representation": intermediate_representation,
+        }
