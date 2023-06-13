@@ -10,7 +10,6 @@ from .learner import Learner
 
 
 class PeftLearner(Learner):
-    ## Things to delete.
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         pass
 
@@ -27,8 +26,8 @@ class PeftLearner(Learner):
         self,
         train_dataset: Dataset,
         val_dataset: Dataset,
-        train_dataset_collate_fn,
-        val_dataset_collate_fn,
+        train_dataset_collate_fn = None,
+        val_dataset_collate_fn = None,
         task_id: Optional[str] = None,
     ) -> None:
         super().on_model_update_start(train_dataset, val_dataset, task_id)
