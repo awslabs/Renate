@@ -1,11 +1,11 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 import torch
 from torch import Tensor
-from transformers import AutoModelForQuestionAnswering
+from transformers import AutoModelForQuestionAnswering, T5ForConditionalGeneration
 from transformers import (
     AutoModelForSequenceClassification,
     PreTrainedModel,
@@ -25,10 +25,40 @@ from peft import (
 from renate.models import RenateModule
 
 
+def from_pretrained(
+    pretrained_model_name: str, num_labels: int, return_dict: bool
+) -> PreTrainedModel:
+    auto_class = AutoModelForSequenceClassification
+    if pretrained_model_name in ["t5-small", "t5-base", "t5-large", "t5-3b", "t5-11b"]:
+        auto_class = T5ForConditionalGeneration
+    return auto_class.from_pretrained(
+        pretrained_model_name, num_labels=num_labels, return_dict=return_dict
+    )
+
+
 class HuggingFaceTransformer(RenateModule):
     """
     Base RenateModule which wraps around Hugging Face transformers.
     """
+
+    def __init__(
+        self,
+        pretrained_model_name: str,
+        constructor_arguments: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        if constructor_arguments is None:
+            constructor_arguments = {}
+        constructor_arguments.update(
+            {
+                "pretrained_model_name": pretrained_model_name,
+            }
+        )
+
+        super().__init__(
+            constructor_arguments={
+                "pretrained_model_name": pretrained_model_name,
+            },
+        )
 
     def forward(self, x: Dict[str, Tensor], task_id: Optional[str] = None) -> torch.Tensor:
         return self._model(**x)[0]
@@ -49,14 +79,19 @@ class HuggingFaceSequenceClassificationTransformer(HuggingFaceTransformer):
         self,
         pretrained_model_name: str,
         num_outputs: int,
+        constructor_arguments: Optional[Dict[str, Any]] = None,
     ) -> None:
-        super().__init__(
-            constructor_arguments={
-                "pretrained_model_name": pretrained_model_name,
+        if constructor_arguments is None:
+            constructor_arguments = {}
+        constructor_arguments.update(
+            {
                 "num_outputs": num_outputs,
-            },
+            }
         )
-        self._model = AutoModelForSequenceClassification.from_pretrained(
+        super().__init__(
+            pretrained_model_name=pretrained_model_name, constructor_arguments=constructor_arguments
+        )
+        self._model = from_pretrained(
             pretrained_model_name, num_labels=num_outputs, return_dict=False
         )
 
@@ -71,11 +106,11 @@ class HuggingFaceQuestionAnsweringTransformer(HuggingFaceTransformer):
     def __init__(
         self,
         pretrained_model_name: str,
+        constructor_arguments: Optional[Dict[str, Any]] = None,
     ) -> None:
+
         super().__init__(
-            constructor_arguments={
-                "pretrained_model_name": pretrained_model_name,
-            },
+            pretrained_model_name=pretrained_model_name, constructor_arguments=constructor_arguments
         )
         self._model = AutoModelForQuestionAnswering.from_pretrained(
             pretrained_model_name, return_dict=False
