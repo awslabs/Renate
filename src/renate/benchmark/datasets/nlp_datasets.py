@@ -98,12 +98,10 @@ class HuggingFaceTextDataModule(RenateDataModule):
                 f"Target column '{self._target_column}' does not exist in {self._dataset_name}. "
                 f"Available columns: {available_columns}."
             )
-        self._test_data = datasets.load_dataset(
-            self._dataset_name, split="test", cache_dir=self._data_path
-        )
+        self._test_data = load_dataset(self._dataset_name, split="test", cache_dir=self._data_path)
         if "validation" in split_names:
             logging.info(f"Using 'validation' split of dataset {self._dataset_name}.")
-            self._val_data = datasets.load_dataset(
+            self._val_data = load_dataset(
                 self._dataset_name, split="validation", cache_dir=self._data_path
             )
         else:
