@@ -4,7 +4,7 @@ from typing import Dict, Optional
 
 import torch
 from torch import Tensor
-from transformers import AutoModelForSequenceClassification
+from transformers import AutoModelForQuestionAnswering, AutoModelForSequenceClassification
 
 from renate.models import RenateModule
 
@@ -30,6 +30,33 @@ class HuggingFaceSequenceClassificationTransformer(RenateModule):
         )
         self._model = AutoModelForSequenceClassification.from_pretrained(
             pretrained_model_name, num_labels=num_outputs, return_dict=False
+        )
+
+    def forward(self, x: Dict[str, Tensor], task_id: Optional[str] = None) -> torch.Tensor:
+        return self._model(**x)[0]
+
+    def _add_task_params(self, task_id: str) -> None:
+        assert not len(self._tasks_params_ids), "Transformer does not work for multiple tasks."
+
+
+class HuggingFaceQuestionAnsweringTransformer(RenateModule):
+    """RenateModule which wraps around Hugging Face transformers. TODO
+
+    Args:
+        pretrained_model_name: Hugging Face model id.
+    """
+
+    def __init__(
+        self,
+        pretrained_model_name: str,
+    ) -> None:
+        super().__init__(
+            constructor_arguments={
+                "pretrained_model_name": pretrained_model_name,
+            },
+        )
+        self._model = AutoModelForQuestionAnswering.from_pretrained(
+            pretrained_model_name, return_dict=False
         )
 
     def forward(self, x: Dict[str, Tensor], task_id: Optional[str] = None) -> torch.Tensor:
