@@ -26,8 +26,8 @@ class PeftLearner(Learner):
         self,
         train_dataset: Dataset,
         val_dataset: Dataset,
-        train_dataset_collate_fn = None,
-        val_dataset_collate_fn = None,
+        train_dataset_collate_fn=None,
+        val_dataset_collate_fn=None,
         task_id: Optional[str] = None,
     ) -> None:
         super().on_model_update_start(train_dataset, val_dataset, task_id)

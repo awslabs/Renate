@@ -3,9 +3,9 @@
 import logging
 from typing import Any, Dict, Optional
 
-import datasets
 import torch
 import transformers
+from datasets import get_dataset_split_names, load_dataset
 
 from renate import defaults
 from renate.data.data_module import RenateDataModule
@@ -79,12 +79,12 @@ class HuggingFaceTextDataModule(RenateDataModule):
 
     def prepare_data(self) -> None:
         """Download data."""
-        split_names = datasets.get_dataset_split_names(self._dataset_name)
+        split_names = get_dataset_split_names(self._dataset_name)
         if "train" not in split_names:
             raise RuntimeError(f"Dataset {self._dataset_name} does not contain a 'train' split.")
         if "test" not in split_names:
             raise RuntimeError(f"Dataset {self._dataset_name} does not contain a 'test' split.")
-        self._train_data = datasets.load_dataset(
+        self._train_data = load_dataset(
             self._dataset_name, split="train", cache_dir=self._data_path
         )
         available_columns = list(self._train_data.features)
@@ -134,3 +134,134 @@ class HuggingFaceTextDataModule(RenateDataModule):
             self._val_data = _InputTargetWrapper(self._val_data, self._target_column)
         else:
             self._train_data, self._val_data = self._split_train_val_data(self._train_data)
+
+
+max_length = 384
+stride = 128
+
+
+class HuggingFaceExtractiveQADataModule(RenateDataModule):
+    """Data module wrapping Hugging Face datasets for extractive question answerining.
+
+    TODO:"""
+
+    def __init__(
+        self,
+        data_path: str,
+        tokenizer: transformers.PreTrainedTokenizer,
+        dataset_name: str = "TODO",
+        tokenizer_kwargs: Optional[Dict[str, Any]] = None,
+        val_size: float = defaults.VALIDATION_SIZE,
+        seed: int = defaults.SEED,
+    ):
+        super().__init__(
+            data_path=data_path,
+            val_size=val_size,
+            seed=seed,
+        )
+        self._dataset_name = dataset_name
+        self._tokenizer = tokenizer
+        self._tokenizer_kwargs = tokenizer_kwargs or defaults.TOKENIZER_KWARGS
+
+    def prepare_data(self) -> None:
+        """Download data."""
+        pass
+
+    def _preprocess_training_examples(self, examples):
+        questions = [q.strip() for q in examples["question"]]
+        inputs = self._tokenizer(
+            questions,
+            examples["context"],
+            max_length=max_length,
+            truncation="only_second",
+            stride=stride,
+            return_overflowing_tokens=True,
+            return_offsets_mapping=True,
+            padding="max_length",
+        )
+
+        offset_mapping = inputs.pop("offset_mapping")
+        sample_map = inputs.pop("overflow_to_sample_mapping")
+        answers = examples["answers"]
+        start_positions = []
+        end_positions = []
+
+        for i, offset in enumerate(offset_mapping):
+            sample_idx = sample_map[i]
+            answer = answers[sample_idx]
+            start_char = answer["answer_start"][0]
+            end_char = answer["answer_start"][0] + len(answer["text"][0])
+            sequence_ids = inputs.sequence_ids(i)
+
+            # Find the start and end of the context
+            idx = 0
+            while sequence_ids[idx] != 1:
+                idx += 1
+            context_start = idx
+            while sequence_ids[idx] == 1:
+                idx += 1
+            context_end = idx - 1
+
+            # If the answer is not fully inside the context, label is (0, 0)
+            if offset[context_start][0] > start_char or offset[context_end][1] < end_char:
+                start_positions.append(0)
+                end_positions.append(0)
+            else:
+                # Otherwise it's the start and end token positions
+                idx = context_start
+                while idx <= context_end and offset[idx][0] <= start_char:
+                    idx += 1
+                start_positions.append(idx - 1)
+
+                idx = context_end
+                while idx >= context_start and offset[idx][1] >= end_char:
+                    idx -= 1
+                end_positions.append(idx + 1)
+
+        inputs["start_positions"] = start_positions
+        inputs["end_positions"] = end_positions
+        return inputs
+
+    def _preprocess_validation_examples(self, examples):
+        questions = [q.strip() for q in examples["question"]]
+        inputs = self._tokenizer(
+            questions,
+            examples["context"],
+            max_length=max_length,
+            truncation="only_second",
+            stride=stride,
+            return_overflowing_tokens=True,
+            return_offsets_mapping=True,
+            padding="max_length",
+        )
+
+        sample_map = inputs.pop("overflow_to_sample_mapping")
+        example_ids = []
+
+        for i in range(len(inputs["input_ids"])):
+            sample_idx = sample_map[i]
+            example_ids.append(examples["id"][sample_idx])
+
+            sequence_ids = inputs.sequence_ids(i)
+            offset = inputs["offset_mapping"][i]
+            inputs["offset_mapping"][i] = [
+                o if sequence_ids[k] == 1 else None for k, o in enumerate(offset)
+            ]
+
+        inputs["example_id"] = example_ids
+        return inputs
+
+    def setup(self) -> None:
+        """Set up train, test and val datasets."""
+        raw_datasets = load_dataset("squad")
+        self._train_data = raw_datasets["train"].map(
+            self._preprocess_training_examples,
+            batched=True,
+            remove_columns=raw_datasets["train"].column_names,
+        )
+
+        self._test_data = raw_datasets["validation"].map(
+            self._preprocess_validation_examples,
+            batched=True,
+            remove_columns=raw_datasets["validation"].column_names,
+        )
