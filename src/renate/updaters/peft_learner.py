@@ -42,7 +42,7 @@ class PeftLearner(Learner):
             generator=self._rng,
             pin_memory=True,
             collate_fn=self._train_collate_fn,
-            num_workers=2,
+            num_workers=4,
         )
 
     def val_dataloader(self) -> DataLoader:
@@ -53,7 +53,7 @@ class PeftLearner(Learner):
             generator=self._rng,
             pin_memory=True,
             collate_fn=self._val_collate_fn,
-            num_workers=2,
+            num_workers=4,
         )
 
     def _create_metrics_collections(
