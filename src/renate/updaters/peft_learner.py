@@ -47,9 +47,9 @@ class PeftLearner(Learner):
 
     def val_dataloader(self) -> DataLoader:
         return DataLoader(
-            self._train_dataset,
+            self._val_dataset,
             batch_size=self._batch_size,
-            shuffle=True,
+            shuffle=False,
             generator=self._rng,
             pin_memory=True,
             collate_fn=self._val_collate_fn,
@@ -66,6 +66,7 @@ class PeftLearner(Learner):
 
         train_losses = nn.ModuleDict(
             {
+                "base_loss": torchmetrics.MeanMetric(),
                 "loss": torchmetrics.MeanMetric(),
             }
         )
@@ -83,3 +84,11 @@ class PeftLearner(Learner):
                 "val_losses": val_losses,
             }
         )
+
+    def validation_step(self, batch, batch_idx) -> None:
+        """PyTorch Lightning function to estimate validation metrics."""
+        inputs, targets = batch
+        outputs = self(inputs)
+        loss = self._loss_fn(outputs, targets)
+        self._update_metrics(outputs, targets, "val")
+        self._loss_collections["val_losses"]["loss"](loss)

@@ -1,42 +1,40 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import logging
-import tempfile
 from functools import partial
 from pathlib import Path
-from typing import Union, Optional, Dict
+from typing import Union, Optional
+import sys
 
 import torch
-import torchmetrics
 import transformers
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from transformers import AutoModelForSequenceClassification
 from pytorch_lightning.loggers.logger import Logger
 
 from renate import defaults
 from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
 from renate.benchmark.models.transformer import HuggingFaceSequenceClassificationTransformer
 from renate.data.data_module import RenateDataModule
-from renate.models import RenateModule
-from renate.models.renate_module import RenateWrapper
-from renate.updaters.model_updater import RenateModelCheckpoint
 from renate.updaters.peft_learner import PeftLearner
+from renate.updaters.learner import Learner
 from renate.utils.file import upload_folder_to_s3
+from renate.utils.misc import int_or_str
 
 logging_logger = logging.getLogger(__name__)
 
 
-def get_data(dataset_name: str, data_path: Union[str, Path], seed: int = 123) -> RenateDataModule:
-    tokenizer = transformers.AutoTokenizer.from_pretrained(dataset_name)
+def get_data(
+    dataset_name: str, pretrained_model_name: str, data_path: Union[str, Path], seed: int = 123
+) -> RenateDataModule:
+    tokenizer = transformers.AutoTokenizer.from_pretrained(pretrained_model_name)
     data_module = HuggingFaceTextDataModule(
-        data_path=data_path,
+        data_path=str(data_path),
         dataset_name=dataset_name,
         tokenizer=tokenizer,
         val_size=0.2,
         seed=seed,
     )
-    data_module.prepare_data()
     data_module.setup()
     return data_module
 
@@ -61,14 +59,15 @@ def get_trainer(
     callbacks = [model_checkpoint_callback]
     return Trainer(
         accelerator=accelerator,
-        devices=devices,
+        devices=1,
         max_epochs=max_epochs,
         callbacks=callbacks,
         logger=logger,
         enable_progress_bar=False,
         deterministic=deterministic_trainer,
         strategy=strategy,
-        precision=precision,
+        precision=int_or_str(precision),
+        enable_model_summary=False,
     )
 
 
@@ -82,20 +81,25 @@ def main(pretrained_model_name: str, dataset_name: str, s3url: str, num_outputs:
     model = HuggingFaceSequenceClassificationTransformer(
         pretrained_model_name=pretrained_model_name, num_outputs=num_outputs
     )
-    lossfunction = torch.nn.CrossEntropyLoss(reduction="none")
+    lossfunction = torch.nn.CrossEntropyLoss()
     optimizer = partial(torch.optim.AdamW, lr=1e-3)  # Specify your optimizer params here
     module = PeftLearner(
-        model, loss_fn=lossfunction, optimizer=optimizer, batch_size=defaults.BATCH_SIZE
+        model,
+        loss_fn=lossfunction,
+        optimizer=optimizer,
+        batch_size=defaults.BATCH_SIZE,
+        logged_metrics={},
     )
-    trainer = get_trainer(checkpoint_path=checkpointpath)
 
     # Setup data
-    data_module = get_data(dataset_name, datapath)
+    data_module = get_data(dataset_name, pretrained_model_name, datapath)
     module.on_model_update_start(
         train_dataset=data_module.train_data(),
         val_dataset=data_module.val_data(),
     )
+    trainer = get_trainer(checkpoint_path=checkpointpath)
 
+    # print(data_module.train_data()[20])
     # Fit the model
     trainer.fit(module)
 
