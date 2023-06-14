@@ -79,10 +79,21 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
             self._loss_collections["train_losses"].update({name: torchmetrics.MeanMetric()})
 
     def on_model_update_start(
-        self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
+        self,
+        train_dataset: Dataset,
+        val_dataset: Dataset,
+        train_dataset_collate_fn: Optional[Callable] = None,
+        val_dataset_collate_fn: Optional[Callable] = None,
+        task_id: Optional[str] = None,
     ) -> None:
         """Called before a model update starts."""
-        super().on_model_update_start(train_dataset, val_dataset, task_id)
+        super().on_model_update_start(
+            train_dataset=train_dataset,
+            val_dataset=val_dataset,
+            train_dataset_collate_fn=train_dataset_collate_fn,
+            val_dataset_collate_fn=val_dataset_collate_fn,
+            task_id=task_id,
+        )
         self._set_memory_loader()
 
     def train_dataloader(self) -> DataLoader:

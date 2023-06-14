@@ -177,6 +177,8 @@ class ModelUpdaterCLI:
         model_updater.update(
             train_dataset=data_module.train_data(),
             val_dataset=data_module.val_data(),
+            train_dataset_collate_fn=data_module.train_collate_fn(),
+            val_dataset_collate_fn=data_module.val_collate_fn(),
             task_id=args.task_id,
         )
 

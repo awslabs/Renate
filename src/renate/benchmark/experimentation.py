@@ -47,22 +47,16 @@ def experiment_config_file():
     return str(Path(renate.__path__[0]) / "benchmark" / "experiment_config.py")
 
 
-def create_cumulative_metrics(task: defaults.SUPPORTED_TASKS_TYPE) -> List[Tuple[str, Callable]]:
+def create_cumulative_metrics() -> List[Tuple[str, Callable]]:
     """Gets the cumulative metrics for a given task along with a name of the metric to include in
     any potential results table.
-
-    Args:
-        task: Whether classification or regression, for now.
     """
-    if task == "classification":
-        return [
-            ("Average Accuracy", average_accuracy),
-            ("Forgetting", forgetting),
-            ("Forward Transfer", forward_transfer),
-            ("Backward Transfer", backward_transfer),
-        ]
-    else:
-        raise NotImplementedError(f"Task {task} not implemented.")
+    return [
+        ("Average Accuracy", average_accuracy),
+        ("Forgetting", forgetting),
+        ("Forward Transfer", forward_transfer),
+        ("Backward Transfer", backward_transfer),
+    ]
 
 
 def cumulative_metrics_summary(
@@ -375,7 +369,7 @@ def _execute_experiment_job_locally(
         logger.info(f"### Results after update {update_id + 1}: ###")
         logger.info(df)
 
-    cumulative_metrics = create_cumulative_metrics("classification")
+    cumulative_metrics = create_cumulative_metrics()
     df = cumulative_metrics_summary(results, cumulative_metrics, num_updates - 1)
     save_pandas_df_to_csv(df, defaults.metric_summary_file(logs_url))
     logger.info("### Cumulative results: ###")
