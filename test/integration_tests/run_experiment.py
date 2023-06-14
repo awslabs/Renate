@@ -3,6 +3,7 @@
 import argparse
 import json
 from pathlib import Path
+import os
 
 import boto3
 from syne_tune.backend.sagemaker_backend.sagemaker_utils import get_execution_role
@@ -59,10 +60,21 @@ if __name__ == "__main__":
         default=12 * 3600,
         help="Maximum execution time.",
     )
+    parser.add_argument(
+        f"--requirements-file",
+        type=str,
+        required=False,
+        help="Path to requirements file",
+    )
     args = parser.parse_args()
     config_space = load_config(
         args.scenario_file, args.model_file, args.updater_file, args.dataset_file
     )
+    current_folder = Path(os.path.dirname(__file__))
+    requirements_file = args.requirements_file
+    if not requirements_file:
+        requirements_file = current_folder.parent.parent / "requirements.txt"
+
     if args.backend == "local":
         experiment_outputs_url = (
             Path("tmp")
@@ -94,4 +106,5 @@ if __name__ == "__main__":
         job_name=args.job_name[:36],
         devices=1,
         strategy="ddp",
+        requirements_file=args.requirements_file,
     )
