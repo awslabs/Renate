@@ -76,8 +76,7 @@ class RenateLightningModule(LightningModule, abc.ABC):
         self._rng = get_generator(self._seed)
         self.save_hyperparameters(ignore=self._ignored_hyperparameters())
 
-    @staticmethod
-    def _ignored_hyperparameters():
+    def _ignored_hyperparameters(self):
         """Hyperparameters to be ignored in the ``save_hyperparameters`` call."""
         return [
             "model",
@@ -347,8 +346,7 @@ class Learner(RenateLightningModule, abc.ABC):
         self._test_target_transform = test_target_transform
         self._val_memory_buffer: DataBuffer = InfiniteBuffer()
 
-    @staticmethod
-    def _ignored_hyperparameters():
+    def _ignored_hyperparameters(self):
         """Hyperparameters to be ignored in the ``save_hyperparameters`` call."""
         return super()._ignored_hyperparameters() + [
             "components",
