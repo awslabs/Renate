@@ -179,6 +179,10 @@ def execute_experiment_job(
         deterministic_trainer: When true the Trainer adopts a deterministic behaviour also on GPU.
             In this function this parameter is set to True by default.
         job_name: Name of the experiment job.
+        strategy: Name of the distributed training strategy to use.
+            `More details <https://lightning.ai/docs/pytorch/stable/extensions/strategy.html>`_
+        precision: Type of bit precision to use.
+            `More details <https://lightning.ai/docs/pytorch/stable/common/precision_basic.html>`_
     """
     assert (
         mode in defaults.SUPPORTED_TUNING_MODE

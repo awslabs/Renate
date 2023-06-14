@@ -51,6 +51,10 @@ def evaluate_and_record_results(
         devices: Devices used by PyTorch Lightning to train the model. If the devices flag is not
             defined, it will assume devices to be "auto" and fetch the `auto_device_count` from the
             `accelerator`.
+        strategy: Name of the distributed training strategy to use.
+            `More details <https://lightning.ai/docs/pytorch/stable/extensions/strategy.html>`_
+        precision: Type of bit precision to use.
+            `More details <https://lightning.ai/docs/pytorch/stable/common/precision_basic.html>`_
     """
 
     data_module.setup()

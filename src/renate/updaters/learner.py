@@ -24,18 +24,15 @@ from renate.utils.pytorch import get_generator
 
 
 class RenateLightningModule(LightningModule, abc.ABC):
-    """Base class for Learners, which encapsulate the core CL methodologies. #TODO
+    """Base class for LightningModules, which implement metric logging and basic training logic.
 
-    The `Learner` is a `LightningModule`, but provides additional hook functions
+    The `RenateLightningModule` is a `LightningModule`, but provides additional hook functions
     called by `ModelUpdater`. These hooks are:
 
-    - `Learner.on_model_update_start`, which is called in the beginning of a
+    - `on_model_update_start`, which is called in the beginning of a
        model update. We expect this to return train and (optionally) validation
        data loader(s).
-    - `Learner.on_model_update_end`, which is called in the end of a model update.
-
-    This base class implements a basic training loop without any mechanism to
-    counteract forgetting.
+    - `on_model_update_end`, which is called in the end of a model update.
 
     Args:
         model: The model to be trained.
@@ -69,6 +66,11 @@ class RenateLightningModule(LightningModule, abc.ABC):
         self._batch_size = batch_size
         self._seed = seed
         self._task_id: str = defaults.TASK_ID
+        self._train_dataset = None
+        self._val_dataset = None
+        self.val_enabled = False
+        self._train_collate_fn = None
+        self._val_collate_fn = None
 
         self._create_metrics_collections(logged_metrics)
         self._rng = get_generator(self._seed)
@@ -128,11 +130,18 @@ class RenateLightningModule(LightningModule, abc.ABC):
         return metric_name in logged_metrics
 
     def on_model_update_start(
-        self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
+        self,
+        train_dataset: Dataset,
+        val_dataset: Dataset,
+        train_dataset_collate_fn: Optional[Callable] = None,
+        val_dataset_collate_fn: Optional[Callable] = None,
+        task_id: Optional[str] = None,
     ) -> None:
         self._train_dataset = train_dataset
         self._val_dataset = val_dataset
         self.val_enabled = val_dataset is not None and len(val_dataset)
+        self._train_collate_fn = train_dataset_collate_fn
+        self._val_collate_fn = val_dataset_collate_fn
         self._task_id = task_id
         self._model.add_task_params(task_id=self._task_id)
 
@@ -144,6 +153,7 @@ class RenateLightningModule(LightningModule, abc.ABC):
             shuffle=True,
             generator=self._rng,
             pin_memory=True,
+            collate_fn=self._train_collate_fn,
         )
 
     def val_dataloader(self) -> Optional[DataLoader]:
@@ -154,6 +164,7 @@ class RenateLightningModule(LightningModule, abc.ABC):
                 shuffle=False,
                 generator=self._rng,
                 pin_memory=True,
+                collate_fn=self._val_collate_fn,
             )
 
     def on_model_update_end(self) -> None:
@@ -361,10 +372,19 @@ class Learner(RenateLightningModule, abc.ABC):
         self._val_memory_buffer.load(os.path.join(input_state_dir, "val_memory_buffer"))
 
     def on_model_update_start(
-        self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
+        self,
+        train_dataset: Dataset,
+        val_dataset: Dataset,
+        train_dataset_collate_fn: Optional[Callable] = None,
+        val_dataset_collate_fn: Optional[Callable] = None,
+        task_id: Optional[str] = None,
     ) -> None:
         super().on_model_update_start(
-            train_dataset=train_dataset, val_dataset=val_dataset, task_id=task_id
+            train_dataset=train_dataset,
+            val_dataset=val_dataset,
+            train_dataset_collate_fn=train_dataset_collate_fn,
+            val_dataset_collate_fn=val_dataset_collate_fn,
+            task_id=task_id,
         )
         self._model.add_task_params(task_id=self._task_id)
 
@@ -381,6 +401,7 @@ class Learner(RenateLightningModule, abc.ABC):
             shuffle=True,
             generator=self._rng,
             pin_memory=True,
+            collate_fn=self._train_collate_fn,
         )
 
     def val_dataloader(self) -> Optional[DataLoader]:
@@ -399,6 +420,7 @@ class Learner(RenateLightningModule, abc.ABC):
                 shuffle=False,
                 generator=self._rng,
                 pin_memory=True,
+                collate_fn=self._val_collate_fn,
             )
 
     def validation_step_unpack_batch(
