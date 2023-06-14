@@ -173,14 +173,14 @@ class TorchVisionDataModule(RenateDataModule):
         train_data = cls(
             self._data_path,
             train=True,
-            transform=transforms.ToTensor(),
+            # transform=transforms.ToTensor(),
             target_transform=transforms.Lambda(to_long),
         )
         self._train_data, self._val_data = self._split_train_val_data(train_data)
         self._test_data = cls(
             self._data_path,
             train=False,
-            transform=transforms.ToTensor(),
+            # transform=transforms.ToTensor(),
             target_transform=transforms.Lambda(to_long),
         )
 
@@ -258,12 +258,12 @@ class CLEARDataModule(RenateDataModule):
     def setup(self) -> None:
         """Set up train, test and val datasets."""
         X, y = self._get_filepaths_and_labels(train=True, chunk_id=self._chunk_id)
-        train_data = ImageDataset(X, y, transform=transforms.ToTensor())
+        train_data = ImageDataset(X, y)
         self._train_data, self._val_data = self._split_train_val_data(train_data)
         self._test_data = []
         for i in range(10):
             X, y = self._get_filepaths_and_labels(train=False, chunk_id=i)
-            self._test_data.append(ImageDataset(X, y, transform=transforms.ToTensor()))
+            self._test_data.append(ImageDataset(X, y))
 
     # TODO: This is a work-around to make CLEAR available as a data module (single test dataset)
     # as well as a scenario (all test datasets) via BenchmarkScenario. Clean up!

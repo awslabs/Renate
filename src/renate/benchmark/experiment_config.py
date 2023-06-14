@@ -293,14 +293,14 @@ def _get_normalize_transform(dataset_name):
 
 def train_transform(dataset_name: str) -> Optional[transforms.Compose]:
     """Returns a transform function to be used in the training."""
-    if dataset_name in [
-        "MNIST",
-        "FashionMNIST",
-    ] + wild_time_data.list_datasets() or dataset_name.startswith("hfd-"):
+    if dataset_name in wild_time_data.list_datasets() or dataset_name.startswith("hfd-"):
         return None
+    if dataset_name in ["MNIST", "FashionMNIST"]:
+        return transforms.ToTensor()
     if dataset_name in ["CIFAR10", "CIFAR100"]:
         return transforms.Compose(
             [
+                transforms.ToTensor(),
                 transforms.RandomCrop(32, padding=4),
                 transforms.RandomHorizontalFlip(),
                 _get_normalize_transform(dataset_name),
@@ -309,6 +309,7 @@ def train_transform(dataset_name: str) -> Optional[transforms.Compose]:
     if dataset_name in ["CLEAR10", "CLEAR100"]:
         return transforms.Compose(
             [
+                transforms.ToTensor(),
                 transforms.Resize(224),
                 transforms.RandomCrop(224),
                 _get_normalize_transform(dataset_name),
@@ -319,16 +320,16 @@ def train_transform(dataset_name: str) -> Optional[transforms.Compose]:
 
 def test_transform(dataset_name: str) -> Optional[transforms.Normalize]:
     """Returns a transform function to be used for validation or testing."""
-    if dataset_name in [
-        "MNIST",
-        "FashionMNIST",
-    ] + wild_time_data.list_datasets() or dataset_name.startswith("hfd-"):
+    if dataset_name in wild_time_data.list_datasets() or dataset_name.startswith("hfd-"):
         return None
+    if dataset_name in ["MNIST", "FashionMNIST"]:
+        return transforms.ToTensor()
     if dataset_name in ["CIFAR10", "CIFAR100"]:
         return _get_normalize_transform(dataset_name)
     if dataset_name in ["CLEAR10", "CLEAR100"]:
         return transforms.Compose(
             [
+                transforms.ToTensor(),
                 transforms.Resize(224),
                 transforms.CenterCrop(224),
                 _get_normalize_transform(dataset_name),
