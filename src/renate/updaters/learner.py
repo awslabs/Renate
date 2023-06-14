@@ -213,7 +213,7 @@ class RenateLightningModule(LightningModule, abc.ABC):
         outputs = self(inputs)
         loss = self._loss_fn(outputs, targets)
         self._update_metrics(outputs, targets, "val")
-        self._loss_collections["val_losses"]["los s"](loss)
+        self._loss_collections["val_losses"]["loss"](loss)
 
     def validation_epoch_end(self, outputs: List[Union[Tensor, Dict[str, Any]]]) -> None:
         """PyTorch Lightning function to run at the end of validation epoch."""
