@@ -174,9 +174,9 @@ def execute_experiment_job(
             In this function this parameter is set to True by default.
         job_name: Name of the experiment job.
         strategy: Name of the distributed training strategy to use.
-            `More details <https://lightning.ai/docs/pytorch/stable/extensions/strategy.html>`_
+            `More details <https://lightning.ai/docs/pytorch/stable/extensions/strategy.html>`__
         precision: Type of bit precision to use.
-            `More details <https://lightning.ai/docs/pytorch/stable/common/precision_basic.html>`_
+            `More details <https://lightning.ai/docs/pytorch/stable/common/precision_basic.html>`__
     """
     assert (
         mode in defaults.SUPPORTED_TUNING_MODE
