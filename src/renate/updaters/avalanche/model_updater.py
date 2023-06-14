@@ -165,6 +165,8 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
         self,
         train_dataset: Dataset,
         val_dataset: Optional[Dataset] = None,
+        train_dataset_collate_fn: Optional[Callable] = None,
+        val_dataset_collate_fn: Optional[Callable] = None,
         task_id: Optional[str] = None,
     ) -> RenateModule:
         val_dataset_exists = val_dataset is not None
