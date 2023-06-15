@@ -8,7 +8,6 @@ from torchmetrics import Accuracy
 from dummy_datasets import DummyTorchVisionDataModule
 from renate.benchmark.models.mlp import MultiLayerPerceptron
 from renate.benchmark.scenarios import ClassIncrementalScenario, Scenario
-from renate.data.data_module import RenateDataModule
 from renate.models import RenateModule
 
 
