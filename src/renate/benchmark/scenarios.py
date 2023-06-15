@@ -362,7 +362,7 @@ class FeatureSortingScenario(_SortingScenario):
         self._feature_idx = feature_idx
 
     def _get_scores(self, dataset: Dataset) -> List[float]:
-        return [x[0][self._feature_idx].mean().item() for x, _ in dataset]
+        return [ToTensor(x[0])[self._feature_idx].mean().item() for x, _ in dataset]
 
 
 class HueShiftScenario(_SortingScenario):
@@ -381,7 +381,7 @@ class HueShiftScenario(_SortingScenario):
         to_pil_image = ToPILImage()
         for image, _ in dataset:
             count, value = np.histogram(
-                np.array(to_pil_image(image).convert("HSV"))[:, :, 0].reshape(-1), bins=100
+                np.array(image.convert("HSV"))[:, :, 0].reshape(-1), bins=100
             )
             scores.append(value[np.argmax(count)])
         return scores
