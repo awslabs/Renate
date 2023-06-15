@@ -1,12 +1,13 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 from functools import partial
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 import torch
 from torch.nn import Parameter
 from torch.optim import Optimizer, SGD
 from torch.optim.lr_scheduler import StepLR, _LRScheduler
+from torchmetrics import Accuracy
 
 from dummy_datasets import DummyTorchVisionDataModule
 from renate.benchmark.models.mlp import MultiLayerPerceptron
@@ -41,3 +42,7 @@ def optimizer_fn() -> Callable[[List[Parameter]], Optimizer]:
 
 def lr_scheduler_fn() -> Tuple[Callable[[Optimizer], _LRScheduler], str]:
     return partial(StepLR, step_size=10, gamma=0.1), "epoch"
+
+
+def metrics_fn() -> Dict:
+    return {"accuracy": Accuracy()}
