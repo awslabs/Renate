@@ -135,7 +135,7 @@ class ClassIncrementalScenario(Scenario):
         self,
         data_module: RenateDataModule,
         chunk_id: int,
-        class_groupings: Tuple[Tuple[int]],
+        class_groupings: Tuple[Tuple[int, ...], ...],
     ) -> None:
         super().__init__(data_module, len(class_groupings), chunk_id)
         self._class_groupings = class_groupings
