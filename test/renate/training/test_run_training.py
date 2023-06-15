@@ -78,7 +78,7 @@ def test_run_training_job(
                 mode="max",
                 config_space=config_space,
                 metric="val_accuracy",
-                max_time=30,
+                max_time=35,
                 scheduler=scheduler,
             )
 

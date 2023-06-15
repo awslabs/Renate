@@ -111,7 +111,7 @@ class BenchmarkScenario(Scenario):
         super().setup()
         self._train_data = self._data_module.train_data()
         self._val_data = self._data_module.val_data()
-        self._test_data = self._data_module.test_data()
+        self._test_data = self._data_module._test_data
 
 
 class ClassIncrementalScenario(Scenario):
