@@ -5,6 +5,7 @@ from collections import Counter
 import numpy as np
 import pytest
 import torch
+from torchvision.transforms import ToTensor, ToPILImage
 from torchvision.transforms.functional import rotate
 
 from dummy_datasets import DummyTorchVisionDataModule, DummyTorchVisionDataModuleWithChunks
@@ -130,14 +131,14 @@ def test_permutation_scenario():
             )[i]
             assert len(scenario_data) == len(split_orig_data_module_data)
             for j in range(len(scenario_data)):
-                a, _ = torch.sort(split_orig_data_module_data[j][0].flatten())
-                b, _ = torch.sort(scenario_data[j][0].flatten())
+                a, _ = torch.sort(ToTensor()(split_orig_data_module_data[j][0]).flatten())
+                b, _ = torch.sort(ToTensor()(scenario_data[j][0]).flatten())
                 assert torch.equal(a, b)
         for j, test_data in enumerate(scenario.test_data()):
             assert len(test_data) == len(data_module.test_data())
             for k in range(len(test_data)):
-                a, _ = torch.sort(data_module.test_data()[k][0].flatten())
-                b, _ = torch.sort(test_data[k][0].flatten())
+                a, _ = torch.sort(ToTensor()(data_module.test_data()[k][0]).flatten())
+                b, _ = torch.sort(ToTensor()(test_data[k][0]).flatten())
                 assert torch.equal(a, b)
 
 
@@ -158,13 +159,13 @@ def test_transforms_in_transform_scenarios_are_distinct(scenario_class, scenario
     scenario = scenario_class(data_module=data_module, **scenario_kwargs, chunk_id=0, seed=0)
     scenario.prepare_data()
     scenario.setup()
-    x = data_module.X_train[0]
+    x = ToPILImage()(data_module.X_train[0])
     for i, transform in enumerate(scenario._transforms):
         for j, transform2 in enumerate(scenario._transforms):
             if i == j:
                 continue
             assert transform != transform2
-            assert not torch.all(torch.isclose(transform(x), transform2(x)))
+            assert not torch.all(torch.isclose(ToTensor()(transform(x)), ToTensor()(transform2(x))))
 
 
 def test_benchmark_scenario():
@@ -222,7 +223,7 @@ def test_feature_sorting_scenario(feature_idx):
         scenario.setup()
         for stage in ["train", "val"]:
             scenario_data = getattr(scenario, f"{stage}_data")()
-            features = [x[0, feature_idx].mean().item() for x, _ in scenario_data]
+            features = [ToTensor()(x)[0, feature_idx].mean().item() for x, _ in scenario_data]
             chunk_min = min(features)
             chunk_max = max(features)
             assert max_value[stage] <= chunk_min

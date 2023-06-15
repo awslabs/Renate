@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import abc
 from typing import Callable, List, Tuple, Union
+from PIL import Image
 
 import numpy as np
 import torch
@@ -362,7 +363,12 @@ class FeatureSortingScenario(_SortingScenario):
         self._feature_idx = feature_idx
 
     def _get_scores(self, dataset: Dataset) -> List[float]:
-        return [ToTensor(x[0])[self._feature_idx].mean().item() for x, _ in dataset]
+        scores = []
+        for x, _ in dataset:
+            if isinstance(x, Image.Image):
+                x = ToTensor()(x)
+            scores.append(x[0][self._feature_idx].mean().item())
+        return scores
 
 
 class HueShiftScenario(_SortingScenario):

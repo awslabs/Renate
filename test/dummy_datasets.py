@@ -4,6 +4,7 @@ from typing import Callable, Optional
 
 import torch
 from torch.utils.data import Dataset
+from torchvision import transforms
 
 from renate import defaults
 from renate.data.data_module import RenateDataModule
@@ -18,7 +19,7 @@ class DummyDataset(Dataset):
         self.transform = transform
 
     def __getitem__(self, index):
-        x = self.data[index]
+        x = transforms.ToPILImage()(self.data[index])
         y = self.targets[index]
         if self.transform is not None:
             x = self.transform(x)
