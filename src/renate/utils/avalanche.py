@@ -23,7 +23,8 @@ class AvalancheDataset(Dataset):
         self._inputs = inputs
         self._targets = targets
         self.targets = torch.tensor(targets, dtype=torch.long)
-        self.collate_fn = collate_fn
+        if collate_fn is not None:
+            self.collate_fn = collate_fn
 
     def __len__(self) -> int:
         return len(self._targets)

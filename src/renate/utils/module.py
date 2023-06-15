@@ -52,9 +52,9 @@ def evaluate_and_record_results(
             defined, it will assume devices to be "auto" and fetch the `auto_device_count` from the
             `accelerator`.
         strategy: Name of the distributed training strategy to use.
-            `More details <https://lightning.ai/docs/pytorch/stable/extensions/strategy.html>`_
+            `More details <https://lightning.ai/docs/pytorch/stable/extensions/strategy.html>`__
         precision: Type of bit precision to use.
-            `More details <https://lightning.ai/docs/pytorch/stable/common/precision_basic.html>`_
+            `More details <https://lightning.ai/docs/pytorch/stable/common/precision_basic.html>`__
     """
 
     data_module.setup()
