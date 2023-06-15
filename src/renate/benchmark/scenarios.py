@@ -6,7 +6,7 @@ from typing import Callable, List, Tuple, Union
 import numpy as np
 import torch
 from torch.utils.data import Dataset, Subset
-from torchvision.transforms import Lambda, RandomRotation, ToPILImage
+from torchvision.transforms import Lambda, RandomRotation, ToPILImage, Compose, ToTensor
 
 from renate import defaults
 from renate.benchmark.datasets.wild_time_data import WildTimeDataModule
@@ -239,7 +239,13 @@ class PermutationScenario(TransformScenario):
         transforms = [torch.nn.Identity()]
         for _ in range(num_tasks - 1):
             permutation = torch.randperm(input_dim, generator=rng)
-            transform = Lambda(lambda x, p=permutation: x.flatten()[p].view(x.size()))
+            transform = Compose(
+                [
+                    ToTensor(),
+                    Lambda(lambda x, p=permutation: x.flatten()[p].view(x.size())),
+                    ToPILImage(),
+                ]
+            )
             transforms.append(transform)
         super().__init__(data_module, transforms, chunk_id, seed)
 
