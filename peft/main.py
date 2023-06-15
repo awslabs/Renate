@@ -10,16 +10,18 @@ import transformers
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers.logger import Logger
-from transformers import default_data_collator
+from transformers import default_data_collator, DataCollatorForLanguageModeling
 
 from renate import defaults
 from renate.benchmark.datasets.nlp_datasets import (
+    HuggingFaceLanguageModelingModule,
     HuggingFaceTextDataModule,
     HuggingFaceExtractiveQADataModule,
 )
 from renate.benchmark.models.transformer import (
     HuggingFaceSequenceClassificationTransformer,
     HuggingFaceQuestionAnsweringTransformer,
+    HuggingFaceLanguageModelingTransformer,
 )
 from renate.data.data_module import RenateDataModule
 from renate.updaters.peft_learner import PeftLearner, QAPeft
@@ -41,6 +43,14 @@ def get_data(
         )
     elif dataset_name == "rotten_tomatoes":
         data_module = HuggingFaceTextDataModule(
+            data_path=str(data_path),
+            dataset_name=dataset_name,
+            tokenizer=tokenizer,
+            val_size=0.2,
+            seed=seed,
+        )
+    elif dataset_name == "eli5":
+        data_module = HuggingFaceLanguageModelingModule(
             data_path=str(data_path),
             dataset_name=dataset_name,
             tokenizer=tokenizer,
@@ -105,6 +115,15 @@ def main(pretrained_model_name: str, dataset_name: str, s3url: str, config: Dict
         collator_fn = default_data_collator
         module_cls = QAPeft
 
+    elif dataset_name == "eli5":
+        do_causal_lm = False
+        model = HuggingFaceLanguageModelingTransformer(
+            pretrained_model_name=pretrained_model_name, causal=do_causal_lm
+        )
+        lossfunction = lambda x, y: x
+        collator_fn = partial(DataCollatorForLanguageModeling, mlm=not do_causal_lm)
+        module_cls = QAPeft
+
     # Specify your optimizer params here
     optimizer = partial(torch.optim.AdamW, lr=1e-5, weight_decay=1e-2)
     module = module_cls(
@@ -134,7 +153,7 @@ def main(pretrained_model_name: str, dataset_name: str, s3url: str, config: Dict
     trainer.fit(module)
 
     # Uplaod checkpoints to s3
-    upload_folder_to_s3(checkpointpath, s3url)
+    # upload_folder_to_s3(checkpointpath, s3url)
 
 
 if __name__ == "__main__":

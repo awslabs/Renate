@@ -5,10 +5,13 @@ from typing import Dict, List, Optional, Any
 
 import torch
 from torch import Tensor
-from transformers import AutoModelForQuestionAnswering, T5ForConditionalGeneration
 from transformers import (
+    AutoModelForQuestionAnswering,
+    T5ForConditionalGeneration,
     AutoModelForSequenceClassification,
     PreTrainedModel,
+    AutoModelForCausalLM,
+    AutoModelForMaskedLM,
 )
 
 from peft import (
@@ -108,13 +111,24 @@ class HuggingFaceQuestionAnsweringTransformer(HuggingFaceTransformer):
         pretrained_model_name: str,
         constructor_arguments: Optional[Dict[str, Any]] = None,
     ) -> None:
-
         super().__init__(
             pretrained_model_name=pretrained_model_name, constructor_arguments=constructor_arguments
         )
         self._model = AutoModelForQuestionAnswering.from_pretrained(
             pretrained_model_name, return_dict=False
         )
+
+
+class HuggingFaceLanguageModelingTransformer(HuggingFaceTransformer):
+    def __init__(
+        self,
+        pretrained_model_name: str,
+        constructor_arguments: Dict[str, Any] | None = None,
+        causal: bool = True,
+    ) -> None:
+        super().__init__(pretrained_model_name, constructor_arguments)
+        modelcls = AutoModelForCausalLM if causal else AutoModelForMaskedLM
+        self._model = modelcls.from_pretrained(pretrained_model_name, return_dict=False)
 
 
 class HuggingFaceSequenceClassificationTransformerWithLora(
