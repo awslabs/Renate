@@ -90,6 +90,8 @@ class RenateLightningModule(LightningModule, abc.ABC):
         self, logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None
     ) -> None:
         """Creates all logged metrics."""
+        if logged_metrics is None:
+            logged_metrics = {}
         metrics = torchmetrics.MetricCollection(logged_metrics)
         train_metrics = metrics.clone(prefix="train_")
         val_metrics = metrics.clone(prefix="val_")

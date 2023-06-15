@@ -136,9 +136,9 @@ def run_training_job(
         accelerator: Type of accelerator to use.
         devices: Number of devices to use per worker (set in n_workers).
         strategy: Name of the distributed training strategy to use.
-            `More details <https://lightning.ai/docs/pytorch/stable/extensions/strategy.html>`_
+            `More details <https://lightning.ai/docs/pytorch/stable/extensions/strategy.html>`__
         precision: Type of bit precision to use.
-            `More details <https://lightning.ai/docs/pytorch/stable/common/precision_basic.html>`_
+            `More details <https://lightning.ai/docs/pytorch/stable/common/precision_basic.html>`__
         deterministic_trainer: When true the Trainer adopts a deterministic behaviour also on GPU.
         job_name: Prefix for the name of the SageMaker training job.
     """
