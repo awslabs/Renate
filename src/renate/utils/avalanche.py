@@ -8,7 +8,6 @@ from avalanche.benchmarks import dataset_benchmark
 from avalanche.core import BasePlugin
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
-from torchvision import transforms
 
 from renate.data.datasets import _TransformedDataset
 from renate.memory import DataBuffer
