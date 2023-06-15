@@ -325,7 +325,7 @@ def test_transform(dataset_name: str) -> Optional[transforms.Normalize]:
     if dataset_name in ["MNIST", "FashionMNIST"]:
         return transforms.ToTensor()
     if dataset_name in ["CIFAR10", "CIFAR100"]:
-        return _get_normalize_transform(dataset_name)
+        return transforms.Compose([transforms.ToTensor(), _get_normalize_transform(dataset_name)])
     if dataset_name in ["CLEAR10", "CLEAR100"]:
         return transforms.Compose(
             [
