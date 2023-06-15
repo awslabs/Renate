@@ -8,6 +8,7 @@ from avalanche.benchmarks import dataset_benchmark
 from avalanche.core import BasePlugin
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
+from torchvision import transforms
 
 from renate.data.datasets import _TransformedDataset
 from renate.memory import DataBuffer
@@ -59,6 +60,7 @@ class AvalancheBenchmarkWrapper:
         self._n_classes = 0
         self._train_dataset = train_dataset
         self._train_target_transform = train_target_transform
+        self._train_transform = train_transform
         self._benchmark = dataset_benchmark(
             [train_dataset],
             [val_dataset],
@@ -72,7 +74,9 @@ class AvalancheBenchmarkWrapper:
 
     def update_benchmark_properties(self):
         dataset = _TransformedDataset(
-            dataset=self._train_dataset, target_transform=self._train_target_transform
+            dataset=self._train_dataset,
+            target_transform=self._train_target_transform,
+            transform=self._train_transform,
         )
         dataloader = DataLoader(dataset)
         unique_classes = set()

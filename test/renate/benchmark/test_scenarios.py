@@ -101,13 +101,15 @@ def test_image_rotation_scenario():
             assert len(scenario_data) == len(split_orig_data_module_data)
             for j in range(len(scenario_data)):
                 assert torch.equal(
-                    rotate(split_orig_data_module_data[j][0], degrees[i]), scenario_data[j][0]
+                    rotate(ToTensor()(split_orig_data_module_data[j][0]), degrees[i]),
+                    ToTensor()(scenario_data[j][0]),
                 )
         for j, test_data in enumerate(scenario.test_data()):
             assert len(test_data) == len(data_module.test_data())
             for k in range(len(test_data)):
                 assert torch.equal(
-                    rotate(data_module.test_data()[k][0], degrees[j]), test_data[k][0]
+                    rotate(ToTensor()(data_module.test_data()[k][0]), degrees[j]),
+                    ToTensor()(test_data[k][0]),
                 )
 
 
@@ -196,6 +198,7 @@ def test_iid_scenario():
             scenario_data = getattr(scenario, f"{stage}_data")()
             for j in range(len(scenario_data)):
                 x, y = scenario_data[j]
+                x = ToTensor()(x)
                 assert x not in counter
                 counter[x] = 1
         assert len(scenario.test_data()) == 3

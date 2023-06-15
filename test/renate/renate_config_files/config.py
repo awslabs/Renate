@@ -1,8 +1,9 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Optional, Tuple
+from typing import Callable, Optional, Tuple
 
 import torch
+from torchvision.transforms import ToTensor
 
 from dummy_datasets import DummyTorchVisionDataModule
 from renate.benchmark.models.mlp import MultiLayerPerceptron
@@ -34,3 +35,11 @@ def loss_fn(updater: Optional[str] = None) -> torch.nn.Module:
     if updater.startswith("Avalanche-"):
         return torch.nn.CrossEntropyLoss()
     return torch.nn.CrossEntropyLoss(reduction="none")
+
+
+def train_transform() -> Callable:
+    return ToTensor()
+
+
+def test_transform() -> Callable:
+    return ToTensor()
