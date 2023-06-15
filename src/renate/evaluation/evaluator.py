@@ -48,7 +48,10 @@ class Evaluator(LightningModule, abc.ABC):
         self._metric_collection = torchmetrics.MetricCollection(logged_metrics)
 
     def on_model_test_start(
-        self, test_dataset: Dataset, task_id: Optional[str] = None
+        self,
+        test_dataset: Dataset,
+        test_collate_fn: Optional[Callable] = None,
+        task_id: Optional[str] = None,
     ) -> DataLoader:
         """Called before a model test starts."""
         test_dataset = _TransformedDataset(
@@ -57,7 +60,13 @@ class Evaluator(LightningModule, abc.ABC):
             target_transform=self._target_transform,
         )
         self._task_id = task_id
-        return DataLoader(test_dataset, batch_size=self._batch_size, shuffle=False, pin_memory=True)
+        return DataLoader(
+            test_dataset,
+            batch_size=self._batch_size,
+            shuffle=False,
+            pin_memory=True,
+            collate_fn=test_collate_fn,
+        )
 
     def test_step(self, batch: List[torch.Tensor], batch_idx: int) -> None:
         """PyTorch Lightning function to perform the test step."""
@@ -102,6 +111,7 @@ class ClassificationEvaluator(Evaluator):
 def evaluate(
     model: RenateModule,
     test_dataset: Union[List[Dataset], Dataset],
+    test_collate_fn: Optional[Callable] = None,
     task_id: Union[List[str], str] = defaults.TASK_ID,
     batch_size: int = defaults.BATCH_SIZE,
     transform: Optional[Callable] = None,
@@ -124,6 +134,7 @@ def evaluate(
     Args:
         model: A `RenateModule` to be evaluated.
         test_dataset: The test dataset(s) to be evaluated.
+        test_collate_fn: collate_fn used in the DataLoader.
         task_id: The task id(s) of the test dataset(s).
         batch_size: The batch size to be used when creating the test data loader.
         transform: The transformation applied for evaluation.
@@ -167,7 +178,7 @@ def evaluate(
 
     results = {}
     for i in range(len(test_dataset)):
-        test_loader = evaluator.on_model_test_start(test_dataset[i], task_id[i])
+        test_loader = evaluator.on_model_test_start(test_dataset[i], test_collate_fn, task_id[i])
         trainer.test(
             evaluator,
             test_loader,
