@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import pytest
-from torchvision.transforms import Compose, Normalize
+from torchvision.transforms import Compose, Normalize, ToTensor
 
 from renate.benchmark import experiment_config
 from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
@@ -260,19 +260,21 @@ def test_data_module_fn(
 @pytest.mark.parametrize(
     "dataset_name,use_transforms",
     (
-        ("MNIST", False),
-        ("FashionMNIST", False),
+        ("MNIST", True),
+        ("FashionMNIST", True),
         ("CIFAR10", True),
         ("CIFAR100", True),
         ("hfd-rotten_tomatoes", False),
+        ("CLEAR10", True),
+        ("CLEAR100", True),
     ),
 )
 def test_transforms(dataset_name, use_transforms):
     train_preprocessing = train_transform(dataset_name)
     test_preprocessing = experiment_config.test_transform(dataset_name)
     if use_transforms:
-        assert isinstance(train_preprocessing, Compose)
-        assert isinstance(test_preprocessing, Normalize)
+        assert callable(train_preprocessing)
+        assert callable(test_preprocessing)
     else:
         assert train_preprocessing is None
         assert test_preprocessing is None
