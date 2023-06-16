@@ -50,6 +50,8 @@ class VisionTransformer(RenateBenchmarkingModule):
     arXiv preprint arXiv:2010.11929 (2020).
 
     Args:
+        pretrained_name: A string that denotes which pretrained model from the HF hub to use.
+            If provided, it overrides other arguments about architecture.
         image_size: Size of the input image.
         patch_size: Size of the patches.
         num_layers: Number of Encoder layers.
@@ -67,6 +69,7 @@ class VisionTransformer(RenateBenchmarkingModule):
 
     def __init__(
         self,
+        pretrained_name: Optional[str] = None,
         image_size: int = 32,
         patch_size: int = 4,
         num_layers: int = 12,
@@ -78,7 +81,6 @@ class VisionTransformer(RenateBenchmarkingModule):
         num_outputs: int = 10,
         prediction_strategy: Optional[PredictionStrategy] = None,
         add_icarl_class_means: bool = True,
-        pretrained_name: Optional[str] = None,
     ) -> None:
         if pretrained_name:
             model = FeatureExtractorViTModel.from_pretrained(
@@ -138,12 +140,6 @@ class VisionTransformerCIFAR(VisionTransformer):
 class VisionTransformerB16(VisionTransformer):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(
-            image_size=224,
-            patch_size=16,
-            num_layers=12,
-            num_heads=12,
-            hidden_dim=768,
-            mlp_dim=3072,
             pretrained_name="google/vit-base-patch16-224",
             **kwargs,
         )
@@ -152,12 +148,6 @@ class VisionTransformerB16(VisionTransformer):
 class VisionTransformerB32(VisionTransformer):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(
-            image_size=224,
-            patch_size=32,
-            num_layers=12,
-            num_heads=12,
-            hidden_dim=768,
-            mlp_dim=3072,
             pretrained_name="google/vit-base-patch32-224-in21k",
             **kwargs,
         )
@@ -166,12 +156,6 @@ class VisionTransformerB32(VisionTransformer):
 class VisionTransformerL16(VisionTransformer):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(
-            image_size=224,
-            patch_size=16,
-            num_layers=24,
-            num_heads=16,
-            hidden_dim=1024,
-            mlp_dim=4096,
             pretrained_name="google/vit-large-patch16-224-in21k",
             **kwargs,
         )
@@ -180,12 +164,6 @@ class VisionTransformerL16(VisionTransformer):
 class VisionTransformerL32(VisionTransformer):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(
-            image_size=224,
-            patch_size=32,
-            num_layers=24,
-            num_heads=16,
-            hidden_dim=1024,
-            mlp_dim=4096,
             pretrained_name="google/vit-large-patch32-224-in21k",
             **kwargs,
         )
@@ -194,12 +172,6 @@ class VisionTransformerL32(VisionTransformer):
 class VisionTransformerH14(VisionTransformer):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(
-            image_size=224,
-            patch_size=14,
-            num_layers=32,
-            num_heads=16,
-            hidden_dim=1280,
-            mlp_dim=5120,
             pretrained_name="google/vit-huge-patch14-224-in21k",
             **kwargs,
         )
