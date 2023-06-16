@@ -69,7 +69,7 @@ class VisionTransformer(RenateBenchmarkingModule):
 
     def __init__(
         self,
-        pretrained_name: Optional[str] = None,
+        pretrained_model_name_or_path: Optional[str] = None,
         image_size: int = 32,
         patch_size: int = 4,
         num_layers: int = 12,
@@ -82,9 +82,9 @@ class VisionTransformer(RenateBenchmarkingModule):
         prediction_strategy: Optional[PredictionStrategy] = None,
         add_icarl_class_means: bool = True,
     ) -> None:
-        if pretrained_name:
+        if pretrained_model_name_or_path:
             model = FeatureExtractorViTModel.from_pretrained(
-                pretrained_model_name_or_path=pretrained_name, return_dict=False
+                pretrained_model_name_or_path=pretrained_model_name_or_path, return_dict=False
             )
         else:
             model_config = ViTConfig(
