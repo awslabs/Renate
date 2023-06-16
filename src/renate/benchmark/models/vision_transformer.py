@@ -140,7 +140,7 @@ class VisionTransformerCIFAR(VisionTransformer):
 class VisionTransformerB16(VisionTransformer):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(
-            pretrained_name="google/vit-base-patch16-224",
+            pretrained_model_name_or_path="google/vit-base-patch16-224",
             **kwargs,
         )
 
@@ -148,7 +148,7 @@ class VisionTransformerB16(VisionTransformer):
 class VisionTransformerB32(VisionTransformer):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(
-            pretrained_name="google/vit-base-patch32-224-in21k",
+            pretrained_model_name_or_path="google/vit-base-patch32-224-in21k",
             **kwargs,
         )
 
@@ -156,7 +156,7 @@ class VisionTransformerB32(VisionTransformer):
 class VisionTransformerL16(VisionTransformer):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(
-            pretrained_name="google/vit-large-patch16-224-in21k",
+            pretrained_model_name_or_path="google/vit-large-patch16-224-in21k",
             **kwargs,
         )
 
@@ -164,7 +164,7 @@ class VisionTransformerL16(VisionTransformer):
 class VisionTransformerL32(VisionTransformer):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(
-            pretrained_name="google/vit-large-patch32-224-in21k",
+            pretrained_model_name_or_path="google/vit-large-patch32-224-in21k",
             **kwargs,
         )
 
@@ -172,6 +172,6 @@ class VisionTransformerL32(VisionTransformer):
 class VisionTransformerH14(VisionTransformer):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(
-            pretrained_name="google/vit-huge-patch14-224-in21k",
+            pretrained_model_name_or_path="google/vit-huge-patch14-224-in21k",
             **kwargs,
         )
