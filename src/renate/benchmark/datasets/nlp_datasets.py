@@ -335,4 +335,4 @@ class HuggingFaceLanguageModelingModule(RenateDataModule):
         self._train_data = lm_dataset["train"]
         self._train_data.set_format("torch")
         self._val_data = lm_dataset["test"]
-        self.val_data.set_format("torch")
+        self._val_data.set_format("torch")

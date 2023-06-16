@@ -100,6 +100,9 @@ def main(pretrained_model_name: str, dataset_name: str, s3url: str, config: Dict
     checkpointpath = Path.home().joinpath("checkpoint")
     checkpointpath.mkdir(exist_ok=True)
 
+    # Setup data
+    data_module = get_data(dataset_name, pretrained_model_name, datapath)
+
     if dataset_name == "rotten_tomatoes":
         num_outputs = 2
         model = HuggingFaceSequenceClassificationTransformer(
@@ -121,7 +124,10 @@ def main(pretrained_model_name: str, dataset_name: str, s3url: str, config: Dict
             pretrained_model_name=pretrained_model_name, causal=do_causal_lm
         )
         lossfunction = lambda x, y: x
-        collator_fn = partial(DataCollatorForLanguageModeling, mlm=not do_causal_lm)
+        data_module._tokenizer.pad_token = data_module._tokenizer.eos_token
+        collator_fn = DataCollatorForLanguageModeling(
+            mlm=not do_causal_lm, tokenizer=data_module._tokenizer
+        )
         module_cls = QAPeft
 
     # Specify your optimizer params here
@@ -133,9 +139,6 @@ def main(pretrained_model_name: str, dataset_name: str, s3url: str, config: Dict
         batch_size=config["batch_size"],
         logged_metrics={},
     )
-
-    # Setup data
-    data_module = get_data(dataset_name, pretrained_model_name, datapath)
 
     module.on_model_update_start(
         train_dataset=data_module.train_data(),
@@ -160,7 +163,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--pretrained-model-name", type=str, default="distilbert-base-uncased")
     parser.add_argument(
-        "--dataset", type=str, default="rotten_tomatoes", choices=["rotten_tomatoes", "squad"]
+        "--dataset",
+        type=str,
+        default="rotten_tomatoes",
+        choices=["rotten_tomatoes", "squad", "eli5"],
     )
     parser.add_argument("--checkpoint-folder", type=str, default="working_folder")
     parser.add_argument("--batch_size", type=int, default=16)
