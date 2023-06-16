@@ -133,6 +133,7 @@ def execute_experiment_job(
     num_updates: int,
     working_directory: Optional[str] = defaults.WORKING_DIRECTORY,
     requirements_file: Optional[str] = None,
+    dependencies: Optional[List[str]] = None,
     role: Optional[str] = None,
     instance_type: str = defaults.INSTANCE_TYPE,
     instance_count: int = defaults.INSTANCE_COUNT,
@@ -165,6 +166,8 @@ def execute_experiment_job(
         num_updates: Number of updates of the experiment job.
         working_directory: Path to the working directory.
         requirements_file: Path to the requirements file.
+        dependencies: (SageMaker backend only) List of strings containing absolute or relative paths
+            to files and directories that will be uploaded as part of the SageMaker training job.
         role: Role of the experiment job.
         instance_type: Instance type of the experiment job.
         instance_count: Instance count of the experiment job.
@@ -222,6 +225,7 @@ def execute_experiment_job(
         metric=metric,
         num_updates=num_updates,
         working_directory=working_directory,
+        dependencies=dependencies or [],
         config_space=config_space,
         max_time=max_time,
         max_num_trials_started=max_num_trials_started,
