@@ -357,4 +357,4 @@ def lr_scheduler_fn(
         )
     elif learning_rate_scheduler is None:
         return None, learning_rate_scheduler_interval
-    raise ValueError(f"Unknown scheduler: {learning_rate_scheduler}.")
+    raise ValueError(f"Unknown scheduler `{learning_rate_scheduler}`.")
