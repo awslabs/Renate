@@ -27,9 +27,7 @@ def experiment_job_kwargs():
 
 
 @pytest.mark.parametrize("retain_intermediate_state", (True, False))
-def test_execute_experiment_job(
-    tmpdir, experiment_job_kwargs, retain_intermediate_state
-):
+def test_execute_experiment_job(tmpdir, experiment_job_kwargs, retain_intermediate_state):
     """Only checking if things run, not testing anything besides that."""
     expected_columns = [
         "Task ID",
