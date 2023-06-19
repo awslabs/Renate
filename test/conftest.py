@@ -10,6 +10,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 
 from renate import defaults
 from renate.benchmark.models import (
+    HuggingFaceSequenceClassificationTransformer,
     MultiLayerPerceptron,
     ResNet18,
     ResNet18CIFAR,
@@ -216,6 +217,11 @@ def get_renate_vision_module(model, sub_class="resnet18cifar", **kwargs):
         return get_renate_module_vision_transformer(sub_class, **kwargs)
     else:
         raise ValueError("Invalid vision model called.")
+
+
+@pytest.helpers.register
+def get_renate_hf_text_cls_transformer(pretrained_name, num_classes):
+    return HuggingFaceSequenceClassificationTransformer(pretrained_name, num_classes)
 
 
 @pytest.helpers.register

@@ -9,6 +9,7 @@ from renate.benchmark.models.resnet import (
     ResNet50,
     ResNet50CIFAR,
 )
+from renate.benchmark.models.transformer import HuggingFaceSequenceClassificationTransformer
 from renate.benchmark.models.vision_transformer import (
     VisionTransformerB16,
     VisionTransformerB32,
@@ -19,6 +20,7 @@ from renate.benchmark.models.vision_transformer import (
 )
 
 __all__ = [
+    "HuggingFaceSequenceClassificationTransformer",
     "MultiLayerPerceptron",
     "ResNet18",
     "ResNet18CIFAR",
