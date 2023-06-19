@@ -314,7 +314,7 @@ def _execute_experiment_job_locally(
 
     # TODO: evaluate's trainer has to use devices=1:
     # See https://github.com/Lightning-AI/lightning/issues/2537
-    # The fix is to launch evaluation in a seperate process like training.
+    # The fix is to launch evaluation in a separate process like training.
     results: Dict[str, List[List[float]]] = {}
     evaluate_and_record_results(
         results,
@@ -379,9 +379,10 @@ def _execute_experiment_job_locally(
             devices=1,
         )
         df = individual_metrics_summary(results, update_id + 1, num_updates)
-        save_pandas_df_to_csv(
-            df, defaults.metric_summary_file(logs_url, special_str=f"_update_{update_id}")
-        )
+        if retain_intermediate_state:
+            save_pandas_df_to_csv(
+                df, defaults.metric_summary_file(logs_url, special_str=f"_update_{update_id}")
+            )
         logger.info(f"### Results after update {update_id + 1}: ###")
         logger.info(df)
 
@@ -392,7 +393,8 @@ def _execute_experiment_job_locally(
     logger.info(df)
 
     if not retain_intermediate_state:
-        shutil.move(defaults.hpo_file(input_state_url), logs_url)
+        shutil.move(defaults.hpo_file(input_state_url), str(experiment_outputs_url))
+        copy_to_uri(input_state_url, str(experiment_outputs_url))
     move_to_uri(logs_url, defaults.logs_folder(experiment_outputs_url))
 
     shutil.rmtree(working_directory)
