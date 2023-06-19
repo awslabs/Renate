@@ -26,7 +26,7 @@ def experiment_job_kwargs():
     }
 
 
-@pytest.mark.parametrize("retain_intermediate_state,expected_num_updates", ((True, 2), (False, 1)))
+@pytest.mark.parametrize("retain_intermediate_state", (True, False))
 def test_execute_experiment_job(
     tmpdir, experiment_job_kwargs, retain_intermediate_state, expected_num_updates
 ):
@@ -38,7 +38,7 @@ def test_execute_experiment_job(
         "Forward Transfer",
         "Backward Transfer",
     ]
-    experiment_job_kwargs["num_updates"] = expected_num_updates
+    expected_num_updates = experiment_job_kwargs["num_updates"]
     experiment_job_kwargs["retain_intermediate_state"] = retain_intermediate_state
     execute_experiment_job(experiment_outputs_url=tmpdir, **experiment_job_kwargs)
     results_df = pd.read_csv(str(Path(tmpdir) / "logs" / "metrics_summary.csv"))

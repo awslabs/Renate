@@ -391,12 +391,9 @@ def _execute_experiment_job_locally(
     logger.info("### Cumulative results: ###")
     logger.info(df)
 
-    move_to_uri(logs_url, defaults.logs_folder(experiment_outputs_url))
-
     if not retain_intermediate_state:
-        shutil.move(
-            defaults.hpo_file(input_state_url), defaults.logs_folder(experiment_outputs_url)
-        )
+        shutil.move(defaults.hpo_file(input_state_url), logs_url)
+    move_to_uri(logs_url, defaults.logs_folder(experiment_outputs_url))
 
     shutil.rmtree(working_directory)
     logger.info("Experiment completed successfully.")
