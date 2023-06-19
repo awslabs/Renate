@@ -41,17 +41,14 @@ def test_execute_experiment_job(tmpdir, experiment_job_kwargs, retain_intermedia
     execute_experiment_job(experiment_outputs_url=tmpdir, **experiment_job_kwargs)
     results_df = pd.read_csv(str(Path(tmpdir) / "logs" / "metrics_summary.csv"))
     assert all(results_df.columns == expected_columns)
-    for update_id in range(expected_num_updates):
-        assert (Path(tmpdir) / f"update_{update_id}" / "learner.ckpt").is_file()
-        assert (Path(tmpdir) / f"update_{update_id}" / "model.ckpt").is_file()
-    assert (
-        len(
-            pd.read_csv(str(Path(tmpdir) / f"update_{expected_num_updates - 1}" / "hpo.csv"))[
-                "update_id"
-            ].unique()
-        )
-        == expected_num_updates
-    )
+    if retain_intermediate_state:
+        hpo_file = Path(tmpdir) / "logs" / "hpo.csv"
+    else:
+        hpo_file = Path(tmpdir) / f"update_{expected_num_updates - 1}" / "hpo.csv"
+        for update_id in range(expected_num_updates):
+            assert (Path(tmpdir) / f"update_{update_id}" / "learner.ckpt").is_file()
+            assert (Path(tmpdir) / f"update_{update_id}" / "model.ckpt").is_file()
+    assert len(pd.read_csv(str(hpo_file))["update_id"].unique()) == expected_num_updates
 
 
 @pytest.mark.parametrize(
