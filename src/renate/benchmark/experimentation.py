@@ -185,7 +185,8 @@ def execute_experiment_job(
         job_name: Name of the experiment job.
         strategy: String denoting lightning distributed strategy.
         precision: String for which precision to use.
-        save_state: Flag to retain models and buffer states of each update step. Disable to save storage.
+        save_state: Flag to retain models and buffer states of each update step. Disable to save
+            storage.
     """
     assert (
         mode in defaults.SUPPORTED_TUNING_MODE
