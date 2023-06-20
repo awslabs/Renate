@@ -150,7 +150,7 @@ def execute_experiment_job(
     job_name: str = defaults.JOB_NAME,
     strategy: str = defaults.DISTRIBUTED_STRATEGY,
     precision: str = defaults.PRECISION,
-    retain_intermediate_state: bool = defaults.RETAIN_INTERMEDIATE_STATE,
+    save_state: bool = defaults.SAVE_BENCHMARK_STATE,
 ) -> None:
     """Executes the experiment job.
 
@@ -185,9 +185,7 @@ def execute_experiment_job(
         job_name: Name of the experiment job.
         strategy: String denoting lightning distributed strategy.
         precision: String for which precision to use.
-        retain_intermediate_state: Flag to retain models and buffer states after each
-            task update. This is useful when training with large datasets that might cause storage
-            issues.
+        save_state: Flag to retain models and buffer states of each update step. Disable to save storage.
     """
     assert (
         mode in defaults.SUPPORTED_TUNING_MODE
@@ -215,7 +213,7 @@ def execute_experiment_job(
             seed=seed,
             strategy=strategy,
             precision=precision,
-            retain_intermediate_state=retain_intermediate_state,
+            save_state=save_state,
         )
     _execute_experiment_job_remotely(
         job_name=job_name,
@@ -243,7 +241,7 @@ def execute_experiment_job(
         instance_max_time=instance_max_time,
         strategy=strategy,
         precision=precision,
-        retain_intermediate_state=retain_intermediate_state,
+        save_state=save_state,
     )
 
 
@@ -266,7 +264,7 @@ def _execute_experiment_job_locally(
     deterministic_trainer: bool,
     strategy: str,
     precision: str,
-    retain_intermediate_state: bool,
+    save_state: bool,
 ) -> None:
     """Runs an experiment, combining hyperparameter tuning and model for multiple updates.
 
@@ -360,7 +358,7 @@ def _execute_experiment_job_locally(
             deterministic_trainer=deterministic_trainer,
         )
         move_to_uri(output_state_url, input_state_url)
-        if retain_intermediate_state:
+        if save_state:
             copy_to_uri(input_state_url, update_url)
         model = get_model(
             config_module,
@@ -379,7 +377,7 @@ def _execute_experiment_job_locally(
             devices=1,
         )
         df = individual_metrics_summary(results, update_id + 1, num_updates)
-        if retain_intermediate_state:
+        if save_state:
             save_pandas_df_to_csv(
                 df, defaults.metric_summary_file(logs_url, special_str=f"_update_{update_id}")
             )
@@ -392,9 +390,8 @@ def _execute_experiment_job_locally(
     logger.info("### Cumulative results: ###")
     logger.info(df)
 
-    if not retain_intermediate_state:
-        shutil.move(defaults.hpo_file(input_state_url), str(experiment_outputs_url))
-        copy_to_uri(input_state_url, str(experiment_outputs_url))
+    if not save_state:
+        copy_to_uri(defaults.hpo_file(input_state_url), str(experiment_outputs_url))
     move_to_uri(logs_url, defaults.logs_folder(experiment_outputs_url))
 
     shutil.rmtree(working_directory)

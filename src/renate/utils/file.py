@@ -41,21 +41,27 @@ def _parse_s3_url(s3_url: str) -> Tuple[str, str]:
 
 
 def _move_locally(
-    source_dir: Union[str, Path],
-    destination_dir: Union[str, Path],
+    src: Union[str, Path],
+    dst: Union[str, Path],
     ignore_extensions: List[str] = [".sagemaker-uploading", ".sagemaker-uploaded"],
     copy: bool = False,
 ) -> None:
     """Moves files to directory. If the files exist they are overwritten.
 
     Args:
-        source_dir: Source directory.
-        destination_dir: Target directory.
+        src: Source directory.
+        dst: Target directory.
         ignore_extensions: List of extensions to ignore.
         copy: If `True`, copy instead of move.
     """
-    for src_dir, _, files in os.walk(source_dir):
-        dst_dir = src_dir.replace(source_dir, destination_dir, 1)
+    if Path(src).is_file():
+        Path(dst).mkdir(parents=True, exist_ok=True)
+        if copy:
+            shutil.copy(src, dst)
+        else:
+            shutil.move(src, dst)
+    for src_dir, _, files in os.walk(src):
+        dst_dir = src_dir.replace(src, dst, 1)
         if not os.path.exists(dst_dir):
             os.makedirs(dst_dir)
         for f in files:
@@ -72,28 +78,32 @@ def _move_locally(
 
 
 def move_to_uri(
-    local_dir: Union[Path, str],
-    uri: str,
+    src: Union[Path, str],
+    dst: str,
     ignore_extensions: List[str] = [".sagemaker-uploading", ".sagemaker-uploaded"],
 ) -> None:
     """Moves files to directory or s3. If the files exist they are overwritten.
     The files in the local directory are deleted.
 
     Args:
-        local_dir: Local directory to copy.
-        uri: Target directory or s3 uri.
+        src: Local file or directory to move.
+        dst: Target directory or s3 uri.
         ignore_extensions: List of extensions to ignore.
     """
-    if is_s3_uri(uri):
-        upload_folder_to_s3(local_dir, uri, ignore_extensions=ignore_extensions)
-        for f in os.listdir(local_dir):
-            f = os.path.join(local_dir, f)
-            if os.path.isfile(f):
-                os.remove(f)
-    elif local_dir != uri:
-        _move_locally(local_dir, uri, ignore_extensions=ignore_extensions, copy=False)
+    if is_s3_uri(dst):
+        if Path(src).is_file():
+            upload_file_to_s3(src, dst)
+            os.remove(src)
+        else:
+            upload_folder_to_s3(src, dst, ignore_extensions=ignore_extensions)
+            for f in os.listdir(src):
+                f = os.path.join(src, f)
+                if os.path.isfile(f):
+                    os.remove(f)
+    elif src != dst:
+        _move_locally(src, dst, ignore_extensions=ignore_extensions, copy=False)
     else:
-        logging.warning(f"Source and destination are the same: {local_dir}")
+        logging.warning(f"Source and destination are the same: {src}")
 
 
 def copy_to_uri(
@@ -157,7 +167,7 @@ def upload_folder_to_s3(
 
     Args:
         local_dir: Folder containing files to be uploaded.
-        s3_url:
+        s3_url: Full path to s3 location.
         dst_bucket: s3 bucket.
         prefix: Prefix for all s3 object names.
         ignore_extensions: List of extensions to ignore.
@@ -197,18 +207,27 @@ def download_file_from_s3(
 
 
 def upload_file_to_s3(
-    src: Union[Path, str], dst_bucket: str, dst_object_name: Union[Path, str]
+    src: Union[Path, str],
+    s3_url: Optional[Union[Path, str]] = None,
+    dst_bucket: Optional[str] = None,
+    dst_object_name: Optional[Union[Path, str]] = None,
 ) -> bool:
     """Upload a file to an S3 bucket
 
     Args:
         src: File to upload.
+        s3_url: Full path to s3 location.
         dst_bucket: Destination S3 bucket
         dst_object_name: Destination S3 object
 
     Return:
         True if file was uploaded, else False
     """
+    assert (
+        s3_url is not None or dst_bucket is not None and dst_object_name is not None
+    ), "Either pass s3_url or both dst_bucket and dst_object_name."
+    if s3_url is not None:
+        dst_bucket, prefix = _parse_s3_url(s3_url)
     s3_client = boto3.client("s3")
     logger.info(f"Upload file from {src} to s3://{dst_bucket}/{dst_object_name}")
     try:
@@ -282,7 +301,7 @@ def save_pandas_df_to_csv(df: pd.DataFrame, file_path: Union[str, Path]) -> pd.D
 
 @rank_zero_only
 def unlink_file_or_folder(path: Path) -> None:
-    """Funtion to remove files and folders.
+    """Function to remove files and folders.
 
     Unlink works for files, rmdir for empty folders, but not for non-empty ones. Hence a
     recursive solution.
