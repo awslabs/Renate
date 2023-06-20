@@ -66,11 +66,11 @@ class RenateLightningModule(LightningModule, abc.ABC):
         self._batch_size = batch_size
         self._seed = seed
         self._task_id: str = defaults.TASK_ID
-        self._train_dataset = None
-        self._val_dataset = None
+        self._train_dataset: Optional[Dataset] = None
+        self._val_dataset: Optional[Dataset] = None
         self.val_enabled = False
-        self._train_collate_fn = None
-        self._val_collate_fn = None
+        self._train_collate_fn: Optional[Callable] = None
+        self._val_collate_fn: Optional[Callable] = None
 
         self._create_metrics_collections(logged_metrics)
         self._rng = get_generator(self._seed)
@@ -182,9 +182,7 @@ class RenateLightningModule(LightningModule, abc.ABC):
             task_id = self._task_id
         return self._model(inputs, task_id=task_id)
 
-    def training_step_unpack_batch(
-        self, batch: Tuple[NestedTensors, torch.Tensor]
-    ) -> Tuple[NestedTensors, Any]:
+    def training_step_unpack_batch(self, batch: Tuple[Any, Any]) -> Tuple[Any, Any]:
         inputs, targets = batch
         return inputs, targets
 
@@ -217,9 +215,7 @@ class RenateLightningModule(LightningModule, abc.ABC):
         if not self.val_enabled:
             self._log_metrics()
 
-    def validation_step_unpack_batch(
-        self, batch: Tuple[NestedTensors, torch.Tensor]
-    ) -> Tuple[NestedTensors, Any]:
+    def validation_step_unpack_batch(self, batch: Tuple[Tuple[Any, Any], Any]) -> Tuple[Any, Any]:
         (inputs, targets), _ = batch
         return inputs, targets
 

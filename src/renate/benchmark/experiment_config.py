@@ -1,6 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 import wild_time_data
@@ -292,7 +292,7 @@ def _get_normalize_transform(dataset_name):
         )
 
 
-def train_transform(dataset_name: str) -> Optional[transforms.Compose]:
+def train_transform(dataset_name: str) -> Optional[Callable]:
     """Returns a transform function to be used in the training."""
     if dataset_name in [
         "MNIST",
@@ -318,7 +318,7 @@ def train_transform(dataset_name: str) -> Optional[transforms.Compose]:
     raise ValueError(f"Unknown dataset `{dataset_name}`.")
 
 
-def test_transform(dataset_name: str) -> Optional[Union[transforms.Normalize, transforms.Compose]]:
+def test_transform(dataset_name: str) -> Optional[Callable]:
     """Returns a transform function to be used for validation or testing."""
     if dataset_name in [
         "MNIST",
