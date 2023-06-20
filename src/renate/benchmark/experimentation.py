@@ -127,6 +127,7 @@ def execute_experiment_job(
     num_updates: int,
     working_directory: Optional[str] = defaults.WORKING_DIRECTORY,
     requirements_file: Optional[str] = None,
+    dependencies: Optional[List[str]] = None,
     role: Optional[str] = None,
     instance_type: str = defaults.INSTANCE_TYPE,
     instance_count: int = defaults.INSTANCE_COUNT,
@@ -143,6 +144,7 @@ def execute_experiment_job(
     job_name: str = defaults.JOB_NAME,
     strategy: str = defaults.DISTRIBUTED_STRATEGY,
     precision: str = defaults.PRECISION,
+    retain_intermediate_state: bool = defaults.RETAIN_INTERMEDIATE_STATE,
 ) -> None:
     """Executes the experiment job.
 
@@ -158,6 +160,8 @@ def execute_experiment_job(
         num_updates: Number of updates of the experiment job.
         working_directory: Path to the working directory.
         requirements_file: Path to the requirements file.
+        dependencies: (SageMaker backend only) List of strings containing absolute or relative paths
+            to files and directories that will be uploaded as part of the SageMaker training job.
         role: Role of the experiment job.
         instance_type: Instance type of the experiment job.
         instance_count: Instance count of the experiment job.
@@ -177,6 +181,9 @@ def execute_experiment_job(
             `More details <https://lightning.ai/docs/pytorch/stable/extensions/strategy.html>`__
         precision: Type of bit precision to use.
             `More details <https://lightning.ai/docs/pytorch/stable/common/precision_basic.html>`__
+        retain_intermediate_state: Flag to retain models and buffer states after each
+            task update. This is useful when training with large datasets that might cause storage
+            issues.
     """
     assert (
         mode in defaults.SUPPORTED_TUNING_MODE
@@ -204,6 +211,7 @@ def execute_experiment_job(
             seed=seed,
             strategy=strategy,
             precision=precision,
+            retain_intermediate_state=retain_intermediate_state,
         )
     _execute_experiment_job_remotely(
         job_name=job_name,
@@ -213,6 +221,7 @@ def execute_experiment_job(
         metric=metric,
         num_updates=num_updates,
         working_directory=working_directory,
+        dependencies=dependencies or [],
         config_space=config_space,
         max_time=max_time,
         max_num_trials_started=max_num_trials_started,
@@ -230,6 +239,7 @@ def execute_experiment_job(
         instance_max_time=instance_max_time,
         strategy=strategy,
         precision=precision,
+        retain_intermediate_state=retain_intermediate_state,
     )
 
 
@@ -252,6 +262,7 @@ def _execute_experiment_job_locally(
     deterministic_trainer: bool,
     strategy: str,
     precision: str,
+    retain_intermediate_state: bool,
 ) -> None:
     """Runs an experiment, combining hyperparameter tuning and model for multiple updates.
 
@@ -345,7 +356,8 @@ def _execute_experiment_job_locally(
             deterministic_trainer=deterministic_trainer,
         )
         move_to_uri(output_state_url, input_state_url)
-        copy_to_uri(input_state_url, update_url)
+        if retain_intermediate_state:
+            copy_to_uri(input_state_url, update_url)
         model = get_model(
             config_module,
             model_state_url=model_url,
@@ -372,6 +384,10 @@ def _execute_experiment_job_locally(
     cumulative_metrics = create_cumulative_metrics()
     df = cumulative_metrics_summary(results, cumulative_metrics, num_updates - 1)
     save_pandas_df_to_csv(df, defaults.metric_summary_file(logs_url))
+    if not retain_intermediate_state:
+        move_to_uri(
+            defaults.hpo_file(input_state_url), defaults.logs_folder(experiment_outputs_url)
+        )
     logger.info("### Cumulative results: ###")
     logger.info(df)
 

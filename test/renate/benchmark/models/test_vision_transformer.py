@@ -37,15 +37,19 @@ def test_renate_vision_transformer_fwd(sub_class, input_dim):
     assert y_hat.shape[1] == 10
 
 
+# The following numbers have been computed by
+# for m in [VisionTransformerB16, VisionTransformerB32, VisionTransformerCIFAR,
+#           VisionTransformerH14, VisionTransformerL16, VisionTransformerL32]:
+#     print(len(list(m()._backbone.parameters())))
 @pytest.mark.parametrize(
     "sub_class, expected_num_params",
     [
-        ["visiontransformercifar", 42],
-        ["visiontransformerb16", 150],
-        ["visiontransformerb32", 150],
-        ["visiontransformerl16", 294],
-        ["visiontransformerl32", 294],
-        ["visiontransformerh14", 390],
+        ["visiontransformercifar", 56],
+        ["visiontransformerb16", 200],
+        ["visiontransformerb32", 200],
+        ["visiontransformerl16", 392],
+        ["visiontransformerl32", 392],
+        ["visiontransformerh14", 520],
     ],
 )
 def test_renate_vision_transformer_get_params(sub_class, expected_num_params):
