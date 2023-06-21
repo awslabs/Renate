@@ -18,7 +18,7 @@ def create_file(path, content):
     "file_content2_destination_dir",
     [["test1_1", "test1_1", "test1_2", "test2_2"]],
 )
-def test_move_to_uri_locally(
+def test_move_to_uri_locally_directory(
     tmpdir,
     file_content1_source_dir,
     file_content2_source_dir,
@@ -51,6 +51,36 @@ def test_move_to_uri_locally(
 
     assert not os.path.exists(os.path.join(tmpdir, "source_dir", "file1.txt"))
     assert not os.path.exists(os.path.join(tmpdir, "source_dir", "file2.txt"))
+
+
+def test_move_to_uri_locally_file(tmpdir):
+    """Test for moving a file to another local directory.
+
+    The file should be moved from the source directory and the destination directory should be
+    created if it does not exist.
+
+    If there are files with the same name in the destination directory as in the source directory
+    they should be overwritten.
+    """
+
+    file_content = "content"
+    create_file(os.path.join(tmpdir, "source_dir", "file.txt"), file_content)
+
+    move_to_uri(
+        os.path.join(tmpdir, "source_dir", "file.txt"), os.path.join(tmpdir, "destination_dir")
+    )
+    with open(os.path.join(tmpdir, "destination_dir", "file.txt"), "r") as f:
+        assert f.read() == file_content
+    assert not os.path.exists(os.path.join(tmpdir, "source_dir", "file.txt"))
+
+    file_content = "content2"
+    create_file(os.path.join(tmpdir, "source_dir", "file.txt"), file_content)
+    move_to_uri(
+        os.path.join(tmpdir, "source_dir", "file.txt"), os.path.join(tmpdir, "destination_dir")
+    )
+    with open(os.path.join(tmpdir, "destination_dir", "file.txt"), "r") as f:
+        assert f.read() == file_content
+    assert not os.path.exists(os.path.join(tmpdir, "source_dir", "file.txt"))
 
 
 @pytest.mark.parametrize(

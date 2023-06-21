@@ -56,6 +56,9 @@ def _move_locally(
     """
     if Path(src).is_file():
         Path(dst).mkdir(parents=True, exist_ok=True)
+        dst_file = os.path.join(dst, os.path.basename(src))
+        if os.path.exists(dst_file):
+            os.remove(dst_file)
         if copy:
             shutil.copy(src, dst)
         else:
@@ -107,24 +110,27 @@ def move_to_uri(
 
 
 def copy_to_uri(
-    local_dir: Union[Path, str],
-    uri: str,
+    src: Union[Path, str],
+    dst: str,
     ignore_extensions: List[str] = [".sagemaker-uploading", ".sagemaker-uploaded"],
 ) -> None:
     """Copies files to directory or s3. If the files exist they are overwritten.
     The files in the local directory are preserved.
 
     Args:
-        local_dir: Local directory to copy.
-        uri: Target directory or s3 uri.
+        src: Local directory to copy.
+        dst: Target directory or s3 uri.
         ignore_extensions: List of extensions to ignore.
     """
-    if is_s3_uri(uri):
-        upload_folder_to_s3(local_dir, uri, ignore_extensions=ignore_extensions)
-    elif local_dir != uri:
-        _move_locally(local_dir, uri, ignore_extensions=ignore_extensions, copy=True)
+    if is_s3_uri(dst):
+        if Path(src).is_file():
+            upload_file_to_s3(src, dst)
+        else:
+            upload_folder_to_s3(src, dst, ignore_extensions=ignore_extensions)
+    elif src != dst:
+        _move_locally(src, dst, ignore_extensions=ignore_extensions, copy=True)
     else:
-        logging.warning(f"Source and destination are the same: {local_dir}")
+        logging.warning(f"Source and destination are the same: {src}")
 
 
 def maybe_download_from_s3(url: str, local_dir: Union[Path, str]) -> str:
@@ -184,7 +190,7 @@ def upload_folder_to_s3(
                 continue
             file_path = os.path.join(current_folder, file_name)
             object_name = os.path.join(prefix, current_folder[len(local_dir) + 1 :], file_name)
-            upload_file_to_s3(file_path, dst_bucket, object_name)
+            upload_file_to_s3(file_path, dst_bucket=dst_bucket, dst_object_name=object_name)
 
 
 def download_file_from_s3(
