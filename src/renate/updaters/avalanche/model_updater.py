@@ -165,10 +165,14 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
         self,
         train_dataset: Dataset,
         val_dataset: Optional[Dataset] = None,
+        train_dataset_collate_fn: Optional[Callable] = None,
+        val_dataset_collate_fn: Optional[Callable] = None,
         task_id: Optional[str] = None,
     ) -> RenateModule:
         val_dataset_exists = val_dataset is not None
-        benchmark = self._load_benchmark_if_exists(train_dataset, val_dataset)
+        benchmark = self._load_benchmark_if_exists(
+            train_dataset, val_dataset, train_dataset_collate_fn, val_dataset_collate_fn
+        )
         train_exp = benchmark.train_stream[0]
         self._learner.train(train_exp, eval_streams=[benchmark.test_stream])
         results = self._learner.eval(benchmark.test_stream)
@@ -193,9 +197,13 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
         return self._model
 
     def _load_benchmark_if_exists(
-        self, train_dataset: Dataset, val_dataset: Optional[Dataset] = None
+        self,
+        train_dataset: Dataset,
+        val_dataset: Optional[Dataset] = None,
+        train_dataset_collate_fn: Optional[Callable] = None,
+        val_dataset_collate_fn: Optional[Callable] = None,
     ) -> AvalancheBenchmarkWrapper:
-        train_dataset = to_avalanche_dataset(train_dataset)
+        train_dataset = to_avalanche_dataset(train_dataset, train_dataset_collate_fn)
 
         avalanche_state = None
         if self._input_state_folder is not None:
@@ -209,9 +217,11 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
                     self._dummy_learner.load(self._input_state_folder)
         if val_dataset is not None:
             self._dummy_learner._val_memory_buffer.update(val_dataset)
-            val_memory_dataset = to_avalanche_dataset(self._dummy_learner._val_memory_buffer)
+            val_memory_dataset = to_avalanche_dataset(
+                self._dummy_learner._val_memory_buffer, val_dataset_collate_fn
+            )
         else:
-            val_memory_dataset = to_avalanche_dataset(train_dataset)
+            val_memory_dataset = to_avalanche_dataset(train_dataset, val_dataset_collate_fn)
 
         benchmark = AvalancheBenchmarkWrapper(
             train_dataset=train_dataset,

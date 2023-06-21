@@ -158,6 +158,8 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
         self,
         train_dataset: Dataset,
         val_dataset: Optional[Dataset] = None,
+        train_dataset_collate_fn: Optional[Callable] = None,
+        val_dataset_collate_fn: Optional[Callable] = None,
         task_id: Optional[str] = None,
     ) -> RenateModule:
         """Updates the model using the data passed as input.
@@ -165,6 +167,10 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
         Args:
             train_dataset: The training data.
             val_dataset: The validation data.
+            train_dataset_collate_fn: collate_fn used to merge a list of samples to form a
+                mini-batch of Tensors for the training data.
+            val_dataset_collate_fn: collate_fn used to merge a list of samples to form a
+                mini-batch of Tensors for the validation data.
             task_id: The task id.
         """
         # First, train a copy of the model on the new data from scratch as an expert model. We use
@@ -178,7 +184,13 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
             train_target_transform=self._train_target_transform,
             **{key: value for key, value in self._learner_kwargs.items() if key != "memory_size"},
         )
-        expert_learner.on_model_update_start(train_dataset, val_dataset, task_id)
+        expert_learner.on_model_update_start(
+            train_dataset=train_dataset,
+            val_dataset=val_dataset,
+            train_dataset_collate_fn=train_dataset_collate_fn,
+            val_dataset_collate_fn=val_dataset_collate_fn,
+            task_id=task_id,
+        )
         self._fit_learner(expert_learner)
 
         # Extract logits from the expert model and register them with the consolidation learner.
@@ -194,7 +206,13 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
         del expert_learner
 
         # Run consolidation.
-        self._learner.on_model_update_start(train_dataset, val_dataset, task_id)
+        self._learner.on_model_update_start(
+            train_dataset=train_dataset,
+            val_dataset=val_dataset,
+            train_dataset_collate_fn=train_dataset_collate_fn,
+            val_dataset_collate_fn=val_dataset_collate_fn,
+            task_id=task_id,
+        )
         self._fit_learner(self._learner)
         return self._model
 
@@ -211,10 +229,21 @@ class RepeatedDistillationLearner(ReplayLearner):
         self._expert_logits = new_expert_logits
 
     def on_model_update_start(
-        self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[int] = None
+        self,
+        train_dataset: Dataset,
+        val_dataset: Dataset,
+        train_dataset_collate_fn: Optional[Callable] = None,
+        val_dataset_collate_fn: Optional[Callable] = None,
+        task_id: Optional[int] = None,
     ) -> None:
         """Called before a model update starts."""
-        super().on_model_update_start(train_dataset, val_dataset, task_id)
+        super().on_model_update_start(
+            train_dataset=train_dataset,
+            val_dataset=val_dataset,
+            train_dataset_collate_fn=train_dataset_collate_fn,
+            val_dataset_collate_fn=val_dataset_collate_fn,
+            task_id=task_id,
+        )
         self._memory_buffer.update(train_dataset, metadata={"logits": self._expert_logits})
         reinitialize_model_parameters(self._model)
         self._expert_logits = None

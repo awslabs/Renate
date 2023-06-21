@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import abc
-from typing import Callable, List, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -26,7 +26,7 @@ class Scenario(abc.ABC):
     subsequent instantiations. The seed argument is required for these scenarios.
 
     Args:
-        data_module: The source RenateDataModule for the the user data.
+        data_module: The source RenateDataModule for the user data.
         num_tasks: The total number of expected tasks for experimentation.
         chunk_id: The data chunk to load in for the training or validation data.
         seed: Seed used to fix random number generation.
@@ -45,9 +45,12 @@ class Scenario(abc.ABC):
         self._verify_chunk_id(chunk_id)
         self._chunk_id = chunk_id
         self._seed = seed
-        self._train_data: Dataset = None
-        self._val_data: Dataset = None
-        self._test_data: List[Dataset] = None
+        self._train_data: Optional[Dataset] = None
+        self._val_data: Optional[Dataset] = None
+        self._test_data: Optional[List[Dataset]] = None
+        self._train_collate_fn: Optional[Callable] = None
+        self._val_collate_fn: Optional[Callable] = None
+        self._test_collate_fn: Optional[Callable] = None
 
     def prepare_data(self) -> None:
         """Downloads datasets."""
@@ -56,7 +59,10 @@ class Scenario(abc.ABC):
     @abc.abstractmethod
     def setup(self) -> None:
         """Sets up the scenario."""
-        pass
+        self._data_module.setup()
+        self._train_collate_fn = self._data_module.train_collate_fn()
+        self._val_collate_fn = self._data_module.val_collate_fn()
+        self._test_collate_fn = self._data_module.test_collate_fn()
 
     def train_data(self) -> Dataset:
         """Returns training dataset with respect to current `chunk_id`."""
@@ -69,6 +75,18 @@ class Scenario(abc.ABC):
     def test_data(self) -> List[Dataset]:
         """Returns the test data with respect to all tasks in `num_tasks`."""
         return self._test_data
+
+    def train_collate_fn(self) -> Optional[Callable]:
+        """Returns collate_fn for train DataLoader."""
+        return self._train_collate_fn
+
+    def val_collate_fn(self) -> Optional[Callable]:
+        """Returns collate_fn for validation DataLoader."""
+        return self._val_collate_fn
+
+    def test_collate_fn(self) -> Optional[Callable]:
+        """Returns collate_fn for test DataLoader."""
+        return self._test_collate_fn
 
     def _verify_chunk_id(self, chunk_id: int) -> None:
         """A helper function to verify that the `chunk_id` is valid."""
@@ -90,7 +108,7 @@ class BenchmarkScenario(Scenario):
     """
 
     def setup(self) -> None:
-        self._data_module.setup()
+        super().setup()
         self._train_data = self._data_module.train_data()
         self._val_data = self._data_module.val_data()
         self._test_data = self._data_module._test_data
@@ -108,7 +126,7 @@ class ClassIncrementalScenario(Scenario):
     and `y` is the class id.
 
     Args:
-        data_module: The source RenateDataModule for the the user data.
+        data_module: The source RenateDataModule for the user data.
         chunk_id: The data chunk to load in for the training or validation data.
         class_groupings: List of lists, describing the division of the classes for respective tasks.
     """
@@ -117,14 +135,14 @@ class ClassIncrementalScenario(Scenario):
         self,
         data_module: RenateDataModule,
         chunk_id: int,
-        class_groupings: Tuple[Tuple[int]],
+        class_groupings: Tuple[Tuple[int, ...], ...],
     ) -> None:
         super().__init__(data_module, len(class_groupings), chunk_id)
         self._class_groupings = class_groupings
 
     def setup(self) -> None:
         """Make assignments: val/train/test splits."""
-        self._data_module.setup()
+        super().setup()
         self._train_data = self._get_task_subset(
             self._data_module.train_data(), chunk_id=self._chunk_id
         )
@@ -178,7 +196,7 @@ class TransformScenario(Scenario):
         self._transforms = transforms
 
     def setup(self) -> None:
-        self._data_module.setup()
+        super().setup()
         self._split_and_assign_train_and_val_data()
         self._train_data = _TransformedDataset(
             self._train_data, transform=self._transforms[self._chunk_id]
@@ -249,7 +267,7 @@ class IIDScenario(Scenario):
 
     def setup(self) -> None:
         """Make assignments: val/train/test splits."""
-        self._data_module.setup()
+        super().setup()
         proportions = [1 / self._num_tasks for _ in range(self._num_tasks)]
         self._train_data = randomly_split_data(
             self._data_module.train_data(), proportions, self._seed
@@ -304,7 +322,7 @@ class _SortingScenario(Scenario):
 
     def setup(self) -> None:
         """Make assignments: val/train/test splits."""
-        self._data_module.setup()
+        super().setup()
         train_data = self._data_module.train_data()
         self._train_data = self._split(train_data)[self._chunk_id]
         val_data = self._data_module.val_data()
@@ -324,12 +342,12 @@ class FeatureSortingScenario(_SortingScenario):
     the features.
 
     Args:
-        data_module: The source RenateDataModule for the the user data.
+        data_module: The source RenateDataModule for the user data.
         num_tasks: The total number of expected tasks for experimentation.
         feature_idx: Index of the feature by which to sort. This index refers to the input features
             `x` of a single data point, i.e., no batch dimension. If the tensor `x` has more than
             one dimension, this indexes along the 0-dim while additional dimensions will be averaged
-            out. Hence, for images, `feature_idx` refers to a color channel and we sort by mean
+            out. Hence, for images, `feature_idx` refers to a color channel, and we sort by mean
             color channel value.
         randomness: A value between 0 and 1. For a dataset with ``N`` data points,
             ``0.5 * N * randomness`` random pairs are swapped.
@@ -388,7 +406,7 @@ class WildTimeScenario(Scenario):
     the test set is all data up to the current time step.
 
     Args:
-        data_module: The source RenateDataModule for the the user data.
+        data_module: The source RenateDataModule for the user data.
         num_tasks: The total number of expected tasks for experimentation.
         chunk_id: The data chunk to load in for the training or validation data.
         seed: Seed used to fix random number generation.
@@ -408,7 +426,7 @@ class WildTimeScenario(Scenario):
     def setup(self) -> None:
         """Sets up the scenario."""
         self._data_module.time_step = self._chunk_id
-        self._data_module.setup()
+        super().setup()
         self._train_data = self._data_module.train_data()
         self._val_data = self._data_module.val_data()
         self._test_data = []

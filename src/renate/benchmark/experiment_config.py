@@ -1,12 +1,13 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 from functools import partial
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 import wild_time_data
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import StepLR, _LRScheduler
+from torchmetrics import Accuracy
 from torchvision.transforms import transforms
 from transformers import AutoTokenizer
 
@@ -294,7 +295,7 @@ def _get_normalize_transform(dataset_name):
         )
 
 
-def train_transform(dataset_name: str) -> Optional[transforms.Compose]:
+def train_transform(dataset_name: str) -> Optional[Callable]:
     """Returns a transform function to be used in the training."""
     if dataset_name in [
         "MNIST",
@@ -320,7 +321,7 @@ def train_transform(dataset_name: str) -> Optional[transforms.Compose]:
     raise ValueError(f"Unknown dataset `{dataset_name}`.")
 
 
-def test_transform(dataset_name: str) -> Optional[transforms.Normalize]:
+def test_transform(dataset_name: str) -> Optional[Callable]:
     """Returns a transform function to be used for validation or testing."""
     if dataset_name in [
         "MNIST",
@@ -358,3 +359,7 @@ def lr_scheduler_fn(
     elif learning_rate_scheduler is None:
         return None, learning_rate_scheduler_interval
     raise ValueError(f"Unknown scheduler `{learning_rate_scheduler}`.")
+
+
+def metrics_fn() -> Dict:
+    return {"accuracy": Accuracy()}

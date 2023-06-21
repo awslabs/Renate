@@ -15,6 +15,7 @@ from renate.benchmark.experiment_config import (
     get_scenario,
     loss_fn,
     lr_scheduler_fn,
+    metrics_fn,
     model_fn,
     models,
     train_transform,
@@ -336,3 +337,7 @@ def test_prediction_strategy_is_correctly_set(model_name, updater):
 def test_loss_fn_returns_correct_reduction_type():
     assert loss_fn("ER").reduction == "none"
     assert loss_fn("Avalanche-ER").reduction == "mean"
+
+
+def test_metrics_fn_contains_accuracy():
+    assert "accuracy" in metrics_fn()

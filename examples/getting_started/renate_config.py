@@ -93,7 +93,7 @@ def buffer_transform() -> Callable:
 
 
 def metrics_fn() -> Dict:
-    return {"my_accuracy": Accuracy()}
+    return {"accuracy": Accuracy()}
 
 
 def loss_fn() -> torch.nn.Module:

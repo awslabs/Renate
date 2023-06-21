@@ -17,26 +17,22 @@ from torch.utils.data import DataLoader, Dataset
 
 from renate import defaults
 from renate.data.datasets import _TransformedDataset
-from renate.evaluation.metrics.utils import create_metrics
 from renate.memory import DataBuffer, InfiniteBuffer, ReservoirBuffer
 from renate.models import RenateModule
 from renate.types import NestedTensors
 from renate.utils.pytorch import get_generator
 
 
-class Learner(LightningModule, abc.ABC):
-    """Base class for Learners, which encapsulate the core CL methodologies.
+class RenateLightningModule(LightningModule, abc.ABC):
+    """Base class for LightningModules, which implement metric logging and basic training logic.
 
-    The `Learner` is a `LightningModule`, but provides additional hook functions
+    The `RenateLightningModule` is a `LightningModule`, but provides additional hook functions
     called by `ModelUpdater`. These hooks are:
 
-    - `Learner.on_model_update_start`, which is called in the beginning of a
+    - `on_model_update_start`, which is called in the beginning of a
        model update. We expect this to return train and (optionally) validation
        data loader(s).
-    - `Learner.on_model_update_end`, which is called in the end of a model update.
-
-    This base class implements a basic training loop without any mechanism to
-    counteract forgetting.
+    - `on_model_update_end`, which is called in the end of a model update.
 
     Args:
         model: The model to be trained.
@@ -46,10 +42,6 @@ class Learner(LightningModule, abc.ABC):
         learning_rate_scheduler_interval: When to update the learning rate scheduler.
             Options: `epoch` and `step`.
         batch_size: Training batch size.
-        train_transform: The transformation applied during training.
-        train_target_transform: The target transformation applied during testing.
-        test_transform: The transformation at test time.
-        test_target_transform: The target transformation at test time.
         logged_metrics: Metrics logged additional to the default ones.
         seed: See :func:`renate.models.utils.get_generator`.
     """
@@ -62,10 +54,6 @@ class Learner(LightningModule, abc.ABC):
         learning_rate_scheduler: Optional[Optional[Callable[[Optimizer], _LRScheduler]]] = None,
         learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
-        train_transform: Optional[Callable] = None,
-        train_target_transform: Optional[Callable] = None,
-        test_transform: Optional[Callable] = None,
-        test_target_transform: Optional[Callable] = None,
         logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None,
         seed: int = defaults.SEED,
     ) -> None:
@@ -76,41 +64,35 @@ class Learner(LightningModule, abc.ABC):
         self._learning_rate_scheduler = learning_rate_scheduler
         self._learning_rate_scheduler_interval = learning_rate_scheduler_interval
         self._batch_size = batch_size
-        self._train_transform = train_transform
-        self._train_target_transform = train_target_transform
-        self._test_transform = test_transform
-        self._test_target_transform = test_target_transform
         self._seed = seed
         self._task_id: str = defaults.TASK_ID
+        self._train_dataset: Optional[Dataset] = None
+        self._val_dataset: Optional[Dataset] = None
+        self.val_enabled = False
+        self._train_collate_fn: Optional[Callable] = None
+        self._val_collate_fn: Optional[Callable] = None
 
-        self._val_memory_buffer: DataBuffer = InfiniteBuffer()
         self._create_metrics_collections(logged_metrics)
         self._rng = get_generator(self._seed)
-        self.save_hyperparameters(
-            ignore=[
-                "model",
-                "loss_fn",
-                "optimizer",
-                "learning_rate_scheduler",
-                "components",
-                "train_transform",
-                "test_transform",
-                "buffer_transform",
-                "train_transform",
-                "train_target_transform",
-                "test_transform",
-                "test_target_transform",
-                "buffer_transform",
-                "buffer_target_transform",
-                "logged_metrics",
-            ]
-        )
+        self.save_hyperparameters(ignore=self._ignored_hyperparameters())
+
+    def _ignored_hyperparameters(self):
+        """Hyperparameters to be ignored in the ``save_hyperparameters`` call."""
+        return [
+            "model",
+            "loss_fn",
+            "optimizer",
+            "learning_rate_scheduler",
+            "logged_metrics",
+        ]
 
     def _create_metrics_collections(
         self, logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None
     ) -> None:
         """Creates all logged metrics."""
-        metrics = create_metrics(task="classification", additional_metrics=logged_metrics)
+        if logged_metrics is None:
+            logged_metrics = {}
+        metrics = torchmetrics.MetricCollection(logged_metrics)
         train_metrics = metrics.clone(prefix="train_")
         val_metrics = metrics.clone(prefix="val_")
 
@@ -135,24 +117,6 @@ class Learner(LightningModule, abc.ABC):
             }
         )
 
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        learner_state_dict = {
-            "learner_class_name": self.__class__.__name__,
-            "val_memory_buffer": self._val_memory_buffer.state_dict(),
-        }
-        checkpoint.update(learner_state_dict)
-
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]):
-        self._val_memory_buffer.load_state_dict(checkpoint["val_memory_buffer"])
-
-    def save(self, output_state_dir: str) -> None:
-        val_buffer_dir = os.path.join(output_state_dir, "val_memory_buffer")
-        os.makedirs(val_buffer_dir, exist_ok=True)
-        self._val_memory_buffer.save(val_buffer_dir)
-
-    def load(self, input_state_dir: str) -> None:
-        self._val_memory_buffer.load(os.path.join(input_state_dir, "val_memory_buffer"))
-
     def is_logged_metric(self, metric_name: str) -> bool:
         """Returns `True` if there is a metric with name `metric_name`."""
         if metric_name is None:
@@ -171,48 +135,42 @@ class Learner(LightningModule, abc.ABC):
         return metric_name in logged_metrics
 
     def on_model_update_start(
-        self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
+        self,
+        train_dataset: Dataset,
+        val_dataset: Dataset,
+        train_dataset_collate_fn: Optional[Callable] = None,
+        val_dataset_collate_fn: Optional[Callable] = None,
+        task_id: Optional[str] = None,
     ) -> None:
         self._train_dataset = train_dataset
         self._val_dataset = val_dataset
         self.val_enabled = val_dataset is not None and len(val_dataset)
+        self._train_collate_fn = train_dataset_collate_fn
+        self._val_collate_fn = val_dataset_collate_fn
         self._task_id = task_id
         self._model.add_task_params(task_id=self._task_id)
 
     def train_dataloader(self) -> DataLoader:
         """Returns the dataloader for training the model."""
-        train_dataset = _TransformedDataset(
-            self._train_dataset,
-            transform=self._train_transform,
-            target_transform=self._train_target_transform,
-        )
         return DataLoader(
-            train_dataset,
+            self._train_dataset,
             batch_size=self._batch_size,
             shuffle=True,
             generator=self._rng,
             pin_memory=True,
+            collate_fn=self._train_collate_fn,
         )
 
-    def val_dataloader(self) -> DataLoader:
+    def val_dataloader(self) -> Optional[DataLoader]:
         if self._val_dataset is not None:
-            val_dataset = _TransformedDataset(
-                self._val_dataset,
-                transform=self._test_transform,
-                target_transform=self._test_target_transform,
-            )
-            self._val_memory_buffer.update(val_dataset)
-
-        if len(self._val_memory_buffer):
             return DataLoader(
-                self._val_memory_buffer,
+                self._val_dataset,
                 batch_size=self._batch_size,
                 shuffle=False,
                 generator=self._rng,
                 pin_memory=True,
+                collate_fn=self._val_collate_fn,
             )
-        else:
-            return None
 
     def on_model_update_end(self) -> None:
         """Called right before a model update terminates."""
@@ -224,11 +182,15 @@ class Learner(LightningModule, abc.ABC):
             task_id = self._task_id
         return self._model(inputs, task_id=task_id)
 
+    def training_step_unpack_batch(self, batch: Tuple[Any, Any]) -> Tuple[Any, Any]:
+        inputs, targets = batch
+        return inputs, targets
+
     def training_step(
         self, batch: Tuple[NestedTensors, torch.Tensor], batch_idx: int
     ) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
-        inputs, targets = batch
+        inputs, targets = self.training_step_unpack_batch(batch)
         outputs = self(inputs)
         intermediate_representation = self._model.get_intermediate_representation()
         self._model.reset_intermediate_representation_cache()
@@ -253,9 +215,13 @@ class Learner(LightningModule, abc.ABC):
         if not self.val_enabled:
             self._log_metrics()
 
+    def validation_step_unpack_batch(self, batch: Tuple[Tuple[Any, Any], Any]) -> Tuple[Any, Any]:
+        (inputs, targets), _ = batch
+        return inputs, targets
+
     def validation_step(self, batch: Tuple[NestedTensors, torch.Tensor], batch_idx: int) -> None:
         """PyTorch Lightning function to estimate validation metrics."""
-        (inputs, targets), _ = batch
+        inputs, targets = self.validation_step_unpack_batch(batch)
         outputs = self(inputs)
         loss = self._loss_fn(outputs, targets)
         self._update_metrics(outputs, targets, "val")
@@ -315,6 +281,156 @@ class Learner(LightningModule, abc.ABC):
                     sync_dist=True,
                 )
                 loss.reset()
+
+
+class Learner(RenateLightningModule, abc.ABC):
+    """Base class for Learners, which encapsulate the core CL methodologies.
+
+    The `Learner` is a `LightningModule`, but provides additional hook functions
+    called by `ModelUpdater`. These hooks are:
+
+    - `Learner.on_model_update_start`, which is called in the beginning of a
+       model update. We expect this to return train and (optionally) validation
+       data loader(s).
+    - `Learner.on_model_update_end`, which is called in the end of a model update.
+
+    This base class implements a basic training loop without any mechanism to
+    counteract forgetting.
+
+    Args:
+        model: The model to be trained.
+        optimizer: Partial optimizer used to create an optimizer by passing the model parameters.
+        learning_rate_scheduler: Partial object of learning rate scheduler that will be created by
+            passing the optimizer.
+        learning_rate_scheduler_interval: When to update the learning rate scheduler.
+            Options: `epoch` and `step`.
+        batch_size: Training batch size.
+        train_transform: The transformation applied during training.
+        train_target_transform: The target transformation applied during testing.
+        test_transform: The transformation at test time.
+        test_target_transform: The target transformation at test time.
+        logged_metrics: Metrics logged additional to the default ones.
+        seed: See :func:`renate.models.utils.get_generator`.
+    """
+
+    def __init__(
+        self,
+        model: RenateModule,
+        loss_fn: torch.nn.Module,
+        optimizer: Callable[[List[Parameter]], Optimizer],
+        learning_rate_scheduler: Optional[Optional[Callable[[Optimizer], _LRScheduler]]] = None,
+        learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
+        batch_size: int = defaults.BATCH_SIZE,
+        train_transform: Optional[Callable] = None,
+        train_target_transform: Optional[Callable] = None,
+        test_transform: Optional[Callable] = None,
+        test_target_transform: Optional[Callable] = None,
+        logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None,
+        seed: int = defaults.SEED,
+    ) -> None:
+        super().__init__(
+            model=model,
+            loss_fn=loss_fn,
+            optimizer=optimizer,
+            learning_rate_scheduler=learning_rate_scheduler,
+            learning_rate_scheduler_interval=learning_rate_scheduler_interval,
+            batch_size=batch_size,
+            logged_metrics=logged_metrics,
+            seed=seed,
+        )
+        self._train_transform = train_transform
+        self._train_target_transform = train_target_transform
+        self._test_transform = test_transform
+        self._test_target_transform = test_target_transform
+        self._val_memory_buffer: DataBuffer = InfiniteBuffer()
+
+    def _ignored_hyperparameters(self):
+        """Hyperparameters to be ignored in the ``save_hyperparameters`` call."""
+        return super()._ignored_hyperparameters() + [
+            "components",
+            "train_transform",
+            "train_target_transform",
+            "test_transform",
+            "test_target_transform",
+            "buffer_transform",
+            "buffer_target_transform",
+        ]
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        learner_state_dict = {
+            "learner_class_name": self.__class__.__name__,
+            "val_memory_buffer": self._val_memory_buffer.state_dict(),
+        }
+        checkpoint.update(learner_state_dict)
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]):
+        self._val_memory_buffer.load_state_dict(checkpoint["val_memory_buffer"])
+
+    def save(self, output_state_dir: str) -> None:
+        val_buffer_dir = os.path.join(output_state_dir, "val_memory_buffer")
+        os.makedirs(val_buffer_dir, exist_ok=True)
+        self._val_memory_buffer.save(val_buffer_dir)
+
+    def load(self, input_state_dir: str) -> None:
+        self._val_memory_buffer.load(os.path.join(input_state_dir, "val_memory_buffer"))
+
+    def on_model_update_start(
+        self,
+        train_dataset: Dataset,
+        val_dataset: Dataset,
+        train_dataset_collate_fn: Optional[Callable] = None,
+        val_dataset_collate_fn: Optional[Callable] = None,
+        task_id: Optional[str] = None,
+    ) -> None:
+        super().on_model_update_start(
+            train_dataset=train_dataset,
+            val_dataset=val_dataset,
+            train_dataset_collate_fn=train_dataset_collate_fn,
+            val_dataset_collate_fn=val_dataset_collate_fn,
+            task_id=task_id,
+        )
+        self._model.add_task_params(task_id=self._task_id)
+
+    def train_dataloader(self) -> DataLoader:
+        """Returns the dataloader for training the model."""
+        train_dataset = _TransformedDataset(
+            self._train_dataset,
+            transform=self._train_transform,
+            target_transform=self._train_target_transform,
+        )
+        return DataLoader(
+            train_dataset,
+            batch_size=self._batch_size,
+            shuffle=True,
+            generator=self._rng,
+            pin_memory=True,
+            collate_fn=self._train_collate_fn,
+        )
+
+    def val_dataloader(self) -> Optional[DataLoader]:
+        if self._val_dataset is not None:
+            val_dataset = _TransformedDataset(
+                self._val_dataset,
+                transform=self._test_transform,
+                target_transform=self._test_target_transform,
+            )
+            self._val_memory_buffer.update(val_dataset)
+
+        if len(self._val_memory_buffer):
+            return DataLoader(
+                self._val_memory_buffer,
+                batch_size=self._batch_size,
+                shuffle=False,
+                generator=self._rng,
+                pin_memory=True,
+                collate_fn=self._val_collate_fn,
+            )
+
+    def validation_step_unpack_batch(
+        self, batch: Tuple[NestedTensors, torch.Tensor]
+    ) -> Tuple[NestedTensors, Any]:
+        (inputs, targets), _ = batch
+        return inputs, targets
 
 
 class ReplayLearner(Learner, abc.ABC):
