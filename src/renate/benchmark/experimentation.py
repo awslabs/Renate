@@ -388,7 +388,7 @@ def _execute_experiment_job_locally(
     logger.info(df)
 
     if not save_state:
-        copy_to_uri(defaults.hpo_file(input_state_url), str(experiment_outputs_url))
+        move_to_uri(defaults.hpo_file(input_state_url), str(experiment_outputs_url))
     move_to_uri(logs_url, defaults.logs_folder(experiment_outputs_url))
 
     shutil.rmtree(working_directory)

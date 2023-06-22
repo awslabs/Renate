@@ -80,33 +80,72 @@ def _move_locally(
                 shutil.move(src_f, dst_f)
 
 
+def _move_to_s3(
+    src: Union[str, Path],
+    dst: Union[str, Path],
+    ignore_extensions: List[str] = [".sagemaker-uploading", ".sagemaker-uploaded"],
+    copy: bool = False,
+) -> None:
+    """Moves files in directory or file to directory or s3.
+
+    If the files exist they are overwritten. The files in the local directory are deleted.
+
+    Args:
+        src: Local file or directory to move.
+        dst: Target directory or s3 uri.
+        ignore_extensions: List of extensions to ignore.
+        copy: If `True`, copy instead of move.
+    """
+    if Path(src).is_file():
+        dst_file = os.path.join(dst, os.path.basename(src))
+        upload_file_to_s3(src, dst_file)
+        if not copy:
+            os.remove(src)
+    else:
+        upload_folder_to_s3(src, dst, ignore_extensions=ignore_extensions)
+        if not copy:
+            shutil.rmtree(src)
+
+
+def _move_to_uri(
+    src: Union[Path, str],
+    dst: str,
+    ignore_extensions: List[str] = [".sagemaker-uploading", ".sagemaker-uploaded"],
+    copy: bool = False,
+) -> None:
+    """Moves files in directory or file to directory or s3.
+
+    If the files exist they are overwritten. The files in the local directory are deleted.
+
+    Args:
+        src: Local file or directory to move.
+        dst: Target directory or s3 uri.
+        ignore_extensions: List of extensions to ignore.
+        copy: If `True`, copy instead of move.
+    """
+    if is_s3_uri(dst):
+        _move_to_s3(src, dst, ignore_extensions=ignore_extensions, copy=copy)
+    elif src != dst:
+        _move_locally(src, dst, ignore_extensions=ignore_extensions, copy=copy)
+    else:
+        logging.warning(f"Source and destination are the same: {src}")
+
+
 def move_to_uri(
     src: Union[Path, str],
     dst: str,
     ignore_extensions: List[str] = [".sagemaker-uploading", ".sagemaker-uploaded"],
 ) -> None:
-    """Moves files in directory or file to directory or s3. If the files exist they are overwritten.
-    The files in the local directory are deleted.
+    """Moves files in directory or file to directory or s3.
+
+    If the files exist they are overwritten. The files in the local directory are deleted.
 
     Args:
         src: Local file or directory to move.
         dst: Target directory or s3 uri.
         ignore_extensions: List of extensions to ignore.
     """
-    if is_s3_uri(dst):
-        if Path(src).is_file():
-            upload_file_to_s3(src, dst)
-            os.remove(src)
-        else:
-            upload_folder_to_s3(src, dst, ignore_extensions=ignore_extensions)
-            for f in os.listdir(src):
-                f = os.path.join(src, f)
-                if os.path.isfile(f):
-                    os.remove(f)
-    elif src != dst:
-        _move_locally(src, dst, ignore_extensions=ignore_extensions, copy=False)
-    else:
-        logging.warning(f"Source and destination are the same: {src}")
+    _move_to_uri(src=src, dst=dst, ignore_extensions=ignore_extensions, copy=False)
 
 
 def copy_to_uri(
@@ -114,23 +153,16 @@ def copy_to_uri(
     dst: str,
     ignore_extensions: List[str] = [".sagemaker-uploading", ".sagemaker-uploaded"],
 ) -> None:
-    """Copies files in directory or file to directory or s3. If the files exist they are overwritten.
-    The files in the local directory are preserved.
+    """Copies files in directory or file to directory or s3.
+
+    If the files exist they are overwritten. The files in the local directory are preserved.
 
     Args:
         src: Local directory to copy.
         dst: Target directory or s3 uri.
         ignore_extensions: List of extensions to ignore.
     """
-    if is_s3_uri(dst):
-        if Path(src).is_file():
-            upload_file_to_s3(src, dst)
-        else:
-            upload_folder_to_s3(src, dst, ignore_extensions=ignore_extensions)
-    elif src != dst:
-        _move_locally(src, dst, ignore_extensions=ignore_extensions, copy=True)
-    else:
-        logging.warning(f"Source and destination are the same: {src}")
+    _move_to_uri(src=src, dst=dst, ignore_extensions=ignore_extensions, copy=True)
 
 
 def maybe_download_from_s3(url: str, local_dir: Union[Path, str]) -> str:
@@ -233,7 +265,7 @@ def upload_file_to_s3(
         s3_url is not None or dst_bucket is not None and dst_object_name is not None
     ), "Either pass s3_url or both dst_bucket and dst_object_name."
     if s3_url is not None:
-        dst_bucket, prefix = _parse_s3_url(s3_url)
+        dst_bucket, dst_object_name = _parse_s3_url(s3_url)
     s3_client = boto3.client("s3")
     logger.info(f"Upload file from {src} to s3://{dst_bucket}/{dst_object_name}")
     try:
