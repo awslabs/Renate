@@ -1,9 +1,10 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 import wild_time_data
+from torchmetrics import Accuracy
 from torchvision.transforms import transforms
 from transformers import AutoTokenizer
 
@@ -291,7 +292,7 @@ def _get_normalize_transform(dataset_name):
         )
 
 
-def train_transform(dataset_name: str) -> Optional[transforms.Compose]:
+def train_transform(dataset_name: str) -> Optional[Callable]:
     """Returns a transform function to be used in the training."""
     if dataset_name in [
         "MNIST",
@@ -317,7 +318,7 @@ def train_transform(dataset_name: str) -> Optional[transforms.Compose]:
     raise ValueError(f"Unknown dataset `{dataset_name}`.")
 
 
-def test_transform(dataset_name: str) -> Optional[transforms.Normalize]:
+def test_transform(dataset_name: str) -> Optional[Callable]:
     """Returns a transform function to be used for validation or testing."""
     if dataset_name in [
         "MNIST",
@@ -335,3 +336,7 @@ def test_transform(dataset_name: str) -> Optional[transforms.Normalize]:
             ]
         )
     raise ValueError(f"Unknown dataset `{dataset_name}`.")
+
+
+def metrics_fn() -> Dict:
+    return {"accuracy": Accuracy()}

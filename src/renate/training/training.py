@@ -127,7 +127,7 @@ def run_training_job(
         max_num_trials_finished: Stopping criterion: trials finished.
         max_cost: (SageMaker backend only) Stopping criterion: SageMaker cost.
         n_workers: Number of workers running in parallel.
-        scheduler: Default is random search, you can change it by providing a either a string
+        scheduler: Default is random search, you can change it by providing either a string
             (`random`, `bo`, `asha` or `rush`) or scheduler class and its corresponding
             `scheduler_kwargs` if required. For latter option,
             `see details at <https://github.com/awslabs/syne-tune/blob/main/docs/schedulers.md>`_ .
@@ -136,7 +136,9 @@ def run_training_job(
         accelerator: Type of accelerator to use.
         devices: Number of devices to use per worker (set in n_workers).
         strategy: Name of the distributed training strategy to use.
+            `More details <https://lightning.ai/docs/pytorch/stable/extensions/strategy.html>`__
         precision: Type of bit precision to use.
+            `More details <https://lightning.ai/docs/pytorch/stable/common/precision_basic.html>`__
         deterministic_trainer: When true the Trainer adopts a deterministic behaviour also on GPU.
         job_name: Prefix for the name of the SageMaker training job.
     """

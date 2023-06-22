@@ -1,8 +1,9 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import torch
+from torchmetrics import Accuracy
 
 from dummy_datasets import DummyTorchVisionDataModule
 from renate.benchmark.models.mlp import MultiLayerPerceptron
@@ -34,3 +35,7 @@ def loss_fn(updater: Optional[str] = None) -> torch.nn.Module:
     if updater.startswith("Avalanche-"):
         return torch.nn.CrossEntropyLoss()
     return torch.nn.CrossEntropyLoss(reduction="none")
+
+
+def metrics_fn() -> Dict:
+    return {"accuracy": Accuracy()}

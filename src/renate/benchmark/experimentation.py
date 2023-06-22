@@ -47,22 +47,16 @@ def experiment_config_file():
     return str(Path(renate.__path__[0]) / "benchmark" / "experiment_config.py")
 
 
-def create_cumulative_metrics(task: defaults.SUPPORTED_TASKS_TYPE) -> List[Tuple[str, Callable]]:
+def create_cumulative_metrics() -> List[Tuple[str, Callable]]:
     """Gets the cumulative metrics for a given task along with a name of the metric to include in
     any potential results table.
-
-    Args:
-        task: Whether classification or regression, for now.
     """
-    if task == "classification":
-        return [
-            ("Average Accuracy", average_accuracy),
-            ("Forgetting", forgetting),
-            ("Forward Transfer", forward_transfer),
-            ("Backward Transfer", backward_transfer),
-        ]
-    else:
-        raise NotImplementedError(f"Task {task} not implemented.")
+    return [
+        ("Average Accuracy", average_accuracy),
+        ("Forgetting", forgetting),
+        ("Forward Transfer", forward_transfer),
+        ("Backward Transfer", backward_transfer),
+    ]
 
 
 def cumulative_metrics_summary(
@@ -183,8 +177,10 @@ def execute_experiment_job(
         deterministic_trainer: When true the Trainer adopts a deterministic behaviour also on GPU.
             In this function this parameter is set to True by default.
         job_name: Name of the experiment job.
-        strategy: String denoting lightning distributed strategy.
-        precision: String for which precision to use.
+        strategy: Name of the distributed training strategy to use.
+            `More details <https://lightning.ai/docs/pytorch/stable/extensions/strategy.html>`__
+        precision: Type of bit precision to use.
+            `More details <https://lightning.ai/docs/pytorch/stable/common/precision_basic.html>`__
         retain_intermediate_state: Flag to retain models and buffer states after each
             task update. This is useful when training with large datasets that might cause storage
             issues.
@@ -385,7 +381,7 @@ def _execute_experiment_job_locally(
         logger.info(f"### Results after update {update_id + 1}: ###")
         logger.info(df)
 
-    cumulative_metrics = create_cumulative_metrics("classification")
+    cumulative_metrics = create_cumulative_metrics()
     df = cumulative_metrics_summary(results, cumulative_metrics, num_updates - 1)
     save_pandas_df_to_csv(df, defaults.metric_summary_file(logs_url))
     if not retain_intermediate_state:

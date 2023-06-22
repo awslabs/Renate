@@ -1,13 +1,13 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import torch
+from torchmetrics import Accuracy
 
 from dummy_datasets import DummyTorchVisionDataModule
 from renate.benchmark.models.mlp import MultiLayerPerceptron
-from renate.benchmark.scenarios import ClassIncrementalScenario
-from renate.data.data_module import RenateDataModule
+from renate.benchmark.scenarios import ClassIncrementalScenario, Scenario
 from renate.models import RenateModule
 
 
@@ -23,8 +23,8 @@ def data_module_fn(
     chunk_id: Optional[int] = None,
     val_size: float = 0.0,
     seed: int = 0,
-    class_groupings: Tuple[Tuple[int]] = ((0, 1), (2, 3, 4)),
-) -> RenateDataModule:
+    class_groupings: Tuple[Tuple[int, ...], ...] = ((0, 1), (2, 3, 4)),
+) -> Scenario:
     data_module = DummyTorchVisionDataModule(transform=None, val_size=val_size, seed=seed)
     return ClassIncrementalScenario(
         data_module=data_module,
@@ -37,3 +37,7 @@ def loss_fn(updater: Optional[str] = None) -> torch.nn.Module:
     if updater.startswith("Avalanche-"):
         return torch.nn.CrossEntropyLoss()
     return torch.nn.CrossEntropyLoss(reduction="none")
+
+
+def metrics_fn() -> Dict:
+    return {"accuracy": Accuracy()}
