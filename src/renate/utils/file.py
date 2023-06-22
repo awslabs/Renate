@@ -46,11 +46,11 @@ def _move_locally(
     ignore_extensions: List[str] = [".sagemaker-uploading", ".sagemaker-uploaded"],
     copy: bool = False,
 ) -> None:
-    """Moves files to directory. If the files exist they are overwritten.
+    """Moves files in directory or file to directory. If the files exist they are overwritten.
 
     Args:
-        src: Source directory.
-        dst: Target directory.
+        src: Source directory or file.
+        dst: Target directory or file.
         ignore_extensions: List of extensions to ignore.
         copy: If `True`, copy instead of move.
     """
@@ -85,7 +85,7 @@ def move_to_uri(
     dst: str,
     ignore_extensions: List[str] = [".sagemaker-uploading", ".sagemaker-uploaded"],
 ) -> None:
-    """Moves files to directory or s3. If the files exist they are overwritten.
+    """Moves files in directory or file to directory or s3. If the files exist they are overwritten.
     The files in the local directory are deleted.
 
     Args:
@@ -114,7 +114,7 @@ def copy_to_uri(
     dst: str,
     ignore_extensions: List[str] = [".sagemaker-uploading", ".sagemaker-uploaded"],
 ) -> None:
-    """Copies files to directory or s3. If the files exist they are overwritten.
+    """Copies files in directory or file to directory or s3. If the files exist they are overwritten.
     The files in the local directory are preserved.
 
     Args:
