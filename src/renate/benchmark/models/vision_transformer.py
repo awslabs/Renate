@@ -16,7 +16,6 @@ class FeatureExtractorViTModel(ViTModel):
     def forward(
         self,
         pixel_values: Optional[torch.Tensor] = None,
-        bool_masked_pos: Optional[torch.BoolTensor] = None,
         head_mask: Optional[torch.Tensor] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
@@ -28,17 +27,15 @@ class FeatureExtractorViTModel(ViTModel):
         """
         out_to_filter = super().forward(
             pixel_values,
-            bool_masked_pos,
             head_mask,
             output_attentions,
             output_hidden_states,
             interpolate_pos_encoding,
             return_dict,
         )
-
         if isinstance(out_to_filter, BaseModelOutputWithPooling):
-            return out_to_filter.pooler_output
-        return out_to_filter[1]
+            return out_to_filter.last_hidden_state[:, 0, :]
+        return out_to_filter[0][:, 0, :]
 
 
 class VisionTransformer(RenateBenchmarkingModule):
@@ -84,7 +81,9 @@ class VisionTransformer(RenateBenchmarkingModule):
     ) -> None:
         if pretrained_model_name_or_path:
             model = FeatureExtractorViTModel.from_pretrained(
-                pretrained_model_name_or_path=pretrained_model_name_or_path, return_dict=False
+                pretrained_model_name_or_path=pretrained_model_name_or_path,
+                return_dict=False,
+                add_pooling_layer=False,
             )
         else:
             model_config = ViTConfig(
@@ -101,6 +100,7 @@ class VisionTransformer(RenateBenchmarkingModule):
                 num_channels=3,
                 qkv_bias=True,
                 return_dict=False,
+                add_pooling_layer=False,
             )
 
             model = FeatureExtractorViTModel(config=model_config)
@@ -122,6 +122,10 @@ class VisionTransformer(RenateBenchmarkingModule):
             add_icarl_class_means=add_icarl_class_means,
         )
         self._backbone = model
+
+    def get_logits(self, *args, **kwargs):
+        """Over riding for simplicity"""
+        return self._backbone(*args, **kwargs)
 
 
 class VisionTransformerCIFAR(VisionTransformer):

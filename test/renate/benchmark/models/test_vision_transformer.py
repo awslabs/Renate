@@ -45,11 +45,11 @@ def test_renate_vision_transformer_fwd(sub_class, input_dim):
     "sub_class, expected_num_params",
     [
         ["visiontransformercifar", 56],
-        ["visiontransformerb16", 200],
-        ["visiontransformerb32", 200],
-        ["visiontransformerl16", 392],
-        ["visiontransformerl32", 392],
-        ["visiontransformerh14", 520],
+        ["visiontransformerb16", 198],
+        ["visiontransformerb32", 198],
+        ["visiontransformerl16", 390],
+        ["visiontransformerl32", 390],
+        ["visiontransformerh14", 518],
     ],
 )
 def test_renate_vision_transformer_get_params(sub_class, expected_num_params):
