@@ -127,8 +127,6 @@ class TorchVisionDataModule(RenateDataModule):
         },
         "FashionMNIST": {"mean": 0.2860405969887955, "std": 0.3530242445149223},
         "MNIST": {"mean": 0.1306604762738429, "std": 0.30810780385646264},
-        "CLEAR10": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
-        "CLEAR100": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
     }
 
     def __init__(
@@ -212,6 +210,7 @@ class CLEARDataModule(RenateDataModule):
         "clear10-test.zip": "bf9a85bfb78fe742c7ed32648c9a3275",
         "clear100-test.zip": "e160815fb5fd4bc71dacd339ff41e6a9",
     }
+    dataset_stats = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
 
     def __init__(
         self,

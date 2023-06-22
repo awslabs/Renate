@@ -3,9 +3,9 @@
 import logging
 from typing import Any, Dict, Optional
 
-import datasets
 import torch
 import transformers
+from datasets import get_dataset_split_names, load_dataset
 
 from renate import defaults
 from renate.data.data_module import RenateDataModule
@@ -39,7 +39,7 @@ class HuggingFaceTextDataModule(RenateDataModule):
     using the `val_size` argument.
 
     Args:
-        data_path: the path to the folder containing the dataset files.
+        data_path: the path to the folder where the data files will be downloaded to.
         tokenizer: Tokenizer to apply to the dataset. See https://huggingface.co/docs/tokenizers/
             for more information on tokenizers.
         dataset_name: Name of the dataset, see https://huggingface.co/datasets. This is a wrapper
@@ -79,12 +79,12 @@ class HuggingFaceTextDataModule(RenateDataModule):
 
     def prepare_data(self) -> None:
         """Download data."""
-        split_names = datasets.get_dataset_split_names(self._dataset_name)
+        split_names = get_dataset_split_names(self._dataset_name)
         if "train" not in split_names:
             raise RuntimeError(f"Dataset {self._dataset_name} does not contain a 'train' split.")
         if "test" not in split_names:
             raise RuntimeError(f"Dataset {self._dataset_name} does not contain a 'test' split.")
-        self._train_data = datasets.load_dataset(
+        self._train_data = load_dataset(
             self._dataset_name, split="train", cache_dir=self._data_path
         )
         available_columns = list(self._train_data.features)
@@ -98,12 +98,10 @@ class HuggingFaceTextDataModule(RenateDataModule):
                 f"Target column '{self._target_column}' does not exist in {self._dataset_name}. "
                 f"Available columns: {available_columns}."
             )
-        self._test_data = datasets.load_dataset(
-            self._dataset_name, split="test", cache_dir=self._data_path
-        )
+        self._test_data = load_dataset(self._dataset_name, split="test", cache_dir=self._data_path)
         if "validation" in split_names:
             logging.info(f"Using 'validation' split of dataset {self._dataset_name}.")
-            self._val_data = datasets.load_dataset(
+            self._val_data = load_dataset(
                 self._dataset_name, split="validation", cache_dir=self._data_path
             )
         else:
@@ -134,3 +132,109 @@ class HuggingFaceTextDataModule(RenateDataModule):
             self._val_data = _InputTargetWrapper(self._val_data, self._target_column)
         else:
             self._train_data, self._val_data = self._split_train_val_data(self._train_data)
+
+
+class AmazonReviewDataModule(RenateDataModule):
+    """Access to the Amazon review dataset by category.
+
+    Will load the Amazon review dataset and convert it to a binary classification task.
+    All ratings > 3 are positive, all ratings < 3 are negative. Ratings of 3 are dropped.
+    Loads only the instances belonging to the product category ``category``.
+
+    Args:
+        data_path: the path to the folder where the data files will be downloaded to.
+        category: Product category to be loaded.
+        tokenizer: Tokenizer to apply to the dataset. See https://huggingface.co/docs/tokenizers/
+            for more information on tokenizers.
+        tokenizer_kwargs: Keyword arguments passed when calling the tokenizer's ``__call__``
+           function. Typical options are `max_length`, `padding` and `truncation`.
+           See https://huggingface.co/docs/tokenizers/
+           for more information on tokenizers. If `None` is passed, this defaults to
+           `{"padding": "max_length", max_length: 128, truncation: True}`.
+        val_size: Fraction of the training data to be used for validation.
+        seed: Seed used to fix random number generation.
+    """
+
+    categories = [
+        "apparel",
+        "automotive",
+        "baby_product",
+        "beauty",
+        "book",
+        "camera",
+        "digital_ebook_purchase",
+        "digital_video_download",
+        "drugstore",
+        "electronics",
+        "furniture",
+        "grocery",
+        "home",
+        "home_improvement",
+        "industrial_supplies",
+        "jewelry",
+        "kitchen",
+        "lawn_and_garden",
+        "luggage",
+        "musical_instruments",
+        "office_product",
+        "other",
+        "pc",
+        "personal_care_appliances",
+        "pet_products",
+        "shoes",
+        "sports",
+        "toy",
+        "video_games",
+        "watch",
+        "wireless",
+    ]
+
+    def __init__(
+        self,
+        data_path: str,
+        category: str,
+        tokenizer: transformers.PreTrainedTokenizer,
+        tokenizer_kwargs: Optional[Dict[str, Any]] = None,
+        val_size: float = defaults.VALIDATION_SIZE,
+        seed: int = defaults.SEED,
+    ):
+        super().__init__(
+            data_path=data_path,
+            val_size=val_size,
+            seed=seed,
+        )
+        self._tokenizer = tokenizer
+        self._tokenizer_kwargs = tokenizer_kwargs or defaults.TOKENIZER_KWARGS
+        self._category = category
+        assert self._category in self.categories
+
+    def prepare_data(self) -> None:
+        """Download dataset."""
+        for split in ["train", "test"] + (["validation"] if self._val_size > 0 else []):
+            load_dataset("amazon_reviews_multi", name="en", split=split, cache_dir=self._data_path)
+
+    def setup(self) -> None:
+        """Set up train, test and val datasets."""
+
+        def preprocess(example):
+            return {
+                **self._tokenizer(example["review_body"], **self._tokenizer_kwargs),
+                "label": 1 if example["stars"] > 3 else 0,
+            }
+
+        def get_split(split):
+            dataset = load_dataset(
+                "amazon_reviews_multi", name="en", split=split, cache_dir=self._data_path
+            )
+            dataset = dataset.filter(
+                lambda example: example["product_category"] == self._category
+                and example["stars"] != 3
+            )
+            dataset = dataset.map(preprocess, remove_columns=list(dataset.features), num_proc=4)
+            dataset.set_format(type="torch")
+            return _InputTargetWrapper(dataset)
+
+        self._train_data = get_split("train")
+        self._test_data = get_split("test")
+        if self._val_size > 0:
+            self._train_data = get_split("validation")
