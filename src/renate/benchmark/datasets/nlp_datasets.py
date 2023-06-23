@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import torch
 import transformers
@@ -139,11 +139,11 @@ class AmazonReviewDataModule(RenateDataModule):
 
     Will load the Amazon review dataset and convert it to a binary classification task.
     All ratings > 3 are positive, all ratings < 3 are negative. Ratings of 3 are dropped.
-    Loads only the instances belonging to the product category ``category``.
+    Loads only the instances belonging to any product category in ``categories``.
 
     Args:
         data_path: the path to the folder where the data files will be downloaded to.
-        category: Product category to be loaded.
+        categories: Product categories to be loaded.
         tokenizer: Tokenizer to apply to the dataset. See https://huggingface.co/docs/tokenizers/
             for more information on tokenizers.
         tokenizer_kwargs: Keyword arguments passed when calling the tokenizer's ``__call__``
@@ -192,9 +192,9 @@ class AmazonReviewDataModule(RenateDataModule):
     def __init__(
         self,
         data_path: str,
-        category: str,
         tokenizer: transformers.PreTrainedTokenizer,
         tokenizer_kwargs: Optional[Dict[str, Any]] = None,
+        categories: Optional[List[str]] = None,
         val_size: float = defaults.VALIDATION_SIZE,
         seed: int = defaults.SEED,
     ):
@@ -205,8 +205,8 @@ class AmazonReviewDataModule(RenateDataModule):
         )
         self._tokenizer = tokenizer
         self._tokenizer_kwargs = tokenizer_kwargs or defaults.TOKENIZER_KWARGS
-        self._category = category
-        assert self._category in self.categories
+        self._categories = categories or self.categories
+        assert set(self._categories) <= set(self.categories)
 
     def prepare_data(self) -> None:
         """Download dataset."""
@@ -227,7 +227,7 @@ class AmazonReviewDataModule(RenateDataModule):
                 "amazon_reviews_multi", name="en", split=split, cache_dir=self._data_path
             )
             dataset = dataset.filter(
-                lambda example: example["product_category"] == self._category
+                lambda example: example["product_category"] in self._categories
                 and example["stars"] != 3
             )
             dataset = dataset.map(preprocess, remove_columns=list(dataset.features), num_proc=4)

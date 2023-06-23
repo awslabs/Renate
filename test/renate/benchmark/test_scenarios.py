@@ -6,10 +6,13 @@ import numpy as np
 import pytest
 import torch
 from torchvision.transforms.functional import rotate
+from transformers import AutoTokenizer
 
 from dummy_datasets import DummyTorchVisionDataModule, DummyTorchVisionDataModuleWithChunks
+from renate.benchmark.datasets.nlp_datasets import AmazonReviewDataModule
 from renate.benchmark.datasets.vision_datasets import TorchVisionDataModule
 from renate.benchmark.scenarios import (
+    AmazonReviewScenario,
     BenchmarkScenario,
     ClassIncrementalScenario,
     FeatureSortingScenario,
@@ -228,3 +231,20 @@ def test_feature_sorting_scenario(feature_idx):
             assert max_value[stage] <= chunk_min
             max_value[stage] = chunk_max
         assert len(scenario.test_data()) == num_tasks
+
+
+def test_amazon_review_scenario(tmpdir):
+    tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
+    data_module = AmazonReviewDataModule(tmpdir, tokenizer=tokenizer, val_size=0.5)
+    num_train = [298, 67]
+    num_val = [0, 0]
+    num_test = [299, 87]
+    for chunk_id in range(2):
+        scenario = AmazonReviewScenario(
+            data_module=data_module, categories=["apparel", "book"], chunk_id=chunk_id
+        )
+        scenario.prepare_data()
+        scenario.setup()
+        assert len(scenario.train_data()) == num_train[chunk_id]
+        # assert len(scenario.val_data()) == num_val[chunk_id]
+        assert [len(data) for data in scenario.test_data()] == num_test

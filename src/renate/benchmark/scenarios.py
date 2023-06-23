@@ -9,6 +9,7 @@ from torch.utils.data import Dataset, Subset
 from torchvision.transforms import Lambda, RandomRotation, ToPILImage
 
 from renate import defaults
+from renate.benchmark.datasets.nlp_datasets import AmazonReviewDataModule
 from renate.benchmark.datasets.wild_time_data import WildTimeDataModule
 from renate.data.data_module import RenateDataModule
 from renate.data.datasets import _TransformedDataset
@@ -284,7 +285,7 @@ class _SortingScenario(Scenario):
     Randomness in the sorted order is induced by swapping the position of random pairs.
 
     Args:
-        data_module: The source RenateDataModule for the the user data.
+        data_module: The source RenateDataModule for the user data.
         num_tasks: The total number of expected tasks for experimentation.
         randomness: A value between 0 and 1. For a dataset with ``N`` data points,
             ``0.5 * N * randomness`` random pairs are swapped.
@@ -432,5 +433,44 @@ class WildTimeScenario(Scenario):
         self._test_data = []
         for i in range(self._num_tasks):
             self._data_module.time_step = i
+            self._data_module.setup()
+            self._test_data.append(self._data_module.test_data())
+
+
+class AmazonReviewScenario(Scenario):
+    """Domain-incremental scenario for ``AmazonReviewDataModule``.
+
+    In each step, the reviews of one particular product category are available.
+
+    Args:
+        data_module: The source RenateDataModule for the user data.
+        categories: Product category names in order of traversal.
+        chunk_id: The data chunk to load in for the training or validation data.
+        seed: Seed used to fix random number generation.
+    """
+
+    def __init__(
+        self,
+        data_module: RenateDataModule,
+        chunk_id: int,
+        categories: Optional[List[str]] = None,
+        seed: int = defaults.SEED,
+    ) -> None:
+        self._categories = categories or AmazonReviewDataModule.categories
+        super().__init__(
+            data_module=data_module, num_tasks=len(self._categories), chunk_id=chunk_id, seed=seed
+        )
+        if not isinstance(data_module, AmazonReviewDataModule):
+            raise ValueError("This scenario is only compatible with `AmazonReviewDataModule`.")
+
+    def setup(self) -> None:
+        """Sets up the scenario."""
+        self._data_module._categories = [self._categories[self._chunk_id]]
+        super().setup()
+        self._train_data = self._data_module.train_data()
+        self._val_data = self._data_module.val_data()
+        self._test_data = []
+        for i in range(self._num_tasks):
+            self._data_module._categories = [self._categories[i]]
             self._data_module.setup()
             self._test_data.append(self._data_module.test_data())

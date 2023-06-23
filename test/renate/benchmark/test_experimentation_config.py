@@ -4,7 +4,7 @@ import pytest
 from torchvision.transforms import Compose, Normalize
 
 from renate.benchmark import experiment_config
-from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
+from renate.benchmark.datasets.nlp_datasets import AmazonReviewDataModule, HuggingFaceTextDataModule
 from renate.benchmark.datasets.vision_datasets import CLEARDataModule, TorchVisionDataModule
 from renate.benchmark.experiment_config import (
     data_module_fn,
@@ -17,6 +17,7 @@ from renate.benchmark.experiment_config import (
     train_transform,
 )
 from renate.benchmark.scenarios import (
+    AmazonReviewScenario,
     BenchmarkScenario,
     ClassIncrementalScenario,
     FeatureSortingScenario,
@@ -87,6 +88,7 @@ def test_model_fn_fails_for_unknown_model():
             "text",
             "label",
         ),
+        ("AmazonReview", AmazonReviewDataModule, "distilbert-base-uncased", None, None),
     ),
 )
 def test_get_data_module(
@@ -210,6 +212,17 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             WildTimeScenario,
             16,
         ),
+        (
+            "AmazonReviewScenario",
+            "AmazonReview",
+            {
+                "num_tasks": 3,
+                "pretrained_model_name": "distilbert-base-uncased",
+                "categories": ["apparel", "books", "home"],
+            },
+            AmazonReviewScenario,
+            3,
+        ),
     ),
     ids=[
         "class_incremental",
@@ -221,6 +234,7 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         "hue_shift",
         "wild_time_text_with_tokenizer",
         "wild_time_image_all_tasks",
+        "amazon_review",
     ],
 )
 @pytest.mark.parametrize("val_size", (0, 0.5), ids=["no_val", "val"])
@@ -250,11 +264,13 @@ def test_data_module_fn(
         assert scenario._randomness == scenario_kwargs["randomness"]
     elif expected_scenario_class == HueShiftScenario:
         assert scenario._randomness == scenario_kwargs["randomness"]
-    elif expected_scenario_class == WildTimeScenario:
+    elif expected_scenario_class in [AmazonReviewScenario, WildTimeScenario]:
         if "pretrained_model_name" in scenario_kwargs:
             assert scenario._data_module._tokenizer is not None
         else:
             assert scenario._data_module._tokenizer is None
+    elif expected_scenario_class == AmazonReviewScenario:
+        assert scenario._categories == scenario_kwargs["categories"]
     assert scenario._num_tasks == expected_num_tasks
 
 
@@ -266,6 +282,7 @@ def test_data_module_fn(
         ("CIFAR10", True),
         ("CIFAR100", True),
         ("hfd-rotten_tomatoes", False),
+        ("AmazonReview", False),
     ),
 )
 def test_transforms(dataset_name, use_transforms):

@@ -8,7 +8,7 @@ from torchmetrics import Accuracy
 from torchvision.transforms import transforms
 from transformers import AutoTokenizer
 
-from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
+from renate.benchmark.datasets.nlp_datasets import AmazonReviewDataModule, HuggingFaceTextDataModule
 from renate.benchmark.datasets.vision_datasets import CLEARDataModule, TorchVisionDataModule
 from renate.benchmark.datasets.wild_time_data import WildTimeDataModule
 from renate.benchmark.models import (
@@ -28,6 +28,7 @@ from renate.benchmark.models import (
 )
 from renate.benchmark.models.transformer import HuggingFaceSequenceClassificationTransformer
 from renate.benchmark.scenarios import (
+    AmazonReviewScenario,
     BenchmarkScenario,
     ClassIncrementalScenario,
     FeatureSortingScenario,
@@ -119,6 +120,9 @@ def get_data_module(
         )
     if dataset_name in ["CLEAR10", "CLEAR100"]:
         return CLEARDataModule(data_path, dataset_name=dataset_name, val_size=val_size, seed=seed)
+    if dataset_name == "AmazonReview":
+        tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name)
+        return AmazonReviewDataModule(data_path, tokenizer=tokenizer, val_size=val_size, seed=seed)
     if dataset_name in wild_time_data.list_datasets():
         data_module_kwargs = {
             "data_path": data_path,
@@ -157,6 +161,7 @@ def get_scenario(
     input_dim: Optional[Union[List[int], Tuple[int], int]] = None,
     feature_idx: Optional[int] = None,
     randomness: Optional[float] = None,
+    categories: Optional[List[str]] = None,
 ) -> Scenario:
     """Function to create scenario based on name and arguments.
 
@@ -172,6 +177,7 @@ def get_scenario(
         input_dim: Used for scenario `PermutationScenario`. Input dimensionality.
         feature_idx: Used for scenario `SoftSortingScenario`. Index of feature to sort by.
         randomness: Used for all `_SortingScenario`. Randomness strength in [0, 1].
+        categories: Selected product categories for `AmazonReviewScenario`. Default: all categories.
 
     Returns:
         An instance of the requested scenario.
@@ -229,6 +235,10 @@ def get_scenario(
         return WildTimeScenario(
             data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed
         )
+    if scenario_name == "AmazonReviewScenario":
+        return AmazonReviewScenario(
+            data_module=data_module, chunk_id=chunk_id, categories=categories, seed=seed
+        )
     raise ValueError(f"Unknown scenario `{scenario_name}`.")
 
 
@@ -251,6 +261,7 @@ def data_module_fn(
     input_dim: Optional[Tuple[int]] = None,
     feature_idx: Optional[int] = None,
     randomness: Optional[float] = None,
+    categories: Optional[List[str]] = None,
     src_bucket: Optional[str] = None,
     src_object_name: Optional[str] = None,
     pretrained_model_name: Optional[str] = None,
@@ -281,6 +292,7 @@ def data_module_fn(
         input_dim=input_dim,
         feature_idx=feature_idx,
         randomness=randomness,
+        categories=categories,
     )
 
 
@@ -302,6 +314,7 @@ def train_transform(dataset_name: str) -> Optional[Callable]:
     if dataset_name in [
         "MNIST",
         "FashionMNIST",
+        "AmazonReview",
     ] + wild_time_data.list_datasets() or dataset_name.startswith("hfd-"):
         return None
     if dataset_name in ["CIFAR10", "CIFAR100"]:
@@ -328,6 +341,7 @@ def test_transform(dataset_name: str) -> Optional[Callable]:
     if dataset_name in [
         "MNIST",
         "FashionMNIST",
+        "AmazonReview",
     ] + wild_time_data.list_datasets() or dataset_name.startswith("hfd-"):
         return None
     if dataset_name in ["CIFAR10", "CIFAR100"]:
