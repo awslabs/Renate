@@ -1,9 +1,12 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+from functools import partial
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 import wild_time_data
+from torch.optim import Optimizer
+from torch.optim.lr_scheduler import StepLR, _LRScheduler
 from torchmetrics import Accuracy
 from torchvision.transforms import transforms
 from transformers import AutoTokenizer
@@ -355,6 +358,26 @@ def test_transform(dataset_name: str) -> Optional[Callable]:
             ]
         )
     raise ValueError(f"Unknown dataset `{dataset_name}`.")
+
+
+def lr_scheduler_fn(
+    learning_rate_scheduler: Optional[str] = None,
+    learning_rate_scheduler_step_size: int = 30,
+    learning_rate_scheduler_gamma: float = 0.1,
+    learning_rate_scheduler_interval: str = "epoch",
+) -> Tuple[Optional[Callable[[Optimizer], _LRScheduler]], str]:
+    if learning_rate_scheduler == "StepLR":
+        return (
+            partial(
+                StepLR,
+                step_size=learning_rate_scheduler_step_size,
+                gamma=learning_rate_scheduler_gamma,
+            ),
+            learning_rate_scheduler_interval,
+        )
+    elif learning_rate_scheduler is None:
+        return None, learning_rate_scheduler_interval
+    raise ValueError(f"Unknown scheduler `{learning_rate_scheduler}`.")
 
 
 def metrics_fn() -> Dict:

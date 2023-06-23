@@ -144,7 +144,7 @@ def execute_experiment_job(
     job_name: str = defaults.JOB_NAME,
     strategy: str = defaults.DISTRIBUTED_STRATEGY,
     precision: str = defaults.PRECISION,
-    retain_intermediate_state: bool = defaults.RETAIN_INTERMEDIATE_STATE,
+    save_state: bool = defaults.SAVE_BENCHMARK_STATE,
 ) -> None:
     """Executes the experiment job.
 
@@ -181,9 +181,8 @@ def execute_experiment_job(
             `More details <https://lightning.ai/docs/pytorch/stable/extensions/strategy.html>`__
         precision: Type of bit precision to use.
             `More details <https://lightning.ai/docs/pytorch/stable/common/precision_basic.html>`__
-        retain_intermediate_state: Flag to retain models and buffer states after each
-            task update. This is useful when training with large datasets that might cause storage
-            issues.
+        save_state: Flag to retain models and buffer states of each update step. Disable to save
+            storage.
     """
     assert (
         mode in defaults.SUPPORTED_TUNING_MODE
@@ -211,7 +210,7 @@ def execute_experiment_job(
             seed=seed,
             strategy=strategy,
             precision=precision,
-            retain_intermediate_state=retain_intermediate_state,
+            save_state=save_state,
         )
     _execute_experiment_job_remotely(
         job_name=job_name,
@@ -239,7 +238,7 @@ def execute_experiment_job(
         instance_max_time=instance_max_time,
         strategy=strategy,
         precision=precision,
-        retain_intermediate_state=retain_intermediate_state,
+        save_state=save_state,
     )
 
 
@@ -262,7 +261,7 @@ def _execute_experiment_job_locally(
     deterministic_trainer: bool,
     strategy: str,
     precision: str,
-    retain_intermediate_state: bool,
+    save_state: bool,
 ) -> None:
     """Runs an experiment, combining hyperparameter tuning and model for multiple updates.
 
@@ -310,7 +309,7 @@ def _execute_experiment_job_locally(
 
     # TODO: evaluate's trainer has to use devices=1:
     # See https://github.com/Lightning-AI/lightning/issues/2537
-    # The fix is to launch evaluation in a seperate process like training.
+    # The fix is to launch evaluation in a separate process like training.
     results: Dict[str, List[List[float]]] = {}
     evaluate_and_record_results(
         results,
@@ -356,7 +355,7 @@ def _execute_experiment_job_locally(
             deterministic_trainer=deterministic_trainer,
         )
         move_to_uri(output_state_url, input_state_url)
-        if retain_intermediate_state:
+        if save_state:
             copy_to_uri(input_state_url, update_url)
         model = get_model(
             config_module,
@@ -384,13 +383,11 @@ def _execute_experiment_job_locally(
     cumulative_metrics = create_cumulative_metrics()
     df = cumulative_metrics_summary(results, cumulative_metrics, num_updates - 1)
     save_pandas_df_to_csv(df, defaults.metric_summary_file(logs_url))
-    if not retain_intermediate_state:
-        move_to_uri(
-            defaults.hpo_file(input_state_url), defaults.logs_folder(experiment_outputs_url)
-        )
     logger.info("### Cumulative results: ###")
     logger.info(df)
 
+    if not save_state:
+        move_to_uri(defaults.hpo_file(input_state_url), str(experiment_outputs_url))
     move_to_uri(logs_url, defaults.logs_folder(experiment_outputs_url))
 
     shutil.rmtree(working_directory)
