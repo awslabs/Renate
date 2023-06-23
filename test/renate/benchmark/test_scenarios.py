@@ -236,8 +236,8 @@ def test_feature_sorting_scenario(feature_idx):
 def test_amazon_review_scenario(tmpdir):
     tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
     data_module = AmazonReviewDataModule(tmpdir, tokenizer=tokenizer, val_size=0.5)
-    num_train = [298, 67]
-    num_val = [0, 0]
+    num_train = [12102, 2964]
+    num_val = [298, 67]
     num_test = [299, 87]
     for chunk_id in range(2):
         scenario = AmazonReviewScenario(
@@ -246,5 +246,5 @@ def test_amazon_review_scenario(tmpdir):
         scenario.prepare_data()
         scenario.setup()
         assert len(scenario.train_data()) == num_train[chunk_id]
-        # assert len(scenario.val_data()) == num_val[chunk_id]
+        assert len(scenario.val_data()) == num_val[chunk_id]
         assert [len(data) for data in scenario.test_data()] == num_test

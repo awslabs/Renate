@@ -237,4 +237,4 @@ class AmazonReviewDataModule(RenateDataModule):
         self._train_data = get_split("train")
         self._test_data = get_split("test")
         if self._val_size > 0:
-            self._train_data = get_split("validation")
+            self._val_data = get_split("validation")
