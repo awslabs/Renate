@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import pytest
+from torchmetrics.classification import BinaryAccuracy, MulticlassAccuracy
 from torchvision.transforms import Compose, Normalize
 
 from renate.benchmark import experiment_config
@@ -38,7 +39,7 @@ def test_model_fn(model_name, expected_model_class):
         model_state_url=None,
         model_name=model_name,
         num_inputs=1 if model_name == "MultiLayerPerceptron" else None,
-        num_outputs=1 if model_name in ["MultiLayerPerceptron", "HuggingFaceTransformer"] else None,
+        num_outputs=2,
         num_hidden_layers=1 if model_name == "MultiLayerPerceptron" else None,
         hidden_size=1 if model_name == "MultiLayerPerceptron" else None,
         pretrained_model_name="distilbert-base-uncased"
@@ -266,6 +267,7 @@ def test_data_module_fn(
         ("CIFAR10", True),
         ("CIFAR100", True),
         ("hfd-rotten_tomatoes", False),
+        ("CLEAR10", True),
     ),
 )
 def test_transforms(dataset_name, use_transforms):
@@ -316,4 +318,5 @@ def test_loss_fn_returns_correct_reduction_type():
 
 
 def test_metrics_fn_contains_accuracy():
-    assert "accuracy" in metrics_fn()
+    assert isinstance(metrics_fn(num_outputs=2)["accuracy"], BinaryAccuracy)
+    assert isinstance(metrics_fn(num_outputs=10)["accuracy"], MulticlassAccuracy)
