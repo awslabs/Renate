@@ -7,7 +7,7 @@ import torch
 from torch.nn import Parameter
 from torch.optim import Optimizer, SGD
 from torch.optim.lr_scheduler import StepLR, _LRScheduler
-from torchmetrics.classification import MulticlassAccuracy
+from torchmetrics import Accuracy
 
 from dummy_datasets import DummyTorchVisionDataModule
 from renate.benchmark.models.mlp import MultiLayerPerceptron
@@ -45,4 +45,4 @@ def lr_scheduler_fn() -> Tuple[Callable[[Optimizer], _LRScheduler], str]:
 
 
 def metrics_fn() -> Dict:
-    return {"accuracy": MulticlassAccuracy(num_classes=10)}
+    return {"accuracy": Accuracy(task="multiclass", num_classes=10)}

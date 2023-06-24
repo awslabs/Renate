@@ -4,7 +4,7 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 import wild_time_data
-from torchmetrics.classification import BinaryAccuracy, MulticlassAccuracy
+from torchmetrics import Accuracy
 from torchvision.transforms import transforms
 from transformers import AutoTokenizer
 
@@ -337,8 +337,5 @@ def test_transform(dataset_name: str) -> Optional[Callable]:
 
 
 def metrics_fn(num_outputs: int) -> Dict:
-    return {
-        "accuracy": BinaryAccuracy()
-        if num_outputs == 2
-        else MulticlassAccuracy(num_classes=num_outputs)
-    }
+    task = "binary" if num_outputs == 2 else "multiclass"
+    return {"accuracy": Accuracy(task=task, num_classes=num_outputs)}

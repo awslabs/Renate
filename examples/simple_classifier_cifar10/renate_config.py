@@ -3,7 +3,7 @@
 from typing import Callable, Dict, Optional
 
 import torch
-from torchmetrics.classification import MulticlassAccuracy
+from torchmetrics import Accuracy
 from torchvision import transforms
 
 import renate.defaults as defaults
@@ -69,4 +69,4 @@ def loss_fn() -> torch.nn.Module:
 
 
 def metrics_fn() -> Dict:
-    return {"accuracy": MulticlassAccuracy(num_classes=10)}
+    return {"accuracy": Accuracy(task="multiclass", num_classes=10)}
