@@ -32,11 +32,7 @@ from renate.models.prediction_strategies import ICaRLClassificationStrategy
 
 @pytest.mark.parametrize(
     "model_name,expected_model_class",
-    [
-        (model_name, model_class)
-        for model_name, model_class in models.items()
-        if model_name != "VisionTransformerH14"
-    ],
+    [(model_name, model_class) for model_name, model_class in models.items()],
 )
 def test_model_fn(model_name, expected_model_class):
     model = model_fn(
