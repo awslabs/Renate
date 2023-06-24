@@ -153,6 +153,10 @@ The following table contains the list of supported datasets.
       - Image Classification: gender identification in yearbook photos.
       - ~33k train, ~4k test, 2 classes, years 1930-2013, image shape 32x32x1
       - Huaxiu Yao et al.: Wild-Time: A Benchmark of in-the-Wild Distribution Shift over Time. Conference on Neural Information Processing Systems Datasets and Benchmarks Track. 2022.
+    * - AmazonReview
+      - Text Classification: sentiment analysis for product reviews.
+      - 160k train, 4k val, 4k test, 2 classes
+      - Phillip Keung et al.: The Multilingual Amazon Reviews Corpus. Conference on Empirical Methods in Natural Language Processing, 2020.
     * - hfd-{dataset_name}
       - multiple
       - Any `Hugging Face dataset <https://huggingface.co/datasets>`__ can be used. Just prepend the prefix ``hfd-``, e.g., ``hfd-rotten_tomatoes``. Select input and target columns via ``config_space``, e.g., add ``"input_column": "text", "target_column": "label"`` for the `rotten_tomatoes <https://huggingface.co/datasets/rotten_tomatoes>`__ example.
@@ -223,6 +227,9 @@ The first part contains all instances with classes 1 and 2, the second with clas
       - Creates data partitions by randomly permuting the input features.
       - * :code:`num_tasks`: Number of data partitions.
         * :code:`input_dim`: Data dimensionality (tuple or int as string).
+    * - :py:class:`~renate.benchmark.scenarios.AmazonReviewScenario`
+      - Groups the Amazon reviews by product categories.
+      - * :code:`categories`: Order and list of product categories considered.
 
 Example: Class-incremental Learning on CIFAR-10
 ===============================================
