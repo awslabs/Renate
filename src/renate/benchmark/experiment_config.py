@@ -4,7 +4,7 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 import wild_time_data
-from torchmetrics import Accuracy
+from torchmetrics.classification import BinaryAccuracy, MulticlassAccuracy
 from torchvision.transforms import transforms
 from transformers import AutoTokenizer
 
@@ -61,11 +61,11 @@ models = {
 
 
 def model_fn(
+    num_outputs: int,
     model_state_url: Optional[str] = None,
     updater: Optional[str] = None,
     model_name: Optional[str] = None,
     num_inputs: Optional[int] = None,
-    num_outputs: Optional[int] = None,
     num_hidden_layers: Optional[int] = None,
     hidden_size: Optional[Tuple[int]] = None,
     dataset_name: Optional[str] = None,
@@ -75,7 +75,7 @@ def model_fn(
     if model_name not in models:
         raise ValueError(f"Unknown model `{model_name}`")
     model_class = models[model_name]
-    model_kwargs = {}
+    model_kwargs = {"num_outputs": num_outputs}
     if updater == "Avalanche-iCaRL":
         model_kwargs["prediction_strategy"] = ICaRLClassificationStrategy()
     if model_name == "MultiLayerPerceptron":
@@ -92,8 +92,6 @@ def model_fn(
         if updater == "Avalanche-iCaRL":
             raise ValueError("Transformers do not support iCaRL.")
         model_kwargs["pretrained_model_name"] = pretrained_model_name
-    if num_outputs is not None:
-        model_kwargs["num_outputs"] = num_outputs
     if model_state_url is None:
         model = model_class(**model_kwargs)
     else:
@@ -338,5 +336,9 @@ def test_transform(dataset_name: str) -> Optional[Callable]:
     raise ValueError(f"Unknown dataset `{dataset_name}`.")
 
 
-def metrics_fn() -> Dict:
-    return {"accuracy": Accuracy()}
+def metrics_fn(num_outputs: int) -> Dict:
+    return {
+        "accuracy": BinaryAccuracy()
+        if num_outputs == 2
+        else MulticlassAccuracy(num_classes=num_outputs)
+    }
