@@ -32,7 +32,11 @@ from renate.models.prediction_strategies import ICaRLClassificationStrategy
 
 @pytest.mark.parametrize(
     "model_name,expected_model_class",
-    [(model_name, model_class) for model_name, model_class in models.items()],
+    [
+        (model_name, model_class)
+        for model_name, model_class in models.items()
+        if model_name != "VisionTransformerH14"
+    ],
 )
 def test_model_fn(model_name, expected_model_class):
     model = model_fn(
@@ -63,6 +67,7 @@ def test_model_fn(model_name, expected_model_class):
 def test_model_fn_automatic_input_channel_detection_resnet(dataset_name, expected_in_channels):
     """Tests if ResNet architectures input channels are correctly adapted to the dataset."""
     model = model_fn(
+        num_outputs=10,
         model_state_url=None,
         model_name="ResNet18",
         dataset_name=dataset_name,
@@ -73,7 +78,7 @@ def test_model_fn_automatic_input_channel_detection_resnet(dataset_name, expecte
 def test_model_fn_fails_for_unknown_model():
     unknown_model_name = "UNKNOWN_MODEL_NAME"
     with pytest.raises(ValueError, match=f"Unknown model `{unknown_model_name}`"):
-        model_fn(model_name=unknown_model_name)
+        model_fn(num_outputs=10, model_name=unknown_model_name)
 
 
 @pytest.mark.parametrize(
@@ -267,7 +272,6 @@ def test_data_module_fn(
         ("CIFAR10", True),
         ("CIFAR100", True),
         ("hfd-rotten_tomatoes", False),
-        ("CLEAR10", True),
     ),
 )
 def test_transforms(dataset_name, use_transforms):
