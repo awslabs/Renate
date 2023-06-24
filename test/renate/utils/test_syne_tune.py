@@ -16,7 +16,7 @@ from renate.utils.syne_tune import redirect_to_tmp
     ],
     ids=["redirect-path-to-tmp-dir", "wrong-checkpoint-path-raise-exception"],
 )
-@mock.patch.dict(os.environ, {"SM_MODEL_DIR": "t"})
+@mock.patch.dict(os.environ, {"SM_MODEL_DIR": ""})
 def test_redirect_to_tmp_on_sagemaker(uri, expected_uri, raises):
     if raises:
         with pytest.raises(AssertionError):
