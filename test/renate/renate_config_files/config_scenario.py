@@ -3,7 +3,7 @@
 from typing import Dict, Optional, Tuple
 
 import torch
-from torchmetrics import Accuracy
+from torchmetrics.classification import MulticlassAccuracy
 
 from dummy_datasets import DummyTorchVisionDataModule
 from renate.benchmark.models.mlp import MultiLayerPerceptron
@@ -40,4 +40,4 @@ def loss_fn(updater: Optional[str] = None) -> torch.nn.Module:
 
 
 def metrics_fn() -> Dict:
-    return {"accuracy": Accuracy()}
+    return {"accuracy": MulticlassAccuracy(num_classes=10)}

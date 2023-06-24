@@ -149,7 +149,10 @@ class ModelUpdaterCLI:
         if lr_scheduler_config is not None:
             lr_scheduler_kwargs["learning_rate_scheduler"] = lr_scheduler_config[0]
             lr_scheduler_kwargs["learning_rate_scheduler_interval"] = lr_scheduler_config[1]
-        metrics = get_metrics(config_module)
+        metrics = get_metrics(
+            config_module,
+            **get_function_kwargs(args=args, function_args=function_args["metrics_fn"]),
+        )
 
         model_updater_class, learner_kwargs = get_updater_and_learner_kwargs(args)
 

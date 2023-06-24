@@ -127,11 +127,13 @@ def get_learning_rate_scheduler(
         return getattr(config_module, lr_scheduler_fn_name)(**kwargs)
 
 
-def get_metrics(config_module: ModuleType) -> Optional[Dict[str, torchmetrics.Metric]]:
+def get_metrics(
+    config_module: ModuleType, **kwargs: Any
+) -> Optional[Dict[str, torchmetrics.Metric]]:
     """Creates and returns a dictionary of metrics."""
     metrics_fn_name = "metrics_fn"
     if metrics_fn_name in vars(config_module):
-        return getattr(config_module, metrics_fn_name)()
+        return getattr(config_module, metrics_fn_name)(**kwargs)
 
 
 def get_and_prepare_data_module(config_module: ModuleType, **kwargs: Any) -> RenateDataModule:

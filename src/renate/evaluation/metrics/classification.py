@@ -102,9 +102,12 @@ def forward_transfer(results: Dict[str, List[List[float]]], task_id: int) -> flo
     """
     if task_id == 0:
         return 0.0
-    return sum(
-        [
-            results["accuracy"][i - 1][i] - results["accuracy_init"][0][i]
-            for i in range(1, task_id + 1)
-        ]
-    ) / (task_id)
+    return (
+        sum(
+            [
+                results["accuracy"][i - 1][i] - results["accuracy_init"][0][i]
+                for i in range(1, task_id + 1)
+            ]
+        )
+        / task_id
+    )

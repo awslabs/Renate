@@ -8,7 +8,7 @@ import torchvision
 from torch.nn import Parameter
 from torch.optim import AdamW, Optimizer
 from torch.optim.lr_scheduler import StepLR, _LRScheduler
-from torchmetrics import Accuracy
+from torchmetrics.classification import MulticlassAccuracy
 from torchvision.transforms import transforms
 
 from renate.data.data_module import RenateDataModule
@@ -93,7 +93,7 @@ def buffer_transform() -> Callable:
 
 
 def metrics_fn() -> Dict:
-    return {"accuracy": Accuracy()}
+    return {"accuracy": MulticlassAccuracy(num_classes=10)}
 
 
 def loss_fn() -> torch.nn.Module:

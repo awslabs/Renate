@@ -741,6 +741,15 @@ def get_transforms_kwargs(
     return transforms
 
 
+def get_metrics_fn_kwargs(
+    config_module, config_space: Dict[str, Any], cast_arguments: Optional[bool] = False
+) -> Dict[str, Any]:
+    """Returns the kwargs for a ``metrics_fn`` with defined arguments based on config_space."""
+    return _get_function_kwargs_helper(
+        config_module, config_space, "metrics_fn", [], cast_arguments
+    )
+
+
 def _get_function_kwargs_helper(
     config_module,
     config_space: Dict[str, Any],

@@ -14,6 +14,7 @@ import renate
 import renate.defaults as defaults
 from renate.cli.parsing_functions import (
     get_data_module_fn_kwargs,
+    get_metrics_fn_kwargs,
     get_model_fn_kwargs,
     get_scheduler_kwargs,
     get_transforms_kwargs,
@@ -301,7 +302,8 @@ def _execute_experiment_job_locally(
         data_module.test_data()
     ), f"The dataset has {len(data_module.test_data())} chunks, expected {num_updates}."
     transforms = get_transforms_kwargs(config_module, config_space)
-    metrics = get_metrics(config_module)
+    metrics_fn_kwargs = get_metrics_fn_kwargs(config_module, config_space)
+    metrics = get_metrics(config_module, **metrics_fn_kwargs)
 
     torch.save(
         model.state_dict(),
