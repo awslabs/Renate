@@ -13,6 +13,7 @@ from renate.benchmark.datasets.vision_datasets import CLEARDataModule, TorchVisi
 from renate.benchmark.datasets.wild_time_data import WildTimeDataModule
 from renate.benchmark.models import (
     MultiLayerPerceptron,
+    PromptedVisionTransformer,
     ResNet18,
     ResNet18CIFAR,
     ResNet34,
@@ -57,6 +58,7 @@ models = {
     "VisionTransformerL32": VisionTransformerL32,
     "VisionTransformerH14": VisionTransformerH14,
     "HuggingFaceTransformer": HuggingFaceSequenceClassificationTransformer,
+    "PromptedVisionTransformer": PromptedVisionTransformer,
 }
 
 
