@@ -13,6 +13,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset
 
 from renate import defaults
+from renate.benchmark.experiment_config import model_fn
 from renate.models import RenateModule
 from renate.types import NestedTensors
 from renate.updaters.learner import ReplayLearner
@@ -107,13 +108,19 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         else:
             alpha = self._loss_weight_new_data
         inputs, targets = batch["current_task"]
-        device = inputs.device
-        batch_size_current = inputs.shape[0]
+        device = inputs["input_ids"].device  # TODO: added ["input_ids"]
+        batch_size_current = inputs["input_ids"].shape[0]  # TODO: added ["input_ids"]
         batch_size_mem = 0
         if "memory" in batch:
             (inputs_mem, targets_mem), _ = batch["memory"]
-            batch_size_mem = inputs_mem.shape[0]
-            inputs = torch.cat((inputs, inputs_mem), 0)
+            batch_size_mem = inputs_mem["input_ids"].shape[0]  # TODO: added ["input_ids"]
+            # inputs = torch.cat((inputs, inputs_mem), 0)
+            inputs = {  # TODO: old version, line before
+                "input_ids": torch.cat((inputs["input_ids"], inputs_mem["input_ids"]), 0),
+                "attention_mask": torch.cat(
+                    (inputs["attention_mask"], inputs_mem["attention_mask"]), 0
+                ),
+            }
             targets = torch.cat((targets, targets_mem), 0)
         outputs = self(inputs)
         loss = self._loss_fn(outputs, targets)
