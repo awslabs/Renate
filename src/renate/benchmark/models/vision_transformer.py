@@ -34,8 +34,8 @@ class FeatureExtractorViTModel(ViTModel):
             return_dict,
         )
         if isinstance(out_to_filter, BaseModelOutputWithPooling):
-            return out_to_filter.last_hidden_state[:, 0, :]
-        return out_to_filter[0][:, 0, :]
+            return out_to_filter.last_hidden_state  # [:, 0, :]
+        return out_to_filter[0]  # [:, 0, :]
 
 
 class VisionTransformer(RenateBenchmarkingModule):

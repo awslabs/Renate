@@ -280,7 +280,9 @@ class CLEARDataModule(RenateDataModule):
         # Load the class names and create a class mapping. The class names are in `class_names.txt`
         label_encoding = {}
         with open(os.path.join(path, "class_names.txt"), "r") as f:
-            class_names = [line.strip() for line in f.readlines() if line.strip() != "BACKGROUND"]
+            class_names = [
+                line.strip() for line in f.readlines()
+            ]  # if line.strip() != "BACKGROUND"]
             label_encoding = {name: cnt for cnt, name in enumerate(class_names)}
 
         path = os.path.join(path, "labeled_images", str(chunk_id + 1))
@@ -290,8 +292,8 @@ class CLEARDataModule(RenateDataModule):
             for file in files:
                 if file.endswith(".jpg"):
                     folder = root.split("/")[-1]
-                    if folder == "BACKGROUND":
-                        continue
+                    # if folder == "BACKGROUND":
+                    #     continues
                     data.append(os.path.join(root, file))
                     labels.append(label_encoding[folder])
 

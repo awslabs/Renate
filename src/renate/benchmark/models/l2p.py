@@ -7,7 +7,11 @@ import torch.nn as nn
 
 from renate import defaults
 from renate.benchmark.models.base import RenateBenchmarkingModule
-from renate.benchmark.models.vision_transformer import VisionTransformer
+from renate.benchmark.models.vision_transformer import (
+    VisionTransformer,
+    VisionTransformerB16,
+    VisionTransformerB32,
+)
 from renate.models.prediction_strategies import ICaRLClassificationStrategy, PredictionStrategy
 
 
@@ -70,8 +74,8 @@ class PromptPool(nn.Module):
 class PromptedVisionTransformer(RenateBenchmarkingModule):
     def __init__(
         self,
-        vit: VisionTransformer,
-        prompter: PromptPool,
+        vit: VisionTransformer = VisionTransformerB32(),
+        prompter: PromptPool = PromptPool(),
         prompt_embedding_features: str = "cls",
         patch_pooler: str = "prompt_mean",
         num_outputs: int = 10,
@@ -108,7 +112,6 @@ class PromptedVisionTransformer(RenateBenchmarkingModule):
 
     def forward(self, x: torch.Tensor, task_id: str = defaults.TASK_ID) -> torch.Tensor:
         prompt_pool_input = self._backbone["vit"].get_logits(x)
-
         if self.prompt_embedding_features == "cls":
             # retrieve cls token features. This is used in L2P paper.
             prompt_pool_input = prompt_pool_input[:, 0, :]
