@@ -1,6 +1,9 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import pytest
+from torch.nn import Linear
+from torch.optim import SGD
+from torch.optim.lr_scheduler import StepLR
 from torchvision.transforms import Compose, Normalize
 
 from renate.benchmark import experiment_config
@@ -11,6 +14,7 @@ from renate.benchmark.experiment_config import (
     get_data_module,
     get_scenario,
     loss_fn,
+    lr_scheduler_fn,
     metrics_fn,
     model_fn,
     models,
@@ -284,6 +288,26 @@ def test_transforms_fails_for_unknown_dataset():
     for transform_function in [train_transform, experiment_config.test_transform]:
         with pytest.raises(ValueError, match=f"Unknown dataset `{unknown_dataset_set}`"):
             transform_function(unknown_dataset_set)
+
+
+@pytest.mark.parametrize(
+    "learning_rate_scheduler,expected_lr_class,expected_interval",
+    (("StepLR", StepLR, "epoch"), (None, None, "epoch")),
+)
+def test_lr_scheduler_fn(learning_rate_scheduler, expected_lr_class, expected_interval):
+    scheduler, interval = lr_scheduler_fn(learning_rate_scheduler)
+    assert interval == expected_interval
+    if learning_rate_scheduler is None:
+        assert scheduler is None
+    else:
+        scheduler = scheduler(SGD(Linear(1, 1).parameters(), lr=0.1))
+        assert isinstance(scheduler, expected_lr_class)
+
+
+def test_lr_scheduler_fn_fails_for_unknown_scheduler():
+    unknown_lr_scheduler = "UNKNOWN_SCHEDULER_NAME"
+    with pytest.raises(ValueError, match=f"Unknown scheduler `{unknown_lr_scheduler}`."):
+        lr_scheduler_fn(unknown_lr_scheduler)
 
 
 @pytest.mark.parametrize("model_name", [model_name for model_name in models])
