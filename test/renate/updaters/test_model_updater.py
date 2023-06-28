@@ -89,7 +89,11 @@ def test_model_updater_with_early_stopping(
             model_updater = RepeatedDistillationModelUpdater(
                 model=model,
                 loss_fn=pytest.helpers.get_loss_fn(),
+<<<<<<< HEAD
                 optimizer=pytest.helpers.get_partial_optimizer(lr=0.3),
+=======
+                optimizer=pytest.helpers.get_partial_optimizer(),
+>>>>>>> origin/hack-peft-hackathon
                 memory_size=50,
                 max_epochs=max_epochs,
                 early_stopping_enabled=early_stopping_enabled,
