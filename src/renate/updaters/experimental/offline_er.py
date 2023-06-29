@@ -76,6 +76,11 @@ class OfflineExperienceReplayLearner(ReplayLearner):
             task_id=task_id,
         )
         self._num_points_current_task = len(train_dataset)
+        # self._model = model_fn(
+        #    model_name="HuggingFaceTransformer",
+        #    num_outputs=2,
+        #    pretrained_model_name="bert-base-uncased",
+        # )
 
     def train_dataloader(self) -> DataLoader:
         train_loader = super().train_dataloader()

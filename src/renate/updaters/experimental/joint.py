@@ -13,6 +13,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset
 
 from renate import defaults
+from renate.benchmark.experiment_config import model_fn
 from renate.memory import InfiniteBuffer
 from renate.models import RenateModule
 from renate.types import NestedTensors
@@ -72,7 +73,12 @@ class JointLearner(Learner):
             task_id=task_id,
         )
         self._memory_buffer.update(train_dataset)
-        reinitialize_model_parameters(self._model)
+        # reinitialize_model_parameters(self._model)
+        self._model = model_fn(
+            model_name="HuggingFaceTransformer",
+            num_outputs=2,
+            pretrained_model_name="bert-base-uncased",
+        )
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(
