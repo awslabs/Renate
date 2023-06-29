@@ -54,7 +54,7 @@ JOB_KWARGS_FILE = "job_kwargs.json"
 JOB_NAME = "renate"
 SUPPORTED_TUNING_MODE = ["min", "max"]
 SUPPORTED_TUNING_MODE_TYPE = Literal["min", "max"]
-RETAIN_INTERMEDIATE_STATE = True
+SAVE_BENCHMARK_STATE = True
 
 SUPPORTED_BACKEND = ["local", "sagemaker"]
 SUPPORTED_BACKEND_TYPE = Literal["local", "sagemaker"]

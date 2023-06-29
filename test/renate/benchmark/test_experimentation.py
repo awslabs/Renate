@@ -26,7 +26,8 @@ def experiment_job_kwargs():
     }
 
 
-def test_execute_experiment_job(tmpdir, experiment_job_kwargs):
+@pytest.mark.parametrize("save_state", (True, False))
+def test_execute_experiment_job(tmpdir, experiment_job_kwargs, save_state):
     """Only checking if things run, not testing anything besides that."""
     expected_columns = [
         "Task ID",
@@ -36,20 +37,18 @@ def test_execute_experiment_job(tmpdir, experiment_job_kwargs):
         "Backward Transfer",
     ]
     expected_num_updates = experiment_job_kwargs["num_updates"]
+    experiment_job_kwargs["save_state"] = save_state
     execute_experiment_job(experiment_outputs_url=tmpdir, **experiment_job_kwargs)
     results_df = pd.read_csv(str(Path(tmpdir) / "logs" / "metrics_summary.csv"))
     assert all(results_df.columns == expected_columns)
-    for update_id in range(expected_num_updates):
-        assert (Path(tmpdir) / f"update_{update_id}" / "learner.ckpt").is_file()
-        assert (Path(tmpdir) / f"update_{update_id}" / "model.ckpt").is_file()
-    assert (
-        len(
-            pd.read_csv(str(Path(tmpdir) / f"update_{expected_num_updates - 1}" / "hpo.csv"))[
-                "update_id"
-            ].unique()
-        )
-        == expected_num_updates
-    )
+    if save_state:
+        hpo_file = Path(tmpdir) / f"update_{expected_num_updates - 1}" / "hpo.csv"
+        for update_id in range(expected_num_updates):
+            assert (Path(tmpdir) / f"update_{update_id}" / "learner.ckpt").is_file()
+            assert (Path(tmpdir) / f"update_{update_id}" / "model.ckpt").is_file()
+    else:
+        hpo_file = Path(tmpdir) / "hpo.csv"
+    assert len(pd.read_csv(str(hpo_file))["update_id"].unique()) == expected_num_updates
 
 
 @pytest.mark.parametrize(
