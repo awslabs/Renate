@@ -306,12 +306,11 @@ def train_transform(dataset_name: str) -> Optional[Callable]:
         return None
     if dataset_name in ["CIFAR10", "CIFAR100"]:
         return transforms.Compose(
-            # [
-            #     transforms.RandomCrop(32, padding=4),
-            #     transforms.RandomHorizontalFlip(),
-            #     _get_normalize_transform(dataset_name),
-            # ]
-            [transforms.Resize(224), transforms.RandomCrop(224)]
+            [
+                transforms.RandomCrop(32, padding=4),
+                transforms.RandomHorizontalFlip(),
+                _get_normalize_transform(dataset_name),
+            ]
         )
     if dataset_name in ["CLEAR10", "CLEAR100"]:
         return transforms.Compose(
@@ -332,8 +331,7 @@ def test_transform(dataset_name: str) -> Optional[Callable]:
     ] + wild_time_data.list_datasets() or dataset_name.startswith("hfd-"):
         return None
     if dataset_name in ["CIFAR10", "CIFAR100"]:
-        # return _get_normalize_transform(dataset_name)
-        return transforms.Resize(224)
+        return _get_normalize_transform(dataset_name)
     if dataset_name in ["CLEAR10", "CLEAR100"]:
         return transforms.Compose(
             [
@@ -367,9 +365,3 @@ def lr_scheduler_fn(
 
 def metrics_fn() -> Dict:
     return {"accuracy": Accuracy()}
-
-
-def lr_scheduler_fn() -> (
-    Tuple[Callable[[torch.optim.Optimizer], torch.optim.lr_scheduler._LRScheduler], str]
-):
-    return partial(torch.optim.lr_scheduler.StepLR, step_size=30, gamma=0.1), "epoch"

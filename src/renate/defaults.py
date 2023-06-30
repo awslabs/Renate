@@ -105,6 +105,9 @@ MEMORY_SIZE = 32
 # Benchmark datasets/models
 TOKENIZER_KWARGS = {"padding": "max_length", "max_length": 128, "truncation": True}
 
+# L2p
+PROMPT_SIM_LOSS_WEIGHT = 0.5
+
 
 def scheduler(config_space: Dict[str, Any], mode: str, metric: str):
     return FIFOScheduler(

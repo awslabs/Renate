@@ -63,25 +63,30 @@ class PromptPool(nn.Module):
     def forward(self, x):
         # Here x refers to the features already extracted. These can be [CLS] token representation
         # or something else altogether. But it has to be of dimension B x self.pd.
-        kbest_indices = self.similarity_fn(x, self.prompt_keys).topk(k=self.N)[1]
+        similarity_matrix = self.similarity_fn(x, self.prompt_keys)
+        kbest_similarity, kbest_indices = similarity_matrix.topk(k=self.N)
         selected_prompts = self.prompt_pool[kbest_indices, ...]
         selected_prompts = selected_prompts.view(
             selected_prompts.size(0), -1, selected_prompts.size(3)
         )
-        return selected_prompts
+        return selected_prompts, kbest_similarity
 
 
 class PromptedVisionTransformer(RenateBenchmarkingModule):
     def __init__(
         self,
-        vit: VisionTransformer = VisionTransformerB32(),
-        prompter: PromptPool = PromptPool(),
+        vit: Optional[VisionTransformer] = None,
+        prompter: Optional[PromptPool] = None,
         prompt_embedding_features: str = "cls",
         patch_pooler: str = "prompt_mean",
         num_outputs: int = 10,
         prediction_strategy: Optional[PredictionStrategy] = None,
         add_icarl_class_means: bool = True,
     ) -> None:
+        if vit is None:
+            vit = VisionTransformerB32()
+        if prompter is None:
+            prompter = PromptPool()
         super().__init__(
             embedding_size=vit._embedding_size,
             num_outputs=num_outputs,
@@ -95,6 +100,7 @@ class PromptedVisionTransformer(RenateBenchmarkingModule):
         self._backbone = nn.ModuleDict({"vit": vit, "prompter": prompter})
         self.prompt_embedding_features = prompt_embedding_features
         self.patch_pooler = patch_pooler
+        self.similarity_score: Optional[torch.Tensor] = None
 
         assert self.prompt_embedding_features in [
             "cls",
@@ -109,6 +115,8 @@ class PromptedVisionTransformer(RenateBenchmarkingModule):
 
         for p in self._backbone["vit"].parameters():
             p.requires_grad = False
+        for p in self._backbone["prompter"].parameters():
+            p.requires_grad = True
 
     def forward(self, x: torch.Tensor, task_id: str = defaults.TASK_ID) -> torch.Tensor:
         prompt_pool_input = self._backbone["vit"].get_logits(x)
@@ -120,7 +128,7 @@ class PromptedVisionTransformer(RenateBenchmarkingModule):
             prompt_pool_input = prompt_pool_input[:, 1:, :].mean(1)
 
         # Compute the prompts to be stacked
-        prompts = self._backbone["prompter"](prompt_pool_input)
+        prompts, prompt_similarity = self._backbone["prompter"](prompt_pool_input)
         # compute patch embeddings
         patch_embeddings = self._backbone["vit"].get_submodule("_backbone.embeddings")(x)
         # concatenate both.
@@ -133,13 +141,16 @@ class PromptedVisionTransformer(RenateBenchmarkingModule):
             encoded_features
         )
 
+        ## Save similarity
+        self.similarity_score = prompt_similarity.mean(0).sum()
+
         if self.patch_pooler == "cls":
             seq_cls_token = encoded_features[:, 0, :]
         elif self.patch_pooler == "mean":
             seq_cls_token = encoded_features[:, 1:, :].mean(1)
         elif self.patch_pooler == "prompt_mean":
             num_prompts = prompts.size(1)
-            seq_cls_token = encoded_features[:, -num_prompts:, :].mean(1)
+            seq_cls_token = encoded_features[:, 1 : num_prompts + 1, :].mean(1)
 
         if isinstance(self._prediction_strategy, ICaRLClassificationStrategy):
             return self._prediction_strategy(
