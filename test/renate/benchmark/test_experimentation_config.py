@@ -4,6 +4,7 @@ import pytest
 from torch.nn import Linear
 from torch.optim import SGD
 from torch.optim.lr_scheduler import StepLR
+from torchmetrics.classification import MulticlassAccuracy
 from torchvision.transforms import Compose, Normalize
 
 from renate.benchmark import experiment_config
@@ -43,7 +44,7 @@ def test_model_fn(model_name, expected_model_class):
         model_state_url=None,
         model_name=model_name,
         num_inputs=1 if model_name == "MultiLayerPerceptron" else None,
-        num_outputs=1 if model_name in ["MultiLayerPerceptron", "HuggingFaceTransformer"] else None,
+        num_outputs=2,
         num_hidden_layers=1 if model_name == "MultiLayerPerceptron" else None,
         hidden_size=1 if model_name == "MultiLayerPerceptron" else None,
         pretrained_model_name="distilbert-base-uncased"
@@ -67,6 +68,7 @@ def test_model_fn(model_name, expected_model_class):
 def test_model_fn_automatic_input_channel_detection_resnet(dataset_name, expected_in_channels):
     """Tests if ResNet architectures input channels are correctly adapted to the dataset."""
     model = model_fn(
+        num_outputs=10,
         model_state_url=None,
         model_name="ResNet18",
         dataset_name=dataset_name,
@@ -77,7 +79,7 @@ def test_model_fn_automatic_input_channel_detection_resnet(dataset_name, expecte
 def test_model_fn_fails_for_unknown_model():
     unknown_model_name = "UNKNOWN_MODEL_NAME"
     with pytest.raises(ValueError, match=f"Unknown model `{unknown_model_name}`"):
-        model_fn(model_name=unknown_model_name)
+        model_fn(num_outputs=10, model_name=unknown_model_name)
 
 
 @pytest.mark.parametrize(
@@ -357,4 +359,5 @@ def test_loss_fn_returns_correct_reduction_type():
 
 
 def test_metrics_fn_contains_accuracy():
-    assert "accuracy" in metrics_fn()
+    assert isinstance(metrics_fn(num_outputs=2)["accuracy"], MulticlassAccuracy)
+    assert isinstance(metrics_fn(num_outputs=10)["accuracy"], MulticlassAccuracy)

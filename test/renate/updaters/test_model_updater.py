@@ -5,6 +5,7 @@ from copy import deepcopy
 
 import pytest
 import torch
+from pytorch_lightning.utilities.seed import seed_everything
 from torchvision.transforms import Lambda
 
 from conftest import LEARNERS_USING_SIMPLE_UPDATER, LEARNER_KWARGS, check_learner_transforms
@@ -73,6 +74,7 @@ def test_deterministic_updater():
 def test_model_updater_with_early_stopping(
     use_val, early_stopping_enabled, metric_monitored, updater_type
 ):
+    seed_everything(0)
     model, train_dataset, val_dataset = pytest.helpers.get_renate_module_mlp_and_data(
         num_inputs=10,
         num_outputs=10,

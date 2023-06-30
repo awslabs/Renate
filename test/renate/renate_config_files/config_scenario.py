@@ -40,4 +40,4 @@ def loss_fn(updater: Optional[str] = None) -> torch.nn.Module:
 
 
 def metrics_fn() -> Dict:
-    return {"accuracy": Accuracy()}
+    return {"accuracy": Accuracy(task="multiclass", num_classes=10)}
