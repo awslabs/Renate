@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from renate.benchmark.experimentation import execute_experiment_job
+from renate.benchmark.experimentation import execute_experiment_job, individual_metrics_summary
 
 
 @pytest.fixture
@@ -65,3 +65,12 @@ def test_execute_experiment_job_edge_cases(tmpdir, experiment_job_kwargs, update
     experiment_job_kwargs.update(update_dict)
     with pytest.raises(AssertionError, match=regex):
         execute_experiment_job(experiment_outputs_url=tmpdir, **experiment_job_kwargs)
+
+
+def test_individual_metrics_summary():
+    results = {
+        "accuracy": [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]],
+        "accuracy_init": [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]],
+    }
+    df = individual_metrics_summary(results=results, current_task=2, num_tasks=3)
+    print(df)
