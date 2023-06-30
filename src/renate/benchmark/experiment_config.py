@@ -7,7 +7,7 @@ import torch
 import wild_time_data
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import StepLR, _LRScheduler
-from torchmetrics import Accuracy
+from torchmetrics.classification import MulticlassAccuracy
 from torchvision.transforms import transforms
 from transformers import AutoTokenizer
 
@@ -379,4 +379,4 @@ def lr_scheduler_fn(
 
 
 def metrics_fn(num_outputs: int) -> Dict:
-    return {"accuracy": Accuracy(task="multiclass", num_classes=num_outputs)}
+    return {"accuracy": MulticlassAccuracy(num_classes=num_outputs, average="micro")}
