@@ -54,8 +54,8 @@ def _move_locally(
         ignore_extensions: List of extensions to ignore.
         copy: If `True`, copy instead of move.
     """
-    if Path(src).is_file():
-        Path(dst).mkdir(parents=True, exist_ok=True)
+    if os.path.isfile(src):
+        os.makedirs(dst, exist_ok=True)
         dst_file = os.path.join(dst, os.path.basename(src))
         if os.path.exists(dst_file):
             os.remove(dst_file)
@@ -96,7 +96,7 @@ def _move_to_s3(
         ignore_extensions: List of extensions to ignore.
         copy: If `True`, copy instead of move.
     """
-    if Path(src).is_file():
+    if os.path.isfile(src):
         dst_file = os.path.join(dst, os.path.basename(src))
         upload_file_to_s3(src, dst_file)
         if not copy:
