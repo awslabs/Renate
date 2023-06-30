@@ -37,6 +37,7 @@ def test_execute_experiment_job(tmpdir, experiment_job_kwargs, save_state):
     expected_columns = [
         "Task ID",
         "Average Accuracy",
+        "Micro Average Accuracy",
         "Forgetting",
         "Forward Transfer",
         "Backward Transfer",
