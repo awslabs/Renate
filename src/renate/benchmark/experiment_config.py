@@ -360,5 +360,4 @@ def lr_scheduler_fn(
 
 
 def metrics_fn(num_outputs: int) -> Dict:
-    task = "binary" if num_outputs == 2 else "multiclass"
-    return {"accuracy": Accuracy(task=task, num_classes=num_outputs)}
+    return {"accuracy": Accuracy(task="multiclass", num_classes=num_outputs)}

@@ -4,7 +4,7 @@ import pytest
 from torch.nn import Linear
 from torch.optim import SGD
 from torch.optim.lr_scheduler import StepLR
-from torchmetrics.classification import BinaryAccuracy, MulticlassAccuracy
+from torchmetrics.classification import MulticlassAccuracy
 from torchvision.transforms import Compose, Normalize
 
 from renate.benchmark import experiment_config
@@ -342,5 +342,5 @@ def test_loss_fn_returns_correct_reduction_type():
 
 
 def test_metrics_fn_contains_accuracy():
-    assert isinstance(metrics_fn(num_outputs=2)["accuracy"], BinaryAccuracy)
+    assert isinstance(metrics_fn(num_outputs=2)["accuracy"], MulticlassAccuracy)
     assert isinstance(metrics_fn(num_outputs=10)["accuracy"], MulticlassAccuracy)
