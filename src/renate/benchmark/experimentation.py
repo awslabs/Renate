@@ -78,7 +78,7 @@ def cumulative_metrics_summary(
         num_instances: Count of test data points for each task.
     """
     data = []
-    for task_id in range(num_tasks + 1):
+    for task_id in range(num_tasks):
         row = [task_id + 1]
         for _, metric in cumulative_metrics:
             row.append(metric(results, task_id, num_instances))
@@ -385,7 +385,7 @@ def _execute_experiment_job_locally(
         logger.info(df)
 
     cumulative_metrics = create_cumulative_metrics()
-    df = cumulative_metrics_summary(results, cumulative_metrics, num_updates - 1, num_instances)
+    df = cumulative_metrics_summary(results, cumulative_metrics, num_updates, num_instances)
     save_pandas_df_to_csv(df, defaults.metric_summary_file(logs_url))
     logger.info("### Cumulative results: ###")
     logger.info(df)
