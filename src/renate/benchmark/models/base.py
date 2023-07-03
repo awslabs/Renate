@@ -87,7 +87,7 @@ class RenateBenchmarkingModule(RenateModule, ABC):
         Encode converts the state into a torch tensor so that Deepspeed serialization works.
         We don't encode any of the super() calls, but encode only the final dict.
         """
-        extra_state = super().get_extra_state(encode=not encode)
+        extra_state = super().get_extra_state(encode=False)
         extra_state["prediction_strategy"] = self._prediction_strategy
         return convert_to_tensor(extra_state) if encode else extra_state
 

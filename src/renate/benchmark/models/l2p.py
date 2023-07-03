@@ -1,6 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Callable, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import torch
 import torch.nn as nn
@@ -13,6 +13,7 @@ from renate.benchmark.models.vision_transformer import (
     VisionTransformerB32,
 )
 from renate.models.prediction_strategies import ICaRLClassificationStrategy, PredictionStrategy
+from renate.utils.deepspeed import convert_to_tensor, recover_object_from_tensor
 
 
 class PromptPool(nn.Module):
@@ -161,3 +162,17 @@ class PromptedVisionTransformer(RenateBenchmarkingModule):
                 self._prediction_strategy is None
             ), f"Unknown prediction strategy of type {type(self._prediction_strategy)}."
         return self.get_predictor(task_id)(seq_cls_token)
+
+    def get_extra_state(self, encode=True) -> Any:
+        extra_state = super().get_extra_state(False)
+        extra_state.update(self._backbone["vit"].get_extra_state(False))
+        extra_state["prompt_embedding_features"] = self.prompt_embedding_features
+        extra_state["prompt_pooler"] = self.patch_pooler
+        return convert_to_tensor(extra_state) if encode else extra_state
+
+    def set_extra_state(self, state: Any, decode=True):
+        super().set_extra_state(state, decode)
+        self._backbone["vit"].set_extra_state(state, decode)
+        decoded_extra_state = recover_object_from_tensor(state) if decode else state
+        self.prompt_embedding_features = decoded_extra_state["prompt_embedding_features"]
+        self.prompt_pooler = decoded_extra_state["prompt_pooler"]
