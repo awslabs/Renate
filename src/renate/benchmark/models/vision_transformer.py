@@ -85,6 +85,8 @@ class VisionTransformer(RenateBenchmarkingModule):
                 return_dict=False,
                 add_pooling_layer=False,
             )
+
+            constructor_args = dict(pretrained_model_name_or_path=pretrained_model_name_or_path)
         else:
             model_config = ViTConfig(
                 hidden_size=hidden_dim,
@@ -104,11 +106,7 @@ class VisionTransformer(RenateBenchmarkingModule):
             )
 
             model = FeatureExtractorViTModel(config=model_config)
-
-        super().__init__(
-            embedding_size=hidden_dim,
-            num_outputs=num_outputs,
-            constructor_arguments={
+            constructor_args = {
                 "image_size": image_size,
                 "patch_size": patch_size,
                 "num_layers": num_layers,
@@ -117,7 +115,12 @@ class VisionTransformer(RenateBenchmarkingModule):
                 "mlp_dim": mlp_dim,
                 "dropout": dropout,
                 "attention_dropout": attention_dropout,
-            },
+            }
+
+        super().__init__(
+            embedding_size=hidden_dim,
+            num_outputs=num_outputs,
+            constructor_arguments=constructor_args,
             prediction_strategy=prediction_strategy,
             add_icarl_class_means=add_icarl_class_means,
         )
