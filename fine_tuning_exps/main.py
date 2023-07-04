@@ -19,14 +19,14 @@ from renate.benchmark.datasets.nlp_datasets import (
     HuggingFaceExtractiveQADataModule,
 )
 from renate.benchmark.models.transformer import (
-    HuggingFaceSequenceClassificationTransformer,
     HuggingFaceQuestionAnsweringTransformer,
-    HuggingFaceLanguageModelingTransformer,
+    HuggingFaceSequenceClassificationTransformer,
 )
 from renate.data.data_module import RenateDataModule
 from renate.updaters.peft_learner import PeftLearner, QAPeft
 from renate.utils.file import upload_folder_to_s3
 from renate.utils.misc import int_or_str
+from model_utils import make_model
 
 
 def get_data(
@@ -119,10 +119,13 @@ def main(pretrained_model_name: str, dataset_name: str, s3url: str, config: Dict
         module_cls = QAPeft
 
     elif dataset_name == "eli5":
-        do_causal_lm = False
-        model = HuggingFaceLanguageModelingTransformer(
-            pretrained_model_name=pretrained_model_name, causal=do_causal_lm
+        do_causal_lm = True
+        model = make_model(
+            pretrained_model_name=pretrained_model_name, causal=do_causal_lm, quantize=False
         )
+        # model = HuggingFaceLanguageModelingTransformer(
+        #     pretrained_model_name=pretrained_model_name, causal=do_causal_lm, load_in_4bit=True
+        # )
         lossfunction = lambda x, y: x
         data_module._tokenizer.pad_token = data_module._tokenizer.eos_token
         collator_fn = DataCollatorForLanguageModeling(
@@ -147,9 +150,7 @@ def main(pretrained_model_name: str, dataset_name: str, s3url: str, config: Dict
         val_dataset_collate_fn=collator_fn,
     )
     trainer = get_trainer(
-        checkpoint_path=checkpointpath,
-        precision="16",
-        max_epochs=config["max_epochs"],
+        checkpoint_path=checkpointpath, precision="16", max_epochs=config["max_epochs"], devices=2
     )
 
     # Fit the model

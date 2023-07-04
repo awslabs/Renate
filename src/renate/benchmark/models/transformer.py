@@ -125,10 +125,16 @@ class HuggingFaceLanguageModelingTransformer(HuggingFaceTransformer):
         pretrained_model_name: str,
         constructor_arguments: Dict[str, Any] | None = None,
         causal: bool = True,
+        load_in_8bit: bool = False,
     ) -> None:
         super().__init__(pretrained_model_name, constructor_arguments)
         modelcls = AutoModelForCausalLM if causal else AutoModelForMaskedLM
-        self._model = modelcls.from_pretrained(pretrained_model_name, return_dict=False)
+        self._model = modelcls.from_pretrained(
+            pretrained_model_name,
+            return_dict=False,
+            load_in_8bit=load_in_8bit,
+            trust_remote_code=True,
+        )
 
 
 class HuggingFaceSequenceClassificationTransformerWithLora(
