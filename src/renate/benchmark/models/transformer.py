@@ -64,7 +64,8 @@ class HuggingFaceTransformer(RenateModule):
         )
 
     def forward(self, x: Dict[str, Tensor], task_id: Optional[str] = None) -> torch.Tensor:
-        return self._model(**x)[0]
+        x.pop("token_type_ids", None)
+        return self._model(**x, use_cache=False)[0]
 
     def _add_task_params(self, task_id: str) -> None:
         assert not len(self._tasks_params_ids), "Transformer does not work for multiple tasks."
@@ -123,18 +124,26 @@ class HuggingFaceLanguageModelingTransformer(HuggingFaceTransformer):
     def __init__(
         self,
         pretrained_model_name: str,
-        constructor_arguments: Dict[str, Any] | None = None,
+        constructor_arguments: Optional[Dict[str, Any]] = None,
         causal: bool = True,
         load_in_8bit: bool = False,
+        load_in_4bit: bool = False,
+        enable_activation_checkpointing: bool = False,
     ) -> None:
         super().__init__(pretrained_model_name, constructor_arguments)
         modelcls = AutoModelForCausalLM if causal else AutoModelForMaskedLM
         self._model = modelcls.from_pretrained(
             pretrained_model_name,
             return_dict=False,
+            load_in_4bit=load_in_4bit,
             load_in_8bit=load_in_8bit,
             trust_remote_code=True,
+            # device_map={"": 0}
         )
+        if enable_activation_checkpointing and self._model.supports_gradient_checkpointing:
+            self._model.gradient_checkpointing_enable()
+            if hasattr(self._model, "enable_input_require_grads"):
+                self._model.enable_input_require_grads()
 
 
 class HuggingFaceSequenceClassificationTransformerWithLora(

@@ -1,22 +1,24 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-import argparse
+from argparse import Namespace
 from functools import partial
 from pathlib import Path
-from typing import Dict, Union, Optional
+from typing import Dict, Optional, Union
 
 import torch
 import transformers
+from model_utils import make_model
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers.logger import Logger
-from transformers import default_data_collator, DataCollatorForLanguageModeling
+from training_args import get_arguments
+from transformers import DataCollatorForLanguageModeling, default_data_collator
 
 from renate import defaults
 from renate.benchmark.datasets.nlp_datasets import (
+    HuggingFaceExtractiveQADataModule,
     HuggingFaceLanguageModelingModule,
     HuggingFaceTextDataModule,
-    HuggingFaceExtractiveQADataModule,
 )
 from renate.benchmark.models.transformer import (
     HuggingFaceQuestionAnsweringTransformer,
@@ -24,9 +26,9 @@ from renate.benchmark.models.transformer import (
 )
 from renate.data.data_module import RenateDataModule
 from renate.updaters.peft_learner import PeftLearner, QAPeft
+from renate.utils.distributed_strategies import create_strategy
 from renate.utils.file import upload_folder_to_s3
 from renate.utils.misc import int_or_str
-from model_utils import make_model
 
 
 def get_data(
@@ -62,84 +64,76 @@ def get_data(
 
 
 def get_trainer(
-    checkpoint_path: Union[str, Path],
-    metric: Optional[str] = None,
-    mode: defaults.SUPPORTED_TUNING_MODE_TYPE = "min",
-    max_epochs: int = defaults.MAX_EPOCHS,
-    logger: Logger = defaults.LOGGER(**defaults.LOGGER_KWARGS),
-    accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
-    devices: Optional[int] = None,
-    strategy: Optional[str] = defaults.DISTRIBUTED_STRATEGY,
-    precision: str = defaults.PRECISION,
-    deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+    args: Namespace, metric: Optional[str] = None, mode: defaults.SUPPORTED_TUNING_MODE_TYPE = "min"
 ):
     model_checkpoint_callback = ModelCheckpoint(
-        dirpath=checkpoint_path,
+        dirpath=args.default_root_dir,
         monitor=metric,
         mode=mode,
     )
     callbacks = [model_checkpoint_callback]
-    return Trainer(
-        accelerator=accelerator,
-        devices=devices,
-        max_epochs=max_epochs,
+    return Trainer.from_argparse_args(
+        args,
         callbacks=callbacks,
-        logger=logger,
-        enable_progress_bar=True,
-        deterministic=deterministic_trainer,
-        strategy=strategy,
-        precision=int_or_str(precision),
-        enable_model_summary=False,
+        precision=int_or_str(args.precision),
+        strategy=create_strategy(strategy_name=args.strategy, devices=int_or_str(args.devices)),
+        replace_sampler_ddp=False,
+        # val_check_interval=1
     )
 
 
-def main(pretrained_model_name: str, dataset_name: str, s3url: str, config: Dict):
-    datapath = Path.home().joinpath("data")
+def main(
+    args: Namespace,
+):  #: pretrained_model_name: str, dataset_name: str, s3url: str, config: Dict):
+    datapath = Path(args.default_root_dir or "./data")
     datapath.mkdir(exist_ok=True)
 
-    checkpointpath = Path.home().joinpath("checkpoint")
+    checkpointpath = datapath / "checkpoint"
     checkpointpath.mkdir(exist_ok=True)
+    
+    ## load trainer first to spawn before instantiation.
+    trainer = get_trainer(args)
 
     # Setup data
-    data_module = get_data(dataset_name, pretrained_model_name, datapath)
-
-    if dataset_name == "rotten_tomatoes":
+    data_module = get_data(args.dataset, args.pretrained_model_name, datapath)
+    if args.dataset == "rotten_tomatoes":
         num_outputs = 2
         model = HuggingFaceSequenceClassificationTransformer(
-            pretrained_model_name=pretrained_model_name, num_outputs=num_outputs
+            pretrained_model_name=args.pretrained_model_name, num_outputs=num_outputs
         )
         lossfunction = torch.nn.CrossEntropyLoss()
         collator_fn = None
         module_cls = PeftLearner
 
-    elif dataset_name == "squad":
-        model = HuggingFaceQuestionAnsweringTransformer(pretrained_model_name=pretrained_model_name)
+    elif args.dataset == "squad":
+        model = HuggingFaceQuestionAnsweringTransformer(
+            pretrained_model_name=args.pretrained_model_name
+        )
         lossfunction = lambda x, y: x
         collator_fn = default_data_collator
         module_cls = QAPeft
 
-    elif dataset_name == "eli5":
-        do_causal_lm = True
+    elif args.dataset == "eli5":
         model = make_model(
-            pretrained_model_name=pretrained_model_name, causal=do_causal_lm, quantize=False
+            pretrained_model_name=args.pretrained_model_name,
+            causal=not args.mlm,
+            quantize=args.quantize,
+            alpha=args.alpha,
         )
-        # model = HuggingFaceLanguageModelingTransformer(
-        #     pretrained_model_name=pretrained_model_name, causal=do_causal_lm, load_in_4bit=True
-        # )
         lossfunction = lambda x, y: x
         data_module._tokenizer.pad_token = data_module._tokenizer.eos_token
         collator_fn = DataCollatorForLanguageModeling(
-            mlm=not do_causal_lm, tokenizer=data_module._tokenizer
+            mlm=args.mlm, tokenizer=data_module._tokenizer
         )
         module_cls = QAPeft
 
     # Specify your optimizer params here
-    optimizer = partial(torch.optim.AdamW, lr=1e-5, weight_decay=1e-2)
+    optimizer = partial(torch.optim.AdamW, lr=args.lr, weight_decay=1e-2)
     module = module_cls(
         model,
         loss_fn=lossfunction,
         optimizer=optimizer,
-        batch_size=config["batch_size"],
+        batch_size=args.batch_size,
         logged_metrics={},
     )
 
@@ -149,10 +143,6 @@ def main(pretrained_model_name: str, dataset_name: str, s3url: str, config: Dict
         train_dataset_collate_fn=collator_fn,
         val_dataset_collate_fn=collator_fn,
     )
-    trainer = get_trainer(
-        checkpoint_path=checkpointpath, precision="16", max_epochs=config["max_epochs"], devices=2
-    )
-
     # Fit the model
     trainer.fit(module)
 
@@ -161,22 +151,5 @@ def main(pretrained_model_name: str, dataset_name: str, s3url: str, config: Dict
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--pretrained-model-name", type=str, default="distilbert-base-uncased")
-    parser.add_argument(
-        "--dataset",
-        type=str,
-        default="rotten_tomatoes",
-        choices=["rotten_tomatoes", "squad", "eli5"],
-    )
-    parser.add_argument("--checkpoint-folder", type=str, default="working_folder")
-    parser.add_argument("--batch_size", type=int, default=16)
-    parser.add_argument("--max-epochs", type=int, default=5)
-
-    args = parser.parse_args()
-    main(
-        pretrained_model_name=args.pretrained_model_name,
-        dataset_name=args.dataset,
-        s3url=args.checkpoint_folder,
-        config=vars(args),
-    )
+    args = get_arguments()
+    main(args)

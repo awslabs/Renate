@@ -24,13 +24,16 @@ def make_model(
     init_lora_weights: bool = True,
 ):
     """This supports only int bit training (if that works) and LoRA or full FT."""
-    with quantization(mode="llm.int8" if quantize else None):
-        model = HuggingFaceLanguageModelingTransformer(
-            pretrained_model_name=pretrained_model_name, causal=causal, load_in_8bit=quantize
-        )
-        # prepare_model_for_int8_training(model)
+    # with quantization(mode="llm.int8" if quantize else None):
+    model = HuggingFaceLanguageModelingTransformer(
+        pretrained_model_name=pretrained_model_name,
+        causal=causal,
+        load_in_4bit=quantize,
+        enable_activation_checkpointing=True,
+    )
+    # prepare_model_for_int8_training(model)
     if alpha > 0:
-        return add_lora(
+        add_lora(
             model._model,
             pretrained_model_name=pretrained_model_name,
             alpha=alpha,
@@ -40,11 +43,10 @@ def make_model(
             target_modules=modules_to_save,
             init_lora_weights=init_lora_weights,
             modules_to_update=TARGET_MODULES.get(pretrained_model_name, None),
-            task_type=TaskType.CAUSAL_LM,
-        ).train()
-    else:
-        return model.train()
-
+            task_type=TaskType.CAUSAL_LM if causal else TaskType.SEQ_2_SEQ_LM,
+        )
+    return model
+    
 
 def add_lora(
     model: torch.nn.Module,
@@ -78,8 +80,3 @@ def add_lora(
             **lora_kwargs,
         ),
     )
-
-
-if __name__ == "__main__":
-    a = make_model("distilgpt2", True, quantize=False, alpha=0)
-    print(a)

@@ -2,9 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 from typing import Any, Dict, Optional
 
+import torch
 import torch.nn as nn
 import torchmetrics
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, DistributedSampler
 
 from .learner import Learner
 
@@ -35,25 +36,39 @@ class PeftLearner(Learner):
         self._val_collate_fn = val_dataset_collate_fn
 
     def train_dataloader(self) -> DataLoader:
+        shuffle = True
+        sampler = (
+            DistributedSampler(self._train_dataset) if torch.distributed.is_initialized() else None
+        )
+        if sampler:
+            shuffle = None  
         return DataLoader(
             self._train_dataset,
             batch_size=self._batch_size,
-            shuffle=True,
+            shuffle=shuffle,
             generator=self._rng,
             pin_memory=True,
             collate_fn=self._train_collate_fn,
             num_workers=4,
+            sampler=sampler
         )
 
     def val_dataloader(self) -> DataLoader:
+        shuffle = False
+        sampler = (
+            DistributedSampler(self._val_dataset) if torch.distributed.is_initialized() else None
+        )
+        if sampler:
+            shuffle = None            
         return DataLoader(
             self._val_dataset,
             batch_size=self._batch_size,
-            shuffle=False,
+            shuffle=shuffle,
             generator=self._rng,
             pin_memory=True,
             collate_fn=self._val_collate_fn,
             num_workers=4,
+            sampler=sampler
         )
 
     def _create_metrics_collections(
