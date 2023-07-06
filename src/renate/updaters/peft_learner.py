@@ -41,7 +41,7 @@ class PeftLearner(Learner):
             DistributedSampler(self._train_dataset) if torch.distributed.is_initialized() else None
         )
         if sampler:
-            shuffle = None  
+            shuffle = None
         return DataLoader(
             self._train_dataset,
             batch_size=self._batch_size,
@@ -50,7 +50,7 @@ class PeftLearner(Learner):
             pin_memory=True,
             collate_fn=self._train_collate_fn,
             num_workers=4,
-            sampler=sampler
+            sampler=sampler,
         )
 
     def val_dataloader(self) -> DataLoader:
@@ -59,7 +59,7 @@ class PeftLearner(Learner):
             DistributedSampler(self._val_dataset) if torch.distributed.is_initialized() else None
         )
         if sampler:
-            shuffle = None            
+            shuffle = None
         return DataLoader(
             self._val_dataset,
             batch_size=self._batch_size,
@@ -68,7 +68,7 @@ class PeftLearner(Learner):
             pin_memory=True,
             collate_fn=self._val_collate_fn,
             num_workers=4,
-            sampler=sampler
+            sampler=sampler,
         )
 
     def _create_metrics_collections(

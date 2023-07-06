@@ -90,7 +90,7 @@ def main(
 
     checkpointpath = datapath / "checkpoint"
     checkpointpath.mkdir(exist_ok=True)
-    
+
     ## load trainer first to spawn before instantiation.
     trainer = get_trainer(args)
 

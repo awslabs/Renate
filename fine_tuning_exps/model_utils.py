@@ -46,7 +46,7 @@ def make_model(
             task_type=TaskType.CAUSAL_LM if causal else TaskType.SEQ_2_SEQ_LM,
         )
     return model
-    
+
 
 def add_lora(
     model: torch.nn.Module,
