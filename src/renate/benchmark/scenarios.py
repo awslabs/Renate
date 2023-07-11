@@ -9,7 +9,8 @@ from torch.utils.data import Dataset, Subset
 from torchvision.transforms import Lambda, RandomRotation, ToPILImage
 
 from renate import defaults
-from renate.benchmark.datasets.nlp_datasets import AmazonReviewDataModule
+from renate.benchmark.datasets.nlp_datasets import AmazonReviewsMultiDataModule
+from renate.benchmark.datasets.vision_datasets import DomainNetDataModule
 from renate.benchmark.datasets.wild_time_data import WildTimeDataModule
 from renate.data.data_module import RenateDataModule
 from renate.data.datasets import _TransformedDataset
@@ -113,6 +114,15 @@ class BenchmarkScenario(Scenario):
         self._train_data = self._data_module.train_data()
         self._val_data = self._data_module.val_data()
         self._test_data = self._data_module._test_data
+        """
+        NEW CODE BELOW
+        
+        self._test_data = []
+        for chunk_id in range(self._num_tasks):
+            self._data_module._chunk_id = chunk_id
+            self._data_module.setup()
+            self._test_data.append(self._data_module.val_data())
+        """
 
 
 class ClassIncrementalScenario(Scenario):
@@ -444,7 +454,7 @@ class AmazonReviewScenario(Scenario):
 
     Args:
         data_module: The source RenateDataModule for the user data.
-        categories: Product category names in order of traversal.
+        languages: Languages in order of traversal.
         chunk_id: The data chunk to load in for the training or validation data.
         seed: Seed used to fix random number generation.
     """
@@ -453,24 +463,83 @@ class AmazonReviewScenario(Scenario):
         self,
         data_module: RenateDataModule,
         chunk_id: int,
-        categories: Optional[List[str]] = None,
+        languages: Optional[List[str]] = None,
         seed: int = defaults.SEED,
     ) -> None:
-        self._categories = categories or AmazonReviewDataModule.categories
+        self._languages = languages or AmazonReviewsMultiDataModule.languages
         super().__init__(
-            data_module=data_module, num_tasks=len(self._categories), chunk_id=chunk_id, seed=seed
+            data_module=data_module,
+            num_tasks=len(self._languages),
+            chunk_id=chunk_id,
+            seed=seed,
         )
-        if not isinstance(data_module, AmazonReviewDataModule):
-            raise ValueError("This scenario is only compatible with `AmazonReviewDataModule`.")
+        if not isinstance(data_module, AmazonReviewsMultiDataModule):
+            raise ValueError(
+                "This scenario is only compatible with `AmazonReviewsMultiDataModule`."
+            )
+
+    def prepare_data(self) -> None:
+        """Downloads datasets."""
+        for language in self._languages:
+            self._data_module._language = language
+            self._data_module.prepare_data()
 
     def setup(self) -> None:
         """Sets up the scenario."""
-        self._data_module._categories = [self._categories[self._chunk_id]]
+        self._data_module._language = self._languages[self._chunk_id]
         super().setup()
         self._train_data = self._data_module.train_data()
         self._val_data = self._data_module.val_data()
         self._test_data = []
         for i in range(self._num_tasks):
-            self._data_module._categories = [self._categories[i]]
+            self._data_module._language = self._languages[i]
+            self._data_module.setup()
+            self._test_data.append(self._data_module.test_data())
+
+
+class DomainNetScenario(Scenario):
+    """Domain-incremental scenario for ``DomainNetDataModule``.
+
+    In each step, the images of one particular domain are available.
+
+    Args:
+        data_module: The source RenateDataModule for the user data.
+        domains: Domains in order of traversal.
+        chunk_id: The data chunk to load in for the training or validation data.
+        seed: Seed used to fix random number generation.
+    """
+
+    def __init__(
+        self,
+        data_module: RenateDataModule,
+        chunk_id: int,
+        domains: Optional[List[str]] = None,
+        seed: int = defaults.SEED,
+    ) -> None:
+        self._domains = domains or DomainNetDataModule.domains
+        super().__init__(
+            data_module=data_module,
+            num_tasks=len(self._domains),
+            chunk_id=chunk_id,
+            seed=seed,
+        )
+        if not isinstance(data_module, DomainNetDataModule):
+            raise ValueError("This scenario is only compatible with `DomainNetDataModule`.")
+
+    def prepare_data(self) -> None:
+        """Downloads datasets."""
+        for domain in self._domains:
+            self._data_module._dataset_name = domain
+            self._data_module.prepare_data()
+
+    def setup(self) -> None:
+        """Sets up the scenario."""
+        self._data_module._dataset_name = self._domains[self._chunk_id]
+        super().setup()
+        self._train_data = self._data_module.train_data()
+        self._val_data = self._data_module.val_data()
+        self._test_data = []
+        for i in range(self._num_tasks):
+            self._data_module._dataset_name = self._domains[i]
             self._data_module.setup()
             self._test_data.append(self._data_module.test_data())

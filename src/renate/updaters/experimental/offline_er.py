@@ -18,7 +18,7 @@ from renate.models import RenateModule
 from renate.types import NestedTensors
 from renate.updaters.learner import ReplayLearner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
-from renate.utils.pytorch import move_tensors_to_device
+from renate.utils.pytorch import cat_nested_tensors, get_batch_size, move_tensors_to_device
 
 
 class OfflineExperienceReplayLearner(ReplayLearner):
@@ -76,11 +76,35 @@ class OfflineExperienceReplayLearner(ReplayLearner):
             task_id=task_id,
         )
         self._num_points_current_task = len(train_dataset)
-        # self._model = model_fn(
-        #    model_name="HuggingFaceTransformer",
-        #    num_outputs=2,
-        #    pretrained_model_name="bert-base-uncased",
-        # )
+        """NEW"""  # TODO:
+        # total-size-dependent
+        """
+        alpha = self._num_points_current_task / (
+            self._num_points_current_task + self._num_points_previous_tasks
+        )
+        total_batch_size = self._batch_size + self._memory_batch_size
+        self._batch_size = max(int(alpha * total_batch_size), 1)
+        self._memory_batch_size = total_batch_size - self._batch_size
+        """
+        # mem-size-dependent
+        """
+        alpha = self._num_points_current_task / (
+            self._num_points_current_task + len(self._memory_buffer)
+        )
+        total_batch_size = self._batch_size + self._memory_batch_size
+        self._batch_size = max(int(alpha * total_batch_size), 1)
+        self._memory_batch_size = total_batch_size - self._batch_size
+        """
+        """END NEW"""
+
+        # Reset weights to BERT
+        """
+        self._model = model_fn(
+            model_name="HuggingFaceTransformer",
+            num_outputs=2,
+            pretrained_model_name="bert-base-multilingual-uncased",
+        )
+        """
 
     def train_dataloader(self) -> DataLoader:
         train_loader = super().train_dataloader()
@@ -93,6 +117,7 @@ class OfflineExperienceReplayLearner(ReplayLearner):
                 shuffle=True,
                 generator=self._rng,
                 pin_memory=True,
+                num_workers=4,
             )
         return CombinedLoader(loaders, mode="max_size_cycle")
 
@@ -102,10 +127,48 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         self._num_points_previous_tasks += self._num_points_current_task
         self._num_points_current_task = -1
 
-    def training_step(
+    # Image Logic
+    def training_step(self, batch: Dict[str, Tuple[NestedTensors]], batch_idx: int) -> STEP_OUTPUT:
+        """PyTorch Lightning function to return the training loss."""
+        if self._loss_weight_new_data is None:
+            alpha = self._num_points_current_task / (
+                self._num_points_current_task + self._num_points_previous_tasks
+            )
+        else:
+            alpha = self._loss_weight_new_data
+        inputs, targets = batch["current_task"]
+        device = next(self.parameters()).device
+        batch_size_current = get_batch_size(inputs)
+        batch_size_mem = 0
+        if "memory" in batch:
+            (inputs_mem, targets_mem), _ = batch["memory"]
+            batch_size_mem = get_batch_size(inputs_mem)
+            inputs = cat_nested_tensors((inputs, inputs_mem), 0)
+            targets = torch.cat((targets, targets_mem), 0)
+        outputs = self(inputs)
+        loss = self._loss_fn(outputs, targets)
+        if "memory" in batch:
+            weights = torch.Tensor(
+                [
+                    [alpha for _ in range(batch_size_current)]
+                    + [(1 - alpha) for _ in range(batch_size_mem)]
+                ]
+            )
+            self._loss_collections["train_losses"]["memory_loss"](loss[batch_size_current:].mean())
+            self._loss_collections["train_losses"]["base_loss"](loss[:batch_size_current].mean())
+            weights = move_tensors_to_device(weights, device=device)
+            loss = weights / weights.mean() * loss
+        else:
+            self._loss_collections["train_losses"]["base_loss"](loss[:batch_size_current].mean())
+        loss = loss.mean()
+        self._update_metrics(outputs, targets, "train")
+        return {"loss": loss}
+
+    """
+    BERT LOGIC
+        def training_step(
         self, batch: Dict[str, Tuple[NestedTensors, torch.Tensor]], batch_idx: int
     ) -> STEP_OUTPUT:
-        """PyTorch Lightning function to return the training loss."""
         if self._loss_weight_new_data is None:
             alpha = self._num_points_current_task / (
                 self._num_points_current_task + self._num_points_previous_tasks
@@ -145,6 +208,7 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         loss = loss.mean()
         self._update_metrics(outputs, targets, "train")
         return {"loss": loss}
+    """
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         super().on_save_checkpoint(checkpoint)

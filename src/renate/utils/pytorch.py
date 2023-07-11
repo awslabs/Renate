@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import logging
 import math
-from typing import List, Optional
+from typing import List, Optional, Tuple, Union
 
 import torch
 from torch.utils.data import Dataset, random_split
@@ -87,3 +87,32 @@ def move_tensors_to_device(tensors: NestedTensors, device: torch.device) -> Nest
             "Expected `tensors` to be a nested structure of tensors, tuples, list and dict; "
             f"discovered {type(tensors)}."
         )
+
+
+def get_batch_size(batch: NestedTensors) -> int:
+    """Given a NestedTensor, return its batch size."""
+    if isinstance(batch, torch.Tensor):
+        return batch.shape[0]
+    if isinstance(batch, tuple):
+        return batch[0].shape[0]
+    if isinstance(batch, dict):
+        return batch[next(iter(batch.keys()))].shape[0]
+
+
+def cat_nested_tensors(
+    nested_tensors: Union[Tuple[NestedTensors], List[NestedTensors]], axis: int = 0
+) -> NestedTensors:
+    """Concatenates the two NestedTensors.
+
+    NestedTensors must have the same format."""
+    if isinstance(nested_tensors[0], torch.Tensor):
+        return torch.cat(nested_tensors, axis)
+    if isinstance(nested_tensors[0], tuple):
+        return tuple(
+            cat_nested_tensors(nested_tensor, axis) for nested_tensor in zip(nested_tensors)
+        )
+    if isinstance(nested_tensors[0], dict):
+        return {
+            key: cat_nested_tensors([nested_tensor[key] for nested_tensor in nested_tensors], axis)
+            for key in nested_tensors[0]
+        }

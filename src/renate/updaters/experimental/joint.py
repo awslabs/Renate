@@ -73,12 +73,12 @@ class JointLearner(Learner):
             task_id=task_id,
         )
         self._memory_buffer.update(train_dataset)
-        # reinitialize_model_parameters(self._model)
-        self._model = model_fn(
+        reinitialize_model_parameters(self._model)
+        """self._model = model_fn(
             model_name="HuggingFaceTransformer",
             num_outputs=2,
-            pretrained_model_name="bert-base-uncased",
-        )
+            pretrained_model_name="bert-base-multilingual-uncased",
+        )"""
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(

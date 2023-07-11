@@ -418,6 +418,7 @@ class ModelUpdater(abc.ABC):
             deterministic=self._deterministic_trainer,
             strategy=strategy,
             precision=self._precision,
+            # limit_train_batches=0.25,
         )
         trainer.fit(learner)
         self._num_epochs_trained = trainer.current_epoch
