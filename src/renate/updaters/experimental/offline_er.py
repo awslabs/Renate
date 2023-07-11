@@ -117,7 +117,6 @@ class OfflineExperienceReplayLearner(ReplayLearner):
                 shuffle=True,
                 generator=self._rng,
                 pin_memory=True,
-                num_workers=4,
             )
         return CombinedLoader(loaders, mode="max_size_cycle")
 
