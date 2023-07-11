@@ -7,11 +7,7 @@ import torch.nn as nn
 
 from renate import defaults
 from renate.benchmark.models.base import RenateBenchmarkingModule
-from renate.benchmark.models.vision_transformer import (
-    VisionTransformer,
-    VisionTransformerB16,
-    VisionTransformerB32,
-)
+from renate.benchmark.models.vision_transformer import VisionTransformer
 from renate.models.prediction_strategies import ICaRLClassificationStrategy, PredictionStrategy
 from renate.utils.deepspeed import convert_to_tensor, recover_object_from_tensor
 
@@ -76,24 +72,75 @@ class PromptPool(nn.Module):
 class PromptedVisionTransformer(RenateBenchmarkingModule):
     def __init__(
         self,
-        vit: Optional[VisionTransformer] = None,
-        prompter: Optional[PromptPool] = None,
-        prompt_embedding_features: str = "cls",
-        patch_pooler: str = "prompt_mean",
+        pretrained_model_name_or_path="google/vit-base-patch32-224-in21k",
+        image_size: int = 32,
+        patch_size: int = 4,
+        num_layers: int = 12,
+        num_heads: int = 12,
+        hidden_dim: int = 768,
+        mlp_dim: int = 3072,
+        dropout: float = 0.1,
+        attention_dropout: float = 0.1,
         num_outputs: int = 10,
         prediction_strategy: Optional[PredictionStrategy] = None,
         add_icarl_class_means: bool = True,
+        pool_size: int = 10,
+        pool_selection_size: int = 5,
+        prompt_size: int = 5,
+        prompt_key_dim: int = 768,
+        train_prompt_keys: bool = True,
+        similarity_fn: Union[Callable, str] = "cosine",
+        prompt_embedding_features: str = "cls",
+        patch_pooler: str = "prompt_mean",
     ) -> None:
-        if vit is None:
-            vit = VisionTransformerB32()
-        if prompter is None:
-            prompter = PromptPool()
+        vit = VisionTransformer(
+            pretrained_model_name_or_path=pretrained_model_name_or_path,
+            image_size=image_size,
+            patch_size=patch_size,
+            num_layers=num_layers,
+            num_heads=num_heads,
+            hidden_dim=hidden_dim,
+            mlp_dim=mlp_dim,
+            dropout=dropout,
+            attention_dropout=attention_dropout,
+            prediction_strategy=prediction_strategy,
+            add_icarl_class_means=add_icarl_class_means,
+            num_outputs=num_outputs,
+        )
+        prompter = PromptPool(
+            embedding_dim=vit._embedding_size,
+            pool_size=pool_size,
+            pool_selection_size=pool_selection_size,
+            prompt_size=prompt_size,
+            prompt_key_dim=prompt_key_dim,
+            train_prompt_keys=train_prompt_keys,
+            similarity_fn=similarity_fn,
+        )
         super().__init__(
             embedding_size=vit._embedding_size,
             num_outputs=num_outputs,
-            constructor_arguments={
-                "prompt_embedding_features": prompt_embedding_features,
-            },
+            constructor_arguments=dict(
+                num_outputs=num_outputs,
+                prompt_embedding_features=prompt_embedding_features,
+                patch_pooler=patch_pooler,
+                pretrained_model_name_or_path=pretrained_model_name_or_path,
+                image_size=image_size,
+                patch_size=patch_size,
+                num_layers=num_layers,
+                num_heads=num_heads,
+                hidden_dim=hidden_dim,
+                mlp_dim=mlp_dim,
+                dropout=dropout,
+                attention_dropout=attention_dropout,
+                prediction_strategy=prediction_strategy,
+                add_icarl_class_means=add_icarl_class_means,
+                pool_size=pool_size,
+                pool_selection_size=pool_selection_size,
+                prompt_size=prompt_size,
+                prompt_key_dim=prompt_key_dim,
+                train_prompt_keys=train_prompt_keys,
+                similarity_fn=similarity_fn,
+            ),
             prediction_strategy=prediction_strategy,
             add_icarl_class_means=add_icarl_class_means,
         )
@@ -116,6 +163,7 @@ class PromptedVisionTransformer(RenateBenchmarkingModule):
 
         for p in self._backbone["vit"].parameters():
             p.requires_grad = False
+        self._backbone["vit"].eval()
         for p in self._backbone["prompter"].parameters():
             p.requires_grad = True
 
@@ -163,16 +211,19 @@ class PromptedVisionTransformer(RenateBenchmarkingModule):
             ), f"Unknown prediction strategy of type {type(self._prediction_strategy)}."
         return self.get_predictor(task_id)(seq_cls_token)
 
-    def get_extra_state(self, encode=True) -> Any:
-        extra_state = super().get_extra_state(False)
-        extra_state.update(self._backbone["vit"].get_extra_state(False))
-        extra_state["prompt_embedding_features"] = self.prompt_embedding_features
-        extra_state["prompt_pooler"] = self.patch_pooler
-        return convert_to_tensor(extra_state) if encode else extra_state
+    # def get_extra_state(self, encode=True) -> Any:
+    #     extra_state = super().get_extra_state(False)
+    #     # extra_state["constructor_arguments"]["prompt_embedding_features"] = self.prompt_embedding_features
+    #     # extra_state["constructor_arguments"]["prompt_pooler"] = self.patch_pooler
+    #     # print("***" * 20)
+    #     # print("Extra state")
+    #     # print(extra_state)
+    #     # print("***" * 20)
+    #     # return convert_to_tensor(extra_state) if encode else extra_state
 
-    def set_extra_state(self, state: Any, decode=True):
-        super().set_extra_state(state, decode)
-        self._backbone["vit"].set_extra_state(state, decode)
-        decoded_extra_state = recover_object_from_tensor(state) if decode else state
-        self.prompt_embedding_features = decoded_extra_state["prompt_embedding_features"]
-        self.prompt_pooler = decoded_extra_state["prompt_pooler"]
+    # def set_extra_state(self, state: Any, decode=True):
+    #     super().set_extra_state(state, decode)
+    #     self._backbone["vit"].set_extra_state(state, decode)
+    #     decoded_extra_state = recover_object_from_tensor(state) if decode else state
+    #     self.prompt_embedding_features = decoded_extra_state["prompt_embedding_features"]
+    #     self.prompt_pooler = decoded_extra_state["prompt_pooler"]
