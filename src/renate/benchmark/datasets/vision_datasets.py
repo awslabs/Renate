@@ -278,7 +278,7 @@ class CLEARDataModule(RenateDataModule):
 
         # Load the class names and create a class mapping. The class names are in `class_names.txt`
         with open(os.path.join(path, "train_image_only", "class_names.txt"), "r") as f:
-            class_names = [line.strip() for line in f.readlines() if line.strip() != "BACKGROUND"]
+            class_names = [line.strip() for line in f.readlines()]
             label_encoding = {name: cnt for cnt, name in enumerate(class_names)}
 
         path = os.path.join(
@@ -288,20 +288,15 @@ class CLEARDataModule(RenateDataModule):
         # Go through all the subfolders in the path folder and search for all .jpg images
         for root, _, files in os.walk(path):
             for file in files:
-                if file.endswith(".jpg"):
-                    folder = root.split("/")[-1]
-                    if folder == "BACKGROUND":
-                        continue
-                    data.append(os.path.join(root, file))
-                    labels.append(label_encoding[folder])
+                folder = root.split("/")[-1]
+                data.append(os.path.join(root, file))
+                labels.append(label_encoding[folder])
 
         return data, labels
 
 
 class DomainNetDataModule(RenateDataModule):
     """Datamodule that provides access to DomainNet.
-
-    Source: https://clear-benchmark.github.io/.
 
     Args:
         data_path: the path to the folder containing the dataset files.
