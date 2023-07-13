@@ -14,6 +14,7 @@ from renate import defaults
 from renate.data import ImageDataset
 from renate.data.data_module import RenateDataModule
 from renate.utils.file import download_and_unzip_file, download_file, download_folder_from_s3
+from renate.utils.pytorch import randomly_split_data
 
 
 class TinyImageNetDataModule(RenateDataModule):
@@ -205,12 +206,7 @@ class CLEARDataModule(RenateDataModule):
         seed: Seed used to fix random number generation.
     """
 
-    md5s = {
-        "clear10-train-image-only.zip": "5171f720810d60b471c308dee595d430",
-        "clear100-train-image-only.zip": "ea85cdba9efcb3abf77eaab5554052c8",
-        "clear10-test.zip": "bf9a85bfb78fe742c7ed32648c9a3275",
-        "clear100-test.zip": "e160815fb5fd4bc71dacd339ff41e6a9",
-    }
+    md5s = {"clear10-public.zip": "04d3b228599bdd5a874c261907ebe217"}
     dataset_stats = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
 
     def __init__(
@@ -241,58 +237,39 @@ class CLEARDataModule(RenateDataModule):
 
     def prepare_data(self) -> None:
         """Download CLEAR dataset with given dataset_name (clear10/clear100)."""
-        for file_name in [
-            f"{self._dataset_name}-train-image-only.zip",
-            f"{self._dataset_name}-test.zip",
-        ]:
-            if not self._verify_file(file_name):
-                download_and_unzip_file(
-                    self._dataset_name,
-                    self._data_path,
-                    self._src_bucket,
-                    self._src_object_name,
-                    "https://clear-challenge.s3.us-east-2.amazonaws.com/",
-                    file_name,
-                )
+        file_name = f"{self._dataset_name}-public.zip"
+        if not self._verify_file(file_name):
+            download_and_unzip_file(
+                self._dataset_name,
+                self._data_path,
+                self._src_bucket,
+                self._src_object_name,
+                "https://clear-challenge.s3.us-east-2.amazonaws.com/",
+                file_name,
+            )
 
     def setup(self) -> None:
         """Set up train, test and val datasets."""
-        X, y = self._get_filepaths_and_labels(train=True, chunk_id=self._chunk_id)
-        train_data = ImageDataset(X, y, transform=transforms.ToTensor())
-        self._train_data, self._val_data = self._split_train_val_data(train_data)
-        self._test_data = []
-        for i in range(10):
-            X, y = self._get_filepaths_and_labels(train=False, chunk_id=i)
-            self._test_data.append(ImageDataset(X, y, transform=transforms.ToTensor()))
+        file_paths, labels = self._get_filepaths_and_labels(chunk_id=self._chunk_id)
+        dataset = ImageDataset(file_paths, labels, transform=transforms.ToTensor())
+        self._train_data, self._test_data = randomly_split_data(dataset, [0.7, 0.3], self._seed)
+        self._train_data, self._val_data = self._split_train_val_data(self._train_data)
 
-    # TODO: This is a work-around to make CLEAR available as a data module (single test dataset)
-    # as well as a scenario (all test datasets) via BenchmarkScenario. Clean up!
-    def test_data(self) -> Dataset:
-        return self._test_data[self._chunk_id]
-
-    def _get_filepaths_and_labels(self, train: bool, chunk_id: int) -> Tuple[List[str], List[int]]:
+    def _get_filepaths_and_labels(self, chunk_id: int) -> Tuple[List[str], List[int]]:
         """Extracts all the filepaths and labels for a given chunk id and split."""
-        data = []
-        labels = []
         path = os.path.join(self._data_path, self._dataset_name)
 
-        # Load the class names and create a class mapping. The class names are in `class_names.txt`
-        with open(os.path.join(path, "train_image_only", "class_names.txt"), "r") as f:
-            class_names = [line.strip() for line in f.readlines()]
-            label_encoding = {name: cnt for cnt, name in enumerate(class_names)}
+        file_paths, labels = [], []
+        with open(
+            os.path.join(path, "training_folder", "filelists", str(chunk_id + 1), "all.txt"), "r"
+        ) as f:
+            for line in f.readlines():
+                file_path, label = line.split(" ")
+                label = int(label)
+                file_paths.append(os.path.join(path, file_path))
+                labels.append(label)
 
-        path = os.path.join(
-            path, "train_image_only" if train else "test", "labeled_images", str(chunk_id + 1)
-        )
-
-        # Go through all the subfolders in the path folder and search for all .jpg images
-        for root, _, files in os.walk(path):
-            for file in files:
-                folder = root.split("/")[-1]
-                data.append(os.path.join(root, file))
-                labels.append(label_encoding[folder])
-
-        return data, labels
+        return file_paths, labels
 
 
 class DomainNetDataModule(RenateDataModule):

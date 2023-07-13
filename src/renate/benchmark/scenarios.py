@@ -113,16 +113,11 @@ class BenchmarkScenario(Scenario):
         super().setup()
         self._train_data = self._data_module.train_data()
         self._val_data = self._data_module.val_data()
-        self._test_data = self._data_module._test_data
-        """
-        NEW CODE BELOW
-        
         self._test_data = []
         for chunk_id in range(self._num_tasks):
             self._data_module._chunk_id = chunk_id
             self._data_module.setup()
-            self._test_data.append(self._data_module.val_data())
-        """
+            self._test_data.append(self._data_module.test_data())
 
 
 class ClassIncrementalScenario(Scenario):

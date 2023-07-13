@@ -104,7 +104,7 @@ def model_fn(
         if updater == "Avalanche-iCaRL":
             raise ValueError("Transformers do not support iCaRL.")
         model_kwargs["pretrained_model_name"] = pretrained_model_name
-    if model_state_url is None:
+    if model_state_url is None or updater == "Joint":
         model = model_class(**model_kwargs)
     else:
         state_dict = torch.load(model_state_url)
