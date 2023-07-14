@@ -1,14 +1,14 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional, Union
 
-from transformers import BatchEncoding, DataCollatorWithPadding, PreTrainedTokenizer
+from transformers import PreTrainedTokenizer
 
 from renate import defaults
 from renate.data.data_module import RenateDataModule
 from renate.utils.file import download_folder_from_s3
+from renate.utils.hf_utils import DataCollatorWithPaddingForWildTime
 
 
 class WildTimeDataModule(RenateDataModule):
@@ -100,33 +100,3 @@ class WildTimeDataModule(RenateDataModule):
             self._train_collate_fn = DataCollatorWithPaddingForWildTime(tokenizer=self._tokenizer)
             self._val_collate_fn = DataCollatorWithPaddingForWildTime(tokenizer=self._tokenizer)
             self._test_collate_fn = DataCollatorWithPaddingForWildTime(tokenizer=self._tokenizer)
-
-
-@dataclass
-class DataCollatorWithPaddingForWildTime(DataCollatorWithPadding):
-    def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, Any]:
-        # first_element type determines if data sources
-        first_element = features[0][0]
-        to_be_collated = []
-        if isinstance(first_element, BatchEncoding):
-            # This is normal dataset and not a buffer with metadata, do the default things
-            for elem in features:
-                elem[0]["labels"] = elem[1]
-                to_be_collated.append(elem[0])
-            collated = super().__call__(to_be_collated)
-            labels = collated.pop("labels")
-            return collated, labels
-        elif isinstance(first_element, tuple):
-            # this has metadata possibly.
-            for elem in features:
-                elem[0][0]["metadata"] = elem[1] or False
-                elem[0][0]["label"] = elem[0][1]
-                to_be_collated.append(elem[0][0])
-            collated = super().__call__(to_be_collated)
-            metadata = collated.pop("metadata")
-            if not metadata.any():
-                metadata = {}
-            labels = collated.pop("labels")
-            return (collated, labels), metadata
-        else:
-            raise ValueError(f"What happened? Got {type(first_element[0])}")
