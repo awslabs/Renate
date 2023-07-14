@@ -28,6 +28,14 @@ from renate.utils.hf_utils import BatchEncoding, DataCollatorWithPaddingForWildT
         ),
         (
             [
+                (({"input_ids": [1, 2, 4]}, 0), [1, 2]),
+                (({"input_ids": [4, 5, 6, 7, 8, 9]}, 1), [5, 6]),
+            ],
+            torch.Size([2, 6]),
+            False,
+        ),
+        (
+            [
                 ({"input_ids": [1, 2, 4]}, 0, {}),
             ],
             torch.Size([1, 3]),
@@ -40,7 +48,7 @@ def test_serialize_wildtime_collator(features, shape, error, tokenizer):
     if not error:
         collator = DataCollatorWithPaddingForWildTime(tokenizer)
         out = collator(features)[0]
-        print(out)
+        print(collator(features))
         if isinstance(out, (dict, BatchEncoding)):
             assert out["input_ids"].shape == shape
         else:
