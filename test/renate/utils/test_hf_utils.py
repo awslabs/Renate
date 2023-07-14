@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 import pytest
 import torch
-
 from transformers import AutoTokenizer
-from renate.utils.hf_utils import DataCollatorWithPaddingForWildTime, BatchEncoding
+
+from renate.utils.hf_utils import BatchEncoding, DataCollatorWithPaddingForWildTime
 
 
 @pytest.mark.parametrize(

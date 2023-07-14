@@ -8,6 +8,13 @@ from transformers import BatchEncoding, DataCollatorWithPadding
 
 @dataclass
 class DataCollatorWithPaddingForWildTime(DataCollatorWithPadding):
+    # This adds to the `transformer` library's DataCollatorWithPadding. That data collator expects
+    # data in a standard HF format. Wild time data format are slightly different. We generally get a
+    # tuple of BatchEncoding (dict) and a class label. When being read from a buffer, an additional
+    # metadata attribute is present. These cases are not handled by the orig data collator.
+    # The code here only separates the input data into format original collator can handle and
+    # undoes the data packing: see parts after super().__call__.
+
     def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, Any]:
         # first_element type determines if data sources
         first_element = features[0][0]
