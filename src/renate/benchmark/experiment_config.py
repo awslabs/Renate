@@ -359,7 +359,6 @@ def train_transform(dataset_name: str) -> Optional[Callable]:
             [
                 transforms.Resize(224),
                 transforms.RandomCrop(224),
-                transforms.ToTensor(),
                 _get_normalize_transform(dataset_name),
             ]
         )
@@ -381,7 +380,6 @@ def test_transform(dataset_name: str) -> Optional[Callable]:
             [
                 transforms.Resize(224),
                 transforms.CenterCrop(224),
-                transforms.ToTensor(),
                 _get_normalize_transform(dataset_name),
             ]
         )
