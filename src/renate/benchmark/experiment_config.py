@@ -31,7 +31,6 @@ from renate.benchmark.models import (
 )
 from renate.benchmark.models.transformer import HuggingFaceSequenceClassificationTransformer
 from renate.benchmark.scenarios import (
-    BenchmarkScenario,
     ClassIncrementalScenario,
     FeatureSortingScenario,
     HueShiftScenario,
@@ -39,7 +38,7 @@ from renate.benchmark.scenarios import (
     ImageRotationScenario,
     PermutationScenario,
     Scenario,
-    WildTimeScenario,
+    TimeScenario,
 )
 from renate.data.data_module import RenateDataModule
 from renate.models import RenateModule
@@ -189,10 +188,6 @@ def get_scenario(
             class_groupings=class_groupings,
             chunk_id=chunk_id,
         )
-    if scenario_name == "BenchmarkScenario":
-        return BenchmarkScenario(
-            data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed
-        )
     if scenario_name == "IIDScenario":
         return IIDScenario(
             data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed
@@ -226,8 +221,8 @@ def get_scenario(
             chunk_id=chunk_id,
             seed=seed,
         )
-    if scenario_name == "WildTimeScenario":
-        return WildTimeScenario(
+    if scenario_name == "TimeScenario":
+        return TimeScenario(
             data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed
         )
     raise ValueError(f"Unknown scenario `{scenario_name}`.")

@@ -22,14 +22,13 @@ from renate.benchmark.experiment_config import (
     train_transform,
 )
 from renate.benchmark.scenarios import (
-    BenchmarkScenario,
     ClassIncrementalScenario,
     FeatureSortingScenario,
     HueShiftScenario,
     IIDScenario,
     ImageRotationScenario,
     PermutationScenario,
-    WildTimeScenario,
+    TimeScenario,
 )
 from renate.models.prediction_strategies import ICaRLClassificationStrategy
 
@@ -176,7 +175,6 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             ImageRotationScenario,
             3,
         ),
-        ("BenchmarkScenario", "CLEAR10", {"num_tasks": 5}, BenchmarkScenario, 5),
         (
             "PermutationScenario",
             "MNIST",
@@ -202,18 +200,19 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             HueShiftScenario,
             3,
         ),
+        ("TimeScenario", "CLEAR10", {"num_tasks": 5}, TimeScenario, 5),
         (
-            "WildTimeScenario",
+            "TimeScenario",
             "arxiv",
             {"num_tasks": 3, "pretrained_model_name": "distilbert-base-uncased"},
-            WildTimeScenario,
+            TimeScenario,
             3,
         ),
         (
-            "WildTimeScenario",
+            "TimeScenario",
             "fmow",
             {},
-            WildTimeScenario,
+            TimeScenario,
             16,
         ),
     ),
@@ -221,10 +220,10 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         "class_incremental",
         "iid",
         "rotation",
-        "benchmark",
         "permutation",
         "feature_sorting",
         "hue_shift",
+        "time_with_clear",
         "wild_time_text_with_tokenizer",
         "wild_time_image_all_tasks",
     ],
@@ -256,7 +255,7 @@ def test_data_module_fn(
         assert scenario._randomness == scenario_kwargs["randomness"]
     elif expected_scenario_class == HueShiftScenario:
         assert scenario._randomness == scenario_kwargs["randomness"]
-    elif expected_scenario_class == WildTimeScenario:
+    elif expected_scenario_class == TimeScenario:
         if "pretrained_model_name" in scenario_kwargs:
             assert scenario._data_module._tokenizer is not None
         else:
