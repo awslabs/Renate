@@ -305,8 +305,11 @@ def download_file(
     if src_bucket is None:
         if not os.path.exists(os.path.join(data_path, dataset_name)):
             os.makedirs(os.path.join(data_path, dataset_name))
-        response = requests.get(os.path.join(url, file_name), allow_redirects=True)
-        open(os.path.join(data_path, dataset_name, file_name), "wb").write(response.content)
+        with requests.get(os.path.join(url, file_name), allow_redirects=True, stream=True) as r:
+            r.raise_for_status()
+            with open(os.path.join(data_path, dataset_name, file_name), "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
     else:
         download_file_from_s3(
             src_bucket,
