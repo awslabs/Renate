@@ -286,6 +286,11 @@ def _get_normalize_transform(dataset_name):
             TorchVisionDataModule.dataset_stats[dataset_name]["mean"],
             TorchVisionDataModule.dataset_stats[dataset_name]["std"],
         )
+    if dataset_name in ["CLEAR10", "CLEAR100"]:
+        return transforms.Normalize(
+            CLEARDataModule.dataset_stats["mean"],
+            CLEARDataModule.dataset_stats["std"],
+        )
 
 
 def train_transform(dataset_name: str) -> Optional[Callable]:

@@ -1,5 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+import json
 import os
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
@@ -126,8 +127,6 @@ class TorchVisionDataModule(RenateDataModule):
         },
         "FashionMNIST": {"mean": 0.2860405969887955, "std": 0.3530242445149223},
         "MNIST": {"mean": 0.1306604762738429, "std": 0.30810780385646264},
-        "CLEAR10": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
-        "CLEAR100": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
     }
 
     def __init__(
@@ -204,6 +203,11 @@ class CLEARDataModule(RenateDataModule):
         seed: Seed used to fix random number generation.
     """
 
+    dataset_stats = {
+        "CLEAR10": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
+        "CLEAR100": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
+    }
+
     md5s = {
         "clear10-train-image-only.zip": "5171f720810d60b471c308dee595d430",
         "clear100-train-image-only.zip": "ea85cdba9efcb3abf77eaab5554052c8",
@@ -259,23 +263,27 @@ class CLEARDataModule(RenateDataModule):
 
     def _get_filepaths_and_labels(self, train: bool, time_step: int) -> Tuple[List[str], List[int]]:
         """Extracts all the filepaths and labels for a given chunk id and split."""
-        data = []
-        labels = []
         path = os.path.join(self._data_path, self._dataset_name)
-        path = os.path.join(path, "train_image_only" if train else "test")
 
         # Load the class names and create a class mapping. The class names are in `class_names.txt`
-        with open(os.path.join(path, "class_names.txt"), "r") as f:
+        with open(os.path.join(path, "train_image_only", "class_names.txt"), "r") as f:
             class_names = [line.strip() for line in f.readlines()]
             label_encoding = {name: cnt for cnt, name in enumerate(class_names)}
 
-        path = os.path.join(path, "labeled_images", str(time_step + 1))
+        path = os.path.join(
+            path, "train_image_only" if train else "test", "labeled_images", str(time_step + 1)
+        )
+        with open(os.path.join(path, "labeled_metadata.json"), "r") as f:
+            metadata = json.load(f)
 
-        # Go through all the subfolders in the path folder and search for all .jpg images
-        for root, _, files in os.walk(path):
-            for file in files:
-                folder = root.split("/")[-1]
-                data.append(os.path.join(root, file))
-                labels.append(label_encoding[folder])
+        image_paths = []
+        labels = []
+        for class_name, class_metadata_file in metadata[str(time_step)].items():
+            label = label_encoding[class_name]
+            with open(os.path.join(path, class_metadata_file), "r") as f:
+                class_metadata = json.load(f)
+            for image_metadata in class_metadata.values():
+                image_paths.append(os.path.join(path, image_metadata["IMG_PATH"]))
+                labels.append(label)
 
-        return data, labels
+        return image_paths, labels
