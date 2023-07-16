@@ -7,6 +7,7 @@ from typing import List, Optional, Tuple, Union
 import pandas as pd
 import torch
 import torchvision
+from avalanche.benchmarks import CLEAR
 from torch.utils.data import Dataset
 from torchvision import transforms
 
@@ -189,6 +190,18 @@ def to_long(x):
     return torch.tensor(x, dtype=torch.long)
 
 
+class DataWrapper(Dataset):
+    def __init__(self, dataset):
+        self._dataset = dataset
+
+    def __len__(self):
+        return len(self._dataset)
+
+    def __getitem__(self, idx: int):
+        l = self._dataset[idx]
+        return l[0], l[1]
+
+
 class CLEARDataModule(RenateDataModule):
     """Datamodule that process CLEAR datasets: CLEAR10 and CLEAR100.
 
@@ -237,6 +250,16 @@ class CLEARDataModule(RenateDataModule):
 
     def prepare_data(self) -> None:
         """Download CLEAR dataset with given dataset_name (clear10/clear100)."""
+        CLEAR(
+            data_name=self._dataset_name,
+            evaluation_protocol="iid",
+            feature_type=None,
+            seed=self._seed,
+            train_transform=None,
+            eval_transform=None,
+            dataset_root=self._data_path,
+        )
+        """
         file_name = f"{self._dataset_name}-public.zip"
         if not self._verify_file(file_name):
             download_and_unzip_file(
@@ -247,13 +270,28 @@ class CLEARDataModule(RenateDataModule):
                 "https://clear-challenge.s3.us-east-2.amazonaws.com/",
                 file_name,
             )
+        """
 
     def setup(self) -> None:
         """Set up train, test and val datasets."""
+        benchmark = CLEAR(
+            data_name=self._dataset_name,
+            evaluation_protocol="iid",
+            feature_type=None,
+            seed=self._seed,
+            train_transform=None,
+            eval_transform=None,
+            dataset_root=self._data_path,
+        )
+        self._train_data = DataWrapper(benchmark.train_stream[self._chunk_id].dataset)
+        # self._val_data = DataWrapper(benchmark.test_stream[self._chunk_id].dataset)
+        self._test_data = DataWrapper(benchmark.test_stream[self._chunk_id].dataset)
+        """
         file_paths, labels = self._get_filepaths_and_labels(chunk_id=self._chunk_id)
         dataset = ImageDataset(file_paths, labels, transform=transforms.ToTensor())
         self._train_data, self._test_data = randomly_split_data(dataset, [0.7, 0.3], self._seed)
         self._train_data, self._val_data = self._split_train_val_data(self._train_data)
+        """
 
     def _get_filepaths_and_labels(self, chunk_id: int) -> Tuple[List[str], List[int]]:
         """Extracts all the filepaths and labels for a given chunk id and split."""

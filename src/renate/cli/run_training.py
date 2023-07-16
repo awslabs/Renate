@@ -122,7 +122,7 @@ class ModelUpdaterCLI:
         )
         model = get_model(
             config_module,
-            model_state_url=self._current_model_file,
+            model_state_url=self._current_model_file if args.updater != "Joint" else None,
             **get_function_kwargs(args=args, function_args=function_args["model_fn"]),
         )
         loss_fn = get_loss_fn(

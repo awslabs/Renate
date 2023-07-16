@@ -104,7 +104,7 @@ def model_fn(
         if updater == "Avalanche-iCaRL":
             raise ValueError("Transformers do not support iCaRL.")
         model_kwargs["pretrained_model_name"] = pretrained_model_name
-    if model_state_url is None or updater == "Joint":
+    if model_state_url is None:
         model = model_class(**model_kwargs)
     else:
         state_dict = torch.load(model_state_url)
@@ -364,6 +364,7 @@ def train_transform(dataset_name: str) -> Optional[Callable]:
             [
                 transforms.Resize(224),
                 transforms.RandomCrop(224),
+                transforms.ToTensor(),
                 _get_normalize_transform(dataset_name),
             ]
         )
@@ -385,6 +386,7 @@ def test_transform(dataset_name: str) -> Optional[Callable]:
             [
                 transforms.Resize(224),
                 transforms.CenterCrop(224),
+                transforms.ToTensor(),
                 _get_normalize_transform(dataset_name),
             ]
         )
