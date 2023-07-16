@@ -7,6 +7,7 @@ from torch.optim.lr_scheduler import StepLR
 from torchmetrics.classification import MulticlassAccuracy
 from torchvision.transforms import Compose, Normalize
 
+from renate.benchmark import experiment_config
 from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
 from renate.benchmark.datasets.vision_datasets import CLEARDataModule, TorchVisionDataModule
 from renate.benchmark.experiment_config import (
@@ -18,7 +19,6 @@ from renate.benchmark.experiment_config import (
     metrics_fn,
     model_fn,
     models,
-    test_transform,
     train_transform,
 )
 from renate.benchmark.scenarios import (
@@ -276,7 +276,7 @@ def test_data_module_fn(
 )
 def test_transforms(dataset_name, use_transforms, test_compose):
     train_preprocessing = train_transform(dataset_name)
-    test_preprocessing = test_transform(dataset_name)
+    test_preprocessing = experiment_config.test_transform(dataset_name)
     if use_transforms:
         assert isinstance(train_preprocessing, Compose)
         if test_compose:
@@ -290,7 +290,7 @@ def test_transforms(dataset_name, use_transforms, test_compose):
 
 def test_transforms_fails_for_unknown_dataset():
     unknown_dataset_set = "UNKNOWN_DATASET_NAME"
-    for transform_function in [train_transform, test_transform]:
+    for transform_function in [train_transform, experiment_config.test_transform]:
         with pytest.raises(ValueError, match=f"Unknown dataset `{unknown_dataset_set}`"):
             transform_function(unknown_dataset_set)
 
