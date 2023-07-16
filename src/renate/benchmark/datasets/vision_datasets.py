@@ -270,9 +270,7 @@ class CLEARDataModule(RenateDataModule):
             class_names = [line.strip() for line in f.readlines()]
             label_encoding = {name: cnt for cnt, name in enumerate(class_names)}
 
-        path = os.path.join(
-            path, "train_image_only" if train else "test", "labeled_images", str(time_step + 1)
-        )
+        path = os.path.join(path, "train_image_only" if train else "test")
         with open(os.path.join(path, "labeled_metadata.json"), "r") as f:
             metadata = json.load(f)
 
