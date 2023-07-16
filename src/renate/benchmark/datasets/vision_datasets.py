@@ -228,7 +228,7 @@ class CLEARDataModule(RenateDataModule):
         src_bucket: Optional[str] = None,
         src_object_name: Optional[str] = None,
         dataset_name: str = "CLEAR10",
-        chunk_id: int = 0,
+        time_step: int = 0,
         val_size: float = defaults.VALIDATION_SIZE,
         seed: int = defaults.SEED,
     ):
@@ -241,12 +241,8 @@ class CLEARDataModule(RenateDataModule):
         )
         self._dataset_name = dataset_name.lower()
         assert self._dataset_name in ["clear10", "clear100"]
-        self._verify_chunk_id(chunk_id)
-        self._chunk_id = chunk_id
-
-    def _verify_chunk_id(self, chunk_id: int) -> None:
-        """Verify that the chunk_id is valid."""
-        assert 0 <= chunk_id <= 9
+        assert 0 <= time_step <= 9
+        self._time_step = time_step
 
     def prepare_data(self) -> None:
         """Download CLEAR dataset with given dataset_name (clear10/clear100)."""
@@ -283,9 +279,9 @@ class CLEARDataModule(RenateDataModule):
             eval_transform=None,
             dataset_root=self._data_path,
         )
-        self._train_data = DataWrapper(benchmark.train_stream[self._chunk_id].dataset)
-        # self._val_data = DataWrapper(benchmark.test_stream[self._chunk_id].dataset)
-        self._test_data = DataWrapper(benchmark.test_stream[self._chunk_id].dataset)
+        self._train_data = DataWrapper(benchmark.train_stream[self._time_step].dataset)
+        # self._val_data = DataWrapper(benchmark.test_stream[self._time_step].dataset)
+        self._test_data = DataWrapper(benchmark.test_stream[self._time_step].dataset)
         """
         file_paths, labels = self._get_filepaths_and_labels(chunk_id=self._chunk_id)
         dataset = ImageDataset(file_paths, labels, transform=transforms.ToTensor())

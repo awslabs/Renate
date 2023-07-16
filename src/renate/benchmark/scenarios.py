@@ -110,12 +110,13 @@ class BenchmarkScenario(Scenario):
     """
 
     def setup(self) -> None:
+        self._data_module._time_step = self._chunk_id
         super().setup()
         self._train_data = self._data_module.train_data()
         self._val_data = self._data_module.val_data()
         self._test_data = []
-        for chunk_id in range(self._num_tasks):
-            self._data_module._chunk_id = chunk_id
+        for time_step in range(self._num_tasks):
+            self._data_module._time_step = time_step
             self._data_module.setup()
             self._test_data.append(self._data_module.test_data())
 
