@@ -233,8 +233,10 @@ class CLEARDataModule(RenateDataModule):
             seed=seed,
         )
         self._dataset_name = dataset_name.lower()
+        if self._dataset_name == "clear10":
+            time_step += 1
         assert self._dataset_name in ["clear10", "clear100"]
-        assert 0 <= time_step <= 9
+        assert 0 <= time_step <= 10
         self.time_step = time_step
 
     def prepare_data(self) -> None:
