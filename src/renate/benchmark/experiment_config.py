@@ -357,7 +357,9 @@ def train_transform(dataset_name: str) -> Optional[Callable]:
     if dataset_name in ["CLEAR10", "CLEAR100", "DomainNet"]:
         return transforms.Compose(
             [
-                transforms.Resize(224),
+                transforms.Resize(
+                    224, interpolation=transforms.InterpolationMode.BILINEAR, antialias=True
+                ),
                 transforms.RandomCrop(224),
                 _get_normalize_transform(dataset_name),
             ]
@@ -378,7 +380,9 @@ def test_transform(dataset_name: str) -> Optional[Callable]:
     if dataset_name in ["CLEAR10", "CLEAR100", "DomainNet"]:
         return transforms.Compose(
             [
-                transforms.Resize(224),
+                transforms.Resize(
+                    224, interpolation=transforms.InterpolationMode.BILINEAR, antialias=True
+                ),
                 transforms.CenterCrop(224),
                 _get_normalize_transform(dataset_name),
             ]
