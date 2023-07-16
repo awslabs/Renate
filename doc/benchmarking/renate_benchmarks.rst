@@ -184,7 +184,7 @@ The first part contains all instances with classes 1 and 2, the second with clas
     * - Scenario Name
       - Description
       - Settings
-    * - :py:class:`~renate.benchmark.scenarios.TimeScenario`
+    * - :py:class:`~renate.benchmark.scenarios.TimeIncrementalScenario`
       - Used in combination only with Wild-Time datasets or CLEAR. This is not the scenario used in the paper.
         Data is presented time step by time step and the model is evaluated on test data up to the
         current time step.

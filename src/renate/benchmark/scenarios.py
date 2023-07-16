@@ -388,12 +388,13 @@ class HueShiftScenario(_SortingScenario):
         return scores
 
 
-class TimeScenario(Scenario):
+class TimeIncrementalScenario(Scenario):
     """Creating a time-incremental scenario for specific datasets.
 
     Supports the Wild Time datasets and CLEAR.
-    DataModules that want to use the TimeScenario, need to have an attribute ``time_step``.
-    Setting this variable and then calling ``setup()`` should load the time-specific datasets.
+    DataModules that want to use the TimeIncrementalScenario, need to have an attribute
+    ``time_step``. Setting this variable and then calling ``setup()`` should load the time-specific
+    datasets.
 
     Args:
         data_module: The source RenateDataModule for the user data.

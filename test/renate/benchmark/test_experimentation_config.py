@@ -28,7 +28,7 @@ from renate.benchmark.scenarios import (
     IIDScenario,
     ImageRotationScenario,
     PermutationScenario,
-    TimeScenario,
+    TimeIncrementalScenario,
 )
 from renate.models.prediction_strategies import ICaRLClassificationStrategy
 
@@ -200,19 +200,19 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             HueShiftScenario,
             3,
         ),
-        ("TimeScenario", "CLEAR10", {"num_tasks": 5}, TimeScenario, 5),
+        ("TimeIncrementalScenario", "CLEAR10", {"num_tasks": 5}, TimeIncrementalScenario, 5),
         (
-            "TimeScenario",
+            "TimeIncrementalScenario",
             "arxiv",
             {"num_tasks": 3, "pretrained_model_name": "distilbert-base-uncased"},
-            TimeScenario,
+            TimeIncrementalScenario,
             3,
         ),
         (
-            "TimeScenario",
+            "TimeIncrementalScenario",
             "fmow",
             {},
-            TimeScenario,
+            TimeIncrementalScenario,
             16,
         ),
     ),
@@ -255,10 +255,10 @@ def test_data_module_fn(
         assert scenario._randomness == scenario_kwargs["randomness"]
     elif expected_scenario_class == HueShiftScenario:
         assert scenario._randomness == scenario_kwargs["randomness"]
-    elif expected_scenario_class == TimeScenario:
+    elif expected_scenario_class == TimeIncrementalScenario:
         if "pretrained_model_name" in scenario_kwargs:
             assert scenario._data_module._tokenizer is not None
-        else:
+        elif dataset_name not in ["CLEAR10", "CLEAR100"]:
             assert scenario._data_module._tokenizer is None
     assert scenario._num_tasks == expected_num_tasks
 

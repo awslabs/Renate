@@ -38,7 +38,7 @@ from renate.benchmark.scenarios import (
     ImageRotationScenario,
     PermutationScenario,
     Scenario,
-    TimeScenario,
+    TimeIncrementalScenario,
 )
 from renate.data.data_module import RenateDataModule
 from renate.models import RenateModule
@@ -221,8 +221,8 @@ def get_scenario(
             chunk_id=chunk_id,
             seed=seed,
         )
-    if scenario_name == "TimeScenario":
-        return TimeScenario(
+    if scenario_name == "TimeIncrementalScenario":
+        return TimeIncrementalScenario(
             data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed
         )
     raise ValueError(f"Unknown scenario `{scenario_name}`.")
@@ -288,8 +288,8 @@ def _get_normalize_transform(dataset_name):
         )
     if dataset_name in ["CLEAR10", "CLEAR100"]:
         return transforms.Normalize(
-            CLEARDataModule.dataset_stats["mean"],
-            CLEARDataModule.dataset_stats["std"],
+            CLEARDataModule.dataset_stats[dataset_name]["mean"],
+            CLEARDataModule.dataset_stats[dataset_name]["std"],
         )
 
 
