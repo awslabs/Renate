@@ -7,7 +7,6 @@ from torch.optim.lr_scheduler import StepLR
 from torchmetrics.classification import MulticlassAccuracy
 from torchvision.transforms import Compose, Normalize
 
-from renate.benchmark import experiment_config
 from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
 from renate.benchmark.datasets.vision_datasets import CLEARDataModule, TorchVisionDataModule
 from renate.benchmark.experiment_config import (
@@ -19,6 +18,7 @@ from renate.benchmark.experiment_config import (
     metrics_fn,
     model_fn,
     models,
+    test_transform,
     train_transform,
 )
 from renate.benchmark.scenarios import (
@@ -264,21 +264,25 @@ def test_data_module_fn(
 
 
 @pytest.mark.parametrize(
-    "dataset_name,use_transforms",
+    "dataset_name,use_transforms,test_compose",
     (
-        ("MNIST", False),
-        ("FashionMNIST", False),
-        ("CIFAR10", True),
-        ("CIFAR100", True),
-        ("hfd-rotten_tomatoes", False),
+        ("MNIST", False, False),
+        ("FashionMNIST", False, False),
+        ("CIFAR10", True, False),
+        ("CIFAR100", True, False),
+        ("CLEAR10", True, True),
+        ("hfd-rotten_tomatoes", False, False),
     ),
 )
-def test_transforms(dataset_name, use_transforms):
+def test_transforms(dataset_name, use_transforms, test_compose):
     train_preprocessing = train_transform(dataset_name)
-    test_preprocessing = experiment_config.test_transform(dataset_name)
+    test_preprocessing = test_transform(dataset_name)
     if use_transforms:
         assert isinstance(train_preprocessing, Compose)
-        assert isinstance(test_preprocessing, Normalize)
+        if test_compose:
+            assert isinstance(test_preprocessing, Compose)
+        else:
+            assert isinstance(test_preprocessing, Normalize)
     else:
         assert train_preprocessing is None
         assert test_preprocessing is None
@@ -286,7 +290,7 @@ def test_transforms(dataset_name, use_transforms):
 
 def test_transforms_fails_for_unknown_dataset():
     unknown_dataset_set = "UNKNOWN_DATASET_NAME"
-    for transform_function in [train_transform, experiment_config.test_transform]:
+    for transform_function in [train_transform, test_transform]:
         with pytest.raises(ValueError, match=f"Unknown dataset `{unknown_dataset_set}`"):
             transform_function(unknown_dataset_set)
 
