@@ -194,7 +194,7 @@ class CLEARDataModule(RenateDataModule):
 
     Args:
         data_path: the path to the folder containing the dataset files.
-        time_step: Loads CLEAR dataset for this time step. Options: 0 to 9.
+        time_step: Loads CLEAR dataset for this time step. Options: CLEAR10: [0,9], CLEAR100: [0,10]
         src_bucket: the name of the s3 bucket. If not provided, downloads the data from original
             source.
         src_object_name: the folder path in the s3 bucket.
@@ -233,10 +233,8 @@ class CLEARDataModule(RenateDataModule):
             seed=seed,
         )
         self._dataset_name = dataset_name.lower()
-        if self._dataset_name == "clear10":
-            time_step += 1
         assert self._dataset_name in ["clear10", "clear100"]
-        assert 0 <= time_step <= 10
+        assert 0 <= time_step <= (9 if self._dataset_name == "clear10" else 10)
         self.time_step = time_step
 
     def prepare_data(self) -> None:
@@ -257,10 +255,11 @@ class CLEARDataModule(RenateDataModule):
 
     def setup(self) -> None:
         """Set up train, test and val datasets."""
-        X, y = self._get_filepaths_and_labels(train=True, time_step=self.time_step)
+        time_step = self.time_step + 1 if self._dataset_name == "clear10" else self.time_step
+        X, y = self._get_filepaths_and_labels(train=True, time_step=time_step)
         train_data = ImageDataset(X, y, transform=transforms.ToTensor())
         self._train_data, self._val_data = self._split_train_val_data(train_data)
-        X, y = self._get_filepaths_and_labels(train=False, time_step=self.time_step)
+        X, y = self._get_filepaths_and_labels(train=False, time_step=time_step)
         self._test_data = ImageDataset(X, y, transform=transforms.ToTensor())
 
     def _get_filepaths_and_labels(self, train: bool, time_step: int) -> Tuple[List[str], List[int]]:
