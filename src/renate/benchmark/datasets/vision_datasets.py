@@ -1,5 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+import json
 import os
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
@@ -209,26 +210,34 @@ class CLEARDataModule(RenateDataModule):
 
     Args:
         data_path: the path to the folder containing the dataset files.
+        time_step: Loads CLEAR dataset for this time step. Options: CLEAR10: [0,9], CLEAR100: [0,10]
         src_bucket: the name of the s3 bucket. If not provided, downloads the data from original
             source.
         src_object_name: the folder path in the s3 bucket.
         dataset_name: CLEAR dataset name, options are clear10 and clear100.
-        chunk_id: Used to define the CLEAR dataset splits. There are 10 splits in total with ids
-            from 0 to 9.
         val_size: Fraction of the training data to be used for validation.
         seed: Seed used to fix random number generation.
     """
 
-    md5s = {"clear10-public.zip": "04d3b228599bdd5a874c261907ebe217"}
-    dataset_stats = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
+    dataset_stats = {
+        "CLEAR10": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
+        "CLEAR100": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
+    }
+
+    md5s = {
+        "clear10-train-image-only.zip": "5171f720810d60b471c308dee595d430",
+        "clear100-train-image-only.zip": "ea85cdba9efcb3abf77eaab5554052c8",
+        "clear10-test.zip": "bf9a85bfb78fe742c7ed32648c9a3275",
+        "clear100-test.zip": "e160815fb5fd4bc71dacd339ff41e6a9",
+    }
 
     def __init__(
         self,
         data_path: Union[Path, str],
+        time_step: int = 0,
         src_bucket: Optional[str] = None,
         src_object_name: Optional[str] = None,
         dataset_name: str = "CLEAR10",
-        time_step: int = 0,
         val_size: float = defaults.VALIDATION_SIZE,
         seed: int = defaults.SEED,
     ):
@@ -241,69 +250,58 @@ class CLEARDataModule(RenateDataModule):
         )
         self._dataset_name = dataset_name.lower()
         assert self._dataset_name in ["clear10", "clear100"]
-        assert 0 <= time_step <= 9
-        self._time_step = time_step
+        assert 0 <= time_step <= (9 if self._dataset_name == "clear10" else 10)
+        self.time_step = time_step
 
     def prepare_data(self) -> None:
         """Download CLEAR dataset with given dataset_name (clear10/clear100)."""
-        CLEAR(
-            data_name=self._dataset_name,
-            evaluation_protocol="iid",
-            feature_type=None,
-            seed=self._seed,
-            train_transform=None,
-            eval_transform=None,
-            dataset_root=self._data_path,
-        )
-        """
-        file_name = f"{self._dataset_name}-public.zip"
-        if not self._verify_file(file_name):
-            download_and_unzip_file(
-                self._dataset_name,
-                self._data_path,
-                self._src_bucket,
-                self._src_object_name,
-                "https://clear-challenge.s3.us-east-2.amazonaws.com/",
-                file_name,
-            )
-        """
+        for file_name in [
+            f"{self._dataset_name}-train-image-only.zip",
+            f"{self._dataset_name}-test.zip",
+        ]:
+            if not self._verify_file(file_name):
+                download_and_unzip_file(
+                    self._dataset_name,
+                    self._data_path,
+                    self._src_bucket,
+                    self._src_object_name,
+                    "https://clear-challenge.s3.us-east-2.amazonaws.com/",
+                    file_name,
+                )
 
     def setup(self) -> None:
         """Set up train, test and val datasets."""
-        benchmark = CLEAR(
-            data_name=self._dataset_name,
-            evaluation_protocol="iid",
-            feature_type=None,
-            seed=self._seed,
-            train_transform=None,
-            eval_transform=None,
-            dataset_root=self._data_path,
-        )
-        self._train_data = DataWrapper(benchmark.train_stream[self._time_step].dataset)
-        # self._val_data = DataWrapper(benchmark.test_stream[self._time_step].dataset)
-        self._test_data = DataWrapper(benchmark.test_stream[self._time_step].dataset)
-        """
-        file_paths, labels = self._get_filepaths_and_labels(chunk_id=self._chunk_id)
-        dataset = ImageDataset(file_paths, labels, transform=transforms.ToTensor())
-        self._train_data, self._test_data = randomly_split_data(dataset, [0.7, 0.3], self._seed)
-        self._train_data, self._val_data = self._split_train_val_data(self._train_data)
-        """
+        time_step = self.time_step + 1 if self._dataset_name == "clear10" else self.time_step
+        X, y = self._get_filepaths_and_labels(train=True, time_step=time_step)
+        train_data = ImageDataset(X, y, transform=transforms.ToTensor())
+        self._train_data, self._val_data = self._split_train_val_data(train_data)
+        X, y = self._get_filepaths_and_labels(train=False, time_step=time_step)
+        self._test_data = ImageDataset(X, y, transform=transforms.ToTensor())
 
-    def _get_filepaths_and_labels(self, chunk_id: int) -> Tuple[List[str], List[int]]:
+    def _get_filepaths_and_labels(self, train: bool, time_step: int) -> Tuple[List[str], List[int]]:
         """Extracts all the filepaths and labels for a given chunk id and split."""
         path = os.path.join(self._data_path, self._dataset_name)
 
-        file_paths, labels = [], []
-        with open(
-            os.path.join(path, "training_folder", "filelists", str(chunk_id + 1), "all.txt"), "r"
-        ) as f:
-            for line in f.readlines():
-                file_path, label = line.split(" ")
-                label = int(label)
-                file_paths.append(os.path.join(path, file_path))
+        # Load the class names and create a class mapping. The class names are in `class_names.txt`
+        with open(os.path.join(path, "train_image_only", "class_names.txt"), "r") as f:
+            class_names = [line.strip() for line in f.readlines()]
+            label_encoding = {name: cnt for cnt, name in enumerate(class_names)}
+
+        path = os.path.join(path, "train_image_only" if train else "test")
+        with open(os.path.join(path, "labeled_metadata.json"), "r") as f:
+            metadata = json.load(f)
+
+        image_paths = []
+        labels = []
+        for class_name, class_metadata_file in metadata[str(time_step)].items():
+            label = label_encoding[class_name]
+            with open(os.path.join(path, class_metadata_file), "r") as f:
+                class_metadata = json.load(f)
+            for image_metadata in class_metadata.values():
+                image_paths.append(os.path.join(path, image_metadata["IMG_PATH"]))
                 labels.append(label)
 
-        return file_paths, labels
+        return image_paths, labels
 
 
 class DomainNetDataModule(RenateDataModule):

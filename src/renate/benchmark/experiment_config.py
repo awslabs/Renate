@@ -39,7 +39,6 @@ from renate.benchmark.models import (
 from renate.benchmark.models.transformer import HuggingFaceSequenceClassificationTransformer
 from renate.benchmark.scenarios import (
     AmazonReviewScenario,
-    BenchmarkScenario,
     ClassIncrementalScenario,
     DomainNetScenario,
     FeatureSortingScenario,
@@ -48,7 +47,7 @@ from renate.benchmark.scenarios import (
     ImageRotationScenario,
     PermutationScenario,
     Scenario,
-    WildTimeScenario,
+    TimeIncrementalScenario,
 )
 from renate.data.data_module import RenateDataModule
 from renate.models import RenateModule
@@ -215,10 +214,6 @@ def get_scenario(
             class_groupings=class_groupings,
             chunk_id=chunk_id,
         )
-    if scenario_name == "BenchmarkScenario":
-        return BenchmarkScenario(
-            data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed
-        )
     if scenario_name == "IIDScenario":
         return IIDScenario(
             data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed
@@ -252,8 +247,8 @@ def get_scenario(
             chunk_id=chunk_id,
             seed=seed,
         )
-    if scenario_name == "WildTimeScenario":
-        return WildTimeScenario(
+    if scenario_name == "TimeIncrementalScenario":
+        return TimeIncrementalScenario(
             data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed
         )
     if scenario_name == "AmazonReviewScenario":
@@ -331,12 +326,12 @@ def _get_normalize_transform(dataset_name):
             TorchVisionDataModule.dataset_stats[dataset_name]["mean"],
             TorchVisionDataModule.dataset_stats[dataset_name]["std"],
         )
-    elif dataset_name in ["CLEAR10", "CLEAR100"]:
+    if dataset_name in ["CLEAR10", "CLEAR100"]:
         return transforms.Normalize(
-            CLEARDataModule.dataset_stats["mean"],
-            CLEARDataModule.dataset_stats["std"],
+            CLEARDataModule.dataset_stats[dataset_name]["mean"],
+            CLEARDataModule.dataset_stats[dataset_name]["std"],
         )
-    elif dataset_name == "DomainNet":
+    if dataset_name == "DomainNet":
         return transforms.Normalize(
             DomainNetDataModule.dataset_stats["all"]["mean"],
             DomainNetDataModule.dataset_stats["all"]["std"],
