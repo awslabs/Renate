@@ -34,7 +34,11 @@ from renate.utils.hf_utils import BatchEncoding, DataCollatorWithPaddingForWildT
             torch.Size([2, 6]),
             False,
         ),
-        ([1, ({"input_ids": [0, 1, 2]}, 0)], [2, ({"input_ids": [0, 1, 2, 3, 4, 5]}, 1)]),
+        (
+            [[1, ({"input_ids": [0, 1, 2]}, 0)], [2, ({"input_ids": [0, 1, 2, 3, 4, 5]}, 1)]],
+            torch.Size([2]),
+            False,
+        ),
         (
             [
                 ({"input_ids": [1, 2, 4]}, 0, {}),
@@ -52,6 +56,8 @@ def test_serialize_wildtime_collator(features, shape, error, tokenizer):
         print(collator(features))
         if isinstance(out, (dict, BatchEncoding)):
             assert out["input_ids"].shape == shape
+        elif isinstance(out, torch.Tensor):
+            assert out.shape == shape
         else:
             assert out[0]["input_ids"].shape == shape
     else:
