@@ -6,6 +6,7 @@ from typing import List, Optional
 
 import torch
 from torch.utils.data import Dataset, random_split
+from transformers import BatchEncoding
 
 from renate import defaults
 from renate.types import NestedTensors
@@ -72,7 +73,7 @@ def move_tensors_to_device(tensors: NestedTensors, device: torch.device) -> Nest
 
     The collection `tensors` can be a nested structure of tensors, tuples, lists, and dicts.
     """
-    if isinstance(tensors, torch.Tensor):
+    if isinstance(tensors, (BatchEncoding, torch.Tensor)):
         return tensors.to(device)
     elif isinstance(tensors, tuple):
         return tuple(move_tensors_to_device(t, device) for t in tensors)

@@ -28,12 +28,13 @@ from renate.utils.hf_utils import BatchEncoding, DataCollatorWithPaddingForWildT
         ),
         (
             [
-                (({"input_ids": [1, 2, 4]}, 0), [1, 2]),
-                (({"input_ids": [4, 5, 6, 7, 8, 9]}, 1), [5, 6]),
+                (({"input_ids": [1, 2, 4]}, 0), {"logits": [0.1, 0.2, 0.3]}),
+                (({"input_ids": [4, 5, 6, 7, 8, 9]}, 1), {"logits": [0.3, 0.4, 0.5]}),
             ],
             torch.Size([2, 6]),
             False,
         ),
+        ([1, ({"input_ids": [0, 1, 2]}, 0)], [2, ({"input_ids": [0, 1, 2, 3, 4, 5]}, 1)]),
         (
             [
                 ({"input_ids": [1, 2, 4]}, 0, {}),
