@@ -81,6 +81,7 @@ def test_continuation_of_training_with_avalanche_model_updater(tmpdir, learner_c
     [[20, 10, 0.5], [30, 10, 0.33], [20, 100, 0.5], [10, 30, 0.1], [100, 10, 0.03]],
 )
 def test_experience_replay_buffer_size(tmpdir, batch_size, memory_size, batch_memory_frac):
+    expected_memory_batch_size = round(batch_memory_frac * batch_size)
     dataset_size = 100
     model, dataset = get_model_and_dataset(dataset_size)
     learner_kwargs = {
@@ -99,7 +100,7 @@ def test_experience_replay_buffer_size(tmpdir, batch_size, memory_size, batch_me
     )
     model_updater.update(train_dataset=dataset)
     replay_plugin = plugin_by_class(ReplayPlugin, model_updater._learner.plugins)
-    assert replay_plugin.batch_size == batch_size
+    assert replay_plugin.batch_size == batch_size - expected_memory_batch_size
     assert replay_plugin.mem_size == memory_size
     assert replay_plugin.batch_size_mem == round(batch_memory_frac * batch_size)
     assert len(replay_plugin.storage_policy.buffer) == min(
@@ -120,7 +121,6 @@ def test_experience_replay_buffer_size(tmpdir, batch_size, memory_size, batch_me
             max_epochs=1,
         )
         replay_plugin = plugin_by_class(ReplayPlugin, model_updater._learner.plugins)
-        expected_memory_batch_size = round(batch_memory_frac * batch_size)
         assert replay_plugin.batch_size == batch_size - expected_memory_batch_size
         assert replay_plugin.mem_size == memory_size
         assert replay_plugin.batch_size_mem == expected_memory_batch_size
