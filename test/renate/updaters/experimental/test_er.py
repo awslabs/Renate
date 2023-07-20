@@ -98,8 +98,7 @@ def test_er_validation_buffer(tmpdir):
             {
                 "alpha": 0.2,
                 "memory_size": 10,
-                "batch_memory_frac": 0.5,
-                "loss_fn": pytest.helpers.get_loss_fn(),
+                "batch_memory_frac": 0.3,
             },
         ],
         [
