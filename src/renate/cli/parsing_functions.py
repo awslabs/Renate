@@ -230,7 +230,8 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
         "max_epochs": {
             "type": int,
             "default": defaults.MAX_EPOCHS,
-            "help": f"Number of epochs trained at most. Default: {defaults.MAX_EPOCHS}",
+            "help": "Maximum number of (finetuning-equivalent) epochs. "
+            f"Default: {defaults.MAX_EPOCHS}",
             "argument_group": OPTIONAL_ARGS_GROUP,
         },
         "task_id": {
