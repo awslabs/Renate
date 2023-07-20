@@ -1,0 +1,9 @@
+{
+  "scenario": "class-incremental-5updates.json",
+  "model": "resnet18-cifar.json",
+  "updater": "cls-er-buffer500.json",
+  "dataset": "cifar10.json",
+  "backend": "sagemaker",
+  "job_name": "class-incremental-resnet18-cls-er",
+  "expected_accuracy": [0, 0, 0, 0, 0]
+}

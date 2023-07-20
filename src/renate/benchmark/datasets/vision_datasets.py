@@ -127,6 +127,8 @@ class TorchVisionDataModule(RenateDataModule):
         },
         "FashionMNIST": {"mean": 0.2860405969887955, "std": 0.3530242445149223},
         "MNIST": {"mean": 0.1306604762738429, "std": 0.30810780385646264},
+        "CLEAR10": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
+        "CLEAR100": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
     }
 
     def __init__(

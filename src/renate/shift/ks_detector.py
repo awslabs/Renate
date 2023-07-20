@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from scipy.stats import kstest
 import torch
+from scipy.stats import kstest
 
 from renate.shift.detector import ShiftDetectorWithFeatureExtractor
 

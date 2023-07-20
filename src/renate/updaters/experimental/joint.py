@@ -1,12 +1,15 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import os
-from typing import Any, Callable, Dict, Optional, Tuple
+from functools import partial
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
 import torchmetrics
 from pytorch_lightning.loggers.logger import Logger
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+from torch.nn import Parameter
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset
 
 from renate import defaults
@@ -53,10 +56,21 @@ class JointLearner(Learner):
         self._memory_buffer.load(os.path.join(input_state_dir, "memory_buffer"))
 
     def on_model_update_start(
-        self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
+        self,
+        train_dataset: Dataset,
+        val_dataset: Dataset,
+        train_dataset_collate_fn: Optional[Callable] = None,
+        val_dataset_collate_fn: Optional[Callable] = None,
+        task_id: Optional[str] = None,
     ) -> None:
         """Called before a model update starts."""
-        super().on_model_update_start(train_dataset, val_dataset, task_id)
+        super().on_model_update_start(
+            train_dataset=train_dataset,
+            val_dataset=val_dataset,
+            train_dataset_collate_fn=train_dataset_collate_fn,
+            val_dataset_collate_fn=val_dataset_collate_fn,
+            task_id=task_id,
+        )
         self._memory_buffer.update(train_dataset)
         reinitialize_model_parameters(self._model)
 
@@ -84,13 +98,9 @@ class JointModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
-        optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
-        learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
-        learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-        learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-        momentum: float = defaults.MOMENTUM,
-        weight_decay: float = defaults.WEIGHT_DECAY,
+        optimizer: Callable[[List[Parameter]], Optimizer],
+        learning_rate_scheduler: Optional[partial] = None,
+        learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
@@ -112,24 +122,20 @@ class JointModelUpdater(SingleTrainingLoopUpdater):
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     ):
         learner_kwargs = {
-            "optimizer": optimizer,
-            "learning_rate": learning_rate,
-            "learning_rate_scheduler": learning_rate_scheduler,
-            "learning_rate_scheduler_gamma": learning_rate_scheduler_gamma,
-            "learning_rate_scheduler_step_size": learning_rate_scheduler_step_size,
-            "momentum": momentum,
-            "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
-            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
+            loss_fn=loss_fn,
+            optimizer=optimizer,
             learner_class=JointLearner,
             learner_kwargs=learner_kwargs,
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            learning_rate_scheduler=learning_rate_scheduler,
+            learning_rate_scheduler_interval=learning_rate_scheduler_interval,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,

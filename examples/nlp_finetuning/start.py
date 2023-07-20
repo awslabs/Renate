@@ -25,8 +25,8 @@ if __name__ == "__main__":
 
     run_training_job(
         config_space=config_space,
-        mode="max",
-        metric="val_accuracy",
+        mode="min",
+        metric="val_loss",
         updater="ER",  # we train with Experience Replay
         max_epochs=5,
         config_file="renate_config.py",

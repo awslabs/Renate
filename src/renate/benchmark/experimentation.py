@@ -14,6 +14,7 @@ import renate
 import renate.defaults as defaults
 from renate.cli.parsing_functions import (
     get_data_module_fn_kwargs,
+    get_metrics_fn_kwargs,
     get_model_fn_kwargs,
     get_scheduler_kwargs,
     get_transforms_kwargs,
@@ -47,22 +48,16 @@ def experiment_config_file():
     return str(Path(renate.__path__[0]) / "benchmark" / "experiment_config.py")
 
 
-def create_cumulative_metrics(task: defaults.SUPPORTED_TASKS_TYPE) -> List[Tuple[str, Callable]]:
+def create_cumulative_metrics() -> List[Tuple[str, Callable]]:
     """Gets the cumulative metrics for a given task along with a name of the metric to include in
     any potential results table.
-
-    Args:
-        task: Whether classification or regression, for now.
     """
-    if task == "classification":
-        return [
-            ("Average Accuracy", average_accuracy),
-            ("Forgetting", forgetting),
-            ("Forward Transfer", forward_transfer),
-            ("Backward Transfer", backward_transfer),
-        ]
-    else:
-        raise NotImplementedError(f"Task {task} not implemented.")
+    return [
+        ("Average Accuracy", average_accuracy),
+        ("Forgetting", forgetting),
+        ("Forward Transfer", forward_transfer),
+        ("Backward Transfer", backward_transfer),
+    ]
 
 
 def cumulative_metrics_summary(
@@ -133,6 +128,7 @@ def execute_experiment_job(
     num_updates: int,
     working_directory: Optional[str] = defaults.WORKING_DIRECTORY,
     requirements_file: Optional[str] = None,
+    dependencies: Optional[List[str]] = None,
     role: Optional[str] = None,
     instance_type: str = defaults.INSTANCE_TYPE,
     instance_count: int = defaults.INSTANCE_COUNT,
@@ -149,6 +145,7 @@ def execute_experiment_job(
     job_name: str = defaults.JOB_NAME,
     strategy: str = defaults.DISTRIBUTED_STRATEGY,
     precision: str = defaults.PRECISION,
+    save_state: bool = defaults.SAVE_BENCHMARK_STATE,
 ) -> None:
     """Executes the experiment job.
 
@@ -164,6 +161,8 @@ def execute_experiment_job(
         num_updates: Number of updates of the experiment job.
         working_directory: Path to the working directory.
         requirements_file: Path to the requirements file.
+        dependencies: (SageMaker backend only) List of strings containing absolute or relative paths
+            to files and directories that will be uploaded as part of the SageMaker training job.
         role: Role of the experiment job.
         instance_type: Instance type of the experiment job.
         instance_count: Instance count of the experiment job.
@@ -179,6 +178,12 @@ def execute_experiment_job(
         deterministic_trainer: When true the Trainer adopts a deterministic behaviour also on GPU.
             In this function this parameter is set to True by default.
         job_name: Name of the experiment job.
+        strategy: Name of the distributed training strategy to use.
+            `More details <https://lightning.ai/docs/pytorch/stable/extensions/strategy.html>`__
+        precision: Type of bit precision to use.
+            `More details <https://lightning.ai/docs/pytorch/stable/common/precision_basic.html>`__
+        save_state: Flag to retain models and buffer states of each update step. Disable to save
+            storage.
     """
     assert (
         mode in defaults.SUPPORTED_TUNING_MODE
@@ -206,6 +211,7 @@ def execute_experiment_job(
             seed=seed,
             strategy=strategy,
             precision=precision,
+            save_state=save_state,
         )
     _execute_experiment_job_remotely(
         job_name=job_name,
@@ -215,6 +221,7 @@ def execute_experiment_job(
         metric=metric,
         num_updates=num_updates,
         working_directory=working_directory,
+        dependencies=dependencies or [],
         config_space=config_space,
         max_time=max_time,
         max_num_trials_started=max_num_trials_started,
@@ -232,6 +239,7 @@ def execute_experiment_job(
         instance_max_time=instance_max_time,
         strategy=strategy,
         precision=precision,
+        save_state=save_state,
     )
 
 
@@ -254,6 +262,7 @@ def _execute_experiment_job_locally(
     deterministic_trainer: bool,
     strategy: str,
     precision: str,
+    save_state: bool,
 ) -> None:
     """Runs an experiment, combining hyperparameter tuning and model for multiple updates.
 
@@ -292,7 +301,8 @@ def _execute_experiment_job_locally(
         data_module.test_data()
     ), f"The dataset has {len(data_module.test_data())} chunks, expected {num_updates}."
     transforms = get_transforms_kwargs(config_module, config_space)
-    metrics = get_metrics(config_module)
+    metrics_fn_kwargs = get_metrics_fn_kwargs(config_module, config_space)
+    metrics = get_metrics(config_module, **metrics_fn_kwargs)
 
     torch.save(
         model.state_dict(),
@@ -301,7 +311,7 @@ def _execute_experiment_job_locally(
 
     # TODO: evaluate's trainer has to use devices=1:
     # See https://github.com/Lightning-AI/lightning/issues/2537
-    # The fix is to launch evaluation in a seperate process like training.
+    # The fix is to launch evaluation in a separate process like training.
     results: Dict[str, List[List[float]]] = {}
     evaluate_and_record_results(
         results,
@@ -347,7 +357,8 @@ def _execute_experiment_job_locally(
             deterministic_trainer=deterministic_trainer,
         )
         move_to_uri(output_state_url, input_state_url)
-        copy_to_uri(input_state_url, update_url)
+        if save_state:
+            copy_to_uri(input_state_url, update_url)
         model = get_model(
             config_module,
             model_state_url=model_url,
@@ -371,12 +382,14 @@ def _execute_experiment_job_locally(
         logger.info(f"### Results after update {update_id + 1}: ###")
         logger.info(df)
 
-    cumulative_metrics = create_cumulative_metrics("classification")
+    cumulative_metrics = create_cumulative_metrics()
     df = cumulative_metrics_summary(results, cumulative_metrics, num_updates - 1)
     save_pandas_df_to_csv(df, defaults.metric_summary_file(logs_url))
     logger.info("### Cumulative results: ###")
     logger.info(df)
 
+    if not save_state:
+        move_to_uri(defaults.hpo_file(input_state_url), str(experiment_outputs_url))
     move_to_uri(logs_url, defaults.logs_folder(experiment_outputs_url))
 
     shutil.rmtree(working_directory)
@@ -392,7 +405,6 @@ def _execute_experiment_job_remotely(experiment_outputs_url: str, **job_kwargs: 
         experiment_outputs_url
     ), f"experiment_outputs_url {experiment_outputs_url} is not on S3."
     return submit_remote_job(
-        source_dir=None,
         experiment_outputs_url=experiment_outputs_url,
         optional_dependencies="benchmark",
         **job_kwargs,

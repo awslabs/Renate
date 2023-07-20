@@ -87,11 +87,12 @@ def test_experience_replay_buffer_size(tmpdir, batch_size, memory_size, batch_me
         "memory_size": memory_size,
         "batch_memory_frac": batch_memory_frac,
         "batch_size": batch_size,
-        "loss_fn": pytest.helpers.get_loss_fn(),
     }
     model_updater = ExperienceReplayAvalancheModelUpdater(
-        output_state_folder=Path(tmpdir) / "0",
+        output_state_folder=str(Path(tmpdir) / "0"),
         model=model,
+        loss_fn=pytest.helpers.get_loss_fn("mean"),
+        optimizer=pytest.helpers.get_partial_optimizer(),
         **learner_kwargs,
         max_epochs=1,
         accelerator="cpu",
@@ -110,9 +111,11 @@ def test_experience_replay_buffer_size(tmpdir, batch_size, memory_size, batch_me
         del replay_plugin
         _, dataset = get_model_and_dataset(dataset_size)
         model_updater = ExperienceReplayAvalancheModelUpdater(
-            input_state_folder=Path(tmpdir) / str(i),
-            output_state_folder=Path(tmpdir) / str(i + 1),
+            input_state_folder=str(Path(tmpdir) / str(i)),
+            output_state_folder=str(Path(tmpdir) / str(i + 1)),
             model=model,
+            loss_fn=pytest.helpers.get_loss_fn("mean"),
+            optimizer=pytest.helpers.get_partial_optimizer(),
             **learner_kwargs,
             max_epochs=1,
         )

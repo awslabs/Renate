@@ -1,9 +1,9 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-import torch
-from torch.utils.data import Dataset, DataLoader
-
 from typing import Optional
+
+import torch
+from torch.utils.data import DataLoader, Dataset
 
 from renate.utils.pytorch import move_tensors_to_device
 

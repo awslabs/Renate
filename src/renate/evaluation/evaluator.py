@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import abc
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
 import torch
 import torchmetrics
@@ -11,7 +11,6 @@ from torch.utils.data import DataLoader, Dataset
 
 from renate import defaults
 from renate.data.datasets import _TransformedDataset
-from renate.evaluation.metrics.utils import create_metrics
 from renate.models import RenateModule
 from renate.utils.distributed_strategies import create_strategy
 from renate.utils.misc import int_or_str
@@ -26,7 +25,6 @@ class Evaluator(LightningModule, abc.ABC):
 
     Args:
         model: A `RenateModule` to be evaluated.
-        task: The machine learning problem considered.
         batch_size: The batch size to be used when creating the test data loader.
         transform: The transformation applied for evaluation.
         target_transform: The target transformation applied for evaluation.
@@ -36,7 +34,6 @@ class Evaluator(LightningModule, abc.ABC):
     def __init__(
         self,
         model: RenateModule,
-        task: defaults.SUPPORTED_TASKS_TYPE,
         batch_size: int,
         transform: Optional[Callable] = None,
         target_transform: Optional[Callable] = None,
@@ -48,10 +45,13 @@ class Evaluator(LightningModule, abc.ABC):
         self._batch_size = batch_size
         self._transform = transform
         self._target_transform = target_transform
-        self._metric_collection = create_metrics(task=task, additional_metrics=logged_metrics)
+        self._metric_collection = torchmetrics.MetricCollection(logged_metrics)
 
     def on_model_test_start(
-        self, test_dataset: Dataset, task_id: Optional[str] = None
+        self,
+        test_dataset: Dataset,
+        test_collate_fn: Optional[Callable] = None,
+        task_id: Optional[str] = None,
     ) -> DataLoader:
         """Called before a model test starts."""
         test_dataset = _TransformedDataset(
@@ -60,7 +60,13 @@ class Evaluator(LightningModule, abc.ABC):
             target_transform=self._target_transform,
         )
         self._task_id = task_id
-        return DataLoader(test_dataset, batch_size=self._batch_size, shuffle=False, pin_memory=True)
+        return DataLoader(
+            test_dataset,
+            batch_size=self._batch_size,
+            shuffle=False,
+            pin_memory=True,
+            collate_fn=test_collate_fn,
+        )
 
     def test_step(self, batch: List[torch.Tensor], batch_idx: int) -> None:
         """PyTorch Lightning function to perform the test step."""
@@ -91,9 +97,6 @@ class ClassificationEvaluator(Evaluator):
     dataset.
     """
 
-    def __init__(self, **kwargs: Any):
-        super().__init__(task="classification", **kwargs)
-
     def forward(self, x, task_id: Optional[str] = None) -> torch.Tensor:
         """Forward pass of the model.
 
@@ -108,6 +111,7 @@ class ClassificationEvaluator(Evaluator):
 def evaluate(
     model: RenateModule,
     test_dataset: Union[List[Dataset], Dataset],
+    test_collate_fn: Optional[Callable] = None,
     task_id: Union[List[str], str] = defaults.TASK_ID,
     batch_size: int = defaults.BATCH_SIZE,
     transform: Optional[Callable] = None,
@@ -130,6 +134,7 @@ def evaluate(
     Args:
         model: A `RenateModule` to be evaluated.
         test_dataset: The test dataset(s) to be evaluated.
+        test_collate_fn: collate_fn used in the DataLoader.
         task_id: The task id(s) of the test dataset(s).
         batch_size: The batch size to be used when creating the test data loader.
         transform: The transformation applied for evaluation.
@@ -140,6 +145,10 @@ def evaluate(
         devices: Devices used by PyTorch Lightning to train the model. If the devices flag is not
             defined, it will assume devices to be "auto" and fetch the `auto_device_count` from the
             `accelerator`.
+        strategy: Name of the distributed training strategy to use.
+            `More details <https://lightning.ai/docs/pytorch/stable/extensions/strategy.html>`__
+        precision: Type of bit precision to use.
+            `More details <https://lightning.ai/docs/pytorch/stable/common/precision_basic.html>`__
     """
     if isinstance(test_dataset, Dataset):
         test_dataset = [test_dataset]
@@ -169,7 +178,7 @@ def evaluate(
 
     results = {}
     for i in range(len(test_dataset)):
-        test_loader = evaluator.on_model_test_start(test_dataset[i], task_id[i])
+        test_loader = evaluator.on_model_test_start(test_dataset[i], test_collate_fn, task_id[i])
         trainer.test(
             evaluator,
             test_loader,

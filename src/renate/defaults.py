@@ -10,12 +10,10 @@ from syne_tune.optimizer.schedulers import FIFOScheduler
 OPTIMIZER = "Adam"
 SUPPORTED_OPTIMIZERS = ["Adam", "SGD"]
 SUPPORTED_OPTIMIZERS_TYPE = Literal["Adam", "SGD"]
+LR_SCHEDULER_INTERVAL = "epoch"
+SUPPORTED_LR_SCHEDULER_INTERVAL = ["epoch", "step"]
+SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = Literal["epoch", "step"]
 LEARNING_RATE = 3e-4
-LEARNING_RATE_SCHEDULER = "ConstantLR"
-LEARNING_RATE_SCHEDULER_GAMMA = 1.0
-LEARNING_RATE_SCHEDULER_STEP_SIZE = 1
-SUPPORTED_LEARNING_RATE_SCHEDULERS = ["ConstantLR", "ExponentialLR", "StepLR"]
-SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = Literal["ConstantLR", "ExponentialLR", "StepLR"]
 MOMENTUM = 0.0
 WEIGHT_DECAY = 0.0
 MAX_EPOCHS = 50
@@ -46,7 +44,6 @@ PYTHON_VERSION = "py38"
 FRAMEWORK_VERSION = "1.12.0"
 
 TASK_ID = "default_task"
-SUPPORTED_TASKS_TYPE = Literal["classification", "regression"]
 WORKING_DIRECTORY = "renate_working_dir"
 LOGGER = TensorBoardLogger
 LOGGER_KWARGS = {
@@ -58,6 +55,7 @@ JOB_KWARGS_FILE = "job_kwargs.json"
 JOB_NAME = "renate"
 SUPPORTED_TUNING_MODE = ["min", "max"]
 SUPPORTED_TUNING_MODE_TYPE = Literal["min", "max"]
+SAVE_BENCHMARK_STATE = True
 
 SUPPORTED_BACKEND = ["local", "sagemaker"]
 SUPPORTED_BACKEND_TYPE = Literal["local", "sagemaker"]

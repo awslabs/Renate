@@ -1,12 +1,15 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Any, Callable, Dict, Optional, Tuple
+from functools import partial
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
 import torchmetrics
 from pytorch_lightning.loggers.logger import Logger
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+from torch.nn import Parameter
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset
 
 from renate import defaults
@@ -15,6 +18,7 @@ from renate.models import RenateModule
 from renate.types import NestedTensors
 from renate.updaters.learner import ReplayLearner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
+from renate.utils.pytorch import move_tensors_to_device
 
 
 class OfflineExperienceReplayLearner(ReplayLearner):
@@ -37,11 +41,7 @@ class OfflineExperienceReplayLearner(ReplayLearner):
             samples.
     """
 
-    def __init__(
-        self,
-        loss_weight_new_data: Optional[float] = None,
-        **kwargs,
-    ) -> None:
+    def __init__(self, loss_weight_new_data: Optional[float] = None, **kwargs) -> None:
         super().__init__(**kwargs)
         if loss_weight_new_data is not None and not (0.0 <= loss_weight_new_data <= 1.0):
             raise ValueError(
@@ -58,10 +58,21 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         self._loss_collections["train_losses"]["memory_loss"] = torchmetrics.MeanMetric()
 
     def on_model_update_start(
-        self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
+        self,
+        train_dataset: Dataset,
+        val_dataset: Dataset,
+        train_dataset_collate_fn: Optional[Callable] = None,
+        val_dataset_collate_fn: Optional[Callable] = None,
+        task_id: Optional[str] = None,
     ) -> None:
         """Called before a model update starts."""
-        super().on_model_update_start(train_dataset, val_dataset, task_id)
+        super().on_model_update_start(
+            train_dataset=train_dataset,
+            val_dataset=val_dataset,
+            train_dataset_collate_fn=train_dataset_collate_fn,
+            val_dataset_collate_fn=val_dataset_collate_fn,
+            task_id=task_id,
+        )
         self._num_points_current_task = len(train_dataset)
 
     def train_dataloader(self) -> DataLoader:
@@ -111,16 +122,31 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         else:
             alpha = self._loss_weight_new_data
         inputs, targets = batch["current_task"]
-        outputs = self(inputs)
-        loss = self._loss_fn(outputs, targets)
-        self._loss_collections["train_losses"]["base_loss"](loss)
-        self._update_metrics(outputs, targets, "train")
+        device = inputs.device
+        batch_size_current = inputs.shape[0]
+        batch_size_mem = 0
         if "memory" in batch:
             (inputs_mem, targets_mem), _ = batch["memory"]
-            outputs_mem = self(inputs_mem)
-            loss_mem = self._loss_fn(outputs_mem, targets_mem)
-            self._loss_collections["train_losses"]["memory_loss"](loss_mem)
-            loss = alpha * loss + (1.0 - alpha) * loss_mem
+            batch_size_mem = inputs_mem.shape[0]
+            inputs = torch.cat((inputs, inputs_mem), 0)
+            targets = torch.cat((targets, targets_mem), 0)
+        outputs = self(inputs)
+        loss = self._loss_fn(outputs, targets)
+        if "memory" in batch:
+            weights = torch.Tensor(
+                [
+                    [alpha for _ in range(batch_size_current)]
+                    + [(1 - alpha) for _ in range(batch_size_mem)]
+                ]
+            )
+            self._loss_collections["train_losses"]["memory_loss"](loss[batch_size_current:].mean())
+            self._loss_collections["train_losses"]["base_loss"](loss[:batch_size_current].mean())
+            weights = move_tensors_to_device(weights, device=device)
+            loss = weights / weights.mean() * loss
+        else:
+            self._loss_collections["train_losses"]["base_loss"](loss[:batch_size_current].mean())
+        loss = loss.mean()
+        self._update_metrics(outputs, targets, "train")
         return {"loss": loss}
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
@@ -137,16 +163,12 @@ class OfflineExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
+        optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
         batch_memory_frac: float = defaults.BATCH_MEMORY_FRAC,
         loss_weight_new_data: Optional[float] = None,
-        optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
-        learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
-        learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-        learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-        momentum: float = defaults.MOMENTUM,
-        weight_decay: float = defaults.WEIGHT_DECAY,
+        learning_rate_scheduler: Optional[partial] = None,
+        learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
@@ -173,24 +195,20 @@ class OfflineExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             "memory_size": memory_size,
             "batch_memory_frac": batch_memory_frac,
             "loss_weight_new_data": loss_weight_new_data,
-            "optimizer": optimizer,
-            "learning_rate": learning_rate,
-            "learning_rate_scheduler": learning_rate_scheduler,
-            "learning_rate_scheduler_gamma": learning_rate_scheduler_gamma,
-            "learning_rate_scheduler_step_size": learning_rate_scheduler_step_size,
-            "momentum": momentum,
-            "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
-            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
+            loss_fn=loss_fn,
+            optimizer=optimizer,
             learner_class=OfflineExperienceReplayLearner,
             learner_kwargs=learner_kwargs,
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            learning_rate_scheduler=learning_rate_scheduler,
+            learning_rate_scheduler_interval=learning_rate_scheduler_interval,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,

@@ -1,13 +1,12 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import torch
-from torchvision.models import resnet18, ResNet18_Weights
+from torchvision.models import ResNet18_Weights, resnet18
 from torchvision.transforms import GaussianBlur
 
 from renate.benchmark.datasets.vision_datasets import TorchVisionDataModule
 from renate.data.datasets import _TransformedDataset
 from renate.shift.mmd_detectors import MMDCovariateShiftDetector
-
 
 # Load CIFAR-10 training dataset.
 data_module = TorchVisionDataModule(data_path="data", dataset_name="CIFAR10", val_size=0.2)

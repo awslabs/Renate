@@ -17,7 +17,7 @@ from renate.utils.deepspeed import recover_object_from_tensor
 
 def test_failing_to_init_abs_class():
     with pytest.raises(TypeError):
-        RenateModule({"toy_hyperparam": 1.0}, torch.nn.CrossEntropyLoss())
+        RenateModule({"toy_hyperparam": 1.0}, pytest.helpers.get_loss_fn())
 
 
 @pytest.mark.parametrize(
@@ -43,7 +43,7 @@ def test_renate_model_save(tmpdir, model):
 
 
 @pytest.mark.parametrize(
-    "test_case,test_cls,loss_fn",
+    "test_case,test_cls",
     [
         [
             pytest.helpers.get_renate_module_mlp_and_data(
@@ -55,7 +55,6 @@ def test_renate_model_save(tmpdir, model):
                 test_num_samples=5,
             ),
             MultiLayerPerceptron,
-            torch.nn.CrossEntropyLoss,
         ],
         [
             pytest.helpers.get_renate_vision_module_and_data(
@@ -67,7 +66,6 @@ def test_renate_model_save(tmpdir, model):
                 test_num_samples=5,
             ),
             ResNet,
-            torch.nn.CrossEntropyLoss,
         ],
         [
             pytest.helpers.get_renate_vision_module_and_data(
@@ -79,17 +77,16 @@ def test_renate_model_save(tmpdir, model):
                 test_num_samples=5,
             ),
             VisionTransformer,
-            torch.nn.CrossEntropyLoss,
         ],
     ],
 )
-def test_renate_model_singlehead_save_and_load(tmpdir, test_case, test_cls, loss_fn):
+def test_renate_model_singlehead_save_and_load(tmpdir, test_case, test_cls):
     model, _, test_data = test_case
     model.eval()
 
     y = torch.randint(3, 8, (5,))
     y_hat_pre_save = model(test_data)
-    loss_pre_save = loss_fn()(y_hat_pre_save, y)
+    loss_pre_save = pytest.helpers.get_loss_fn("mean")(y_hat_pre_save, y)
 
     torch.save(model.state_dict(), os.path.join(tmpdir, "test_model.pt"))
     state = torch.load(os.path.join(tmpdir, "test_model.pt"))
@@ -98,7 +95,7 @@ def test_renate_model_singlehead_save_and_load(tmpdir, test_case, test_cls, loss
     model2 = test_cls.from_state_dict(state)
     model2.eval()
     y_hat_post_load = model2(test_data)
-    loss_post_load = loss_fn()(y_hat_post_load, y)
+    loss_post_load = pytest.helpers.get_loss_fn("mean")(y_hat_post_load, y)
 
     assert torch.allclose(y_hat_pre_save, y_hat_post_load)
     assert torch.allclose(loss_post_load, loss_pre_save)

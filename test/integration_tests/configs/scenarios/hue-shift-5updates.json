@@ -1,0 +1,8 @@
+{
+  "val_size": 0.05,
+  "scenario_name": "HueShiftScenario",
+  "feature_idx": 0,
+  "randomness": 0,
+  "num_tasks": 5,
+  "max_epochs": 50
+}

@@ -18,11 +18,14 @@ from renate.cli.parsing_functions import (
 from renate.utils.file import maybe_download_from_s3, move_to_uri
 from renate.utils.module import (
     get_and_setup_data_module,
+    get_learning_rate_scheduler,
     get_loss_fn,
     get_metrics,
     get_model,
+    get_optimizer,
     import_module,
 )
+from renate.utils.optimizer import create_partial_optimizer
 from renate.utils.syne_tune import redirect_to_tmp
 
 logger = logging.getLogger(__name__)
@@ -99,9 +102,11 @@ class ModelUpdaterCLI:
                 "train_transform",
                 "test_transform",
                 "buffer_transform",
-                "metrics_fn",
                 "scheduler_fn",
                 "loss_fn",
+                "optimizer_fn",
+                "lr_scheduler_fn",
+                "metrics_fn",
             ],
             ignore_args=["data_path", "model_state_url"],
         )
@@ -122,15 +127,38 @@ class ModelUpdaterCLI:
         )
         loss_fn = get_loss_fn(
             config_module,
+            not args.updater.startswith("Avalanche-"),
             **get_function_kwargs(args=args, function_args=function_args["loss_fn"]),
         )
-
-        metrics = get_metrics(config_module)
+        partial_optimizer = get_optimizer(
+            config_module,
+            **get_function_kwargs(args=args, function_args=function_args["optimizer_fn"]),
+        )
+        if partial_optimizer is None:
+            partial_optimizer = create_partial_optimizer(
+                optimizer=args.optimizer,
+                lr=args.learning_rate,
+                momentum=args.momentum,
+                weight_decay=args.weight_decay,
+            )
+        lr_scheduler_config = get_learning_rate_scheduler(
+            config_module,
+            **get_function_kwargs(args=args, function_args=function_args["lr_scheduler_fn"]),
+        )
+        lr_scheduler_kwargs = {}
+        if lr_scheduler_config is not None:
+            lr_scheduler_kwargs["learning_rate_scheduler"] = lr_scheduler_config[0]
+            lr_scheduler_kwargs["learning_rate_scheduler_interval"] = lr_scheduler_config[1]
+        metrics = get_metrics(
+            config_module,
+            **get_function_kwargs(args=args, function_args=function_args["metrics_fn"]),
+        )
 
         model_updater_class, learner_kwargs = get_updater_and_learner_kwargs(args)
 
         model_updater = model_updater_class(
             model=model,
+            optimizer=partial_optimizer,
             input_state_folder=self._input_state_folder,
             output_state_folder=self._output_state_folder,
             max_epochs=args.max_epochs,
@@ -145,12 +173,15 @@ class ModelUpdaterCLI:
             deterministic_trainer=args.deterministic_trainer,
             loss_fn=loss_fn,
             **learner_kwargs,
+            **lr_scheduler_kwargs,
             **get_transforms_dict(config_module, args, function_args),
         )
 
         model_updater.update(
             train_dataset=data_module.train_data(),
             val_dataset=data_module.val_data(),
+            train_dataset_collate_fn=data_module.train_collate_fn(),
+            val_dataset_collate_fn=data_module.val_collate_fn(),
             task_id=args.task_id,
         )
 

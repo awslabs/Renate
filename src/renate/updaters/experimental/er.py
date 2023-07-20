@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import abc
+from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
@@ -8,6 +9,8 @@ import torch.nn as nn
 import torchmetrics
 from pytorch_lightning.loggers.logger import Logger
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+from torch.nn import Parameter
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset, Subset
 
 from renate import defaults
@@ -76,10 +79,21 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
             self._loss_collections["train_losses"].update({name: torchmetrics.MeanMetric()})
 
     def on_model_update_start(
-        self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
+        self,
+        train_dataset: Dataset,
+        val_dataset: Dataset,
+        train_dataset_collate_fn: Optional[Callable] = None,
+        val_dataset_collate_fn: Optional[Callable] = None,
+        task_id: Optional[str] = None,
     ) -> None:
         """Called before a model update starts."""
-        super().on_model_update_start(train_dataset, val_dataset, task_id)
+        super().on_model_update_start(
+            train_dataset=train_dataset,
+            val_dataset=val_dataset,
+            train_dataset_collate_fn=train_dataset_collate_fn,
+            val_dataset_collate_fn=val_dataset_collate_fn,
+            task_id=task_id,
+        )
         self._set_memory_loader()
 
     def train_dataloader(self) -> DataLoader:
@@ -135,7 +149,7 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
                     outputs_memory=outputs_memory,
                     batch_memory=batch_memory,
                     intermediate_representation_memory=intermediate_representation_memory,
-                )
+                ).mean()
                 self._loss_collections["train_losses"][name](component_loss)
                 step_output["loss"] += component_loss
                 loss_normalization += component.weight
@@ -502,19 +516,15 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
+        optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
         batch_memory_frac: float = defaults.BATCH_MEMORY_FRAC,
         loss_weight: float = defaults.LOSS_WEIGHT,
         ema_memory_update_gamma: float = defaults.EMA_MEMORY_UPDATE_GAMMA,
         loss_normalization: int = defaults.LOSS_NORMALIZATION,
         alpha: float = defaults.ER_ALPHA,
-        optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
-        learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
-        learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-        learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-        momentum: float = defaults.MOMENTUM,
-        weight_decay: float = defaults.WEIGHT_DECAY,
+        learning_rate_scheduler: Optional[partial] = None,
+        learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
@@ -544,24 +554,20 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             "ema_memory_update_gamma": ema_memory_update_gamma,
             "loss_normalization": loss_normalization,
             "alpha": alpha,
-            "optimizer": optimizer,
-            "learning_rate": learning_rate,
-            "learning_rate_scheduler": learning_rate_scheduler,
-            "learning_rate_scheduler_gamma": learning_rate_scheduler_gamma,
-            "learning_rate_scheduler_step_size": learning_rate_scheduler_step_size,
-            "momentum": momentum,
-            "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
-            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
+            loss_fn=loss_fn,
+            optimizer=optimizer,
             learner_class=ExperienceReplayLearner,
             learner_kwargs=learner_kwargs,
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            learning_rate_scheduler=learning_rate_scheduler,
+            learning_rate_scheduler_interval=learning_rate_scheduler_interval,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,
@@ -586,6 +592,7 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
+        optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
         batch_memory_frac: float = defaults.BATCH_MEMORY_FRAC,
         loss_weight: float = defaults.LOSS_WEIGHT,
@@ -593,13 +600,8 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         loss_normalization: int = defaults.LOSS_NORMALIZATION,
         alpha: float = defaults.DER_ALPHA,
         beta: float = defaults.DER_BETA,
-        optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
-        learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
-        learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-        learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-        momentum: float = defaults.MOMENTUM,
-        weight_decay: float = defaults.WEIGHT_DECAY,
+        learning_rate_scheduler: Optional[partial] = None,
+        learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
@@ -630,24 +632,20 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             "loss_normalization": loss_normalization,
             "alpha": alpha,
             "beta": beta,
-            "optimizer": optimizer,
-            "learning_rate": learning_rate,
-            "learning_rate_scheduler": learning_rate_scheduler,
-            "learning_rate_scheduler_gamma": learning_rate_scheduler_gamma,
-            "learning_rate_scheduler_step_size": learning_rate_scheduler_step_size,
-            "momentum": momentum,
-            "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
-            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
+            loss_fn=loss_fn,
+            optimizer=optimizer,
             learner_class=DarkExperienceReplayLearner,
             learner_kwargs=learner_kwargs,
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            learning_rate_scheduler=learning_rate_scheduler,
+            learning_rate_scheduler_interval=learning_rate_scheduler_interval,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,
@@ -672,6 +670,7 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
+        optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
         batch_memory_frac: float = defaults.BATCH_MEMORY_FRAC,
         loss_weight: float = defaults.LOSS_WEIGHT,
@@ -680,13 +679,8 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
         alpha: float = defaults.POD_ALPHA,
         distillation_type: str = defaults.POD_DISTILLATION_TYPE,
         normalize: bool = defaults.POD_NORMALIZE,
-        optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
-        learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
-        learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-        learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-        momentum: float = defaults.MOMENTUM,
-        weight_decay: float = defaults.WEIGHT_DECAY,
+        learning_rate_scheduler: Optional[partial] = None,
+        learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
@@ -718,24 +712,20 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
             "alpha": alpha,
             "distillation_type": distillation_type,
             "normalize": normalize,
-            "optimizer": optimizer,
-            "learning_rate": learning_rate,
-            "learning_rate_scheduler": learning_rate_scheduler,
-            "learning_rate_scheduler_gamma": learning_rate_scheduler_gamma,
-            "learning_rate_scheduler_step_size": learning_rate_scheduler_step_size,
-            "momentum": momentum,
-            "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
-            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
+            loss_fn=loss_fn,
+            optimizer=optimizer,
             learner_class=PooledOutputDistillationExperienceReplayLearner,
             learner_kwargs=learner_kwargs,
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            learning_rate_scheduler=learning_rate_scheduler,
+            learning_rate_scheduler_interval=learning_rate_scheduler_interval,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,
@@ -760,6 +750,7 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
+        optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
         batch_memory_frac: float = defaults.BATCH_MEMORY_FRAC,
         loss_weight: float = defaults.LOSS_WEIGHT,
@@ -771,13 +762,8 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         plastic_model_update_weight: float = defaults.CLS_PLASTIC_MODEL_UPDATE_WEIGHT,
         stable_model_update_probability: float = defaults.CLS_STABLE_MODEL_UPDATE_PROBABILITY,
         plastic_model_update_probability: float = defaults.CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,
-        optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
-        learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
-        learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-        learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-        momentum: float = defaults.MOMENTUM,
-        weight_decay: float = defaults.WEIGHT_DECAY,
+        learning_rate_scheduler: Optional[partial] = None,
+        learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
@@ -812,24 +798,20 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             "plastic_model_update_weight": plastic_model_update_weight,
             "stable_model_update_probability": stable_model_update_probability,
             "plastic_model_update_probability": plastic_model_update_probability,
-            "optimizer": optimizer,
-            "learning_rate": learning_rate,
-            "learning_rate_scheduler": learning_rate_scheduler,
-            "learning_rate_scheduler_gamma": learning_rate_scheduler_gamma,
-            "learning_rate_scheduler_step_size": learning_rate_scheduler_step_size,
-            "momentum": momentum,
-            "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
-            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
+            loss_fn=loss_fn,
+            optimizer=optimizer,
             learner_class=CLSExperienceReplayLearner,
             learner_kwargs=learner_kwargs,
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            learning_rate_scheduler=learning_rate_scheduler,
+            learning_rate_scheduler_interval=learning_rate_scheduler_interval,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,
@@ -854,6 +836,7 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
+        optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
         batch_memory_frac: float = defaults.BATCH_MEMORY_FRAC,
         loss_weight: float = defaults.LOSS_WEIGHT,
@@ -871,13 +854,8 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         pod_alpha: float = defaults.SER_POD_ALPHA,
         pod_distillation_type: str = defaults.SER_POD_DISTILLATION_TYPE,
         pod_normalize: bool = defaults.SER_POD_NORMALIZE,
-        optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
-        learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
-        learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-        learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-        momentum: float = defaults.MOMENTUM,
-        weight_decay: float = defaults.WEIGHT_DECAY,
+        learning_rate_scheduler: Optional[partial] = None,
+        learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
@@ -918,24 +896,20 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             "pod_alpha": pod_alpha,
             "pod_distillation_type": pod_distillation_type,
             "pod_normalize": pod_normalize,
-            "optimizer": optimizer,
-            "learning_rate": learning_rate,
-            "learning_rate_scheduler": learning_rate_scheduler,
-            "learning_rate_scheduler_gamma": learning_rate_scheduler_gamma,
-            "learning_rate_scheduler_step_size": learning_rate_scheduler_step_size,
-            "momentum": momentum,
-            "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
-            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
+            loss_fn=loss_fn,
+            optimizer=optimizer,
             learner_class=SuperExperienceReplayLearner,
             learner_kwargs=learner_kwargs,
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            learning_rate_scheduler=learning_rate_scheduler,
+            learning_rate_scheduler_interval=learning_rate_scheduler_interval,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,

@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 import warnings
 from typing import Optional
-from pytorch_lightning.strategies import Strategy, StrategyRegistry
 
+from pytorch_lightning.strategies import Strategy, StrategyRegistry
 
 _SUPPORTED_STRATEGIES = [
     "ddp_find_unused_parameters_false",
@@ -41,13 +41,13 @@ def create_strategy(devices: int = 1, strategy_name: Optional["str"] = None) -> 
 
         return None
     elif strategy_name in ["none", "None", None]:
-        ## Nothing is specified and devices > 1. Fall back to DDP
+        # Nothing is specified and devices > 1. Fall back to DDP
         return StrategyRegistry.get("ddp")
 
     elif "deepspeed" in strategy_name:
         strategy = StrategyRegistry.get(strategy_name)
 
-        ## TODO: This should be changed to instantiating Deepspeed and settting it in
+        # TODO: This should be changed to instantiating Deepspeed and settting it in
         # the constructor. This works for nowbecause forcing PyTorch optimizer flag isn't used
         # anywhere by Deepspeed.
         strategy.config["zero_force_ds_cpu_optimizer"] = False

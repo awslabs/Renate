@@ -72,7 +72,7 @@ def run_training_job(
     input_state_url: Optional[str] = None,
     output_state_url: Optional[str] = None,
     working_directory: Optional[str] = defaults.WORKING_DIRECTORY,
-    source_dir: Optional[str] = None,
+    dependencies: Optional[List[str]] = None,
     config_file: Optional[str] = None,
     requirements_file: Optional[str] = None,
     role: Optional[str] = None,
@@ -111,7 +111,8 @@ def run_training_job(
         input_state_url: Path to the Renate model state.
         output_state_url: Path where Renate model state will be stored.
         working_directory: Path to the working directory.
-        source_dir: (SageMaker backend only) Root directory which will be moved to SageMaker.
+        dependencies: (SageMaker backend only) List of strings containing absolute or relative paths
+            to files and directories that will be uploaded as part of the SageMaker training job.
         config_file: File containing the definition of `model_fn` and `data_module_fn`.
         requirements_file: (SageMaker backend only) Path to requirements.txt containing environment
             dependencies.
@@ -126,16 +127,18 @@ def run_training_job(
         max_num_trials_finished: Stopping criterion: trials finished.
         max_cost: (SageMaker backend only) Stopping criterion: SageMaker cost.
         n_workers: Number of workers running in parallel.
-        scheduler: Default is random search, you can change it by providing a either a string
+        scheduler: Default is random search, you can change it by providing either a string
             (`random`, `bo`, `asha` or `rush`) or scheduler class and its corresponding
             `scheduler_kwargs` if required. For latter option,
             `see details at <https://github.com/awslabs/syne-tune/blob/main/docs/schedulers.md>`_ .
         scheduler_kwargs: Only required if custom scheduler is provided.
         seed: Seed used for ensuring reproducibility.
         accelerator: Type of accelerator to use.
-        devices: Number of devices to use.
+        devices: Number of devices to use per worker (set in n_workers).
         strategy: Name of the distributed training strategy to use.
+            `More details <https://lightning.ai/docs/pytorch/stable/extensions/strategy.html>`__
         precision: Type of bit precision to use.
+            `More details <https://lightning.ai/docs/pytorch/stable/common/precision_basic.html>`__
         deterministic_trainer: When true the Trainer adopts a deterministic behaviour also on GPU.
         job_name: Prefix for the name of the SageMaker training job.
     """
@@ -188,7 +191,7 @@ def run_training_job(
         max_epochs=max_epochs,
         task_id=task_id,
         chunk_id=chunk_id,
-        source_dir=source_dir,
+        dependencies=dependencies or [],
         requirements_file=requirements_file,
         role=role,
         instance_type=instance_type,
@@ -562,9 +565,8 @@ def _execute_training_and_tuning_job_locally(
             f"Tuning hyperparameters with respect to {metric} ({mode}) for {max_time} seconds on "
             f"{n_workers} worker(s)."
         )
-    # TODO: After bumping up SyneTune >= 0.6, use the argument `num_gpus_per_trial`.
 
-    backend = LocalBackend(entry_point=training_script, rotate_gpus=False if devices > 1 else True)
+    backend = LocalBackend(entry_point=training_script, num_gpus_per_trial=devices)
     if scheduler is None or not tune_hyperparameters:
         if scheduler is not None:
             warnings.warn(
@@ -626,7 +628,7 @@ def _execute_training_and_tuning_job_locally(
 
 
 def submit_remote_job(
-    source_dir: Union[str, None],
+    dependencies: List[str],
     role: str,
     instance_type: str,
     instance_count: int,
@@ -642,12 +644,11 @@ def submit_remote_job(
     job_timestamp = defaults.current_timestamp()
     job_name = f"{job_name}-{job_timestamp}"
     tmp_dir = tempfile.mkdtemp()
-    dependencies = _prepare_remote_job(
+    dependencies += _prepare_remote_job(
         tmp_dir=tmp_dir, optional_dependencies=optional_dependencies, **job_kwargs
     )
     PyTorch(
         entry_point=tuning_script,
-        source_dir=None if source_dir is None else str(source_dir),
         instance_type=instance_type,
         instance_count=instance_count,
         py_version=defaults.PYTHON_VERSION,

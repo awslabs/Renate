@@ -1,0 +1,10 @@
+{
+  "scenario": "class-incremental-5updates.json",
+  "model": "resnet18-cifar.json",
+  "updater": "offline-er-buffer500.json",
+  "dataset": "cifar10.json",
+  "backend": "sagemaker",
+  "job_name": "class-incremental-resnet18-offline-er",
+  "loss_weight_new_data": 0.5,
+  "expected_accuracy": [0, 0, 0, 0, 0]
+}

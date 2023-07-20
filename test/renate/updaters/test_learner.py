@@ -3,8 +3,8 @@
 from typing import Any, Dict, Tuple, Type
 
 import pytest
-from conftest import LEARNER_KWARGS, LEARNERS
 
+from conftest import LEARNERS, LEARNER_KWARGS
 from renate.models import RenateModule
 from renate.updaters.learner import Learner
 
@@ -16,7 +16,12 @@ def get_model_and_learner_and_learner_kwargs(
     model = pytest.helpers.get_renate_module_mlp(
         num_inputs=1, num_outputs=1, hidden_size=1, num_hidden_layers=1
     )
-    learner = learner_class(model=model, **learner_kwargs)
+    learner = learner_class(
+        model=model,
+        loss_fn=pytest.helpers.get_loss_fn(),
+        optimizer=pytest.helpers.get_partial_optimizer(),
+        **learner_kwargs,
+    )
     return model, learner, learner_kwargs
 
 
@@ -33,7 +38,7 @@ def check_learner_variables(learner: Learner, expected_variable_values: Dict[str
 
 
 @pytest.mark.parametrize("learner_class", LEARNERS)
-def test_save_and_load_learner(tmpdir, learner_class):
+def test_save_and_load_learner(learner_class):
     model, learner, learner_kwargs = get_model_and_learner_and_learner_kwargs(learner_class)
     checkpoint_dict = {}
     learner.on_save_checkpoint(checkpoint=checkpoint_dict)

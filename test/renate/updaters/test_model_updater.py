@@ -5,6 +5,7 @@ from copy import deepcopy
 
 import pytest
 import torch
+from pytorch_lightning.utilities.seed import seed_everything
 from torchvision.transforms import Lambda
 
 from conftest import LEARNERS_USING_SIMPLE_UPDATER, LEARNER_KWARGS, check_learner_transforms
@@ -68,12 +69,13 @@ def test_deterministic_updater():
 
 @pytest.mark.parametrize("early_stopping_enabled", [True, False])
 @pytest.mark.parametrize("use_val", [True, False])
-@pytest.mark.parametrize("metric_monitored", [None, "val_accuracy"])
+@pytest.mark.parametrize("metric_monitored", [None, "val_loss"])
 @pytest.mark.parametrize("updater_type", ["DMC", "SimpleUpdater"])
 def test_model_updater_with_early_stopping(
     use_val, early_stopping_enabled, metric_monitored, updater_type
 ):
-    model, train_dataset, val_dataset, loss = pytest.helpers.get_renate_module_mlp_data_and_loss(
+    seed_everything(0)
+    model, train_dataset, val_dataset = pytest.helpers.get_renate_module_mlp_and_data(
         num_inputs=10,
         num_outputs=10,
         hidden_size=8,
@@ -88,7 +90,8 @@ def test_model_updater_with_early_stopping(
         if updater_type == "DMC":
             model_updater = RepeatedDistillationModelUpdater(
                 model=model,
-                loss_fn=loss,
+                loss_fn=pytest.helpers.get_loss_fn(),
+                optimizer=pytest.helpers.get_partial_optimizer(lr=0.3),
                 memory_size=50,
                 max_epochs=max_epochs,
                 early_stopping_enabled=early_stopping_enabled,

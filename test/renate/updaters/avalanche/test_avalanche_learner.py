@@ -80,10 +80,16 @@ def test_update_settings(learner_class):
     )
     plugins = []
     expected_max_epochs = 10
+    expected_loss_fn = pytest.helpers.get_loss_fn("mean")
     expected_optimizer = SGD(expected_model.parameters(), lr=0.1)
     expected_device = torch.device("cpu")
     expected_eval_every = -1
-    learner = learner_class(model=expected_model, **learner_kwargs)
+    learner = learner_class(
+        model=expected_model,
+        optimizer=None,
+        loss_fn=expected_loss_fn,
+        **learner_kwargs,
+    )
     avalanche_learner = learner.create_avalanche_learner(
         plugins=plugins,
         optimizer=expected_optimizer,
@@ -96,6 +102,7 @@ def test_update_settings(learner_class):
         learner_kwargs,
         avalanche_learner,
         expected_model=expected_model,
+        expected_loss_fn=expected_loss_fn,
         expected_optimizer=expected_optimizer,
         expected_max_epochs=expected_max_epochs,
         expected_device=expected_device,
@@ -123,6 +130,7 @@ def test_update_settings(learner_class):
         learner_kwargs,
         avalanche_learner,
         expected_model=expected_model,
+        expected_loss_fn=expected_loss_fn,
         expected_optimizer=expected_optimizer,
         expected_max_epochs=expected_max_epochs,
         expected_device=expected_device,

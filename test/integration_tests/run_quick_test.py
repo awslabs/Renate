@@ -58,6 +58,7 @@ if __name__ == "__main__":
         / "renate-integration-tests"
         / test_suite
         / job_name
+        / "0"
         / "logs"
         / f"metrics_summary_update_{num_updates - 1}.csv"
     )

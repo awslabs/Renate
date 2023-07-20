@@ -1,8 +1,9 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Callable, Optional
+from typing import Callable, Dict, Optional
 
 import torch
+from torchmetrics import Accuracy
 from torchvision import transforms
 
 import renate.defaults as defaults
@@ -36,7 +37,7 @@ def data_module_fn(data_path: str, chunk_id: int, seed: int = defaults.SEED) -> 
     )
     class_incremental_scenario = ClassIncrementalScenario(
         data_module=data_module,
-        class_groupings=[[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]],
+        class_groupings=((0, 1, 2, 3, 4), (5, 6, 7, 8, 9)),
         chunk_id=chunk_id,
     )
     return class_incremental_scenario
@@ -61,3 +62,11 @@ def test_transform() -> Callable:
 def buffer_transform() -> Callable:
     """Returns a transform function to be used in the Memory Buffer."""
     return train_transform()
+
+
+def loss_fn() -> torch.nn.Module:
+    return torch.nn.CrossEntropyLoss(reduction="none")
+
+
+def metrics_fn() -> Dict:
+    return {"accuracy": Accuracy(task="multiclass", num_classes=10)}

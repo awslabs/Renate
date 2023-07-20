@@ -3,7 +3,7 @@
 import abc
 import os
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from typing import Callable, Optional, Tuple, Union
 
 import pandas as pd
 import torch
@@ -55,6 +55,9 @@ class RenateDataModule(abc.ABC):
         self._train_data: Optional[Dataset] = None
         self._val_data: Optional[Dataset] = None
         self._test_data: Optional[Dataset] = None
+        self._train_collate_fn: Optional[Callable] = None
+        self._val_collate_fn: Optional[Callable] = None
+        self._test_collate_fn: Optional[Callable] = None
         assert 0.0 <= val_size <= 1.0
         self._val_size = val_size
         self._seed = seed
@@ -82,6 +85,18 @@ class RenateDataModule(abc.ABC):
     def test_data(self) -> Dataset:
         """Returns test dataset."""
         return self._test_data
+
+    def train_collate_fn(self) -> Optional[Callable]:
+        """Returns collate_fn for train DataLoader."""
+        return self._train_collate_fn
+
+    def val_collate_fn(self) -> Optional[Callable]:
+        """Returns collate_fn for validation DataLoader."""
+        return self._val_collate_fn
+
+    def test_collate_fn(self) -> Optional[Callable]:
+        """Returns collate_fn for test DataLoader."""
+        return self._test_collate_fn
 
     def _verify_file(self, file_name: str) -> bool:
         """A helper function that verifies that the required dataset files are downloaded and
