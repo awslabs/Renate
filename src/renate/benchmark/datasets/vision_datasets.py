@@ -8,7 +8,6 @@ from typing import List, Optional, Tuple, Union
 import pandas as pd
 import torch
 import torchvision
-from avalanche.benchmarks import CLEAR
 from torch.utils.data import Dataset
 from torchvision import transforms
 
@@ -16,7 +15,6 @@ from renate import defaults
 from renate.data import ImageDataset
 from renate.data.data_module import RenateDataModule
 from renate.utils.file import download_and_unzip_file, download_file, download_folder_from_s3
-from renate.utils.pytorch import randomly_split_data
 
 
 class TinyImageNetDataModule(RenateDataModule):
