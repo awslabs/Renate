@@ -72,10 +72,6 @@ LEARNER_KWARGS = {
     ExperienceReplayLearner: {
         "memory_size": 30,
         "batch_memory_frac": 0.6,
-        "optimizer": "SGD",
-        "learning_rate": 2.5,
-        "momentum": 1.3,
-        "weight_decay": 0.5,
         "batch_size": 50,
         "seed": 1,
     },
@@ -95,10 +91,6 @@ AVALANCHE_LEARNER_KWARGS = {
     AvalancheReplayLearner: {
         "memory_size": 30,
         "batch_memory_frac": 0.3,
-        "optimizer": "SGD",
-        "learning_rate": 2.5,
-        "momentum": 1.3,
-        "weight_decay": 0.5,
         "batch_size": 50,
         "seed": 1,
     },
@@ -116,10 +108,6 @@ AVALANCHE_LEARNER_KWARGS = {
     AvalancheICaRLLearner: {
         "memory_size": 30,
         "batch_memory_frac": 0.3,
-        "optimizer": "SGD",
-        "learning_rate": 2.5,
-        "momentum": 1.3,
-        "weight_decay": 0.5,
         "batch_size": 50,
         "seed": 1,
     },

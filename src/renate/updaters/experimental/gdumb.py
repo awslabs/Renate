@@ -107,11 +107,8 @@ class GDumbModelUpdater(SingleTrainingLoopUpdater):
         loss_fn: torch.nn.Module,
         optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
-        learning_rate: float = defaults.LEARNING_RATE,
         learning_rate_scheduler: Optional[partial] = None,
         learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
-        momentum: float = defaults.MOMENTUM,
-        weight_decay: float = defaults.WEIGHT_DECAY,
         batch_size: int = defaults.BATCH_SIZE,
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
@@ -136,12 +133,6 @@ class GDumbModelUpdater(SingleTrainingLoopUpdater):
     ):
         learner_kwargs = {
             "memory_size": memory_size,
-            "optimizer": optimizer,
-            "learning_rate": learning_rate,
-            "learning_rate_scheduler": learning_rate_scheduler,
-            "learning_rate_scheduler_interval": learning_rate_scheduler_interval,
-            "momentum": momentum,
-            "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
         }
