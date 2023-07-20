@@ -120,10 +120,10 @@ def test_experience_replay_buffer_size(tmpdir, batch_size, memory_size, batch_me
             max_epochs=1,
         )
         replay_plugin = plugin_by_class(ReplayPlugin, model_updater._learner.plugins)
-
-        assert replay_plugin.batch_size == batch_size
+        expected_memory_batch_size = round(batch_memory_frac * batch_size)
+        assert replay_plugin.batch_size == batch_size - expected_memory_batch_size
         assert replay_plugin.mem_size == memory_size
-        assert replay_plugin.batch_size_mem == round(batch_memory_frac * batch_size)
+        assert replay_plugin.batch_size_mem == expected_memory_batch_size
         model_updater.update(train_dataset=dataset)
         assert len(model_updater._learner.dataloader.data) == dataset_size
         assert len(model_updater._learner.dataloader.memory) == min(
