@@ -3,6 +3,7 @@
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 from pytorch_lightning.loggers.logger import Logger
 
+import logging
 import torch
 import torchmetrics
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -16,6 +17,8 @@ from renate.updaters.learner import Learner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
 from renate.types import NestedTensors
 from renate.updaters.experimental.er import ReplayLearner
+
+logger = logging.getLogger(__name__)
 
 
 class LearningToPromptLearner(ReplayLearner):
@@ -43,7 +46,8 @@ class LearningToPromptLearner(ReplayLearner):
         self, batch: Tuple[NestedTensors, torch.Tensor], batch_idx: int
     ) -> STEP_OUTPUT:
         loss_dict = super().training_step(batch, batch_idx=batch_idx)
-        key_similarity = self.prompt_sim_loss_weight * getattr(self._model, "similarity_score", 0.0)
+        key_similarity = -1 * self.prompt_sim_loss_weight * self._model.similarity_score
+        logger.info(f"Sim score: {self._model.similarity_score}")
         loss_dict["loss"] = loss_dict["loss"] + key_similarity
 
         return loss_dict
