@@ -412,6 +412,7 @@ class ModelUpdater(abc.ABC):
         strategy = create_strategy(self._devices, self._strategy)
         # Finetuning-equivalent epochs.
         num_batches = len(learner._train_dataset) // learner._batch_size
+        num_batches += min(len(learner.train_dataset) % learner._batch_size, 1)
         trainer = Trainer(
             accelerator=self._accelerator,
             devices=self._devices,
