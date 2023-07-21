@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import copy
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -23,27 +23,14 @@ class WeightedLossComponent(Component, ABC):
             buffer when the loss is calculated.
     """
 
-    def __init__(self, weight: float, sample_new_memory_batch: bool, **kwargs: Any) -> None:
-        super().__init__(weight=weight, sample_new_memory_batch=sample_new_memory_batch, **kwargs)
+    def __init__(self, weight: float, sample_new_memory_batch: bool) -> None:
+        self._weight = weight
+        super().__init__(sample_new_memory_batch=sample_new_memory_batch)
 
     def _verify_attributes(self) -> None:
         """Verify if attributes have valid values."""
         super()._verify_attributes()
         assert self._weight >= 0, "Weight must be larger than 0."
-
-    def _register_parameters(self, weight: float, sample_new_memory_batch: bool) -> None:
-        """Register parameters of the loss."""
-        super()._register_parameters()
-        self.register_buffer("_weight", torch.tensor(weight, dtype=torch.float))
-        self.register_buffer(
-            "_sample_new_memory_batch", torch.tensor(sample_new_memory_batch, dtype=torch.bool)
-        )
-
-    def set_weight(self, weight: float) -> None:
-        self._weight.data = torch.tensor(
-            weight, dtype=self._weight.dtype, device=self._weight.device
-        )
-        self._verify_attributes()
 
     def loss(
         self,
@@ -51,7 +38,7 @@ class WeightedLossComponent(Component, ABC):
         batch_memory: Tuple[Tuple[NestedTensors, torch.Tensor], Dict[str, torch.Tensor]],
         intermediate_representation_memory: Optional[List[torch.Tensor]],
     ) -> torch.Tensor:
-        if self.weight == 0:
+        if self._weight == 0:
             return torch.tensor(0.0)
         return self._loss(
             outputs_memory=outputs_memory,
@@ -79,10 +66,8 @@ class WeightedCustomLossComponent(WeightedLossComponent):
             buffer when the loss is calculated.
     """
 
-    def __init__(
-        self, loss_fn: Callable, weight: float, sample_new_memory_batch: bool, **kwargs: Any
-    ) -> None:
-        super().__init__(weight=weight, sample_new_memory_batch=sample_new_memory_batch, **kwargs)
+    def __init__(self, loss_fn: Callable, weight: float, sample_new_memory_batch: bool) -> None:
+        super().__init__(weight=weight, sample_new_memory_batch=sample_new_memory_batch)
         self._loss_fn = loss_fn
 
     def _loss(
@@ -93,7 +78,7 @@ class WeightedCustomLossComponent(WeightedLossComponent):
     ) -> torch.Tensor:
         """Returns user-provided loss evaluated on memory batch."""
         (_, targets_memory), _ = batch_memory
-        return self.weight * self._loss_fn(outputs_memory, targets_memory)
+        return self._weight * self._loss_fn(outputs_memory, targets_memory)
 
 
 class WeightedMeanSquaredErrorLossComponent(WeightedLossComponent):
@@ -111,7 +96,7 @@ class WeightedMeanSquaredErrorLossComponent(WeightedLossComponent):
         logits = outputs_memory
         _, meta_data = batch_memory
         previous_logits = meta_data["outputs"]
-        return self.weight * F.mse_loss(logits, previous_logits, reduction="mean")
+        return self._weight * F.mse_loss(logits, previous_logits, reduction="mean")
 
 
 class WeightedPooledOutputDistillationLossComponent(WeightedLossComponent):
@@ -145,41 +130,8 @@ class WeightedPooledOutputDistillationLossComponent(WeightedLossComponent):
         normalize: bool = True,
     ) -> None:
         self._distillation_type = distillation_type
-        super().__init__(
-            weight=weight,
-            sample_new_memory_batch=sample_new_memory_batch,
-            normalize=normalize,
-        )
-
-    def _register_parameters(
-        self, weight: float, sample_new_memory_batch: bool, normalize: bool
-    ) -> None:
-        """Register parameters of the loss."""
-        super()._register_parameters(weight=weight, sample_new_memory_batch=sample_new_memory_batch)
-        self.register_buffer("_normalize", torch.tensor(normalize, dtype=torch.bool))
-
-    def _save_to_state_dict(
-        self, destination: Dict[str, Any], prefix: str, keep_vars: bool
-    ) -> None:
-        """Save attributes to state dict."""
-        super()._save_to_state_dict(destination, prefix, keep_vars)
-        destination[prefix + "distillation_type"] = self._distillation_type
-
-    def _load_from_state_dict(
-        self,
-        state_dict: Dict[str, Any],
-        prefix: str,
-        local_metadata: Dict[str, Any],
-        strict: bool,
-        missing_keys: List[str],
-        unexpected_keys: List[str],
-        error_msgs: List[str],
-    ) -> None:
-        """Load attributes from state dict."""
-        self._distillation_type = state_dict.pop(prefix + "distillation_type")
-        super()._load_from_state_dict(
-            state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs
-        )
+        super().__init__(weight=weight, sample_new_memory_batch=sample_new_memory_batch)
+        self._normalize = normalize
 
     def _verify_attributes(self) -> None:
         """Verify if attributes have valid values."""
@@ -239,14 +191,6 @@ class WeightedPooledOutputDistillationLossComponent(WeightedLossComponent):
 
         return torch.frobenius_norm(features - features_memory, dim=-1).mean(dim=0)
 
-    def set_distillation_type(self, distillation_type: str) -> None:
-        self._distillation_type = distillation_type
-        self._verify_attributes()
-
-    def set_normalize(self, normalize: bool) -> None:
-        self._normalize = torch.tensor(normalize, dtype=torch.bool, device=self._normalize.device)
-        self._verify_attributes()
-
     def _loss(
         self,
         outputs_memory: torch.Tensor,
@@ -262,7 +206,7 @@ class WeightedPooledOutputDistillationLossComponent(WeightedLossComponent):
             features = intermediate_representation_memory[n]
             features_memory = meta_data[f"intermediate_representation_{n}"]
             loss += self._pod(features, features_memory)
-        return (self.weight * loss) / len(intermediate_representation_memory)
+        return (self._weight * loss) / len(intermediate_representation_memory)
 
 
 class WeightedCLSLossComponent(WeightedLossComponent):
@@ -298,52 +242,16 @@ class WeightedCLSLossComponent(WeightedLossComponent):
         stable_model_update_probability: float,
         plastic_model_update_probability: float,
     ) -> None:
-        super().__init__(
-            weight=weight,
-            sample_new_memory_batch=sample_new_memory_batch,
-            stable_model_update_weight=stable_model_update_weight,
-            plastic_model_update_weight=plastic_model_update_weight,
-            stable_model_update_probability=stable_model_update_probability,
-            plastic_model_update_probability=plastic_model_update_probability,
-            iteration=0,
-        )
+        self._stable_model_update_weight = stable_model_update_weight
+        self._plastic_model_update_weight = plastic_model_update_weight
+        self._stable_model_update_probability = stable_model_update_probability
+        self._plastic_model_update_probability = plastic_model_update_probability
+        self._iteration = 0
+        super().__init__(weight=weight, sample_new_memory_batch=sample_new_memory_batch)
         self._plastic_model: RenateModule = copy.deepcopy(model)
         self._stable_model: RenateModule = copy.deepcopy(model)
         self._plastic_model.deregister_hooks()
         self._stable_model.deregister_hooks()
-
-    def _register_parameters(
-        self,
-        weight: float,
-        sample_new_memory_batch: bool,
-        stable_model_update_weight: float,
-        plastic_model_update_weight: float,
-        stable_model_update_probability: float,
-        plastic_model_update_probability: float,
-        iteration: int,
-    ) -> None:
-        """Register the parameters of the loss component."""
-        super()._register_parameters(
-            weight=weight,
-            sample_new_memory_batch=sample_new_memory_batch,
-        )
-        self.register_buffer(
-            "_stable_model_update_weight",
-            torch.tensor(stable_model_update_weight, dtype=torch.float32),
-        )
-        self.register_buffer(
-            "_plastic_model_update_weight",
-            torch.tensor(plastic_model_update_weight, dtype=torch.float32),
-        )
-        self.register_buffer(
-            "_stable_model_update_probability",
-            torch.tensor(stable_model_update_probability, dtype=torch.float32),
-        )
-        self.register_buffer(
-            "_plastic_model_update_probability",
-            torch.tensor(plastic_model_update_probability, dtype=torch.float32),
-        )
-        self.register_buffer("_iteration", torch.tensor(iteration, dtype=torch.int64))
 
     def _verify_attributes(self) -> None:
         """Verify if attributes have valid values."""
@@ -372,11 +280,11 @@ class WeightedCLSLossComponent(WeightedLossComponent):
             idx = (probs_stable[label_mask] > probs_plastic[label_mask]).unsqueeze(1)
             outputs = torch.where(idx, outputs_stable, outputs_plastic)
         consistency_loss = F.mse_loss(outputs_memory, outputs.detach(), reduction="mean")
-        return self.weight * consistency_loss
+        return self._weight * consistency_loss
 
     @torch.no_grad()
     def _update_model_variables(
-        self, model: RenateModule, original_model: RenateModule, weight: torch.Tensor
+        self, model: RenateModule, original_model: RenateModule, weight: float
     ) -> None:
         """Performs exponential moving average on the stored model copies.
 
@@ -384,9 +292,7 @@ class WeightedCLSLossComponent(WeightedLossComponent):
             model: Whether the plastic or the stable model is updated.
             weight: The minimum weight used in the exponential moving average to update the model.
         """
-        alpha = min(
-            1.0 - torch.tensor(1.0, device=self._iteration.device) / (self._iteration + 1), weight
-        )
+        alpha = min(1.0 - 1.0 / (self._iteration + 1), weight)
         for ema_p, p in zip(model.parameters(), original_model.parameters()):
             ema_p.data.mul_(alpha).add_(p.data, alpha=1 - alpha)
 
@@ -395,49 +301,14 @@ class WeightedCLSLossComponent(WeightedLossComponent):
         given the specified probabilities of update, and increments iteration counter."""
         self._iteration += 1
         if (
-            torch.rand(1, device=self._plastic_model_update_probability.device)
+            torch.rand(1)  # TODO:replace with non-torch operation?
             < self._plastic_model_update_probability
         ):
             self._update_model_variables(
                 self._plastic_model, model, self._plastic_model_update_weight
             )
 
-        if (
-            torch.rand(1, device=self._stable_model_update_probability.device)
-            < self._stable_model_update_probability
-        ):
+        if torch.rand(1) < self._stable_model_update_probability:
             self._update_model_variables(
                 self._stable_model, model, self._stable_model_update_weight
             )
-
-    def set_stable_model_update_weight(self, stable_model_update_weight: float) -> None:
-        self._stable_model_update_weight.data = torch.tensor(
-            stable_model_update_weight,
-            dtype=self._stable_model_update_weight.dtype,
-            device=self._stable_model_update_weight.device,
-        )
-        self._verify_attributes()
-
-    def set_plastic_model_update_weight(self, plastic_model_update_weight: float) -> None:
-        self._plastic_model_update_weight.data = torch.tensor(
-            plastic_model_update_weight,
-            dtype=self._plastic_model_update_weight.dtype,
-            device=self._plastic_model_update_weight.device,
-        )
-        self._verify_attributes()
-
-    def set_stable_model_update_probability(self, stable_model_update_probability: float) -> None:
-        self._stable_model_update_probability.data = torch.tensor(
-            stable_model_update_probability,
-            dtype=self._stable_model_update_probability.dtype,
-            device=self._stable_model_update_probability.device,
-        )
-        self._verify_attributes()
-
-    def set_plastic_model_update_probability(self, plastic_model_update_probability: float) -> None:
-        self._plastic_model_update_probability.data = torch.tensor(
-            plastic_model_update_probability,
-            dtype=self._plastic_model_update_probability.dtype,
-            device=self._plastic_model_update_probability.device,
-        )
-        self._verify_attributes()

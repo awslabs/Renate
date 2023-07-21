@@ -1,27 +1,25 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import abc
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import torch
-import torch.nn as nn
 
 from renate.models import RenateModule
 from renate.types import NestedTensors
 
 
-class Component(nn.Module, abc.ABC):
+class Component(abc.ABC):
     """The abstract class implementing a Component, usable in the BaseExperienceReplayLearner.
 
     This is an abstract class from which each other component e.g. additional
     regularising loss or a module updater should inherit from.
-    The components should be a modular and independent to an extend where they can be composed
+    The components should be a modular and independent to an extent where they can be composed
     together in an ordered list to be deployed in the BaseExperienceReplayLearner.
     """
 
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__()
-        self._register_parameters(**kwargs)
+    def __init__(self, sample_new_memory_batch: bool = False) -> None:
+        self.sample_new_memory_batch = sample_new_memory_batch
         self._verify_attributes()
 
     def loss(
@@ -57,20 +55,6 @@ class Component(nn.Module, abc.ABC):
         """
         pass
 
-    @property
-    def weight(self) -> torch.Tensor:
-        """The weight of the loss component."""
-        return self._weight
-
-    @property
-    def sample_new_memory_batch(self) -> torch.Tensor:
-        """Whether to sample a new memory batch or not."""
-        return self._sample_new_memory_batch
-
     def _verify_attributes(self) -> None:
         """Verify if attributes have valid values."""
-        pass
-
-    def _register_parameters(self) -> None:
-        """Function to register parameters of the component."""
         pass

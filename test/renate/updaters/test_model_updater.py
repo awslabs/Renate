@@ -10,6 +10,7 @@ from torchvision.transforms import Lambda
 
 from conftest import LEARNERS_USING_SIMPLE_UPDATER, LEARNER_KWARGS, check_learner_transforms
 from renate import defaults
+from renate.updaters.experimental.er import DarkExperienceReplayLearner, ExperienceReplayLearner
 from renate.updaters.experimental.repeated_distill import RepeatedDistillationModelUpdater
 from renate.updaters.learner import ReplayLearner
 
@@ -230,3 +231,50 @@ def test_learner_fails_without_loss_fn(learner):
         learner_kwargs={"learning_rate": 0.0},
         max_epochs=1,
     )
+
+
+@pytest.mark.parametrize("learner_class", [DarkExperienceReplayLearner])
+def test_tmp(tmpdir, learner_class):
+    model, train_dataset, _ = pytest.helpers.get_renate_module_mlp_and_data(
+        num_inputs=10,
+        num_outputs=10,
+        hidden_size=32,
+        num_hidden_layers=1,
+        train_num_samples=10,
+        test_num_samples=5,
+    )
+    state_url = defaults.input_state_folder(tmpdir)
+    learner_kwargs1 = {
+        "memory_size": 30,
+        "memory_batch_size": 20,
+        "batch_size": 50,
+        "seed": 1,
+        "alpha": 0.123,
+        "beta": 2,
+    }
+    learner_kwargs2 = {
+        "memory_size": 30,
+        "memory_batch_size": 20,
+        "batch_size": 100,
+        "seed": 1,
+        "alpha": 2.3,
+        "beta": 3,
+    }
+
+    model_updater = pytest.helpers.get_simple_updater(
+        model,
+        learner_class=learner_class,
+        learner_kwargs=learner_kwargs1,  # LEARNER_KWARGS[learner_class],
+        output_state_folder=state_url,
+        max_epochs=2,
+    )
+    model = model_updater.update(train_dataset, task_id=defaults.TASK_ID)
+    model_updater = pytest.helpers.get_simple_updater(
+        model,
+        learner_class=learner_class,
+        learner_kwargs=learner_kwargs2,  # LEARNER_KWARGS[learner_class],
+        input_state_folder=state_url,
+        max_epochs=2,
+    )
+    assert model_updater._learner._batch_size == 100
+    assert model_updater._learner._components["mse_loss"]._weight == 2.3
