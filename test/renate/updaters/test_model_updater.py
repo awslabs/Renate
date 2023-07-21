@@ -277,4 +277,4 @@ def test_tmp(tmpdir, learner_class):
         max_epochs=2,
     )
     assert model_updater._learner._batch_size == 100
-    assert model_updater._learner._components["mse_loss"]._weight == 2.3
+    assert model_updater._learner._components["mse_loss"].weight == 2.3

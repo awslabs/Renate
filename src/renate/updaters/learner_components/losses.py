@@ -238,16 +238,60 @@ class WeightedCLSLossComponent(WeightedLossComponent):
         stable_model_update_probability: float,
         plastic_model_update_probability: float,
     ) -> None:
-        self._stable_model_update_weight = stable_model_update_weight
-        self._plastic_model_update_weight = plastic_model_update_weight
-        self._stable_model_update_probability = stable_model_update_probability
-        self._plastic_model_update_probability = plastic_model_update_probability
-        self._iteration = 0
+        self._stable_model_update_weight = torch.tensor(
+            stable_model_update_weight, dtype=torch.float32
+        )
+        self._stable_model_update_weight = torch.tensor(
+            stable_model_update_weight, dtype=torch.float32
+        )
+        self._plastic_model_update_weight = torch.tensor(
+            plastic_model_update_weight, dtype=torch.float32
+        )
+        self._stable_model_update_probability = torch.tensor(
+            stable_model_update_probability, dtype=torch.float32
+        )
+        self._plastic_model_update_probability = torch.tensor(
+            plastic_model_update_probability, dtype=torch.float32
+        )
+        self._iteration = torch.tensor(0, dtype=torch.int64)
         super().__init__(weight=weight, sample_new_memory_batch=sample_new_memory_batch)
         self._plastic_model: RenateModule = copy.deepcopy(model)
         self._stable_model: RenateModule = copy.deepcopy(model)
         self._plastic_model.deregister_hooks()
         self._stable_model.deregister_hooks()
+
+    def _register_parameters(
+        self,
+        weight: float,
+        sample_new_memory_batch: bool,
+        stable_model_update_weight: float,
+        plastic_model_update_weight: float,
+        stable_model_update_probability: float,
+        plastic_model_update_probability: float,
+        iteration: int,
+    ) -> None:
+        """Register the parameters of the loss component."""
+        super()._register_parameters(
+            weight=weight,
+            sample_new_memory_batch=sample_new_memory_batch,
+        )
+        self.register_buffer(
+            "_stable_model_update_weight",
+            torch.tensor(stable_model_update_weight, dtype=torch.float32),
+        )
+        self.register_buffer(
+            "_plastic_model_update_weight",
+            torch.tensor(plastic_model_update_weight, dtype=torch.float32),
+        )
+        self.register_buffer(
+            "_stable_model_update_probability",
+            torch.tensor(stable_model_update_probability, dtype=torch.float32),
+        )
+        self.register_buffer(
+            "_plastic_model_update_probability",
+            torch.tensor(plastic_model_update_probability, dtype=torch.float32),
+        )
+        self.register_buffer("_iteration", torch.tensor(iteration, dtype=torch.int64))
 
     def _verify_attributes(self) -> None:
         """Verify if attributes have valid values."""
@@ -280,7 +324,7 @@ class WeightedCLSLossComponent(WeightedLossComponent):
 
     @torch.no_grad()
     def _update_model_variables(
-        self, model: RenateModule, original_model: RenateModule, weight: float
+        self, model: RenateModule, original_model: RenateModule, weight: torch.Tensor
     ) -> None:
         """Performs exponential moving average on the stored model copies.
 
@@ -288,7 +332,9 @@ class WeightedCLSLossComponent(WeightedLossComponent):
             model: Whether the plastic or the stable model is updated.
             weight: The minimum weight used in the exponential moving average to update the model.
         """
-        alpha = min(1.0 - 1.0 / (self._iteration + 1), weight)
+        alpha = min(
+            1.0 - torch.tensor(1.0, device=self._iteration.device) / (self._iteration + 1), weight
+        )
         for ema_p, p in zip(model.parameters(), original_model.parameters()):
             ema_p.data.mul_(alpha).add_(p.data, alpha=1 - alpha)
 
@@ -297,14 +343,49 @@ class WeightedCLSLossComponent(WeightedLossComponent):
         given the specified probabilities of update, and increments iteration counter."""
         self._iteration += 1
         if (
-            torch.rand(1)  # TODO:replace with non-torch operation?
+            torch.rand(1, device=self._plastic_model_update_probability.device)
             < self._plastic_model_update_probability
         ):
             self._update_model_variables(
                 self._plastic_model, model, self._plastic_model_update_weight
             )
 
-        if torch.rand(1) < self._stable_model_update_probability:
+        if (
+            torch.rand(1, device=self._stable_model_update_probability.device)
+            < self._stable_model_update_probability
+        ):
             self._update_model_variables(
                 self._stable_model, model, self._stable_model_update_weight
             )
+
+    def set_stable_model_update_weight(self, stable_model_update_weight: float) -> None:
+        self._stable_model_update_weight.data = torch.tensor(
+            stable_model_update_weight,
+            dtype=self._stable_model_update_weight.dtype,
+            device=self._stable_model_update_weight.device,
+        )
+        self._verify_attributes()
+
+    def set_plastic_model_update_weight(self, plastic_model_update_weight: float) -> None:
+        self._plastic_model_update_weight.data = torch.tensor(
+            plastic_model_update_weight,
+            dtype=self._plastic_model_update_weight.dtype,
+            device=self._plastic_model_update_weight.device,
+        )
+        self._verify_attributes()
+
+    def set_stable_model_update_probability(self, stable_model_update_probability: float) -> None:
+        self._stable_model_update_probability.data = torch.tensor(
+            stable_model_update_probability,
+            dtype=self._stable_model_update_probability.dtype,
+            device=self._stable_model_update_probability.device,
+        )
+        self._verify_attributes()
+
+    def set_plastic_model_update_probability(self, plastic_model_update_probability: float) -> None:
+        self._plastic_model_update_probability.data = torch.tensor(
+            plastic_model_update_probability,
+            dtype=self._plastic_model_update_probability.dtype,
+            device=self._plastic_model_update_probability.device,
+        )
+        self._verify_attributes()

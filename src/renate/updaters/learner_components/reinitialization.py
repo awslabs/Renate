@@ -30,9 +30,9 @@ class ShrinkAndPerturbReinitializationComponent(Component):
     """
 
     def __init__(self, shrink_factor: float, sigma: float) -> None:
-        super().__init__()
         self._shrink_factor = shrink_factor
         self._sigma = sigma
+        super().__init__()
 
     def _verify_attributes(self) -> None:
         """Verify if attributes have valid values."""
