@@ -18,7 +18,8 @@ class Component(abc.ABC):
     together in an ordered list to be deployed in the BaseExperienceReplayLearner.
     """
 
-    def __init__(self, sample_new_memory_batch: bool = False) -> None:
+    def __init__(self, weight: float = 0, sample_new_memory_batch: bool = False) -> None:
+        self.weight = weight
         self.sample_new_memory_batch = sample_new_memory_batch
         self._verify_attributes()
 

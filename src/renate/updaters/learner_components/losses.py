@@ -23,14 +23,10 @@ class WeightedLossComponent(Component, ABC):
             buffer when the loss is calculated.
     """
 
-    def __init__(self, weight: float, sample_new_memory_batch: bool) -> None:
-        self._weight = weight
-        super().__init__(sample_new_memory_batch=sample_new_memory_batch)
-
     def _verify_attributes(self) -> None:
         """Verify if attributes have valid values."""
         super()._verify_attributes()
-        assert self._weight >= 0, "Weight must be larger than 0."
+        assert self.weight >= 0, "Weight must be larger than 0."
 
     def loss(
         self,
@@ -38,7 +34,7 @@ class WeightedLossComponent(Component, ABC):
         batch_memory: Tuple[Tuple[NestedTensors, torch.Tensor], Dict[str, torch.Tensor]],
         intermediate_representation_memory: Optional[List[torch.Tensor]],
     ) -> torch.Tensor:
-        if self._weight == 0:
+        if self.weight == 0:
             return torch.tensor(0.0)
         return self._loss(
             outputs_memory=outputs_memory,
@@ -78,7 +74,7 @@ class WeightedCustomLossComponent(WeightedLossComponent):
     ) -> torch.Tensor:
         """Returns user-provided loss evaluated on memory batch."""
         (_, targets_memory), _ = batch_memory
-        return self._weight * self._loss_fn(outputs_memory, targets_memory)
+        return self.weight * self._loss_fn(outputs_memory, targets_memory)
 
 
 class WeightedMeanSquaredErrorLossComponent(WeightedLossComponent):
@@ -96,7 +92,7 @@ class WeightedMeanSquaredErrorLossComponent(WeightedLossComponent):
         logits = outputs_memory
         _, meta_data = batch_memory
         previous_logits = meta_data["outputs"]
-        return self._weight * F.mse_loss(logits, previous_logits, reduction="mean")
+        return self.weight * F.mse_loss(logits, previous_logits, reduction="mean")
 
 
 class WeightedPooledOutputDistillationLossComponent(WeightedLossComponent):
@@ -206,7 +202,7 @@ class WeightedPooledOutputDistillationLossComponent(WeightedLossComponent):
             features = intermediate_representation_memory[n]
             features_memory = meta_data[f"intermediate_representation_{n}"]
             loss += self._pod(features, features_memory)
-        return (self._weight * loss) / len(intermediate_representation_memory)
+        return (self.weight * loss) / len(intermediate_representation_memory)
 
 
 class WeightedCLSLossComponent(WeightedLossComponent):
@@ -280,7 +276,7 @@ class WeightedCLSLossComponent(WeightedLossComponent):
             idx = (probs_stable[label_mask] > probs_plastic[label_mask]).unsqueeze(1)
             outputs = torch.where(idx, outputs_stable, outputs_plastic)
         consistency_loss = F.mse_loss(outputs_memory, outputs.detach(), reduction="mean")
-        return self._weight * consistency_loss
+        return self.weight * consistency_loss
 
     @torch.no_grad()
     def _update_model_variables(
