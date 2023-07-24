@@ -9,4 +9,4 @@ sphinx-paramlinks==0.5.4
 
 # Temporarily added
 avalanche_lib==0.3.1
-wild-time-data==0.1.0
+wild-time-data==0.1.1
