@@ -224,6 +224,18 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
         This is a user-defined function that should return a dictionary of components.
         """
 
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """Load states of components."""
+        super().on_load_checkpoint(checkpoint)
+        for component in self._components.values():
+            component.on_save_checkpoint(checkpoint)
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """Save states of components."""
+        super().on_save_checkpoint(checkpoint)
+        for component in self._components.values():
+            component.on_save_checkpoint(checkpoint)
+
 
 class ExperienceReplayLearner(BaseExperienceReplayLearner):
     """This is the version of experience replay proposed in

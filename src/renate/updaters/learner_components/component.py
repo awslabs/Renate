@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import abc
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 
@@ -58,4 +58,12 @@ class Component(abc.ABC):
 
     def _verify_attributes(self) -> None:
         """Verify if attributes have valid values."""
+        pass
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """Load relevant information from checkpoint."""
+        pass
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """Add relevant information to checkpoint."""
         pass
