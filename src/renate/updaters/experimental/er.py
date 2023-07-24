@@ -165,10 +165,10 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
                     )
             if self._use_loss_normalization:
                 step_output["loss"] /= loss_normalization
-        for i, p in enumerate(self._model.parameters()):
-            while len(p.shape) > 1:
-                p = p[0]
-            print("Model", i, float(p[0]))
+        # for i, p in enumerate(self._model.parameters()):
+        #    while len(p.shape) > 1:
+        #        p = p[0]
+        #    print("Model", i, float(p[0]))
 
         return step_output
 
@@ -228,7 +228,7 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
         """Load states of components."""
         super().on_load_checkpoint(checkpoint)
         for component in self._components.values():
-            component.on_save_checkpoint(checkpoint)
+            component.on_load_checkpoint(checkpoint)
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Save states of components."""

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import copy
 from abc import ABC, abstractmethod
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -1332,6 +1332,7 @@ class WeightedCLSLossComponent(WeightedLossComponent):
         self._stable_model: RenateModule = copy.deepcopy(model)
         self._plastic_model.deregister_hooks()
         self._stable_model.deregister_hooks()
+        # print("INIT")
 
     def _register_parameters(
         self,
@@ -1401,10 +1402,10 @@ class WeightedCLSLossComponent(WeightedLossComponent):
             float(outputs_plastic[0][0]),
             float(outputs_stable[0][0]),
         )
-        for i, p in enumerate(self._plastic_model.parameters()):
-            while len(p.shape) > 1:
-                p = p[0]
-            print("Plastic Model", i, float(p[0]))
+        # for i, p in enumerate(self._plastic_model.parameters()):
+        #    while len(p.shape) > 1:
+        #        p = p[0]
+        #    print("Plastic Model", i, float(p[0]))
         return self.weight * consistency_loss
 
     @torch.no_grad()
@@ -1474,3 +1475,17 @@ class WeightedCLSLossComponent(WeightedLossComponent):
             device=self._plastic_model_update_probability.device,
         )
         self._verify_attributes()
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """Load relevant information from checkpoint."""
+        super().on_load_checkpoint(checkpoint)
+        print("LOAD")
+        self._plastic_model = checkpoint["component-cls-plastic-model"]
+        self._stable_model = checkpoint["component-cls-stable-model"]
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """Add plastic and stable model to checkpoint."""
+        super().on_save_checkpoint(checkpoint)
+        print("SAVE")
+        checkpoint["component-cls-plastic-model"] = self._plastic_model
+        checkpoint["component-cls-stable-model"] = self._stable_model
