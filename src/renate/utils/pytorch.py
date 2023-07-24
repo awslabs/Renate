@@ -89,14 +89,17 @@ def move_tensors_to_device(tensors: NestedTensors, device: torch.device) -> Nest
         )
 
 
-def get_shape_nested_tensors(batch: NestedTensors) -> torch.Size:
-    """Given a NestedTensor, return its batch size."""
+def get_length_nested_tensors(batch: NestedTensors) -> torch.Size:
+    """Given a NestedTensor, return its length.
+
+    Assumes that the first axis in each element is the same.
+    """
     if isinstance(batch, torch.Tensor):
-        return batch.shape
+        return batch.shape[0]
     if isinstance(batch, tuple):
-        return batch[0].shape
+        return batch[0].shape[0]
     if isinstance(batch, dict):
-        return batch[next(iter(batch.keys()))].shape
+        return batch[next(iter(batch.keys()))].shape[0]
 
 
 def cat_nested_tensors(

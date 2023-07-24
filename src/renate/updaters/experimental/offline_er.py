@@ -19,7 +19,7 @@ from renate.updaters.learner import ReplayLearner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
 from renate.utils.pytorch import (
     cat_nested_tensors,
-    get_shape_nested_tensors,
+    get_length_nested_tensors,
     move_tensors_to_device,
 )
 
@@ -110,11 +110,11 @@ class OfflineExperienceReplayLearner(ReplayLearner):
             alpha = self._loss_weight_new_data
         inputs, targets = batch["current_task"]
         device = next(self.parameters()).device
-        batch_size_current = get_shape_nested_tensors(inputs)[0]
+        batch_size_current = get_length_nested_tensors(inputs)
         batch_size_mem = 0
         if "memory" in batch:
             (inputs_mem, targets_mem), _ = batch["memory"]
-            batch_size_mem = get_shape_nested_tensors(inputs_mem)[0]
+            batch_size_mem = get_length_nested_tensors(inputs_mem)
             inputs = cat_nested_tensors((inputs, inputs_mem), 0)
             targets = torch.cat((targets, targets_mem), 0)
         outputs = self(inputs)
