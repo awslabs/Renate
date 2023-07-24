@@ -10,7 +10,11 @@ from torchvision.transforms import Lambda
 
 from conftest import LEARNERS_USING_SIMPLE_UPDATER, LEARNER_KWARGS, check_learner_transforms
 from renate import defaults
-from renate.updaters.experimental.er import DarkExperienceReplayLearner, ExperienceReplayLearner
+from renate.updaters.experimental.er import (
+    CLSExperienceReplayLearner,
+    DarkExperienceReplayLearner,
+    ExperienceReplayLearner,
+)
 from renate.updaters.experimental.repeated_distill import RepeatedDistillationModelUpdater
 from renate.updaters.learner import ReplayLearner
 
@@ -233,7 +237,7 @@ def test_learner_fails_without_loss_fn(learner):
     )
 
 
-@pytest.mark.parametrize("learner_class", [DarkExperienceReplayLearner])
+@pytest.mark.parametrize("learner_class", [CLSExperienceReplayLearner])
 def test_tmp(tmpdir, learner_class):
     model, train_dataset, _ = pytest.helpers.get_renate_module_mlp_and_data(
         num_inputs=10,
@@ -251,6 +255,10 @@ def test_tmp(tmpdir, learner_class):
         "seed": 1,
         "alpha": 0.123,
         "beta": 2,
+        "stable_model_update_weight": 0.2,
+        "plastic_model_update_weight": 0.1,
+        "stable_model_update_probability": 0.3,
+        "plastic_model_update_probability": 0.4,
     }
     learner_kwargs2 = {
         "memory_size": 30,
@@ -259,6 +267,10 @@ def test_tmp(tmpdir, learner_class):
         "seed": 1,
         "alpha": 2.3,
         "beta": 3,
+        "stable_model_update_weight": 0.6,
+        "plastic_model_update_weight": 0.5,
+        "stable_model_update_probability": 0.7,
+        "plastic_model_update_probability": 0.8,
     }
 
     model_updater = pytest.helpers.get_simple_updater(
@@ -268,6 +280,13 @@ def test_tmp(tmpdir, learner_class):
         output_state_folder=state_url,
         max_epochs=2,
     )
+    assert model_updater._learner._batch_size == 50
+    assert model_updater._learner._components["memory_loss"].weight == 0.123
+    assert model_updater._learner._components["cls_loss"].weight == 2
+    assert model_updater._learner._components["cls_loss"]._stable_model_update_weight == 0.2
+    assert model_updater._learner._components["cls_loss"]._plastic_model_update_weight == 0.1
+    assert model_updater._learner._components["cls_loss"]._stable_model_update_probability == 0.3
+    assert model_updater._learner._components["cls_loss"]._plastic_model_update_probability == 0.4
     model = model_updater.update(train_dataset, task_id=defaults.TASK_ID)
     model_updater = pytest.helpers.get_simple_updater(
         model,
@@ -277,4 +296,9 @@ def test_tmp(tmpdir, learner_class):
         max_epochs=2,
     )
     assert model_updater._learner._batch_size == 100
-    assert model_updater._learner._components["mse_loss"].weight == 2.3
+    assert model_updater._learner._components["memory_loss"].weight == 2.3
+    assert model_updater._learner._components["cls_loss"].weight == 3
+    assert model_updater._learner._components["cls_loss"]._stable_model_update_weight == 0.6
+    assert model_updater._learner._components["cls_loss"]._plastic_model_update_weight == 0.5
+    assert model_updater._learner._components["cls_loss"]._stable_model_update_probability == 0.7
+    assert model_updater._learner._components["cls_loss"]._plastic_model_update_probability == 0.8
