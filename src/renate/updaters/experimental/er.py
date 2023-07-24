@@ -165,6 +165,10 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
                     )
             if self._use_loss_normalization:
                 step_output["loss"] /= loss_normalization
+        for i, p in enumerate(self._model.parameters()):
+            while len(p.shape) > 1:
+                p = p[0]
+            print("Model", i, float(p[0]))
 
         return step_output
 

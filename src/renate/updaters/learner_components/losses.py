@@ -1401,6 +1401,10 @@ class WeightedCLSLossComponent(WeightedLossComponent):
             float(outputs_plastic[0][0]),
             float(outputs_stable[0][0]),
         )
+        for i, p in enumerate(self._plastic_model.parameters()):
+            while len(p.shape) > 1:
+                p = p[0]
+            print("Plastic Model", i, float(p[0]))
         return self.weight * consistency_loss
 
     @torch.no_grad()
