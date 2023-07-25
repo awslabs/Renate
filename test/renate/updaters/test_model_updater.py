@@ -237,8 +237,60 @@ def test_learner_fails_without_loss_fn(learner):
     )
 
 
-@pytest.mark.parametrize("learner_class", [CLSExperienceReplayLearner])
-def test_tmp(tmpdir, learner_class):
+def validate_cls_er(model_updater, learner_kwargs):
+    assert model_updater._learner._batch_size == learner_kwargs["batch_size"]
+    assert model_updater._learner._components["memory_loss"].weight == learner_kwargs["alpha"]
+    assert model_updater._learner._components["cls_loss"].weight == learner_kwargs["beta"]
+    assert (
+        model_updater._learner._components["cls_loss"]._stable_model_update_weight
+        == learner_kwargs["stable_model_update_weight"]
+    )
+    assert (
+        model_updater._learner._components["cls_loss"]._plastic_model_update_weight
+        == learner_kwargs["plastic_model_update_weight"]
+    )
+    assert (
+        model_updater._learner._components["cls_loss"]._stable_model_update_probability
+        == learner_kwargs["stable_model_update_probability"]
+    )
+    assert (
+        model_updater._learner._components["cls_loss"]._plastic_model_update_probability
+        == learner_kwargs["plastic_model_update_probability"]
+    )
+
+
+@pytest.mark.parametrize(
+    "learner_class,validate_fct,learner_kwargs1,learner_kwargs2",
+    [
+        CLSExperienceReplayLearner,
+        validate_cls_er,
+        {
+            "memory_size": 30,
+            "memory_batch_size": 20,
+            "batch_size": 50,
+            "seed": 1,
+            "alpha": 0.123,
+            "beta": 2,
+            "stable_model_update_weight": 0.2,
+            "plastic_model_update_weight": 0.1,
+            "stable_model_update_probability": 0.3,
+            "plastic_model_update_probability": 0.4,
+        },
+        {
+            "memory_size": 30,
+            "memory_batch_size": 20,
+            "batch_size": 100,
+            "seed": 1,
+            "alpha": 2.3,
+            "beta": 3,
+            "stable_model_update_weight": 0.6,
+            "plastic_model_update_weight": 0.5,
+            "stable_model_update_probability": 0.7,
+            "plastic_model_update_probability": 0.8,
+        },
+    ],
+)
+def test_tmp(tmpdir, learner_class, validate_fct, learner_kwargs1, learner_kwargs2):
     model, train_dataset, _ = pytest.helpers.get_renate_module_mlp_and_data(
         num_inputs=10,
         num_outputs=10,
@@ -248,57 +300,22 @@ def test_tmp(tmpdir, learner_class):
         test_num_samples=5,
     )
     state_url = defaults.input_state_folder(tmpdir)
-    learner_kwargs1 = {
-        "memory_size": 30,
-        "memory_batch_size": 20,
-        "batch_size": 50,
-        "seed": 1,
-        "alpha": 0.123,
-        "beta": 2,
-        "stable_model_update_weight": 0.2,
-        "plastic_model_update_weight": 0.1,
-        "stable_model_update_probability": 0.3,
-        "plastic_model_update_probability": 0.4,
-    }
-    learner_kwargs2 = {
-        "memory_size": 30,
-        "memory_batch_size": 20,
-        "batch_size": 100,
-        "seed": 1,
-        "alpha": 2.3,
-        "beta": 3,
-        "stable_model_update_weight": 0.6,
-        "plastic_model_update_weight": 0.5,
-        "stable_model_update_probability": 0.7,
-        "plastic_model_update_probability": 0.8,
-    }
 
     model_updater = pytest.helpers.get_simple_updater(
         model,
         learner_class=learner_class,
-        learner_kwargs=learner_kwargs1,  # LEARNER_KWARGS[learner_class],
+        learner_kwargs=learner_kwargs1,
         output_state_folder=state_url,
         max_epochs=2,
     )
-    assert model_updater._learner._batch_size == 50
-    assert model_updater._learner._components["memory_loss"].weight == 0.123
-    assert model_updater._learner._components["cls_loss"].weight == 2
-    assert model_updater._learner._components["cls_loss"]._stable_model_update_weight == 0.2
-    assert model_updater._learner._components["cls_loss"]._plastic_model_update_weight == 0.1
-    assert model_updater._learner._components["cls_loss"]._stable_model_update_probability == 0.3
-    assert model_updater._learner._components["cls_loss"]._plastic_model_update_probability == 0.4
+
     model = model_updater.update(train_dataset, task_id=defaults.TASK_ID)
+    validate_fct(model_updater, learner_kwargs1)
     model_updater = pytest.helpers.get_simple_updater(
         model,
         learner_class=learner_class,
-        learner_kwargs=learner_kwargs2,  # LEARNER_KWARGS[learner_class],
+        learner_kwargs=learner_kwargs2,
         input_state_folder=state_url,
         max_epochs=2,
     )
-    assert model_updater._learner._batch_size == 100
-    assert model_updater._learner._components["memory_loss"].weight == 2.3
-    assert model_updater._learner._components["cls_loss"].weight == 3
-    assert model_updater._learner._components["cls_loss"]._stable_model_update_weight == 0.6
-    assert model_updater._learner._components["cls_loss"]._plastic_model_update_weight == 0.5
-    assert model_updater._learner._components["cls_loss"]._stable_model_update_probability == 0.7
-    assert model_updater._learner._components["cls_loss"]._plastic_model_update_probability == 0.8
+    validate_fct(model_updater, learner_kwargs2)

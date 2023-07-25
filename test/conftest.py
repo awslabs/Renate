@@ -112,14 +112,6 @@ AVALANCHE_LEARNER_KWARGS = {
         "seed": 1,
     },
 }
-LEARNER_HYPERPARAMETER_UPDATES = {
-    ExperienceReplayLearner: {"batch_size": 128},
-    Learner: {"batch_size": 128},
-    GDumbLearner: {"batch_size": 128, "memory_size": 50},
-    JointLearner: {"batch_size": 128},
-    RepeatedDistillationLearner: {"batch_size": 128},
-    OfflineExperienceReplayLearner: {"batch_size": 128},
-}
 AVALANCHE_LEARNER_HYPERPARAMETER_UPDATES = {
     AvalancheEWCLearner: {"ewc_lambda": 0.3},
     AvalancheLwFLearner: {"alpha": 0.2, "temperature": 3},
