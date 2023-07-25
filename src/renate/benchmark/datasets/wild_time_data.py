@@ -8,6 +8,7 @@ from transformers import PreTrainedTokenizer
 from renate import defaults
 from renate.data.data_module import RenateDataModule
 from renate.utils.file import download_folder_from_s3
+from renate.utils.hf_utils import DataCollatorWithPaddingForWildTime
 
 
 class WildTimeDataModule(RenateDataModule):
@@ -95,3 +96,7 @@ class WildTimeDataModule(RenateDataModule):
         train_data = load_dataset(split="train", **kwargs)
         self._train_data, self._val_data = self._split_train_val_data(train_data)
         self._test_data = load_dataset(split="test", **kwargs)
+        if self._dataset_name in ["huffpost", "arxiv"]:
+            self._train_collate_fn = DataCollatorWithPaddingForWildTime(tokenizer=self._tokenizer)
+            self._val_collate_fn = DataCollatorWithPaddingForWildTime(tokenizer=self._tokenizer)
+            self._test_collate_fn = DataCollatorWithPaddingForWildTime(tokenizer=self._tokenizer)

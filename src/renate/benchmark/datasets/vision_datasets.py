@@ -1,12 +1,12 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+import json
 import os
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
 import torch
 import torchvision
-from torch.utils.data import Dataset
 from torchvision import transforms
 
 from renate import defaults
@@ -127,8 +127,6 @@ class TorchVisionDataModule(RenateDataModule):
         },
         "FashionMNIST": {"mean": 0.2860405969887955, "std": 0.3530242445149223},
         "MNIST": {"mean": 0.1306604762738429, "std": 0.30810780385646264},
-        "CLEAR10": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
-        "CLEAR100": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
     }
 
     def __init__(
@@ -196,15 +194,19 @@ class CLEARDataModule(RenateDataModule):
 
     Args:
         data_path: the path to the folder containing the dataset files.
+        time_step: Loads CLEAR dataset for this time step. Options: CLEAR10: [0,9], CLEAR100: [0,10]
         src_bucket: the name of the s3 bucket. If not provided, downloads the data from original
             source.
         src_object_name: the folder path in the s3 bucket.
         dataset_name: CLEAR dataset name, options are clear10 and clear100.
-        chunk_id: Used to define the CLEAR dataset splits. There are 10 splits in total with ids
-            from 0 to 9.
         val_size: Fraction of the training data to be used for validation.
         seed: Seed used to fix random number generation.
     """
+
+    dataset_stats = {
+        "CLEAR10": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
+        "CLEAR100": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
+    }
 
     md5s = {
         "clear10-train-image-only.zip": "5171f720810d60b471c308dee595d430",
@@ -216,10 +218,10 @@ class CLEARDataModule(RenateDataModule):
     def __init__(
         self,
         data_path: Union[Path, str],
+        time_step: int = 0,
         src_bucket: Optional[str] = None,
         src_object_name: Optional[str] = None,
         dataset_name: str = "CLEAR10",
-        chunk_id: int = 0,
         val_size: float = defaults.VALIDATION_SIZE,
         seed: int = defaults.SEED,
     ):
@@ -232,12 +234,8 @@ class CLEARDataModule(RenateDataModule):
         )
         self._dataset_name = dataset_name.lower()
         assert self._dataset_name in ["clear10", "clear100"]
-        self._verify_chunk_id(chunk_id)
-        self._chunk_id = chunk_id
-
-    def _verify_chunk_id(self, chunk_id: int) -> None:
-        """Verify that the chunk_id is valid."""
-        assert 0 <= chunk_id <= 9
+        assert 0 <= time_step <= (9 if self._dataset_name == "clear10" else 10)
+        self.time_step = time_step
 
     def prepare_data(self) -> None:
         """Download CLEAR dataset with given dataset_name (clear10/clear100)."""
@@ -257,42 +255,34 @@ class CLEARDataModule(RenateDataModule):
 
     def setup(self) -> None:
         """Set up train, test and val datasets."""
-        X, y = self._get_filepaths_and_labels(train=True, chunk_id=self._chunk_id)
+        time_step = self.time_step + 1 if self._dataset_name == "clear10" else self.time_step
+        X, y = self._get_filepaths_and_labels(train=True, time_step=time_step)
         train_data = ImageDataset(X, y, transform=transforms.ToTensor())
         self._train_data, self._val_data = self._split_train_val_data(train_data)
-        self._test_data = []
-        for i in range(10):
-            X, y = self._get_filepaths_and_labels(train=False, chunk_id=i)
-            self._test_data.append(ImageDataset(X, y, transform=transforms.ToTensor()))
+        X, y = self._get_filepaths_and_labels(train=False, time_step=time_step)
+        self._test_data = ImageDataset(X, y, transform=transforms.ToTensor())
 
-    # TODO: This is a work-around to make CLEAR available as a data module (single test dataset)
-    # as well as a scenario (all test datasets) via BenchmarkScenario. Clean up!
-    def test_data(self) -> Dataset:
-        return self._test_data[self._chunk_id]
-
-    def _get_filepaths_and_labels(self, train: bool, chunk_id: int) -> Tuple[List[str], List[int]]:
+    def _get_filepaths_and_labels(self, train: bool, time_step: int) -> Tuple[List[str], List[int]]:
         """Extracts all the filepaths and labels for a given chunk id and split."""
-        data = []
-        labels = []
         path = os.path.join(self._data_path, self._dataset_name)
-        path = os.path.join(path, "train_image_only" if train else "test")
 
         # Load the class names and create a class mapping. The class names are in `class_names.txt`
-        label_encoding = {}
-        with open(os.path.join(path, "class_names.txt"), "r") as f:
-            class_names = [line.strip() for line in f.readlines() if line.strip() != "BACKGROUND"]
+        with open(os.path.join(path, "train_image_only", "class_names.txt"), "r") as f:
+            class_names = [line.strip() for line in f.readlines()]
             label_encoding = {name: cnt for cnt, name in enumerate(class_names)}
 
-        path = os.path.join(path, "labeled_images", str(chunk_id + 1))
+        path = os.path.join(path, "train_image_only" if train else "test")
+        with open(os.path.join(path, "labeled_metadata.json"), "r") as f:
+            metadata = json.load(f)
 
-        # Go through all the subfolders in the path folder and search for all .jpg images
-        for root, _, files in os.walk(path):
-            for file in files:
-                if file.endswith(".jpg"):
-                    folder = root.split("/")[-1]
-                    if folder == "BACKGROUND":
-                        continue
-                    data.append(os.path.join(root, file))
-                    labels.append(label_encoding[folder])
+        image_paths = []
+        labels = []
+        for class_name, class_metadata_file in metadata[str(time_step)].items():
+            label = label_encoding[class_name]
+            with open(os.path.join(path, class_metadata_file), "r") as f:
+                class_metadata = json.load(f)
+            for image_metadata in class_metadata.values():
+                image_paths.append(os.path.join(path, image_metadata["IMG_PATH"]))
+                labels.append(label)
 
-        return data, labels
+        return image_paths, labels

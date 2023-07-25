@@ -2,10 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 import logging
 import math
-from typing import List, Optional
+from typing import List, Optional, Tuple, Union
 
 import torch
 from torch.utils.data import Dataset, random_split
+from transformers import BatchEncoding
 
 from renate import defaults
 from renate.types import NestedTensors
@@ -72,7 +73,7 @@ def move_tensors_to_device(tensors: NestedTensors, device: torch.device) -> Nest
 
     The collection `tensors` can be a nested structure of tensors, tuples, lists, and dicts.
     """
-    if isinstance(tensors, torch.Tensor):
+    if isinstance(tensors, (BatchEncoding, torch.Tensor)):
         return tensors.to(device)
     elif isinstance(tensors, tuple):
         return tuple(move_tensors_to_device(t, device) for t in tensors)
@@ -87,3 +88,40 @@ def move_tensors_to_device(tensors: NestedTensors, device: torch.device) -> Nest
             "Expected `tensors` to be a nested structure of tensors, tuples, list and dict; "
             f"discovered {type(tensors)}."
         )
+
+
+def get_length_nested_tensors(batch: NestedTensors) -> torch.Size:
+    """Given a NestedTensor, return its length.
+
+    Assumes that the first axis in each element is the same.
+    """
+    if isinstance(batch, torch.Tensor):
+        return batch.shape[0]
+    if isinstance(batch, tuple):
+        return batch[0].shape[0]
+    if isinstance(batch, dict):
+        return batch[next(iter(batch.keys()))].shape[0]
+
+
+def cat_nested_tensors(
+    nested_tensors: Union[Tuple[NestedTensors], List[NestedTensors]], axis: int = 0
+) -> NestedTensors:
+    """Concatenates the two NestedTensors.
+
+    Equivalent of PyTorch's ``cat`` function for ``NestedTensors``.
+
+    Args:
+        nested_tensors: Tensors to be concatenated.
+        axis: Concatenation axis.
+    """
+    if isinstance(nested_tensors[0], torch.Tensor):
+        return torch.cat(nested_tensors, axis)
+    if isinstance(nested_tensors[0], tuple):
+        return tuple(
+            cat_nested_tensors(nested_tensor, axis) for nested_tensor in zip(*nested_tensors)
+        )
+    if isinstance(nested_tensors[0], dict):
+        return {
+            key: cat_nested_tensors([nested_tensor[key] for nested_tensor in nested_tensors], axis)
+            for key in nested_tensors[0]
+        }
