@@ -1,11 +1,13 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+import functools
 import logging
 from typing import Any, Dict, Optional
 
 import datasets
 import torch
 import transformers
+from datasets import load_dataset
 
 from renate import defaults
 from renate.data.data_module import RenateDataModule
@@ -134,3 +136,127 @@ class HuggingFaceTextDataModule(RenateDataModule):
             self._val_data = _InputTargetWrapper(self._val_data, self._target_column)
         else:
             self._train_data, self._val_data = self._split_train_val_data(self._train_data)
+
+
+class MultiTextDataModule(RenateDataModule):
+    """
+    Inspired by the dataset used in "Episodic Memory in Lifelong Language Learning" by d’Autume et al.
+    it is a collection of five different datasets: AGNews, Yelp, Amazon reviews, DBPedia, Yahoo Answers.
+
+    The output space if the union of the output space of all the datasets.
+    The dataset has 33 classes: 4 from AGNews, 5 from Yelp, 14 from DBPedia, 5 from Amazon reviews,
+    10 from Yahoo. Amazon and Yelp have similar semantics and the classes have been merged.
+
+    The maximum allowed training set size is 115k (the size of the smallest dataset).
+    The dataset is balanced across datasets by construction and each data batch contains data from
+    a single dataset.
+
+    Args:
+        data_path: the path to the folder where the data files will be downloaded to.
+        tokenizer: Tokenizer to apply to the dataset. See https://huggingface.co/docs/tokenizers/
+            for more information on tokenizers.
+        tokenizer_kwargs: Keyword arguments passed when calling the tokenizer's ``__call__``
+           function. Typical options are `max_length`, `padding` and `truncation`.
+           See https://huggingface.co/docs/tokenizers/
+           for more information on tokenizers. If `None` is passed, this defaults to
+           `{"padding": "max_length", max_length: 128, truncation: True}`.
+        train_size: the size of the data batch, must be smaller than 115k.
+        val_size: Fraction of the training data to be used for validation.
+        seed: Seed used to fix random number generation.
+    """
+
+    def __init__(
+        self,
+        data_path: str,
+        tokenizer: transformers.PreTrainedTokenizer,
+        tokenizer_kwargs: Optional[Dict[str, Any]] = None,
+        train_size: int = 115000,
+        val_size: float = defaults.VALIDATION_SIZE,
+        seed: int = defaults.SEED,
+    ):
+        super().__init__(
+            data_path=data_path,
+            val_size=val_size,
+            seed=seed,
+        )
+        self._tokenizer = tokenizer
+        self._tokenizer_kwargs = tokenizer_kwargs or defaults.TOKENIZER_KWARGS
+        self._multi_dataset_info = {
+            "ag_news": ["text", "label"],
+            "yelp_review_full": ["text", "label"],
+            "amazon_reviews_multi": ["review_body", "stars"],
+            "dbpedia_14": ["content", "label"],
+            "yahoo_answers_topics": ["question_title", "topic"],
+        }
+        self._observed_labels = {}
+
+    def prepare_data(self) -> None:
+        """Download dataset."""
+
+        for dataset in self._multi_dataset_info.keys():
+            for split in ["train", "test"] + (["validation"] if self._val_size > 0 else []):
+                if dataset == "amazon_reviews_multi":
+                    load_dataset(dataset, name="en", split=split, cache_dir=self._data_path)
+                else:
+                    load_dataset(dataset, split=split, cache_dir=self._data_path)
+
+    def setup(self) -> None:
+        """Set up train, test and val datasets."""
+
+        def preprocess(example, dataset_name, text_field_name, label_field_name):
+            return {
+                **self._tokenizer(example[text_field_name], **self._tokenizer_kwargs),
+                "label": get_label(dataset_name + str(example[label_field_name])),
+            }
+
+        def get_split(split_name, dataset_name):
+            dataset = load_dataset(dataset_name, split=split_name, cache_dir=self._data_path)
+
+            new_features = dataset.features.copy()
+            new_features["label"] = datasets.ClassLabel(num_classes=35)
+
+            dataset = dataset.cast(new_features)
+
+            dataset = dataset.map(
+                functools.partial(
+                    preprocess,
+                    dataset_name=dataset_name,
+                    text_field_name=self._multi_dataset_info[dataset_name][0],
+                    label_field_name=self._multi_dataset_info[dataset_name][1],
+                ),
+                remove_columns=list(dataset.features),
+                num_proc=4,
+            )
+
+            print(dataset)
+            print(dataset.features)
+            dataset.set_format(type="torch")
+
+            return _InputTargetWrapper(dataset)
+
+        def get_label(label: str):
+            if "yelp_review_full" in label:
+                label = label.replace("yelp_review_full", "amazon_reviews_multi")
+
+            if len(self._observed_labels.keys()) == 0:
+                self._observed_labels[label] = 0
+                return 0
+
+            elif label not in self._observed_labels.keys():
+                max_val = max(self._observed_labels.values())
+                self._observed_labels[label] = max_val + 1
+                return max_val + 1
+
+            else:
+                return self._observed_labels[label]
+
+        self._train_data = []
+        self._test_data = []
+        if self._val_size > 0:
+            self._val_data = []
+
+        for dataset in self._multi_dataset_info:
+            self._train_data.append(get_split("train", dataset))
+            self._test_data.append(get_split("test", dataset))
+            if self._val_size > 0:
+                self._val_data.append(get_split("validation", dataset))
