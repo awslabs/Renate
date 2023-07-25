@@ -170,7 +170,7 @@ class MultiTextDataModule(RenateDataModule):
         data_path: str,
         tokenizer: transformers.PreTrainedTokenizer,
         tokenizer_kwargs: Optional[Dict[str, Any]] = None,
-        train_size: int = 115000,
+        train_size: int = 1000,
         val_size: float = defaults.VALIDATION_SIZE,
         seed: int = defaults.SEED,
     ):
@@ -181,6 +181,7 @@ class MultiTextDataModule(RenateDataModule):
         )
         self._tokenizer = tokenizer
         self._tokenizer_kwargs = tokenizer_kwargs or defaults.TOKENIZER_KWARGS
+        self._train_size = train_size
         self._multi_dataset_info = {
             "ag_news": ["text", "label"],
             "yelp_review_full": ["text", "label"],
@@ -213,10 +214,15 @@ class MultiTextDataModule(RenateDataModule):
             dataset = load_dataset(dataset_name, split=split_name, cache_dir=self._data_path)
 
             new_features = dataset.features.copy()
-            new_features["label"] = datasets.ClassLabel(num_classes=35)
+            # the following is hack needed because the output space of the new dataset is
+            # the union of the output spaces of the single datasets
+            new_features[self._multi_dataset_info[dataset_name][1]] = datasets.ClassLabel(
+                num_classes=33
+            )
 
             dataset = dataset.cast(new_features)
-
+            rnd_idx = torch.randint(low=0, high=len(dataset), size=(self._train_size,)).tolist()
+            dataset = dataset.select(indices=rnd_idx)
             dataset = dataset.map(
                 functools.partial(
                     preprocess,
@@ -228,8 +234,6 @@ class MultiTextDataModule(RenateDataModule):
                 num_proc=4,
             )
 
-            print(dataset)
-            print(dataset.features)
             dataset.set_format(type="torch")
 
             return _InputTargetWrapper(dataset)
