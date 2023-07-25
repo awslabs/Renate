@@ -16,6 +16,11 @@ class Component(abc.ABC):
     regularising loss or a module updater should inherit from.
     The components should be a modular and independent to an extent where they can be composed
     together in an ordered list to be deployed in the BaseExperienceReplayLearner.
+
+    Args:
+        weight: A scaling coefficient which should scale the loss which gets returned.
+        sample_new_memory_batch: Whether a new batch of data should be sampled from the memory
+            buffer when the loss is calculated.
     """
 
     def __init__(self, weight: float = 0, sample_new_memory_batch: bool = False) -> None:

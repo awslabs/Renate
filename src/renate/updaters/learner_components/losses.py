@@ -16,11 +16,6 @@ class WeightedLossComponent(Component, ABC):
     """The abstract class implementing a weighted loss function.
 
     This is an abstract class from which each other loss should inherit from.
-
-    Args:
-        weight: A scaling coefficient which should scale the loss which gets returned.
-        sample_new_memory_batch: Whether a new batch of data should be sampled from the memory
-            buffer when the loss is calculated.
     """
 
     def _verify_attributes(self) -> None:
