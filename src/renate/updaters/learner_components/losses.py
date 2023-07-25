@@ -151,7 +151,7 @@ class WeightedPooledOutputDistillationLossComponent(WeightedLossComponent):
         features = features.pow(2)
         features_memory = features_memory.pow(2)
 
-        if self._distillation_type == "channels":
+        if self._distillation_type == "channel":
             features, features_memory = self._sum_reshape(features, 1), self._sum_reshape(
                 features_memory, 1
             )

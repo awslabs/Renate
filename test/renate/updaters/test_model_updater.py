@@ -13,7 +13,7 @@ from renate import defaults
 from renate.updaters.experimental.er import (
     CLSExperienceReplayLearner,
     DarkExperienceReplayLearner,
-    ExperienceReplayLearner,
+    PooledOutputDistillationExperienceReplayLearner,
 )
 from renate.updaters.experimental.repeated_distill import RepeatedDistillationModelUpdater
 from renate.updaters.learner import ReplayLearner
@@ -239,6 +239,7 @@ def test_learner_fails_without_loss_fn(learner):
 
 def validate_cls_er(model_updater, learner_kwargs):
     assert model_updater._learner._batch_size == learner_kwargs["batch_size"]
+    assert model_updater._learner._memory_batch_size == learner_kwargs["memory_batch_size"]
     assert model_updater._learner._components["memory_loss"].weight == learner_kwargs["alpha"]
     assert model_updater._learner._components["cls_loss"].weight == learner_kwargs["beta"]
     assert (
@@ -259,38 +260,108 @@ def validate_cls_er(model_updater, learner_kwargs):
     )
 
 
+def validate_dark_er(model_updater, learner_kwargs):
+    assert model_updater._learner._batch_size == learner_kwargs["batch_size"]
+    assert model_updater._learner._memory_batch_size == learner_kwargs["memory_batch_size"]
+    assert model_updater._learner._components["memory_loss"].weight == learner_kwargs["beta"]
+    assert model_updater._learner._components["mse_loss"].weight == learner_kwargs["alpha"]
+
+
+def validate_pod_er(model_updater, learner_kwargs):
+    assert model_updater._learner._batch_size == learner_kwargs["batch_size"]
+    assert model_updater._learner._memory_batch_size == learner_kwargs["memory_batch_size"]
+    assert model_updater._learner._components["pod_loss"].weight == learner_kwargs["alpha"]
+    assert (
+        model_updater._learner._components["pod_loss"]._distillation_type
+        == learner_kwargs["distillation_type"]
+    )
+    assert model_updater._learner._components["pod_loss"]._normalize == learner_kwargs["normalize"]
+
+
 @pytest.mark.parametrize(
     "learner_class,validate_fct,learner_kwargs1,learner_kwargs2",
     [
-        CLSExperienceReplayLearner,
-        validate_cls_er,
-        {
-            "memory_size": 30,
-            "memory_batch_size": 20,
-            "batch_size": 50,
-            "seed": 1,
-            "alpha": 0.123,
-            "beta": 2,
-            "stable_model_update_weight": 0.2,
-            "plastic_model_update_weight": 0.1,
-            "stable_model_update_probability": 0.3,
-            "plastic_model_update_probability": 0.4,
-        },
-        {
-            "memory_size": 30,
-            "memory_batch_size": 20,
-            "batch_size": 100,
-            "seed": 1,
-            "alpha": 2.3,
-            "beta": 3,
-            "stable_model_update_weight": 0.6,
-            "plastic_model_update_weight": 0.5,
-            "stable_model_update_probability": 0.7,
-            "plastic_model_update_probability": 0.8,
-        },
+        (
+            CLSExperienceReplayLearner,
+            validate_cls_er,
+            {
+                "memory_size": 30,
+                "memory_batch_size": 20,
+                "batch_size": 50,
+                "seed": 1,
+                "alpha": 0.123,
+                "beta": 2,
+                "stable_model_update_weight": 0.2,
+                "plastic_model_update_weight": 0.1,
+                "stable_model_update_probability": 0.3,
+                "plastic_model_update_probability": 0.4,
+            },
+            {
+                "memory_size": 30,
+                "memory_batch_size": 10,
+                "batch_size": 100,
+                "seed": 1,
+                "alpha": 2.3,
+                "beta": 3,
+                "stable_model_update_weight": 0.6,
+                "plastic_model_update_weight": 0.5,
+                "stable_model_update_probability": 0.7,
+                "plastic_model_update_probability": 0.8,
+            },
+        ),
+        (
+            DarkExperienceReplayLearner,
+            validate_dark_er,
+            {
+                "memory_size": 30,
+                "memory_batch_size": 20,
+                "batch_size": 50,
+                "seed": 1,
+                "alpha": 0.123,
+                "beta": 2,
+            },
+            {
+                "memory_size": 30,
+                "memory_batch_size": 10,
+                "batch_size": 100,
+                "seed": 1,
+                "alpha": 2.3,
+                "beta": 3,
+            },
+        ),
+        (
+            PooledOutputDistillationExperienceReplayLearner,
+            validate_pod_er,
+            {
+                "memory_size": 30,
+                "memory_batch_size": 20,
+                "batch_size": 50,
+                "seed": 1,
+                "alpha": 0.123,
+                "distillation_type": "spatial",
+                "normalize": True,
+            },
+            {
+                "memory_size": 30,
+                "memory_batch_size": 10,
+                "batch_size": 100,
+                "seed": 1,
+                "alpha": 0.123,
+                "distillation_type": "channel",
+                "normalize": False,
+            },
+        ),
     ],
 )
-def test_tmp(tmpdir, learner_class, validate_fct, learner_kwargs1, learner_kwargs2):
+def test_saving_and_loading_of_er_methods(
+    tmpdir, learner_class, validate_fct, learner_kwargs1, learner_kwargs2
+):
+    """ER saving and loading test.
+
+    The ER methods partially have custom saving and loading functions (CLS-ER). Furthermore, the
+    components used to be Modules that effectively did not allow for changing hyperparameter
+    settings.
+    """
     model, train_dataset, _ = pytest.helpers.get_renate_module_mlp_and_data(
         num_inputs=10,
         num_outputs=10,
