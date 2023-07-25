@@ -150,7 +150,6 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
                     batch_memory=batch_memory,
                     intermediate_representation_memory=intermediate_representation_memory,
                 ).mean()
-                print(name, float(component_loss.detach()))
                 self._loss_collections["train_losses"][name](component_loss)
                 step_output["loss"] += component_loss
                 loss_normalization += component.weight
@@ -165,10 +164,6 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
                     )
             if self._use_loss_normalization:
                 step_output["loss"] /= loss_normalization
-        # for i, p in enumerate(self._model.parameters()):
-        #    while len(p.shape) > 1:
-        #        p = p[0]
-        #    print("Model", i, float(p[0]))
 
         return step_output
 

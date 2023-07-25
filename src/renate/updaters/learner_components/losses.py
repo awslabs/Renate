@@ -196,7 +196,7 @@ class WeightedPooledOutputDistillationLossComponent(WeightedLossComponent):
         """Compute the pooled output with respect to current and cached intermediate outputs from
         memory.
         """
-        loss = 0.0
+        loss = torch.tensor(0.0)
         _, meta_data = batch_memory
         for n in range(len(intermediate_representation_memory)):
             features = intermediate_representation_memory[n]
