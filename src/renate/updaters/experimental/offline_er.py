@@ -130,7 +130,7 @@ class OfflineExperienceReplayLearner(ReplayLearner):
             self._loss_collections["train_losses"]["memory_loss"](loss[batch_size_current:].mean())
             self._loss_collections["train_losses"]["base_loss"](loss[:batch_size_current].mean())
             weights = move_tensors_to_device(weights, device=device)
-            loss = weights / weights.mean() * loss
+            loss = weights * loss
         else:
             self._loss_collections["train_losses"]["base_loss"](loss[:batch_size_current].mean())
         loss = loss.mean()
