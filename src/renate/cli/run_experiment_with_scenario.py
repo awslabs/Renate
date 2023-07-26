@@ -100,7 +100,7 @@ class ExperimentCLI:
             "--max_epochs",
             type=int,
             default=defaults.MAX_EPOCHS,
-            help=f"Number of epochs trained at most. Default: {defaults.MAX_EPOCHS}",
+            help=f"Maximum number of (finetuning-equiv.) epochs. Default: {defaults.MAX_EPOCHS}",
         )
         argument_group.add_argument(
             "--seed",
