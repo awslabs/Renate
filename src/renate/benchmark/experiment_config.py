@@ -31,7 +31,6 @@ from renate.benchmark.models import (
 )
 from renate.benchmark.models.transformer import HuggingFaceSequenceClassificationTransformer
 from renate.benchmark.scenarios import (
-    BenchmarkScenario,
     ClassIncrementalScenario,
     FeatureSortingScenario,
     HueShiftScenario,
@@ -39,7 +38,7 @@ from renate.benchmark.scenarios import (
     ImageRotationScenario,
     PermutationScenario,
     Scenario,
-    WildTimeScenario,
+    TimeIncrementalScenario,
 )
 from renate.data.data_module import RenateDataModule
 from renate.models import RenateModule
@@ -189,10 +188,6 @@ def get_scenario(
             class_groupings=class_groupings,
             chunk_id=chunk_id,
         )
-    if scenario_name == "BenchmarkScenario":
-        return BenchmarkScenario(
-            data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed
-        )
     if scenario_name == "IIDScenario":
         return IIDScenario(
             data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed
@@ -226,8 +221,8 @@ def get_scenario(
             chunk_id=chunk_id,
             seed=seed,
         )
-    if scenario_name == "WildTimeScenario":
-        return WildTimeScenario(
+    if scenario_name == "TimeIncrementalScenario":
+        return TimeIncrementalScenario(
             data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed
         )
     raise ValueError(f"Unknown scenario `{scenario_name}`.")
@@ -291,6 +286,11 @@ def _get_normalize_transform(dataset_name):
             TorchVisionDataModule.dataset_stats[dataset_name]["mean"],
             TorchVisionDataModule.dataset_stats[dataset_name]["std"],
         )
+    if dataset_name in ["CLEAR10", "CLEAR100"]:
+        return transforms.Normalize(
+            CLEARDataModule.dataset_stats[dataset_name]["mean"],
+            CLEARDataModule.dataset_stats[dataset_name]["std"],
+        )
 
 
 def train_transform(dataset_name: str) -> Optional[Callable]:
@@ -311,7 +311,9 @@ def train_transform(dataset_name: str) -> Optional[Callable]:
     if dataset_name in ["CLEAR10", "CLEAR100"]:
         return transforms.Compose(
             [
-                transforms.Resize(224),
+                transforms.Resize(
+                    224, interpolation=transforms.InterpolationMode.BILINEAR, antialias=True
+                ),
                 transforms.RandomCrop(224),
                 _get_normalize_transform(dataset_name),
             ]
@@ -331,7 +333,9 @@ def test_transform(dataset_name: str) -> Optional[Callable]:
     if dataset_name in ["CLEAR10", "CLEAR100"]:
         return transforms.Compose(
             [
-                transforms.Resize(224),
+                transforms.Resize(
+                    224, interpolation=transforms.InterpolationMode.BILINEAR, antialias=True
+                ),
                 transforms.CenterCrop(224),
                 _get_normalize_transform(dataset_name),
             ]

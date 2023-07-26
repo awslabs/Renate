@@ -184,13 +184,12 @@ The first part contains all instances with classes 1 and 2, the second with clas
     * - Scenario Name
       - Description
       - Settings
-    * - :py:class:`~renate.benchmark.scenarios.BenchmarkScenario`
-      - Used in combination only with CLEAR-10 or CLEAR-100.
-      - * :code:`num_tasks`: Number of data partitions.
-    * - :py:class:`~renate.benchmark.scenarios.WildTimeScenario`
-      - Used in combination only with Wild-Time datasets. This is not the scenario used in the paper.
+    * - :py:class:`~renate.benchmark.scenarios.TimeIncrementalScenario`
+      - Used in combination only with Wild-Time datasets or CLEAR.
         Data is presented time step by time step and the model is evaluated on test data up to the
         current time step.
+        This means that for the Wild-Time datasets, is a different scenario than in the original
+        Wild-Time data paper.
       - * :code:`num_tasks`: Number of data partitions.
     * - :py:class:`~renate.benchmark.scenarios.ClassIncrementalScenario`
       - Creates data partitions by splitting the data according to class labels.

@@ -22,14 +22,13 @@ from renate.benchmark.experiment_config import (
     train_transform,
 )
 from renate.benchmark.scenarios import (
-    BenchmarkScenario,
     ClassIncrementalScenario,
     FeatureSortingScenario,
     HueShiftScenario,
     IIDScenario,
     ImageRotationScenario,
     PermutationScenario,
-    WildTimeScenario,
+    TimeIncrementalScenario,
 )
 from renate.models.prediction_strategies import ICaRLClassificationStrategy
 
@@ -176,7 +175,6 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             ImageRotationScenario,
             3,
         ),
-        ("BenchmarkScenario", "CLEAR10", {"num_tasks": 5}, BenchmarkScenario, 5),
         (
             "PermutationScenario",
             "MNIST",
@@ -202,18 +200,19 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             HueShiftScenario,
             3,
         ),
+        ("TimeIncrementalScenario", "CLEAR10", {"num_tasks": 5}, TimeIncrementalScenario, 5),
         (
-            "WildTimeScenario",
+            "TimeIncrementalScenario",
             "arxiv",
             {"num_tasks": 3, "pretrained_model_name": "distilbert-base-uncased"},
-            WildTimeScenario,
+            TimeIncrementalScenario,
             3,
         ),
         (
-            "WildTimeScenario",
+            "TimeIncrementalScenario",
             "fmow",
             {},
-            WildTimeScenario,
+            TimeIncrementalScenario,
             16,
         ),
     ),
@@ -221,10 +220,10 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         "class_incremental",
         "iid",
         "rotation",
-        "benchmark",
         "permutation",
         "feature_sorting",
         "hue_shift",
+        "time_with_clear",
         "wild_time_text_with_tokenizer",
         "wild_time_image_all_tasks",
     ],
@@ -256,30 +255,34 @@ def test_data_module_fn(
         assert scenario._randomness == scenario_kwargs["randomness"]
     elif expected_scenario_class == HueShiftScenario:
         assert scenario._randomness == scenario_kwargs["randomness"]
-    elif expected_scenario_class == WildTimeScenario:
+    elif expected_scenario_class == TimeIncrementalScenario:
         if "pretrained_model_name" in scenario_kwargs:
             assert scenario._data_module._tokenizer is not None
-        else:
+        elif dataset_name not in ["CLEAR10", "CLEAR100"]:
             assert scenario._data_module._tokenizer is None
     assert scenario._num_tasks == expected_num_tasks
 
 
 @pytest.mark.parametrize(
-    "dataset_name,use_transforms",
+    "dataset_name,use_transforms,test_compose",
     (
-        ("MNIST", False),
-        ("FashionMNIST", False),
-        ("CIFAR10", True),
-        ("CIFAR100", True),
-        ("hfd-rotten_tomatoes", False),
+        ("MNIST", False, False),
+        ("FashionMNIST", False, False),
+        ("CIFAR10", True, False),
+        ("CIFAR100", True, False),
+        ("CLEAR10", True, True),
+        ("hfd-rotten_tomatoes", False, False),
     ),
 )
-def test_transforms(dataset_name, use_transforms):
+def test_transforms(dataset_name, use_transforms, test_compose):
     train_preprocessing = train_transform(dataset_name)
     test_preprocessing = experiment_config.test_transform(dataset_name)
     if use_transforms:
         assert isinstance(train_preprocessing, Compose)
-        assert isinstance(test_preprocessing, Normalize)
+        if test_compose:
+            assert isinstance(test_preprocessing, Compose)
+        else:
+            assert isinstance(test_preprocessing, Normalize)
     else:
         assert train_preprocessing is None
         assert test_preprocessing is None
