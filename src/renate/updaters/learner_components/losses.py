@@ -365,7 +365,7 @@ class WeightedCLSLossComponent(WeightedLossComponent):
         (inputs_memory, targets_memory), _ = batch_memory
         with torch.no_grad():
             outputs_plastic = self._plastic_model(inputs_memory)
-            outputs_stable = self._plastic_model(inputs_memory)
+            outputs_stable = self._stable_model(inputs_memory)
             probs_plastic = F.softmax(outputs_plastic, dim=-1)
             probs_stable = F.softmax(outputs_stable, dim=-1)
             label_mask = F.one_hot(targets_memory, num_classes=outputs_stable.shape[-1]) > 0

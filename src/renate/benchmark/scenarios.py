@@ -9,6 +9,7 @@ from torch.utils.data import Dataset, Subset
 from torchvision.transforms import Lambda, RandomRotation, ToPILImage
 
 from renate import defaults
+from renate.benchmark.datasets.vision_datasets import CLEARDataModule
 from renate.benchmark.datasets.wild_time_data import WildTimeDataModule
 from renate.data.data_module import RenateDataModule
 from renate.data.datasets import _TransformedDataset
@@ -100,18 +101,6 @@ class Scenario(abc.ABC):
         if self._data_module.val_data():
             val_data = self._data_module.val_data()
             self._val_data = randomly_split_data(val_data, proportions, self._seed)[self._chunk_id]
-
-
-class BenchmarkScenario(Scenario):
-    """This is a scenario to concatenate test data of a data module, which by definition has
-    different chunks.
-    """
-
-    def setup(self) -> None:
-        super().setup()
-        self._train_data = self._data_module.train_data()
-        self._val_data = self._data_module.val_data()
-        self._test_data = self._data_module._test_data
 
 
 class ClassIncrementalScenario(Scenario):
@@ -284,7 +273,7 @@ class _SortingScenario(Scenario):
     Randomness in the sorted order is induced by swapping the position of random pairs.
 
     Args:
-        data_module: The source RenateDataModule for the the user data.
+        data_module: The source RenateDataModule for the user data.
         num_tasks: The total number of expected tasks for experimentation.
         randomness: A value between 0 and 1. For a dataset with ``N`` data points,
             ``0.5 * N * randomness`` random pairs are swapped.
@@ -399,11 +388,13 @@ class HueShiftScenario(_SortingScenario):
         return scores
 
 
-class WildTimeScenario(Scenario):
-    """Creating a time-incremental scenario for the Wild-Time datasets.
+class TimeIncrementalScenario(Scenario):
+    """Creating a time-incremental scenario for specific datasets.
 
-    In contrast to the original work, data is presented time step by time step (no grouping) and
-    the test set is all data up to the current time step.
+    Supports the Wild Time datasets and CLEAR.
+    DataModules that want to use the TimeIncrementalScenario, need to have an attribute
+    ``time_step``. Setting this variable and then calling ``setup()`` should load the time-specific
+    datasets.
 
     Args:
         data_module: The source RenateDataModule for the user data.
@@ -420,8 +411,10 @@ class WildTimeScenario(Scenario):
         seed: int = defaults.SEED,
     ) -> None:
         super().__init__(data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed)
-        if not isinstance(data_module, WildTimeDataModule):
-            raise ValueError("This scenario is only compatible with `WildTimeDataModule`.")
+        if not isinstance(data_module, (CLEARDataModule, WildTimeDataModule)):
+            raise ValueError(
+                "This scenario is only compatible with `CLEARDataModule` and `WildTimeDataModule`."
+            )
 
     def setup(self) -> None:
         """Sets up the scenario."""

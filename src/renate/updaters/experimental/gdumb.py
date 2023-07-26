@@ -88,6 +88,7 @@ class GDumbLearner(ReplayLearner):
             shuffle=True,
             generator=self._rng,
             pin_memory=True,
+            collate_fn=self._train_collate_fn,
         )
 
     def training_step(

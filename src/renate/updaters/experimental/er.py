@@ -110,6 +110,7 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
             shuffle=True,
             generator=self._rng,
             pin_memory=True,
+            collate_fn=self._train_collate_fn,
         )
 
     def on_train_start(self) -> None:
@@ -204,6 +205,7 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
                 shuffle=True,
                 generator=self._rng,
                 pin_memory=True,
+                collate_fn=self._train_collate_fn,
             )
 
     def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int) -> None:

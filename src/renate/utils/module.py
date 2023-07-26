@@ -62,6 +62,7 @@ def evaluate_and_record_results(
     update_results = evaluate(
         model=model,
         test_dataset=data_module.test_data(),
+        test_collate_fn=data_module.test_collate_fn(),
         task_id=task_id,
         batch_size=batch_size,
         transform=transform,

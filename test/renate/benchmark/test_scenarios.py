@@ -7,15 +7,15 @@ import pytest
 import torch
 from torchvision.transforms.functional import rotate
 
-from dummy_datasets import DummyTorchVisionDataModule, DummyTorchVisionDataModuleWithChunks
+from dummy_datasets import DummyTorchVisionDataModule
 from renate.benchmark.datasets.vision_datasets import TorchVisionDataModule
 from renate.benchmark.scenarios import (
-    BenchmarkScenario,
     ClassIncrementalScenario,
     FeatureSortingScenario,
     IIDScenario,
     ImageRotationScenario,
     PermutationScenario,
+    TimeIncrementalScenario,
 )
 from renate.utils.pytorch import randomly_split_data
 
@@ -71,12 +71,22 @@ def test_class_incremental_scenario_class_grouping_error():
     """Classes selected do not exist in data."""
     scenario = ClassIncrementalScenario(
         data_module=DummyTorchVisionDataModule(val_size=0.3, seed=42),
-        class_groupings=[[0, 1, 3], [2, 200]],
+        class_groupings=((0, 1, 3), (2, 200)),
         chunk_id=0,
     )
     scenario.prepare_data()
     with pytest.raises(ValueError, match=r"Chunk 1 does not contain classes \[200\]."):
         scenario.setup()
+
+
+def test_time_incremental_scenario_init_error():
+    """Check that TimeIncrementalScenario raises Exception for unsupported DataModule."""
+    with pytest.raises(ValueError, match=r"This scenario is only compatible with*"):
+        TimeIncrementalScenario(
+            data_module=DummyTorchVisionDataModule(),
+            num_tasks=2,
+            chunk_id=0,
+        )
 
 
 def test_image_rotation_scenario():
@@ -165,17 +175,6 @@ def test_transforms_in_transform_scenarios_are_distinct(scenario_class, scenario
                 continue
             assert transform != transform2
             assert not torch.all(torch.isclose(transform(x), transform2(x)))
-
-
-def test_benchmark_scenario():
-    data_module = DummyTorchVisionDataModuleWithChunks(num_chunks=3, val_size=0.2)
-    for chunk_id in range(3):
-        scenario = BenchmarkScenario(data_module=data_module, num_tasks=3, chunk_id=chunk_id)
-        scenario.prepare_data()
-        scenario.setup()
-        assert scenario.train_data() is not None
-        assert scenario.val_data() is not None
-        assert len(scenario.test_data()) == 3
 
 
 def test_iid_scenario():
