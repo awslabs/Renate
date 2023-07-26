@@ -109,9 +109,8 @@ class OfflineExperienceReplayLearner(ReplayLearner):
             )
         else:
             alpha = self._loss_weight_new_data
-        alpha = torch.tensor(alpha, device=device)
+        alpha = torch.tensor(alpha, device=next(self.parameters()).device)
         inputs, targets = batch["current_task"]
-        device = next(self.parameters()).device
         batch_size_current = get_length_nested_tensors(inputs)
         if "memory" in batch:
             (inputs_mem, targets_mem), _ = batch["memory"]
