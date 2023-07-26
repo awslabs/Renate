@@ -305,13 +305,13 @@ class WeightedCLSLossComponent(WeightedLossComponent):
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Load relevant information from checkpoint."""
         super().on_load_checkpoint(checkpoint)
-        self._plastic_model = checkpoint["component-cls-plastic-model"]
-        self._stable_model = checkpoint["component-cls-stable-model"]
+        self._plastic_model.load_state_dict(checkpoint["component-cls-plastic-model"])
+        self._stable_model.load_state_dict(checkpoint["component-cls-stable-model"])
         self._iteration = checkpoint["component-cls-iteration"]
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Add plastic and stable model to checkpoint."""
         super().on_save_checkpoint(checkpoint)
-        checkpoint["component-cls-plastic-model"] = self._plastic_model
-        checkpoint["component-cls-stable-model"] = self._stable_model
+        checkpoint["component-cls-plastic-model"] = self._plastic_model.state_dict()
+        checkpoint["component-cls-stable-model"] = self._stable_model.state_dict()
         checkpoint["component-cls-iteration"] = self._iteration
