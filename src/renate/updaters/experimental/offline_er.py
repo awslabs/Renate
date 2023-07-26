@@ -109,31 +109,25 @@ class OfflineExperienceReplayLearner(ReplayLearner):
             )
         else:
             alpha = self._loss_weight_new_data
+        alpha = torch.tensor(alpha, device=device)
         inputs, targets = batch["current_task"]
         device = next(self.parameters()).device
         batch_size_current = get_length_nested_tensors(inputs)
-        batch_size_mem = 0
         if "memory" in batch:
             (inputs_mem, targets_mem), _ = batch["memory"]
-            batch_size_mem = get_length_nested_tensors(inputs_mem)
             inputs = cat_nested_tensors((inputs, inputs_mem), 0)
             targets = torch.cat((targets, targets_mem), 0)
         outputs = self(inputs)
         loss = self._loss_fn(outputs, targets)
         if "memory" in batch:
-            weights = torch.Tensor(
-                [
-                    [alpha for _ in range(batch_size_current)]
-                    + [(1 - alpha) for _ in range(batch_size_mem)]
-                ]
-            )
-            self._loss_collections["train_losses"]["memory_loss"](loss[batch_size_current:].mean())
-            self._loss_collections["train_losses"]["base_loss"](loss[:batch_size_current].mean())
-            weights = move_tensors_to_device(weights, device=device)
-            loss = weights * loss
+            loss_current = loss[:batch_size_current].mean()
+            loss_memory = loss[batch_size_current:].mean()
+            self._loss_collections["train_losses"]["base_loss"](loss_current)
+            self._loss_collections["train_losses"]["memory_loss"](loss_memory)
+            loss = alpha * loss_current + (1.0 - alpha) * loss_memory
         else:
-            self._loss_collections["train_losses"]["base_loss"](loss[:batch_size_current].mean())
-        loss = loss.mean()
+            loss = loss.mean()
+            self._loss_collections["train_losses"]["base_loss"](loss)
         self._update_metrics(outputs, targets, "train")
         return {"loss": loss}
 
