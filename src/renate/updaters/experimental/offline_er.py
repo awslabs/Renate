@@ -20,7 +20,6 @@ from renate.updaters.model_updater import SingleTrainingLoopUpdater
 from renate.utils.pytorch import (
     cat_nested_tensors,
     get_length_nested_tensors,
-    move_tensors_to_device,
 )
 
 
