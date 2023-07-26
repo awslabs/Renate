@@ -68,3 +68,4 @@ if __name__ == "__main__":
     else:
         accuracies = []
     assert any([pytest.approx(acc) == accuracies for acc in expected_accuracy]), accuracies
+    print(platform)
