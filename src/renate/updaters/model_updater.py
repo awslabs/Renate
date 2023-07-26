@@ -213,7 +213,9 @@ class ModelUpdater(abc.ABC):
             state available) or replace current arguments of the learner.
         input_state_folder: Folder used by Renate to store files for current state.
         output_state_folder: Folder used by Renate to store files for next state.
-        max_epochs: The maximum number of epochs used to train the model.
+        max_epochs: The maximum number of epochs used to train the model. For comparability between
+            methods, epochs are interpreted as "finetuning-equivalent". That is, one epoch is
+            defined as `len(current_task_dataset) / batch_size` update steps.
         train_transform: The transformation applied during training.
         train_target_transform: The target transformation applied during testing.
         test_transform: The transformation at test time.
@@ -408,10 +410,14 @@ class ModelUpdater(abc.ABC):
                 )
 
         strategy = create_strategy(self._devices, self._strategy)
+        # Finetuning-equivalent epochs.
+        num_batches = len(learner._train_dataset) // learner._batch_size
+        num_batches += min(len(learner._train_dataset) % learner._batch_size, 1)
         trainer = Trainer(
             accelerator=self._accelerator,
             devices=self._devices,
             max_epochs=self._max_epochs,
+            limit_train_batches=num_batches,
             callbacks=callbacks,
             logger=self._logger,
             enable_progress_bar=False,
