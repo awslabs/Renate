@@ -401,8 +401,6 @@ def _teardown_tuning_job(
                 + "\n\nLogs (stdout):\n\n{}".format("".join(backend.stdout(0)))
                 + "\n\nLogs (stderr):\n\n{}".format("".join(backend.stderr(0)))
             )
-        print("".join(backend.stdout(0)))
-        print("".join(backend.stderr(0)))
         output_state_folder = defaults.output_state_folder(
             f"{experiment_folder}/{best_trial_id}/checkpoints"
         )
