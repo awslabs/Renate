@@ -141,18 +141,18 @@ class HuggingFaceTextDataModule(RenateDataModule):
 class MultiTextDataModule(RenateDataModule):
     """
     Inspired by the dataset used in "Episodic Memory in Lifelong Language Learning"
-    by d’Autume et al. it is a collection of five different datasets that we call domains:
+    by d’Autume et al. this is a collection of five different datasets that we call domains:
     AGNews, Yelp, Amazon reviews, DBPedia and Yahoo Answers.
 
     The output space if the union of the output space of all the domains.
     The dataset has 33 classes: 4 from AGNews, 5 from Yelp, 14 from DBPedia, 5 from Amazon reviews,
-    10 from Yahoo. Amazon and Yelp have similar semantics and the classes have been merged.
+    and 10 from Yahoo. Amazon and Yelp have similar semantics and the classes have been merged.
 
-    The maximum allowed size for the training set is 115k and for the test set is 7600.
+    The maximum allowed size for the training set is 115000 and for the test set is 7600.
     Each domain will have the same fixed size.
 
     Args:
-        data_path: the path to the folder where the data files will be downloaded to.
+        data_path: The path to the folder where the data files will be downloaded to.
         tokenizer: Tokenizer to apply to the dataset. See https://huggingface.co/docs/tokenizers/
             for more information on tokenizers.
         tokenizer_kwargs: Keyword arguments passed when calling the tokenizer's ``__call__``
@@ -160,9 +160,9 @@ class MultiTextDataModule(RenateDataModule):
            See https://huggingface.co/docs/tokenizers/
            for more information on tokenizers. If `None` is passed, this defaults to
            `{"padding": "max_length", max_length: 128, truncation: True}`.
-        domain: the dataset to be used
-        train_size: the size of the data stored as training set, must be smaller than 115000.
-        test_size: the size of the data stored as test set, must be smaller than 7600.
+        domain: The dataset to be used
+        train_size: The size of the data stored as training set, must be smaller than 115000.
+        test_size: The size of the data stored as test set, must be smaller than 7600.
         val_size: Fraction of the training data to be used for validation.
         seed: Seed used to fix random number generation.
     """
@@ -173,8 +173,8 @@ class MultiTextDataModule(RenateDataModule):
         tokenizer: transformers.PreTrainedTokenizer,
         domain: str,
         tokenizer_kwargs: Optional[Dict[str, Any]] = None,
-        train_size: int = 1000,
-        test_size: int = 1000,
+        train_size: int = defaults.TRAIN_SET_SIZE,
+        test_size: int = defaults.TEST_SET_SIZE,
         val_size: float = defaults.VALIDATION_SIZE,
         seed: int = defaults.SEED,
     ):
@@ -286,8 +286,8 @@ class MultiTextDataModule(RenateDataModule):
                 set_size = self._test_size
 
             rnd_idx = torch.randint(low=0, high=len(dataset), size=(set_size,)).tolist()
-
             dataset = dataset.select(indices=rnd_idx)
+
             dataset = dataset.map(
                 functools.partial(
                     preprocess,
@@ -301,11 +301,6 @@ class MultiTextDataModule(RenateDataModule):
             dataset.set_format(type="torch")
 
             return _InputTargetWrapper(dataset)
-
-        self._train_data = []
-        self._test_data = []
-        if self._val_size > 0:
-            self._val_data = []
 
         self._train_data = get_split("train")
         self._test_data = get_split("test")
