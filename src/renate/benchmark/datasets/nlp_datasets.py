@@ -140,16 +140,16 @@ class HuggingFaceTextDataModule(RenateDataModule):
 
 class MultiTextDataModule(RenateDataModule):
     """
-    Inspired by the dataset used in "Episodic Memory in Lifelong Language Learning" by d’Autume et al.
-    it is a collection of five different datasets: AGNews, Yelp, Amazon reviews, DBPedia, Yahoo Answers.
+    Inspired by the dataset used in "Episodic Memory in Lifelong Language Learning"
+    by d’Autume et al. it is a collection of five different datasets that we call domains:
+    AGNews, Yelp, Amazon reviews, DBPedia and Yahoo Answers.
 
-    The output space if the union of the output space of all the datasets.
+    The output space if the union of the output space of all the domains.
     The dataset has 33 classes: 4 from AGNews, 5 from Yelp, 14 from DBPedia, 5 from Amazon reviews,
     10 from Yahoo. Amazon and Yelp have similar semantics and the classes have been merged.
 
-    The maximum allowed training set size is 115k (the size of the smallest dataset).
-    The dataset is balanced across datasets by construction and each data batch contains data from
-    a single dataset.
+    The maximum allowed size for the training set is 115k and for the test set is 7600.
+    Each domain will have the same fixed size.
 
     Args:
         data_path: the path to the folder where the data files will be downloaded to.
@@ -160,7 +160,9 @@ class MultiTextDataModule(RenateDataModule):
            See https://huggingface.co/docs/tokenizers/
            for more information on tokenizers. If `None` is passed, this defaults to
            `{"padding": "max_length", max_length: 128, truncation: True}`.
-        train_size: the size of the data batch, must be smaller than 115k.
+        domain: the dataset to be used
+        train_size: the size of the data stored as training set, must be smaller than 115000.
+        test_size: the size of the data stored as test set, must be smaller than 7600.
         val_size: Fraction of the training data to be used for validation.
         seed: Seed used to fix random number generation.
     """
@@ -169,8 +171,10 @@ class MultiTextDataModule(RenateDataModule):
         self,
         data_path: str,
         tokenizer: transformers.PreTrainedTokenizer,
+        domain: str,
         tokenizer_kwargs: Optional[Dict[str, Any]] = None,
         train_size: int = 1000,
+        test_size: int = 1000,
         val_size: float = defaults.VALIDATION_SIZE,
         seed: int = defaults.SEED,
     ):
@@ -179,9 +183,17 @@ class MultiTextDataModule(RenateDataModule):
             val_size=val_size,
             seed=seed,
         )
+
+        if train_size > 115000:
+            raise ValueError("The `train_size` must be smaller than 115000")
+        self._train_size = train_size
+
+        if test_size > 7600:
+            raise ValueError("The `test_size` must be smaller than 7600")
+        self._test_size = test_size
+
         self._tokenizer = tokenizer
         self._tokenizer_kwargs = tokenizer_kwargs or defaults.TOKENIZER_KWARGS
-        self._train_size = train_size
         self._multi_dataset_info = {
             "ag_news": ["text", "label"],
             "yelp_review_full": ["text", "label"],
@@ -189,46 +201,98 @@ class MultiTextDataModule(RenateDataModule):
             "dbpedia_14": ["content", "label"],
             "yahoo_answers_topics": ["question_title", "topic"],
         }
-        self._observed_labels = {}
+        self._labels_map = {
+            "ag_news0": 0,
+            "ag_news1": 1,
+            "ag_news3": 2,
+            "ag_news2": 3,
+            "amazon_reviews_multi1": 4,
+            "amazon_reviews_multi4": 5,
+            "amazon_reviews_multi5": 6,
+            "amazon_reviews_multi3": 7,
+            "amazon_reviews_multi2": 8,
+            "dbpedia_140": 9,
+            "dbpedia_141": 10,
+            "dbpedia_142": 11,
+            "dbpedia_143": 12,
+            "dbpedia_144": 13,
+            "dbpedia_145": 14,
+            "dbpedia_146": 15,
+            "dbpedia_147": 16,
+            "dbpedia_148": 17,
+            "dbpedia_149": 18,
+            "dbpedia_1410": 19,
+            "dbpedia_1411": 20,
+            "dbpedia_1412": 21,
+            "dbpedia_1413": 22,
+            "yahoo_answers_topics0": 23,
+            "yahoo_answers_topics1": 24,
+            "yahoo_answers_topics2": 25,
+            "yahoo_answers_topics3": 26,
+            "yahoo_answers_topics4": 27,
+            "yahoo_answers_topics5": 28,
+            "yahoo_answers_topics6": 29,
+            "yahoo_answers_topics7": 30,
+            "yahoo_answers_topics8": 31,
+            "yahoo_answers_topics9": 32,
+            # yelp gets the same label ids as Amazon reviews
+            "yelp_review_full0": 4,
+            "yelp_review_full1": 5,
+            "yelp_review_full2": 6,
+            "yelp_review_full3": 7,
+            "yelp_review_full4": 8,
+        }
+
+        if domain not in self._multi_dataset_info.keys():
+            raise ValueError(
+                f"The selected domain is not available. Select one among {self._multi_dataset_info.keys()}"
+            )
+
+        self._domain = domain
 
     def prepare_data(self) -> None:
         """Download dataset."""
 
-        for dataset in self._multi_dataset_info.keys():
-            for split in ["train", "test"] + (["validation"] if self._val_size > 0 else []):
-                if dataset == "amazon_reviews_multi":
-                    load_dataset(dataset, name="en", split=split, cache_dir=self._data_path)
-                else:
-                    load_dataset(dataset, split=split, cache_dir=self._data_path)
+        for split in ["train", "test"] + (["validation"] if self._val_size > 0 else []):
+            if self._domain == "amazon_reviews_multi":
+                load_dataset(self._domain, name="en", split=split, cache_dir=self._data_path)
+            else:
+                load_dataset(self._domain, split=split, cache_dir=self._data_path)
 
     def setup(self) -> None:
         """Set up train, test and val datasets."""
 
-        def preprocess(example, dataset_name, text_field_name, label_field_name):
+        def preprocess(example, text_field_name, label_field_name):
             return {
                 **self._tokenizer(example[text_field_name], **self._tokenizer_kwargs),
-                "label": get_label(dataset_name + str(example[label_field_name])),
+                "label": self._labels_map[f"{self._domain}{example[label_field_name]}"],
             }
 
-        def get_split(split_name, dataset_name):
-            dataset = load_dataset(dataset_name, split=split_name, cache_dir=self._data_path)
+        def get_split(split_name):
+            dataset = load_dataset(self._domain, split=split_name, cache_dir=self._data_path)
 
             new_features = dataset.features.copy()
             # the following is hack needed because the output space of the new dataset is
             # the union of the output spaces of the single datasets
-            new_features[self._multi_dataset_info[dataset_name][1]] = datasets.ClassLabel(
+            new_features[self._multi_dataset_info[self._domain][1]] = datasets.ClassLabel(
                 num_classes=33
             )
 
             dataset = dataset.cast(new_features)
-            rnd_idx = torch.randint(low=0, high=len(dataset), size=(self._train_size,)).tolist()
+
+            if "train" in split_name:
+                set_size = self._train_size
+            else:
+                set_size = self._test_size
+
+            rnd_idx = torch.randint(low=0, high=len(dataset), size=(set_size,)).tolist()
+
             dataset = dataset.select(indices=rnd_idx)
             dataset = dataset.map(
                 functools.partial(
                     preprocess,
-                    dataset_name=dataset_name,
-                    text_field_name=self._multi_dataset_info[dataset_name][0],
-                    label_field_name=self._multi_dataset_info[dataset_name][1],
+                    text_field_name=self._multi_dataset_info[self._domain][0],
+                    label_field_name=self._multi_dataset_info[self._domain][1],
                 ),
                 remove_columns=list(dataset.features),
                 num_proc=4,
@@ -238,29 +302,12 @@ class MultiTextDataModule(RenateDataModule):
 
             return _InputTargetWrapper(dataset)
 
-        def get_label(label: str):
-            if "yelp_review_full" in label:
-                label = label.replace("yelp_review_full", "amazon_reviews_multi")
-
-            if len(self._observed_labels.keys()) == 0:
-                self._observed_labels[label] = 0
-                return 0
-
-            elif label not in self._observed_labels.keys():
-                max_val = max(self._observed_labels.values())
-                self._observed_labels[label] = max_val + 1
-                return max_val + 1
-
-            else:
-                return self._observed_labels[label]
-
         self._train_data = []
         self._test_data = []
         if self._val_size > 0:
             self._val_data = []
 
-        for dataset in self._multi_dataset_info:
-            self._train_data.append(get_split("train", dataset))
-            self._test_data.append(get_split("test", dataset))
-            if self._val_size > 0:
-                self._val_data.append(get_split("validation", dataset))
+        self._train_data = get_split("train")
+        self._test_data = get_split("test")
+        if self._val_size > 0:
+            self._val_data = get_split("validation")
