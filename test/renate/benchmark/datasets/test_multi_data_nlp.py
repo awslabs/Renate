@@ -1,5 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+import pytest
 import transformers as transformers
 
 from renate.benchmark.datasets.nlp_datasets import MultiTextDataModule
