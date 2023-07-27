@@ -56,9 +56,6 @@ def evaluate_and_record_results(
         precision: Type of bit precision to use.
             `More details <https://lightning.ai/docs/pytorch/stable/common/precision_basic.html>`__
     """
-
-    data_module.setup()
-
     update_results = evaluate(
         model=model,
         test_dataset=data_module.test_data(),
@@ -74,9 +71,10 @@ def evaluate_and_record_results(
         precision=precision,
     )
     for key, value in update_results.items():
-        if key not in results:
-            results[key + metric_postfix] = []
-        results[key + metric_postfix].append(value)
+        result_key = f"{key}{metric_postfix}"
+        if result_key not in results:
+            results[result_key] = []
+        results[result_key].append(value)
     return results
 
 

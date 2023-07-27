@@ -3,7 +3,9 @@
 from typing import Dict, List
 
 
-def average_accuracy(results: Dict[str, List[List[float]]], task_id: int) -> float:
+def average_accuracy(
+    results: Dict[str, List[List[float]]], task_id: int, num_instances: List[int]
+) -> float:
     """Compute the average accuracy of a model.
 
     This measure is defined by:
@@ -18,11 +20,38 @@ def average_accuracy(results: Dict[str, List[List[float]]], task_id: int) -> flo
         results: The results dictionary holding all the results with respect to all recorded
             metrics.
         task_id: The task index.
+        num_instances: Count of test data points for each update.
     """
     return sum(results["accuracy"][task_id][: task_id + 1]) / (task_id + 1)
 
 
-def forgetting(results: Dict[str, List[List[float]]], task_id: int) -> float:
+def micro_average_accuracy(
+    results: Dict[str, List[List[float]]], task_id: int, num_instances: List[int]
+) -> float:
+    """Compute the micro average accuracy of a model.
+
+    This measure is defined by the number of correctly classified data points divided by the
+    total number of data points. If the number of data points is the same in each update step,
+    this is the same as ``average_accuracy``.
+
+    Args:
+        results: The results dictionary holding all the results with respect to all recorded
+            metrics.
+        task_id: The task index.
+        num_instances: Count of test data points for each update.
+    """
+    total_num_instances = sum(num_instances[: task_id + 1])
+    return sum(
+        [
+            num_instances[i] / total_num_instances * results["accuracy"][task_id][i]
+            for i in range(task_id + 1)
+        ]
+    )
+
+
+def forgetting(
+    results: Dict[str, List[List[float]]], task_id: int, num_instances: List[int]
+) -> float:
     """Compute the forgetting measure of the model.
 
     This measure is defined by:
@@ -43,6 +72,7 @@ def forgetting(results: Dict[str, List[List[float]]], task_id: int) -> float:
         results: The results dictionary holding all the results with respect to all recorded
             metrics.
         task_id: The task index.
+        num_instances: Count of test data points for each update.
     """
     if task_id == 0:
         return 0.0
@@ -59,7 +89,9 @@ def forgetting(results: Dict[str, List[List[float]]], task_id: int) -> float:
     return sum_f / task_id
 
 
-def backward_transfer(results: Dict[str, List[List[float]]], task_id: int) -> float:
+def backward_transfer(
+    results: Dict[str, List[List[float]]], task_id: int, num_instances: List[int]
+) -> float:
     """Compute the backward transfer measure of the model.
 
     This measure is defined by:
@@ -74,6 +106,7 @@ def backward_transfer(results: Dict[str, List[List[float]]], task_id: int) -> fl
         results: The results dictionary holding all the results with respect to all recorded
             metrics.
         task_id: The task index.
+        num_instances: Count of test data points for each update.
     """
     if task_id == 0:
         return 0.0
@@ -83,7 +116,9 @@ def backward_transfer(results: Dict[str, List[List[float]]], task_id: int) -> fl
     )
 
 
-def forward_transfer(results: Dict[str, List[List[float]]], task_id: int) -> float:
+def forward_transfer(
+    results: Dict[str, List[List[float]]], task_id: int, num_instances: List[int]
+) -> float:
     """Compute the forward transfer measure of the model.
 
     This measure is defined by:
@@ -99,6 +134,7 @@ def forward_transfer(results: Dict[str, List[List[float]]], task_id: int) -> flo
         results: The results dictionary holding all the results with respect to all recorded
             metrics.
         task_id: The task index.
+        num_instances: Count of test data points for each update.
     """
     if task_id == 0:
         return 0.0

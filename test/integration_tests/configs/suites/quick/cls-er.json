@@ -5,6 +5,6 @@
   "dataset": "mnist.json",
   "backend": "local",
   "job_name": "class-incremental-mlp-cls-er",
-  "expected_accuracy_linux": [[0.9839243292808533, 0.9740450382232666]],
+  "expected_accuracy_linux": [[0.9834515452384949, 0.9740450382232666]],
   "expected_accuracy_darwin": [[0.9834515452384949, 0.9740450382232666]]
 }
