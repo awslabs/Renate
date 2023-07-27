@@ -19,8 +19,8 @@ def get_model_and_dataset():
         num_outputs=10, num_inputs=10, hidden_size=32, num_hidden_layers=3
     )
     dataset = torch.utils.data.TensorDataset(
-        torch.rand((100, 10)),
-        torch.randint(10, (100,)),
+        torch.rand((200, 10)),
+        torch.randint(10, (200,)),
     )
     return model, dataset
 
