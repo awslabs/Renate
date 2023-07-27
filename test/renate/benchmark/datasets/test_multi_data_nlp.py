@@ -24,7 +24,7 @@ def test_multi_data_nlp_small():
     assert len(data.test_data()) == TEST_SIZE
 
 
-# @pytest.mark.skip(reason="This test requires downloading and processing five datasets.")
+@pytest.mark.skip(reason="This test requires downloading and processing five datasets.")
 def test_multi_data_nlp_full():
     TRAIN_SIZE = 115000
     TEST_SIZE = 7600
