@@ -48,7 +48,7 @@ class GDumbLearner(ReplayLearner):
         super().__init__(
             memory_size=memory_size,
             seed=seed,
-            # batch_memory_frac=0.0,
+            batch_memory_frac=1.0,
             **kwargs,
         )
         self._memory_buffer = GreedyClassBalancingBuffer(
@@ -57,10 +57,6 @@ class GDumbLearner(ReplayLearner):
             transform=buffer_transform,
             target_transform=buffer_target_transform,
         )
-
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        super().on_load_checkpoint(checkpoint)
-        self._memory_buffer.load_state_dict(checkpoint["memory_buffer"])
 
     def on_model_update_start(
         self,
