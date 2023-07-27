@@ -48,7 +48,6 @@ class GDumbLearner(ReplayLearner):
         super().__init__(
             memory_size=memory_size,
             seed=seed,
-            batch_memory_frac=1.0,
             **kwargs,
         )
         self._memory_buffer = GreedyClassBalancingBuffer(
