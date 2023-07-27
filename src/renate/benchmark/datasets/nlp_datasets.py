@@ -245,7 +245,8 @@ class MultiTextDataModule(RenateDataModule):
 
         if domain not in self._multi_dataset_info.keys():
             raise ValueError(
-                f"The selected domain is not available. Select one among {self._multi_dataset_info.keys()}"
+                f"The selected domain is not available. Select one among "
+                f"{self._multi_dataset_info.keys()}"
             )
 
         self._domain = domain
