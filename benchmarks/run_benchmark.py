@@ -7,7 +7,6 @@ from pathlib import Path
 
 import boto3
 from syne_tune.backend.sagemaker_backend.sagemaker_utils import get_execution_role
-from syne_tune.config_space import choice
 
 from renate.benchmark.experimentation import execute_experiment_job, experiment_config_file
 
