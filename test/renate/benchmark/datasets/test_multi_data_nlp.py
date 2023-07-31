@@ -6,6 +6,7 @@ import transformers as transformers
 from renate.benchmark.datasets.nlp_datasets import MultiTextDataModule
 
 
+@pytest.mark.skip(reason="This test create problems with the syne-tune redirect test")
 def test_multi_data_nlp_small():
     TRAIN_SIZE = 100
     TEST_SIZE = 100
