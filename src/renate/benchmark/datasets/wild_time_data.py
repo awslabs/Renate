@@ -6,12 +6,13 @@ from typing import Any, Dict, Optional, Union
 from transformers import PreTrainedTokenizer
 
 from renate import defaults
+from renate.benchmark.datasets.base import TimeIncrementalDataModule
 from renate.data.data_module import RenateDataModule
 from renate.utils.file import download_folder_from_s3
 from renate.utils.hf_utils import DataCollatorWithPaddingForWildTime
 
 
-class WildTimeDataModule(RenateDataModule):
+class WildTimeDataModule(TimeIncrementalDataModule):
     """Data module wrapping around the Wild-Time data.
 
     Huaxiu Yao, Caroline Choi, Bochuan Cao, Yoonho Lee, Pang Wei Koh, Chelsea Finn:
@@ -46,13 +47,13 @@ class WildTimeDataModule(RenateDataModule):
     ):
         super().__init__(
             data_path=data_path,
+            time_step=time_step,
             src_bucket=src_bucket,
             src_object_name=src_object_name,
             val_size=val_size,
             seed=seed,
         )
         self._dataset_name = dataset_name
-        self.time_step = time_step
         self._tokenizer = tokenizer
         self._tokenizer_kwargs = tokenizer_kwargs
 

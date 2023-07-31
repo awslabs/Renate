@@ -6,13 +6,17 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 import torch
 import wild_time_data
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import StepLR, _LRScheduler
+from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR, _LRScheduler
 from torchmetrics.classification import MulticlassAccuracy
 from torchvision.transforms import transforms
 from transformers import AutoTokenizer
 
 from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
-from renate.benchmark.datasets.vision_datasets import CLEARDataModule, TorchVisionDataModule
+from renate.benchmark.datasets.vision_datasets import (
+    CLEARDataModule,
+    DomainNetDataModule,
+    TorchVisionDataModule,
+)
 from renate.benchmark.datasets.wild_time_data import WildTimeDataModule
 from renate.benchmark.models import (
     MultiLayerPerceptron,
@@ -32,6 +36,7 @@ from renate.benchmark.models import (
 from renate.benchmark.models.transformer import HuggingFaceSequenceClassificationTransformer
 from renate.benchmark.scenarios import (
     ClassIncrementalScenario,
+    DomainIncrementalScenario,
     FeatureSortingScenario,
     HueShiftScenario,
     IIDScenario,
@@ -131,7 +136,14 @@ def get_data_module(
         if pretrained_model_name is not None:
             data_module_kwargs["tokenizer"] = AutoTokenizer.from_pretrained(pretrained_model_name)
         return WildTimeDataModule(**data_module_kwargs)
-
+    if dataset_name == "DomainNet":
+        return DomainNetDataModule(
+            data_path=data_path,
+            src_bucket=src_bucket,
+            src_object_name=src_object_name,
+            val_size=val_size,
+            seed=seed,
+        )
     if dataset_name.startswith("hfd-"):
         tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name)
         return HuggingFaceTextDataModule(
@@ -157,6 +169,7 @@ def get_scenario(
     input_dim: Optional[Union[List[int], Tuple[int], int]] = None,
     feature_idx: Optional[int] = None,
     randomness: Optional[float] = None,
+    domains: Optional[List[Union[int, str]]] = None,
 ) -> Scenario:
     """Function to create scenario based on name and arguments.
 
@@ -172,6 +185,7 @@ def get_scenario(
         input_dim: Used for scenario `PermutationScenario`. Input dimensionality.
         feature_idx: Used for scenario `SoftSortingScenario`. Index of feature to sort by.
         randomness: Used for all `_SortingScenario`. Randomness strength in [0, 1].
+        domains: List of domains for the `DomainIncrementalScenario`.
 
     Returns:
         An instance of the requested scenario.
@@ -225,6 +239,10 @@ def get_scenario(
         return TimeIncrementalScenario(
             data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed
         )
+    if scenario_name == "DomainIncrementalScenario":
+        return DomainIncrementalScenario(
+            data_module=data_module, domains=domains, chunk_id=chunk_id, seed=seed
+        )
     raise ValueError(f"Unknown scenario `{scenario_name}`.")
 
 
@@ -252,6 +270,7 @@ def data_module_fn(
     pretrained_model_name: Optional[str] = None,
     input_column: Optional[str] = None,
     target_column: Optional[str] = None,
+    domains: Optional[List[Union[int, str]]] = None,
 ):
     data_module = get_data_module(
         data_path=data_path,
@@ -277,6 +296,7 @@ def data_module_fn(
         input_dim=input_dim,
         feature_idx=feature_idx,
         randomness=randomness,
+        domains=domains,
     )
 
 
@@ -290,6 +310,11 @@ def _get_normalize_transform(dataset_name):
         return transforms.Normalize(
             CLEARDataModule.dataset_stats[dataset_name]["mean"],
             CLEARDataModule.dataset_stats[dataset_name]["std"],
+        )
+    if dataset_name == "DomainNet":
+        return transforms.Normalize(
+            DomainNetDataModule.dataset_stats["all"]["mean"],
+            DomainNetDataModule.dataset_stats["all"]["std"],
         )
 
 
@@ -308,7 +333,7 @@ def train_transform(dataset_name: str) -> Optional[Callable]:
                 _get_normalize_transform(dataset_name),
             ]
         )
-    if dataset_name in ["CLEAR10", "CLEAR100"]:
+    if dataset_name in ["CLEAR10", "CLEAR100", "DomainNet"]:
         return transforms.Compose(
             [
                 transforms.Resize(
@@ -330,7 +355,7 @@ def test_transform(dataset_name: str) -> Optional[Callable]:
         return None
     if dataset_name in ["CIFAR10", "CIFAR100"]:
         return _get_normalize_transform(dataset_name)
-    if dataset_name in ["CLEAR10", "CLEAR100"]:
+    if dataset_name in ["CLEAR10", "CLEAR100", "DomainNet"]:
         return transforms.Compose(
             [
                 transforms.Resize(
@@ -348,6 +373,8 @@ def lr_scheduler_fn(
     learning_rate_scheduler_step_size: int = 30,
     learning_rate_scheduler_gamma: float = 0.1,
     learning_rate_scheduler_interval: str = "epoch",
+    learning_rate_scheduler_t_max: Optional[int] = None,
+    learning_rate_scheduler_eta_min: float = 0,
 ) -> Tuple[Optional[Callable[[Optimizer], _LRScheduler]], str]:
     if learning_rate_scheduler == "StepLR":
         return (
@@ -355,6 +382,15 @@ def lr_scheduler_fn(
                 StepLR,
                 step_size=learning_rate_scheduler_step_size,
                 gamma=learning_rate_scheduler_gamma,
+            ),
+            learning_rate_scheduler_interval,
+        )
+    elif learning_rate_scheduler == "CosineAnnealingLR":
+        return (
+            partial(
+                CosineAnnealingLR,
+                T_max=learning_rate_scheduler_t_max,
+                eta_min=learning_rate_scheduler_eta_min,
             ),
             learning_rate_scheduler_interval,
         )

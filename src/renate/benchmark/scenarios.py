@@ -9,8 +9,7 @@ from torch.utils.data import Dataset, Subset
 from torchvision.transforms import Lambda, RandomRotation, ToPILImage
 
 from renate import defaults
-from renate.benchmark.datasets.vision_datasets import CLEARDataModule
-from renate.benchmark.datasets.wild_time_data import WildTimeDataModule
+from renate.benchmark.datasets.base import DomainIncrementalDataModule, TimeIncrementalDataModule
 from renate.data.data_module import RenateDataModule
 from renate.data.datasets import _TransformedDataset
 from renate.utils.pytorch import get_generator, randomly_split_data
@@ -388,7 +387,55 @@ class HueShiftScenario(_SortingScenario):
         return scores
 
 
-class TimeIncrementalScenario(Scenario):
+class BaseIncrementalScenario(Scenario, abc.ABC):
+    """Base class for all scenarios which iterate over pre-defined datasets.
+
+    The scenario will iterate over a list of datasets that are provided by the given ``DataModule``.
+    The data is loaded by assigning ``data_ids[chunk_id]`` to the attribute of the ``DataModule``
+    with name ``data_attr`` and then calling its ``setup()`` function.
+
+    Args:
+        data_module: The source RenateDataModule for the user data.
+        data_ids: Unique identifier for each pre-defined dataset.
+        data_attr: The attribute of ``data_module`` which will be changed to load a new dataset.
+        chunk_id: The data chunk to load for the training or validation data.
+        seed: Seed used to fix random number generation.
+    """
+
+    def __init__(
+        self,
+        data_module: RenateDataModule,
+        data_ids: List[Union[int, str]],
+        data_attr: str,
+        chunk_id: int,
+        seed: int = defaults.SEED,
+    ) -> None:
+        super().__init__(
+            data_module=data_module, num_tasks=len(data_ids), chunk_id=chunk_id, seed=seed
+        )
+        self._data_ids = data_ids
+        self._data_attr = data_attr
+
+    def prepare_data(self) -> None:
+        """Downloads datasets."""
+        for data_id in self._data_ids:
+            setattr(self._data_module, self._data_attr, data_id)
+            self._data_module.prepare_data()
+
+    def setup(self) -> None:
+        """Sets up the scenario."""
+        setattr(self._data_module, self._data_attr, self._data_ids[self._chunk_id])
+        super().setup()
+        self._train_data = self._data_module.train_data()
+        self._val_data = self._data_module.val_data()
+        self._test_data = []
+        for data_id in self._data_ids:
+            setattr(self._data_module, self._data_attr, data_id)
+            self._data_module.setup()
+            self._test_data.append(self._data_module.test_data())
+
+
+class TimeIncrementalScenario(BaseIncrementalScenario):
     """Creating a time-incremental scenario for specific datasets.
 
     Supports the Wild Time datasets and CLEAR.
@@ -410,20 +457,46 @@ class TimeIncrementalScenario(Scenario):
         chunk_id: int,
         seed: int = defaults.SEED,
     ) -> None:
-        super().__init__(data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed)
-        if not isinstance(data_module, (CLEARDataModule, WildTimeDataModule)):
+        super().__init__(
+            data_module=data_module,
+            data_ids=[i for i in range(num_tasks)],
+            data_attr="time_step",
+            chunk_id=chunk_id,
+            seed=seed,
+        )
+        if not isinstance(data_module, TimeIncrementalDataModule):
             raise ValueError(
-                "This scenario is only compatible with `CLEARDataModule` and `WildTimeDataModule`."
+                "This scenario is only compatible with classes that extend `TimeIncrementalDataModule`."
             )
 
-    def setup(self) -> None:
-        """Sets up the scenario."""
-        self._data_module.time_step = self._chunk_id
-        super().setup()
-        self._train_data = self._data_module.train_data()
-        self._val_data = self._data_module.val_data()
-        self._test_data = []
-        for i in range(self._num_tasks):
-            self._data_module.time_step = i
-            self._data_module.setup()
-            self._test_data.append(self._data_module.test_data())
+
+class DomainIncrementalScenario(BaseIncrementalScenario):
+    """Creating a domain-incremental scenario for specific datasets.
+
+    In each step, the data of one particular domain are available.
+
+    Args:
+        data_module: The source RenateDataModule for the user data.
+        domains: Domains in order of traversal.
+        chunk_id: The data chunk to load in for the training or validation data.
+        seed: Seed used to fix random number generation.
+    """
+
+    def __init__(
+        self,
+        data_module: RenateDataModule,
+        domains: List[str],
+        chunk_id: int,
+        seed: int = defaults.SEED,
+    ) -> None:
+        super().__init__(
+            data_module=data_module,
+            data_ids=domains,
+            data_attr="domain",
+            chunk_id=chunk_id,
+            seed=seed,
+        )
+        if not isinstance(data_module, DomainIncrementalDataModule):
+            raise ValueError(
+                "This scenario is only compatible with classes that extend `DomainIncrementalDataModule`."
+            )

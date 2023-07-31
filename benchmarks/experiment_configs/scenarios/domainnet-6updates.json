@@ -1,6 +1,6 @@
 {
   "val_size": 0.3,
-  "scenario_name": "DomainNetScenario",
+  "scenario_name": "DomainIncrementalScenario",
   "num_tasks": 6,
   "max_epochs": 50,
   "optimizer": "SGD",

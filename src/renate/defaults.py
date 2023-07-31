@@ -30,7 +30,7 @@ ACCELERATOR = "auto"
 SUPPORTED_ACCELERATORS = ["auto", "cpu", "gpu", "tpu"]
 SUPPORTED_ACCELERATORS_TYPE = Literal["auto", "cpu", "gpu", "tpu"]
 DEVICES = 1
-VOLUME_SIZE = 60
+VOLUME_SIZE = 900
 DISTRIBUTED_STRATEGY = "ddp"
 PRECISION = "32"
 
