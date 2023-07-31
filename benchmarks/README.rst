@@ -22,14 +22,14 @@ Instructions
     Quick explanation of the arguments:
 
     - ``benchmark-file``: Any filename of files in ``experiment_configs``. This file specifies all
-        properties of the experiment, i.e., dataset, scenario, updater, and hyperparameters
-        settings. Modify or add more to run own experiments.
+      properties of the experiment, i.e., dataset, scenario, updater, and hyperparameters settings.
+      Modify or add more to run own experiments.
     - ``backend``: Run the experiment on SageMaker (``sagemaker``) or locally (``local``).
     - ``budget-factor``: Each update run will make ``budget_factor * max_epochs`` many passes over
-        the new data during training. ``max_epochs`` is typically defines as part of the scenario
-        .json file. Default: ``1``.
+      the new data during training. ``max_epochs`` is typically defines as part of the scenario
+      .json file. Default: ``1``.
     - ``job-name``: Defines the name of the output folder and the name of the SageMaker training
-        job.
+      job.
     - ``num-repetitions``: The number of times the experiment will be repeated. Only the seed
-        differs between repetitions.
+      differs between repetitions.
     - ``max-time``: The wall clock time spent per update. Default: 5 days.
