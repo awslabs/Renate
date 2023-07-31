@@ -249,16 +249,17 @@ class MultiTextDataModule(RenateDataModule):
                 f"{self._multi_dataset_info.keys()}"
             )
 
-        self._domain = domain
+        self.domain = domain
+        self.available_domains = self._multi_dataset_info.keys()
 
     def prepare_data(self) -> None:
         """Download dataset."""
 
         for split in ["train", "test"] + (["validation"] if self._val_size > 0 else []):
-            if self._domain == "amazon_reviews_multi":
-                load_dataset(self._domain, name="en", split=split, cache_dir=self._data_path)
+            if "amazon" in self.domain:
+                load_dataset(self.domain, name="en", split=split, cache_dir=self._data_path)
             else:
-                load_dataset(self._domain, split=split, cache_dir=self._data_path)
+                load_dataset(self.domain, split=split, cache_dir=self._data_path)
 
     def setup(self) -> None:
         """Set up train, test and val datasets."""
@@ -266,16 +267,16 @@ class MultiTextDataModule(RenateDataModule):
         def preprocess(example, text_field_name, label_field_name):
             return {
                 **self._tokenizer(example[text_field_name], **self._tokenizer_kwargs),
-                "label": self._labels_map[f"{self._domain}{example[label_field_name]}"],
+                "label": self._labels_map[f"{self.domain}{example[label_field_name]}"],
             }
 
         def get_split(split_name):
-            dataset = load_dataset(self._domain, split=split_name, cache_dir=self._data_path)
+            dataset = load_dataset(self.domain, split=split_name, cache_dir=self._data_path)
 
             new_features = dataset.features.copy()
             # the following is hack needed because the output space of the new dataset is
             # the union of the output spaces of the single datasets
-            new_features[self._multi_dataset_info[self._domain][1]] = datasets.ClassLabel(
+            new_features[self._multi_dataset_info[self.domain][1]] = datasets.ClassLabel(
                 num_classes=33
             )
 
@@ -292,8 +293,8 @@ class MultiTextDataModule(RenateDataModule):
             dataset = dataset.map(
                 functools.partial(
                     preprocess,
-                    text_field_name=self._multi_dataset_info[self._domain][0],
-                    label_field_name=self._multi_dataset_info[self._domain][1],
+                    text_field_name=self._multi_dataset_info[self.domain][0],
+                    label_field_name=self._multi_dataset_info[self.domain][1],
                 ),
                 remove_columns=list(dataset.features),
                 num_proc=4,
