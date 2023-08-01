@@ -119,11 +119,6 @@ class RenateModelCheckpoint(ModelCheckpoint):
 
     def on_train_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         super().on_train_epoch_end(trainer=trainer, pl_module=pl_module)
-        print("Model (epoch end)")
-        for p in pl_module._model.parameters():
-            while len(p.shape) > 0:
-                p = p[0]
-            print(float(p))
         if self._syne_tune_callback is not None:
             self._syne_tune_callback.on_train_epoch_end(trainer=trainer, pl_module=pl_module)
 
@@ -131,12 +126,18 @@ class RenateModelCheckpoint(ModelCheckpoint):
         super().on_validation_epoch_end(trainer=trainer, pl_module=pl_module)
         if self._syne_tune_callback is not None:
             self._syne_tune_callback.on_validation_epoch_end(trainer=trainer, pl_module=pl_module)
+        print("Current Model")
+        for p in pl_module._model.parameters():
+            while len(p.shape) > 0:
+                p = p[0]
+            print(float(p))
+        print("End of Epoch")
+        print(40 * "=")
 
     def _load_best_checkpoint_and_save(self, trainer: Trainer, pl_module: LightningModule) -> None:
         # Reload best state.
         learner_state_path = Path(defaults.learner_state_file(self._output_state_folder))
         if learner_state_path.exists():
-            print("Checkpoint", learner_state_path)
             # There are three obvious steps that are handled by lightning if
             # we use the load_from_checkpoint mechanism. Here we do those manually.
             # See for reference
@@ -166,12 +167,36 @@ class RenateModelCheckpoint(ModelCheckpoint):
         super()._save_checkpoint(trainer, filepath)
         print("Save checkpoint", filepath)
 
-    def _update_best_and_save(self, current, trainer, monitor_candidates) -> None:
-        print("Current score", self.current_score)
-        print(10 * "*", current, monitor_candidates)
-        k = len(self.best_k_models) + 1 if self.save_top_k == -1 else self.save_top_k
-        print("k=", k, "best_k_models", self.best_k_models)
-        super()._update_best_and_save(current, trainer, monitor_candidates)
+    def check_monitor_top_k(self, trainer: "pl.Trainer", current=None) -> bool:
+        print("check_monitor_top_k")
+        if current is None:
+            print("return False")
+
+        elif self.save_top_k == -1:
+            print("return True")
+
+        elif len(self.best_k_models) < self.save_top_k:
+            print("return True")
+        else:
+            monitor_op = {"min": torch.lt, "max": torch.gt}[self.mode]
+            print("mode", self.mode, "op", monitor_op)
+            print(
+                current,
+                self.best_k_models[self.kth_best_model_path],
+                self.kth_best_model_path,
+                monitor_op(current, self.best_k_models[self.kth_best_model_path]),
+            )
+            should_update_best_and_save = monitor_op(
+                current, self.best_k_models[self.kth_best_model_path]
+            )
+
+            # If using multiple devices, make sure all processes are unanimous on the decision.
+            should_update_best_and_save = trainer.strategy.reduce_boolean_decision(
+                bool(should_update_best_and_save)
+            )
+            print("return", should_update_best_and_save)
+
+        return super().check_monitor_top_k(trainer, current)
 
     def teardown(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
         """
