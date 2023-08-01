@@ -444,7 +444,7 @@ class TimeIncrementalScenario(BaseIncrementalScenario):
     datasets.
 
     Args:
-        data_module: The source RenateDataModule for the user data.
+        data_module: The source :py:class:`~renate.benchmark.datasets.base.TimeIncrementalDataModule` for the user data.
         num_tasks: The total number of expected tasks for experimentation.
         chunk_id: The data chunk to load in for the training or validation data.
         seed: Seed used to fix random number generation.
@@ -476,7 +476,8 @@ class DomainIncrementalScenario(BaseIncrementalScenario):
     In each step, the data of one particular domain are available.
 
     Args:
-        data_module: The source RenateDataModule for the user data.
+        data_module: The source :py:class:`~renate.benchmark.datasets.base.DomainIncrementalDataModule` for the user
+            data.
         domains: Domains in order of traversal.
         chunk_id: The data chunk to load in for the training or validation data.
         seed: Seed used to fix random number generation.
