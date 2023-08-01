@@ -15,7 +15,7 @@ def test_multi_data_nlp_small(tmpdir):
         tmpdir,
         train_size=TRAIN_SIZE,
         test_size=TEST_SIZE,
-        domain="amazon_reviews_multi",
+        domain="ag_news",
         tokenizer=transformers.DistilBertTokenizer.from_pretrained("distilbert-base-uncased"),
     )
 
@@ -43,7 +43,6 @@ def test_multi_data_nlp_full(tmpdir):
     for d in [
         "ag_news",
         "yelp_review_full",
-        "amazon_reviews_multi",
         "dbpedia_14",
         "yahoo_answers_topics",
     ]:

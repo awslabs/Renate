@@ -142,11 +142,10 @@ class MultiTextDataModule(RenateDataModule):
     """
     Inspired by the dataset used in "Episodic Memory in Lifelong Language Learning"
     by d’Autume et al. this is a collection of five different datasets that we call domains:
-    AGNews, Yelp, Amazon reviews, DBPedia and Yahoo Answers.
+    AGNews, Yelp, DBPedia and Yahoo Answers.
 
     The output space if the union of the output space of all the domains.
-    The dataset has 33 classes: 4 from AGNews, 5 from Yelp, 14 from DBPedia, 5 from Amazon reviews,
-    and 10 from Yahoo. Amazon and Yelp have similar semantics and the classes have been merged.
+    The dataset has 33 classes: 4 from AGNews, 5 from Yelp, 14 from DBPedia, and 10 from Yahoo.
 
     The maximum allowed size for the training set is 115000 and for the test set is 7600.
     Each domain will have the same fixed size.
@@ -197,7 +196,6 @@ class MultiTextDataModule(RenateDataModule):
         self._multi_dataset_info = {
             "ag_news": ["text", "label"],
             "yelp_review_full": ["text", "label"],
-            "amazon_reviews_multi": ["review_body", "stars"],
             "dbpedia_14": ["content", "label"],
             "yahoo_answers_topics": ["question_title", "topic"],
         }
@@ -206,11 +204,11 @@ class MultiTextDataModule(RenateDataModule):
             "ag_news1": 1,
             "ag_news3": 2,
             "ag_news2": 3,
-            "amazon_reviews_multi1": 4,
-            "amazon_reviews_multi2": 5,
-            "amazon_reviews_multi3": 6,
-            "amazon_reviews_multi4": 7,
-            "amazon_reviews_multi5": 8,
+            "yelp_review_full0": 4,
+            "yelp_review_full1": 5,
+            "yelp_review_full2": 6,
+            "yelp_review_full3": 7,
+            "yelp_review_full4": 8,
             "dbpedia_140": 9,
             "dbpedia_141": 10,
             "dbpedia_142": 11,
@@ -235,12 +233,6 @@ class MultiTextDataModule(RenateDataModule):
             "yahoo_answers_topics7": 30,
             "yahoo_answers_topics8": 31,
             "yahoo_answers_topics9": 32,
-            # yelp gets the same label ids as Amazon reviews
-            "yelp_review_full0": 4,
-            "yelp_review_full1": 5,
-            "yelp_review_full2": 6,
-            "yelp_review_full3": 7,
-            "yelp_review_full4": 8,
         }
 
         if domain not in self._multi_dataset_info.keys():
@@ -256,10 +248,7 @@ class MultiTextDataModule(RenateDataModule):
         """Download dataset."""
 
         for split in ["train", "test"] + (["validation"] if self._val_size > 0 else []):
-            if "amazon" in self.domain:
-                load_dataset(self.domain, name="en", split=split, cache_dir=self._data_path)
-            else:
-                load_dataset(self.domain, split=split, cache_dir=self._data_path)
+            load_dataset(self.domain, split=split, cache_dir=self._data_path)
 
     def setup(self) -> None:
         """Set up train, test and val datasets."""
