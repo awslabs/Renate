@@ -107,7 +107,6 @@ AVALANCHE_LEARNER_KWARGS = {
     },
     AvalancheICaRLLearner: {
         "memory_size": 30,
-        "memory_batch_size": 20,
         "batch_size": 50,
         "seed": 1,
     },
