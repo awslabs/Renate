@@ -5,7 +5,6 @@ from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
-import torch.nn as nn
 import torchmetrics
 from pytorch_lightning.loggers.logger import Logger
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -19,6 +18,7 @@ from renate.memory.buffer import DataDict
 from renate.models import RenateModule
 from renate.types import NestedTensors
 from renate.updaters.learner import ReplayLearner
+from renate.updaters.learner_components.component import Component
 from renate.updaters.learner_components.losses import (
     WeightedCLSLossComponent,
     WeightedCustomLossComponent,
@@ -52,7 +52,7 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
 
     def __init__(
         self,
-        components: nn.ModuleDict,
+        components: Dict[str, Component],
         loss_weight: float = defaults.LOSS_WEIGHT,
         ema_memory_update_gamma: float = defaults.EMA_MEMORY_UPDATE_GAMMA,
         loss_normalization: int = defaults.LOSS_NORMALIZATION,
@@ -215,11 +215,23 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
             component.on_train_batch_end(model=self._model)
 
     @abc.abstractmethod
-    def components(self, **kwargs) -> nn.ModuleDict:
+    def components(self, **kwargs) -> Dict[str, Component]:
         """Returns the components of the learner.
 
         This is a user-defined function that should return a dictionary of components.
         """
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """Load states of components."""
+        super().on_load_checkpoint(checkpoint)
+        for component in self._components.values():
+            component.on_load_checkpoint(checkpoint)
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """Save states of components."""
+        super().on_save_checkpoint(checkpoint)
+        for component in self._components.values():
+            component.on_save_checkpoint(checkpoint)
 
 
 class ExperienceReplayLearner(BaseExperienceReplayLearner):
@@ -238,14 +250,12 @@ class ExperienceReplayLearner(BaseExperienceReplayLearner):
 
     def components(
         self, loss_fn: Optional[torch.nn.Module] = None, alpha: float = defaults.ER_ALPHA
-    ) -> nn.ModuleDict:
-        return nn.ModuleDict(
-            {
-                "memory_loss": WeightedCustomLossComponent(
-                    loss_fn=loss_fn, weight=alpha, sample_new_memory_batch=True
-                )
-            }
-        )
+    ) -> Dict[str, Component]:
+        return {
+            "memory_loss": WeightedCustomLossComponent(
+                loss_fn=loss_fn, weight=alpha, sample_new_memory_batch=True
+            )
+        }
 
 
 class DarkExperienceReplayLearner(ExperienceReplayLearner):
@@ -272,7 +282,7 @@ class DarkExperienceReplayLearner(ExperienceReplayLearner):
         loss_fn: Optional[torch.nn.Module] = None,
         alpha: float = defaults.DER_ALPHA,
         beta: float = defaults.DER_BETA,
-    ) -> nn.ModuleDict:
+    ) -> Dict[str, Component]:
         components = super().components(loss_fn=loss_fn, alpha=beta)
         components.update(
             {
@@ -316,17 +326,15 @@ class PooledOutputDistillationExperienceReplayLearner(BaseExperienceReplayLearne
         alpha: float = defaults.POD_ALPHA,
         distillation_type: str = defaults.POD_DISTILLATION_TYPE,
         normalize: bool = defaults.POD_NORMALIZE,
-    ) -> nn.ModuleDict:
-        return nn.ModuleDict(
-            {
-                "pod_loss": WeightedPooledOutputDistillationLossComponent(
-                    weight=alpha,
-                    sample_new_memory_batch=True,
-                    distillation_type=distillation_type,
-                    normalize=normalize,
-                )
-            }
-        )
+    ) -> Dict[str, Component]:
+        return {
+            "pod_loss": WeightedPooledOutputDistillationLossComponent(
+                weight=alpha,
+                sample_new_memory_batch=True,
+                distillation_type=distillation_type,
+                normalize=normalize,
+            )
+        }
 
 
 class CLSExperienceReplayLearner(BaseExperienceReplayLearner):
@@ -381,23 +389,21 @@ class CLSExperienceReplayLearner(BaseExperienceReplayLearner):
         stable_model_update_weight: float = defaults.CLS_STABLE_MODEL_UPDATE_WEIGHT,
         plastic_model_update_probability: float = defaults.CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,
         stable_model_update_probability: float = defaults.CLS_STABLE_MODEL_UPDATE_PROBABILITY,
-    ) -> nn.ModuleDict:
-        return nn.ModuleDict(
-            {
-                "memory_loss": WeightedCustomLossComponent(
-                    loss_fn=loss_fn, weight=alpha, sample_new_memory_batch=True
-                ),
-                "cls_loss": WeightedCLSLossComponent(
-                    weight=beta,
-                    sample_new_memory_batch=False,
-                    model=model,
-                    plastic_model_update_weight=plastic_model_update_weight,
-                    stable_model_update_weight=stable_model_update_weight,
-                    plastic_model_update_probability=plastic_model_update_probability,
-                    stable_model_update_probability=stable_model_update_probability,
-                ),
-            }
-        )
+    ) -> Dict[str, Component]:
+        return {
+            "memory_loss": WeightedCustomLossComponent(
+                loss_fn=loss_fn, weight=alpha, sample_new_memory_batch=True
+            ),
+            "cls_loss": WeightedCLSLossComponent(
+                weight=beta,
+                sample_new_memory_batch=False,
+                model=model,
+                plastic_model_update_weight=plastic_model_update_weight,
+                stable_model_update_weight=stable_model_update_weight,
+                plastic_model_update_probability=plastic_model_update_probability,
+                stable_model_update_probability=stable_model_update_probability,
+            ),
+        }
 
 
 class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
@@ -482,35 +488,33 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
         pod_alpha: float = defaults.SER_POD_ALPHA,
         pod_distillation_type: str = defaults.SER_POD_DISTILLATION_TYPE,
         pod_normalize: bool = defaults.SER_POD_NORMALIZE,
-    ) -> nn.ModuleDict:
-        return nn.ModuleDict(
-            {
-                "mse_loss": WeightedMeanSquaredErrorLossComponent(
-                    weight=der_alpha, sample_new_memory_batch=True
-                ),
-                "memory_loss": WeightedCustomLossComponent(
-                    loss_fn=loss_fn, weight=der_beta, sample_new_memory_batch=True
-                ),
-                "cls_loss": WeightedCLSLossComponent(
-                    weight=cls_alpha,
-                    sample_new_memory_batch=False,
-                    model=model,
-                    stable_model_update_weight=cls_stable_model_update_weight,
-                    plastic_model_update_weight=cls_plastic_model_update_weight,
-                    stable_model_update_probability=cls_stable_model_update_probability,
-                    plastic_model_update_probability=cls_plastic_model_update_probability,
-                ),
-                "shrink_perturb": ShrinkAndPerturbReinitializationComponent(
-                    shrink_factor=sp_shrink_factor, sigma=sp_sigma
-                ),
-                "pod_loss": WeightedPooledOutputDistillationLossComponent(
-                    weight=pod_alpha,
-                    sample_new_memory_batch=True,
-                    distillation_type=pod_distillation_type,
-                    normalize=pod_normalize,
-                ),
-            }
-        )
+    ) -> Dict[str, Component]:
+        return {
+            "mse_loss": WeightedMeanSquaredErrorLossComponent(
+                weight=der_alpha, sample_new_memory_batch=True
+            ),
+            "memory_loss": WeightedCustomLossComponent(
+                loss_fn=loss_fn, weight=der_beta, sample_new_memory_batch=True
+            ),
+            "cls_loss": WeightedCLSLossComponent(
+                weight=cls_alpha,
+                sample_new_memory_batch=False,
+                model=model,
+                stable_model_update_weight=cls_stable_model_update_weight,
+                plastic_model_update_weight=cls_plastic_model_update_weight,
+                stable_model_update_probability=cls_stable_model_update_probability,
+                plastic_model_update_probability=cls_plastic_model_update_probability,
+            ),
+            "shrink_perturb": ShrinkAndPerturbReinitializationComponent(
+                shrink_factor=sp_shrink_factor, sigma=sp_sigma
+            ),
+            "pod_loss": WeightedPooledOutputDistillationLossComponent(
+                weight=pod_alpha,
+                sample_new_memory_batch=True,
+                distillation_type=pod_distillation_type,
+                normalize=pod_normalize,
+            ),
+        }
 
 
 class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
