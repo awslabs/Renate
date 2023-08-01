@@ -202,8 +202,8 @@ class MultiTextDataModule(RenateDataModule):
         self._labels_map = {
             "ag_news0": 0,
             "ag_news1": 1,
-            "ag_news3": 2,
-            "ag_news2": 3,
+            "ag_news2": 2,
+            "ag_news3": 3,
             "yelp_review_full0": 4,
             "yelp_review_full1": 5,
             "yelp_review_full2": 6,
