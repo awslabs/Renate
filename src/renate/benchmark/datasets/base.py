@@ -49,7 +49,8 @@ class DomainIncrementalDataModule(RenateDataModule, ABC):
     """Base class for all :py:class:`~renate.data.data_module.RenateDataModule` compatible with
     :py:class:`~renate.benchmark.scenarios.DomainIncrementalScenario`.
 
-    Defines the API required by the :py:class:`~renate.benchmark.scenarios.DomainIncrementalScenario`.
+    Defines the API required by the
+    :py:class:`~renate.benchmark.scenarios.DomainIncrementalScenario`.
     All classes extending this class must load the datasets corresponding to the value in
     ``domain`` whenever ``setup()`` is called.
 

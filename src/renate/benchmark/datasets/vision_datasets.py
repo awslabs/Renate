@@ -298,7 +298,8 @@ class DomainNetDataModule(DomainIncrementalDataModule):
         src_bucket: the name of the s3 bucket. If not provided, downloads the data from original
             source.
         src_object_name: the folder path in the s3 bucket.
-        domain: DomainNet domain name, options are clipart, infograph, painting, quickdraw, real, and sketch.
+        domain: DomainNet domain name, options are clipart, infograph, painting, quickdraw, real,
+            and sketch.
         val_size: Fraction of the training data to be used for validation.
         seed: Seed used to fix random number generation.
     """

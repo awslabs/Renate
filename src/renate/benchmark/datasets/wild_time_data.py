@@ -7,7 +7,6 @@ from transformers import PreTrainedTokenizer
 
 from renate import defaults
 from renate.benchmark.datasets.base import TimeIncrementalDataModule
-from renate.data.data_module import RenateDataModule
 from renate.utils.file import download_folder_from_s3
 from renate.utils.hf_utils import DataCollatorWithPaddingForWildTime
 
