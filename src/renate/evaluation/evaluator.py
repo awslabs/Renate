@@ -176,6 +176,11 @@ def evaluate(
         precision=int_or_str(precision),
     )
 
+    print("Model")
+    for p in model.parameters():
+        while len(p.shape) > 0:
+            p = p[0]
+        print(float(p))
     results = {}
     for i in range(len(test_dataset)):
         test_loader = evaluator.on_model_test_start(test_dataset[i], test_collate_fn, task_id[i])

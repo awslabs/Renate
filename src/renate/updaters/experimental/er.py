@@ -151,7 +151,7 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
                     batch_memory=batch_memory,
                     intermediate_representation_memory=intermediate_representation_memory,
                 ).mean()
-                print(name, float(component_loss))
+                # print(name, float(component_loss))
                 self._loss_collections["train_losses"][name](component_loss)
                 step_output["loss"] += component_loss
                 loss_normalization += component.weight

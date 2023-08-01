@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import abc
 import logging
+import os
 import warnings
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Type
@@ -101,6 +102,7 @@ class RenateModelCheckpoint(ModelCheckpoint):
             save_last=save_last,
             save_weights_only=True,
         )
+        self.verbose = True
         self._model = model
         self._output_state_folder = output_state_folder
         self.CHECKPOINT_NAME_LAST = learner_checkpoint_filename
@@ -117,6 +119,11 @@ class RenateModelCheckpoint(ModelCheckpoint):
 
     def on_train_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         super().on_train_epoch_end(trainer=trainer, pl_module=pl_module)
+        print("Model (epoch end)")
+        for p in pl_module._model.parameters():
+            while len(p.shape) > 0:
+                p = p[0]
+            print(float(p))
         if self._syne_tune_callback is not None:
             self._syne_tune_callback.on_train_epoch_end(trainer=trainer, pl_module=pl_module)
 
@@ -129,6 +136,7 @@ class RenateModelCheckpoint(ModelCheckpoint):
         # Reload best state.
         learner_state_path = Path(defaults.learner_state_file(self._output_state_folder))
         if learner_state_path.exists():
+            print("Checkpoint", learner_state_path)
             # There are three obvious steps that are handled by lightning if
             # we use the load_from_checkpoint mechanism. Here we do those manually.
             # See for reference
@@ -142,12 +150,28 @@ class RenateModelCheckpoint(ModelCheckpoint):
 
         # Finalize model update.
         pl_module.on_model_update_end()
+        print("Model (before save)")
+        for p in pl_module._model.parameters():
+            while len(p.shape) > 0:
+                p = p[0]
+            print(float(p))
         # Save permanently.
         if trainer.is_global_zero:
             # Save the buffer only on rank zero.
             pl_module.save(self._output_state_folder)
         # Overwrite checkpoint.
         self._save_checkpoint(trainer, learner_state_path)
+
+    def _save_checkpoint(self, trainer: Trainer, filepath: str) -> None:
+        super()._save_checkpoint(trainer, filepath)
+        print("Save checkpoint", filepath)
+
+    def _update_best_and_save(self, current, trainer, monitor_candidates) -> None:
+        print("Current score", self.current_score)
+        print(10 * "*", current, monitor_candidates)
+        k = len(self.best_k_models) + 1 if self.save_top_k == -1 else self.save_top_k
+        print("k=", k, "best_k_models", self.best_k_models)
+        super()._update_best_and_save(current, trainer, monitor_candidates)
 
     def teardown(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
         """
