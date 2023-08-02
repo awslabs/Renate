@@ -1,0 +1,9 @@
+{
+  "dataset_name": "huffpost",
+  "src_bucket": "mnemosyne-team-bucket",
+  "src_object_name": "dataset/wildtime/huffpost.hdf5",
+  "num_inputs": 0,
+  "num_outputs": 11,
+  "num_tasks": 7,
+  "max_epochs": 5
+}

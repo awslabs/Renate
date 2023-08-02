@@ -230,7 +230,8 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
         "max_epochs": {
             "type": int,
             "default": defaults.MAX_EPOCHS,
-            "help": f"Number of epochs trained at most. Default: {defaults.MAX_EPOCHS}",
+            "help": "Maximum number of (finetuning-equivalent) epochs. "
+            f"Default: {defaults.MAX_EPOCHS}",
             "argument_group": OPTIONAL_ARGS_GROUP,
         },
         "task_id": {
@@ -692,6 +693,19 @@ def _add_avalanche_lwf_learner_arguments(arguments: Dict[str, Dict[str, Any]]) -
     )
 
 
+def _add_avalanche_icarl_learner_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+    """A helper function that adds iCarl arguments."""
+    arguments.update(
+        {
+            "memory_size": {
+                "type": int,
+                "default": defaults.MEMORY_SIZE,
+                "help": f"Number of exemplars being stored. Default: {defaults.MEMORY_SIZE}.",
+            }
+        },
+    )
+
+
 def get_function_kwargs(args: argparse.Namespace, function_args: Dict[str, Any]) -> Dict[str, Any]:
     """Returns the kwargs for a function with defined arguments based on provided values.
 
@@ -908,5 +922,5 @@ parse_by_updater = {
     "Avalanche-ER": _add_experience_replay_arguments,
     "Avalanche-EWC": _add_avalanche_ewc_learner_arguments,
     "Avalanche-LwF": _add_avalanche_lwf_learner_arguments,
-    "Avalanche-iCaRL": _add_experience_replay_arguments,
+    "Avalanche-iCaRL": _add_avalanche_icarl_learner_arguments,
 }

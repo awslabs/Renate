@@ -24,6 +24,7 @@ from renate.evaluation.metrics.classification import (
     backward_transfer,
     forgetting,
     forward_transfer,
+    micro_average_accuracy,
 )
 from renate.training import run_training_job
 from renate.training.training import submit_remote_job
@@ -54,6 +55,7 @@ def create_cumulative_metrics() -> List[Tuple[str, Callable]]:
     """
     return [
         ("Average Accuracy", average_accuracy),
+        ("Micro Average Accuracy", micro_average_accuracy),
         ("Forgetting", forgetting),
         ("Forward Transfer", forward_transfer),
         ("Backward Transfer", backward_transfer),
@@ -64,6 +66,7 @@ def cumulative_metrics_summary(
     results: Dict[str, List[List[float]]],
     cumulative_metrics: List[Tuple[str, Callable]],
     num_tasks: int,
+    num_instances: List[int],
 ) -> pd.DataFrame:
     """Creates a pandas DataFrame summary with respect to the observed tasks, specified by
     `num_tasks`.
@@ -73,12 +76,13 @@ def cumulative_metrics_summary(
             metrics.
         cumulative_metrics: The list of (name, metric) tuples.
         num_tasks: The total number of tasks.
+        num_instances: Count of test data points for each task.
     """
     data = []
-    for task_id in range(num_tasks + 1):
+    for task_id in range(num_tasks):
         row = [task_id + 1]
         for _, metric in cumulative_metrics:
-            row.append(metric(results, task_id))
+            row.append(metric(results, task_id, num_instances))
         data.append(row)
 
     column_names = ["Task ID"] + [name for name, _ in cumulative_metrics]
@@ -300,6 +304,7 @@ def _execute_experiment_job_locally(
     assert num_updates == len(
         data_module.test_data()
     ), f"The dataset has {len(data_module.test_data())} chunks, expected {num_updates}."
+    num_instances = [len(data_chunk) for data_chunk in data_module.test_data()]
     transforms = get_transforms_kwargs(config_module, config_space)
     metrics_fn_kwargs = get_metrics_fn_kwargs(config_module, config_space)
     metrics = get_metrics(config_module, **metrics_fn_kwargs)
@@ -312,9 +317,8 @@ def _execute_experiment_job_locally(
     # TODO: evaluate's trainer has to use devices=1:
     # See https://github.com/Lightning-AI/lightning/issues/2537
     # The fix is to launch evaluation in a separate process like training.
-    results: Dict[str, List[List[float]]] = {}
-    evaluate_and_record_results(
-        results,
+    results = evaluate_and_record_results(
+        {},
         model=model,
         data_module=data_module,
         transform=transforms.get("test_transform"),
@@ -365,7 +369,7 @@ def _execute_experiment_job_locally(
             **get_model_fn_kwargs(config_module, config_space),
         )
 
-        evaluate_and_record_results(
+        results = evaluate_and_record_results(
             results,
             model=model,
             data_module=data_module,
@@ -383,7 +387,7 @@ def _execute_experiment_job_locally(
         logger.info(df)
 
     cumulative_metrics = create_cumulative_metrics()
-    df = cumulative_metrics_summary(results, cumulative_metrics, num_updates - 1)
+    df = cumulative_metrics_summary(results, cumulative_metrics, num_updates, num_instances)
     save_pandas_df_to_csv(df, defaults.metric_summary_file(logs_url))
     logger.info("### Cumulative results: ###")
     logger.info(df)

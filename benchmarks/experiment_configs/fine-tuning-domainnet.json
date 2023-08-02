@@ -1,0 +1,6 @@
+{
+  "scenario": "domainnet-6updates.json",
+  "model": "resnet18.json",
+  "updater": "fine-tuning-domainnet.json",
+  "dataset": "domainnet.json"
+}

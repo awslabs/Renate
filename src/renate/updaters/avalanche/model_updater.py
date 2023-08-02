@@ -444,7 +444,6 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
         loss_fn: torch.nn.Module,
         optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
-        batch_memory_frac: int = defaults.BATCH_MEMORY_FRAC,
         learning_rate_scheduler: Optional[Callable[[Optimizer], _LRScheduler]] = None,
         learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
@@ -470,7 +469,6 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
     ):
         learner_kwargs = {
             "memory_size": memory_size,
-            "batch_memory_frac": batch_memory_frac,
             "batch_size": batch_size,
             "seed": seed,
         }

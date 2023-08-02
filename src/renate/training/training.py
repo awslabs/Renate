@@ -105,7 +105,9 @@ def run_training_job(
         metric: Name of metric to optimize.
         backend: Whether to run jobs locally (`local`) or on SageMaker (`sagemaker`).
         updater: Updater used for model update.
-        max_epochs: Maximum number of epochs the model is trained.
+        max_epochs: The maximum number of epochs used to train the model. For comparability between
+            methods, epochs are interpreted as "finetuning-equivalent". That is, one epoch is
+            defined as `len(current_task_dataset) / batch_size` update steps.
         task_id: Unique identifier for the current task.
         chunk_id: Unique identifier for the current data chunk.
         input_state_url: Path to the Renate model state.

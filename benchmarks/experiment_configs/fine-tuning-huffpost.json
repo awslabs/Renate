@@ -1,0 +1,6 @@
+{
+  "scenario": "wild-time.json",
+  "model": "bert.json",
+  "updater": "fine-tuning-huffpost.json",
+  "dataset": "huffpost.json"
+}

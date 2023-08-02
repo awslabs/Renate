@@ -1,0 +1,6 @@
+{
+  "scenario": "clear100-11updates.json",
+  "model": "resnet18.json",
+  "updater": "offline-er-clear100.json",
+  "dataset": "clear100.json"
+}

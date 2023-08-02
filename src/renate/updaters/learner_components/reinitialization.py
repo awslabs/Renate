@@ -30,18 +30,9 @@ class ShrinkAndPerturbReinitializationComponent(Component):
     """
 
     def __init__(self, shrink_factor: float, sigma: float) -> None:
-        super().__init__(
-            shrink_factor=shrink_factor,
-            sigma=sigma,
-        )
-
-    def _register_parameters(self, shrink_factor: float, sigma: float) -> None:
-        """Register parameters of the loss."""
-        super()._register_parameters()
-        self.register_buffer("_shrink_factor", torch.tensor(shrink_factor, dtype=torch.float))
-        self.register_buffer("_sigma", torch.tensor(sigma, dtype=torch.float))
-        self.register_buffer("_weight", torch.tensor(0.0, dtype=torch.float))
-        self.register_buffer("_sample_new_memory_batch", torch.tensor(False, dtype=torch.bool))
+        self._shrink_factor = shrink_factor
+        self._sigma = sigma
+        super().__init__()
 
     def _verify_attributes(self) -> None:
         """Verify if attributes have valid values."""
@@ -57,13 +48,3 @@ class ShrinkAndPerturbReinitializationComponent(Component):
                 p.mul_(self._shrink_factor)
             if self._sigma != 0.0:
                 p.add_(self._sigma * torch.randn(p.size(), device=p.device))
-
-    def set_shrink_factor(self, shrink_factor: float) -> None:
-        self._shrink_factor.data = torch.tensor(
-            shrink_factor, dtype=self._shrink_factor.dtype, device=self._shrink_factor.device
-        )
-        self._verify_attributes()
-
-    def set_sigma(self, sigma: float) -> None:
-        self._sigma.data = torch.tensor(sigma, dtype=self._sigma.dtype, device=self._sigma.device)
-        self._verify_attributes()
