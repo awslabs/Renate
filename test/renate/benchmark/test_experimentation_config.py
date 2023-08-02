@@ -218,9 +218,9 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         (
             "DataIncrementalScenario",
             "DomainNet",
-            {"data_ids": ["clipart"]},
+            {"data_ids": ["clipart", "infograph"]},
             DataIncrementalScenario,
-            16,
+            2,
         ),
     ),
     ids=[
