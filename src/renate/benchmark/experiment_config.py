@@ -36,14 +36,13 @@ from renate.benchmark.models import (
 from renate.benchmark.models.transformer import HuggingFaceSequenceClassificationTransformer
 from renate.benchmark.scenarios import (
     ClassIncrementalScenario,
-    DomainIncrementalScenario,
+    DataIncrementalScenario,
     FeatureSortingScenario,
     HueShiftScenario,
     IIDScenario,
     ImageRotationScenario,
     PermutationScenario,
     Scenario,
-    TimeIncrementalScenario,
 )
 from renate.data.data_module import RenateDataModule
 from renate.models import RenateModule
@@ -169,7 +168,7 @@ def get_scenario(
     input_dim: Optional[Union[List[int], Tuple[int], int]] = None,
     feature_idx: Optional[int] = None,
     randomness: Optional[float] = None,
-    domains: Optional[List[Union[int, str]]] = None,
+    data_ids: Optional[List[Union[int, str]]] = None,
 ) -> Scenario:
     """Function to create scenario based on name and arguments.
 
@@ -185,7 +184,7 @@ def get_scenario(
         input_dim: Used for scenario `PermutationScenario`. Input dimensionality.
         feature_idx: Used for scenario `SoftSortingScenario`. Index of feature to sort by.
         randomness: Used for all `_SortingScenario`. Randomness strength in [0, 1].
-        domains: List of domains for the `DomainIncrementalScenario`.
+        data_ids: List of data_ids for the `DataIncrementalScenario`.
 
     Returns:
         An instance of the requested scenario.
@@ -235,13 +234,11 @@ def get_scenario(
             chunk_id=chunk_id,
             seed=seed,
         )
-    if scenario_name == "TimeIncrementalScenario":
-        return TimeIncrementalScenario(
-            data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed
-        )
-    if scenario_name == "DomainIncrementalScenario":
-        return DomainIncrementalScenario(
-            data_module=data_module, domains=domains, chunk_id=chunk_id, seed=seed
+    if scenario_name == "DataIncrementalScenario":
+        if data_ids is None:
+            data_ids = [data_id for data_id in range(num_tasks)]
+        return DataIncrementalScenario(
+            data_module=data_module, data_ids=data_ids, chunk_id=chunk_id, seed=seed
         )
     raise ValueError(f"Unknown scenario `{scenario_name}`.")
 
@@ -270,7 +267,7 @@ def data_module_fn(
     pretrained_model_name: Optional[str] = None,
     input_column: Optional[str] = None,
     target_column: Optional[str] = None,
-    domains: Optional[List[Union[int, str]]] = None,
+    data_ids: Optional[List[Union[int, str]]] = None,
 ):
     data_module = get_data_module(
         data_path=data_path,
@@ -296,7 +293,7 @@ def data_module_fn(
         input_dim=input_dim,
         feature_idx=feature_idx,
         randomness=randomness,
-        domains=domains,
+        data_ids=data_ids,
     )
 
 

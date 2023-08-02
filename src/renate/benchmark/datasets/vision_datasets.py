@@ -11,7 +11,7 @@ import torchvision
 from torchvision import transforms
 
 from renate import defaults
-from renate.benchmark.datasets.base import DomainIncrementalDataModule, TimeIncrementalDataModule
+from renate.benchmark.datasets.base import DataIncrementalDataModule
 from renate.data import ImageDataset
 from renate.data.data_module import RenateDataModule
 from renate.utils.file import download_and_unzip_file, download_file, download_folder_from_s3
@@ -189,7 +189,7 @@ def to_long(x):
     return torch.tensor(x, dtype=torch.long)
 
 
-class CLEARDataModule(TimeIncrementalDataModule):
+class CLEARDataModule(DataIncrementalDataModule):
     """Datamodule that process CLEAR datasets: CLEAR10 and CLEAR100.
 
     Source: https://clear-benchmark.github.io/.
@@ -229,7 +229,7 @@ class CLEARDataModule(TimeIncrementalDataModule):
     ):
         super(CLEARDataModule, self).__init__(
             data_path=data_path,
-            time_step=time_step,
+            data_id=time_step,
             src_bucket=src_bucket,
             src_object_name=src_object_name,
             val_size=val_size,
@@ -237,7 +237,7 @@ class CLEARDataModule(TimeIncrementalDataModule):
         )
         self._dataset_name = dataset_name.lower()
         assert self._dataset_name in ["clear10", "clear100"]
-        assert 0 <= self.time_step <= (9 if self._dataset_name == "clear10" else 10)
+        assert 0 <= self.data_id <= (9 if self._dataset_name == "clear10" else 10)
 
     def prepare_data(self) -> None:
         """Download CLEAR dataset with given dataset_name (clear10/clear100)."""
@@ -257,7 +257,7 @@ class CLEARDataModule(TimeIncrementalDataModule):
 
     def setup(self) -> None:
         """Set up train, test and val datasets."""
-        time_step = self.time_step + 1 if self._dataset_name == "clear10" else self.time_step
+        time_step = self.data_id + 1 if self._dataset_name == "clear10" else self.data_id
         X, y = self._get_filepaths_and_labels(train=True, time_step=time_step)
         train_data = ImageDataset(X, y, transform=transforms.ToTensor())
         self._train_data, self._val_data = self._split_train_val_data(train_data)
@@ -290,7 +290,7 @@ class CLEARDataModule(TimeIncrementalDataModule):
         return image_paths, labels
 
 
-class DomainNetDataModule(DomainIncrementalDataModule):
+class DomainNetDataModule(DataIncrementalDataModule):
     """Datamodule that provides access to DomainNet.
 
     Args:
@@ -347,33 +347,33 @@ class DomainNetDataModule(DomainIncrementalDataModule):
     ):
         super().__init__(
             data_path=data_path,
-            domain=domain.lower(),
+            data_id=domain.lower(),
             src_bucket=src_bucket,
             src_object_name=src_object_name,
             val_size=val_size,
             seed=seed,
         )
-        assert self.domain in self.domains, f"Unknown domain {self.domain}."
+        assert self.data_id in self.domains, f"Unknown domain {self.data_id}."
 
     def prepare_data(self) -> None:
         """Download DomainNet dataset for given domain."""
-        file_name = f"{self.domain}.zip"
+        file_name = f"{self.data_id}.zip"
         url = "http://csr.bu.edu/ftp/visda/2019/multi-source/"
-        if self.domain in ["clipart", "painting"]:
+        if self.data_id in ["clipart", "painting"]:
             url = os.path.join(url, "groundtruth")
         if not self._verify_file(file_name):
             download_and_unzip_file(
-                self.domain,
+                self.data_id,
                 self._data_path,
                 self._src_bucket,
                 self._src_object_name,
                 url,
                 file_name,
             )
-        for file_name in [f"{self.domain}_train.txt", f"{self.domain}_test.txt"]:
+        for file_name in [f"{self.data_id}_train.txt", f"{self.data_id}_test.txt"]:
             if not self._verify_file(file_name):
                 download_file(
-                    self.domain,
+                    self.data_id,
                     self._data_path,
                     self._src_bucket,
                     self._src_object_name,
@@ -391,9 +391,9 @@ class DomainNetDataModule(DomainIncrementalDataModule):
 
     def _get_filepaths_and_labels(self, split: str) -> Tuple[List[str], List[int]]:
         """Extracts all the filepaths and labels for a given split."""
-        path = os.path.join(self._data_path, self.domain)
+        path = os.path.join(self._data_path, self.data_id)
         df = pd.read_csv(
-            os.path.join(path, f"{self.domain}_{split}.txt"),
+            os.path.join(path, f"{self.data_id}_{split}.txt"),
             sep=" ",
             header=None,
             names=["path", "label"],

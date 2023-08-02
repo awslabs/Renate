@@ -196,20 +196,13 @@ The first part contains all instances with classes 1 and 2, the second with clas
     * - Scenario Name
       - Description
       - Settings
-    * - :py:class:`~renate.benchmark.scenarios.TimeIncrementalScenario`
-      - Used in combination only with :py:class:`~renate.benchmark.datasets.base.TimeIncrementalDataModule`,
-        e.g., Wild-Time datasets or CLEAR.
-        Data is presented time step by time step and the model is evaluated on test data up to the
-        current time step.
-        This means that for the Wild-Time datasets, is a different scenario than in the original
-        Wild-Time data paper.
-      - * :code:`num_tasks`: Number of data partitions.
-    * - :py:class:`~renate.benchmark.scenarios.DomainIncrementalScenario`
-      - Used in combination only with :py:class:`~renate.benchmark.datasets.base.DomainIncrementalDataModule`,
-        e.g., DomainNet.
-        Data is presented domain by domain and the model is evaluated on test data up to the
-        current domain.
-      - * :code:`num_tasks`: Number of data partitions.
+    * - :py:class:`~renate.benchmark.scenarios.DataIncrementalScenario`
+      - Used in combination only with :py:class:`~renate.benchmark.datasets.base.DataIncrementalDataModule`,
+        e.g., Wild-Time datasets, CLEAR, or DomainNet.
+        Data is presented data by data, where the data could represent a domain or a time slice.
+      - * :code:`num_tasks`: You can provide this argument if the different datasets are identified by
+          ids 0 to `num_tasks`. This is the case for time-incremental datasets such as CLEAR or Wild-Time.
+        * :code:`data_ids`: List of data identifiers. Used for DomainNet to select order or subset of domains.
     * - :py:class:`~renate.benchmark.scenarios.ClassIncrementalScenario`
       - Creates data partitions by splitting the data according to class labels.
       - * :code:`class_groupings`: Tuple of tuples containing the class labels, e.g., ``((1, ), (2, 3, 4))``.
