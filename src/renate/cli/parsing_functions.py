@@ -53,7 +53,7 @@ def get_updater_and_learner_kwargs(
         "loss_weight",
         "ema_memory_update_gamma",
         "memory_size",
-        "memory_batch_size",
+        "batch_memory_frac",
         "loss_normalization",
     ]
     updater_class = None
@@ -93,7 +93,7 @@ def get_updater_and_learner_kwargs(
         ]
         updater_class = SuperExperienceReplayModelUpdater
     elif args.updater == "Offline-ER":
-        learner_args = learner_args + ["loss_weight_new_data", "memory_size", "memory_batch_size"]
+        learner_args = learner_args + ["loss_weight_new_data", "memory_size", "batch_memory_frac"]
         updater_class = OfflineExperienceReplayModelUpdater
     elif args.updater == "RD":
         learner_args = learner_args + ["memory_size"]
@@ -108,7 +108,7 @@ def get_updater_and_learner_kwargs(
         learner_args = learner_args
         updater_class = FineTuningModelUpdater
     elif args.updater == "Avalanche-ER":
-        learner_args = learner_args + ["memory_size", "memory_batch_size"]
+        learner_args = learner_args + ["memory_size", "batch_memory_frac"]
         from renate.updaters.avalanche.model_updater import ExperienceReplayAvalancheModelUpdater
 
         updater_class = ExperienceReplayAvalancheModelUpdater
@@ -123,7 +123,7 @@ def get_updater_and_learner_kwargs(
 
         updater_class = LearningWithoutForgettingModelUpdater
     elif args.updater == "Avalanche-iCaRL":
-        learner_args = learner_args + ["memory_size", "memory_batch_size"]
+        learner_args = learner_args + ["memory_size", "batch_memory_frac"]
         from renate.updaters.avalanche.model_updater import ICaRLModelUpdater
 
         updater_class = ICaRLModelUpdater
@@ -405,11 +405,11 @@ def _add_replay_learner_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
                 "help": "Memory size available for the memory buffer. Default: "
                 f"{defaults.MEMORY_SIZE}.",
             },
-            "memory_batch_size": {
-                "type": int,
+            "batch_memory_frac": {
+                "type": float,
                 "default": defaults.BATCH_SIZE,
-                "help": "Batch size used during model update for the memory buffer. Default: "
-                f"{defaults.BATCH_SIZE}.",
+                "help": "Fraction of the batch populated with memory data. Default: "
+                f"{defaults.BATCH_MEMORY_FRAC}.",
             },
         }
     )

@@ -438,9 +438,7 @@ class ReplayLearner(Learner, abc.ABC):
 
     Args:
         memory_size: The maximum size of the memory.
-        memory_batch_size: Size of batches sampled from the memory. The memory batch will be
-            appended to the batch sampled from the current dataset, leading to an effective batch
-            size of `memory_batch_size + batch_size`.
+        batch_memory_frac: Fraction of the batch that is sampled from rehearsal memory.
         buffer_transform: The transformation to be applied to the memory buffer data samples.
         buffer_target_transform: The target transformation to be applied to the memory buffer target
             samples.
@@ -450,14 +448,20 @@ class ReplayLearner(Learner, abc.ABC):
     def __init__(
         self,
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
+        batch_memory_frac: float = defaults.BATCH_MEMORY_FRAC,
         buffer_transform: Optional[Callable] = None,
         buffer_target_transform: Optional[Callable] = None,
         seed: int = defaults.SEED,
         **kwargs,
     ) -> None:
+        if not (0 <= batch_memory_frac <= 1):
+            raise ValueError(
+                f"Expecting batch_memory_frac to be in [0, 1], received {batch_memory_frac}."
+            )
+        memory_batch_size = min(memory_size, int(batch_memory_frac * kwargs["batch_size"]))
+        kwargs["batch_size"] = kwargs["batch_size"] - memory_batch_size
         super().__init__(seed=seed, **kwargs)
-        self._memory_batch_size = min(memory_size, memory_batch_size)
+        self._memory_batch_size = memory_batch_size
         self._memory_buffer = ReservoirBuffer(
             max_size=memory_size,
             seed=seed,
