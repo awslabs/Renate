@@ -26,14 +26,15 @@ def get_model_and_dataset():
 
 
 @pytest.mark.parametrize(
-    "batch_size,memory_size,memory_batch_size",
-    [[10, 10, 10], [20, 10, 10], [10, 100, 10], [10, 30, 1], [100, 10, 3]],
+    "batch_size,memory_size,batch_memory_frac",
+    [[20, 10, 0.5], [30, 10, 0.34], [20, 100, 0.5], [10, 30, 0.1], [100, 10, 0.03]],
 )
-def test_er_overall_memory_size_after_update(batch_size, memory_size, memory_batch_size):
+def test_er_overall_memory_size_after_update(batch_size, memory_size, batch_memory_frac):
+    memory_batch_size = int(batch_memory_frac * batch_size)
     model, dataset = get_model_and_dataset()
     learner_kwargs = {
         "memory_size": memory_size,
-        "memory_batch_size": memory_batch_size,
+        "batch_memory_frac": batch_memory_frac,
         "batch_size": batch_size,
     }
     model_updater = pytest.helpers.get_simple_updater(
@@ -88,9 +89,15 @@ def test_er_validation_buffer(tmpdir):
             )
 
 
+def validate_common_args(model_updater, learner_kwargs):
+    memory_batch_size = int(learner_kwargs["batch_memory_frac"] * learner_kwargs["batch_size"])
+    batch_size = learner_kwargs["batch_size"] - memory_batch_size
+    assert model_updater._learner._batch_size == batch_size
+    assert model_updater._learner._memory_batch_size == memory_batch_size
+
+
 def validate_cls_er(model_updater, learner_kwargs):
-    assert model_updater._learner._batch_size == learner_kwargs["batch_size"]
-    assert model_updater._learner._memory_batch_size == learner_kwargs["memory_batch_size"]
+    validate_common_args(model_updater, learner_kwargs)
     assert model_updater._learner._components["memory_loss"].weight == learner_kwargs["alpha"]
     assert model_updater._learner._components["cls_loss"].weight == learner_kwargs["beta"]
     assert (
@@ -112,15 +119,13 @@ def validate_cls_er(model_updater, learner_kwargs):
 
 
 def validate_dark_er(model_updater, learner_kwargs):
-    assert model_updater._learner._batch_size == learner_kwargs["batch_size"]
-    assert model_updater._learner._memory_batch_size == learner_kwargs["memory_batch_size"]
+    validate_common_args(model_updater, learner_kwargs)
     assert model_updater._learner._components["memory_loss"].weight == learner_kwargs["beta"]
     assert model_updater._learner._components["mse_loss"].weight == learner_kwargs["alpha"]
 
 
 def validate_pod_er(model_updater, learner_kwargs):
-    assert model_updater._learner._batch_size == learner_kwargs["batch_size"]
-    assert model_updater._learner._memory_batch_size == learner_kwargs["memory_batch_size"]
+    validate_common_args(model_updater, learner_kwargs)
     assert model_updater._learner._components["pod_loss"].weight == learner_kwargs["alpha"]
     assert (
         model_updater._learner._components["pod_loss"]._distillation_type
@@ -130,8 +135,7 @@ def validate_pod_er(model_updater, learner_kwargs):
 
 
 def validate_super_er(model_updater, learner_kwargs):
-    assert model_updater._learner._batch_size == learner_kwargs["batch_size"]
-    assert model_updater._learner._memory_batch_size == learner_kwargs["memory_batch_size"]
+    validate_common_args(model_updater, learner_kwargs)
     assert model_updater._learner._components["memory_loss"].weight == learner_kwargs["der_beta"]
     assert model_updater._learner._components["mse_loss"].weight == learner_kwargs["der_alpha"]
     assert model_updater._learner._components["cls_loss"].weight == learner_kwargs["cls_alpha"]
@@ -174,7 +178,7 @@ def validate_super_er(model_updater, learner_kwargs):
             validate_cls_er,
             {
                 "memory_size": 30,
-                "memory_batch_size": 20,
+                "batch_memory_frac": 0.4,
                 "batch_size": 50,
                 "seed": 1,
                 "alpha": 0.123,
@@ -186,7 +190,7 @@ def validate_super_er(model_updater, learner_kwargs):
             },
             {
                 "memory_size": 30,
-                "memory_batch_size": 10,
+                "batch_memory_frac": 0.1,
                 "batch_size": 100,
                 "seed": 1,
                 "alpha": 2.3,
@@ -202,7 +206,7 @@ def validate_super_er(model_updater, learner_kwargs):
             validate_dark_er,
             {
                 "memory_size": 30,
-                "memory_batch_size": 20,
+                "batch_memory_frac": 0.4,
                 "batch_size": 50,
                 "seed": 1,
                 "alpha": 0.123,
@@ -210,7 +214,7 @@ def validate_super_er(model_updater, learner_kwargs):
             },
             {
                 "memory_size": 30,
-                "memory_batch_size": 10,
+                "batch_memory_frac": 0.1,
                 "batch_size": 100,
                 "seed": 1,
                 "alpha": 2.3,
@@ -222,7 +226,7 @@ def validate_super_er(model_updater, learner_kwargs):
             validate_pod_er,
             {
                 "memory_size": 30,
-                "memory_batch_size": 20,
+                "batch_memory_frac": 0.4,
                 "batch_size": 50,
                 "seed": 1,
                 "alpha": 0.123,
@@ -231,7 +235,7 @@ def validate_super_er(model_updater, learner_kwargs):
             },
             {
                 "memory_size": 30,
-                "memory_batch_size": 10,
+                "batch_memory_frac": 0.1,
                 "batch_size": 100,
                 "seed": 1,
                 "alpha": 0.123,
@@ -244,7 +248,7 @@ def validate_super_er(model_updater, learner_kwargs):
             validate_super_er,
             {
                 "memory_size": 30,
-                "memory_batch_size": 20,
+                "batch_memory_frac": 0.4,
                 "batch_size": 50,
                 "seed": 1,
                 "der_alpha": 0.123,
@@ -262,7 +266,7 @@ def validate_super_er(model_updater, learner_kwargs):
             },
             {
                 "memory_size": 30,
-                "memory_batch_size": 10,
+                "batch_memory_frac": 0.1,
                 "batch_size": 100,
                 "seed": 1,
                 "der_alpha": 2.3,

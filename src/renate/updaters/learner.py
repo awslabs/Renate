@@ -448,6 +448,7 @@ class ReplayLearner(Learner, abc.ABC):
     def __init__(
         self,
         memory_size: int,
+        batch_size: int = defaults.BATCH_SIZE,
         batch_memory_frac: float = defaults.BATCH_MEMORY_FRAC,
         buffer_transform: Optional[Callable] = None,
         buffer_target_transform: Optional[Callable] = None,
@@ -458,9 +459,9 @@ class ReplayLearner(Learner, abc.ABC):
             raise ValueError(
                 f"Expecting batch_memory_frac to be in [0, 1], received {batch_memory_frac}."
             )
-        memory_batch_size = min(memory_size, int(batch_memory_frac * kwargs["batch_size"]))
-        kwargs["batch_size"] = kwargs["batch_size"] - memory_batch_size
-        super().__init__(seed=seed, **kwargs)
+        memory_batch_size = min(memory_size, int(batch_memory_frac * batch_size))
+        batch_size = batch_size - memory_batch_size
+        super().__init__(batch_size=batch_size, seed=seed, **kwargs)
         self._memory_batch_size = memory_batch_size
         self._memory_buffer = ReservoirBuffer(
             max_size=memory_size,
