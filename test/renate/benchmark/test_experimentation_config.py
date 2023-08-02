@@ -23,12 +23,12 @@ from renate.benchmark.experiment_config import (
 )
 from renate.benchmark.scenarios import (
     ClassIncrementalScenario,
+    DataIncrementalScenario,
     FeatureSortingScenario,
     HueShiftScenario,
     IIDScenario,
     ImageRotationScenario,
     PermutationScenario,
-    TimeIncrementalScenario,
 )
 from renate.models.prediction_strategies import ICaRLClassificationStrategy
 
@@ -200,19 +200,26 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             HueShiftScenario,
             3,
         ),
-        ("TimeIncrementalScenario", "CLEAR10", {"num_tasks": 5}, TimeIncrementalScenario, 5),
+        ("DataIncrementalScenario", "CLEAR10", {"num_tasks": 5}, DataIncrementalScenario, 5),
         (
-            "TimeIncrementalScenario",
+            "DataIncrementalScenario",
             "arxiv",
             {"num_tasks": 3, "pretrained_model_name": "distilbert-base-uncased"},
-            TimeIncrementalScenario,
+            DataIncrementalScenario,
             3,
         ),
         (
-            "TimeIncrementalScenario",
+            "DataIncrementalScenario",
             "fmow",
             {},
-            TimeIncrementalScenario,
+            DataIncrementalScenario,
+            16,
+        ),
+        (
+            "DataIncrementalScenario",
+            "DomainNet",
+            {"data_ids": ["clipart"]},
+            DataIncrementalScenario,
             16,
         ),
     ),
@@ -226,6 +233,7 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         "time_with_clear",
         "wild_time_text_with_tokenizer",
         "wild_time_image_all_tasks",
+        "domainnet",
     ],
 )
 @pytest.mark.parametrize("val_size", (0, 0.5), ids=["no_val", "val"])
@@ -255,10 +263,10 @@ def test_data_module_fn(
         assert scenario._randomness == scenario_kwargs["randomness"]
     elif expected_scenario_class == HueShiftScenario:
         assert scenario._randomness == scenario_kwargs["randomness"]
-    elif expected_scenario_class == TimeIncrementalScenario:
+    elif expected_scenario_class == DataIncrementalScenario:
         if "pretrained_model_name" in scenario_kwargs:
             assert scenario._data_module._tokenizer is not None
-        elif dataset_name not in ["CLEAR10", "CLEAR100"]:
+        elif dataset_name not in ["CLEAR10", "CLEAR100", "DomainNet"]:
             assert scenario._data_module._tokenizer is None
     assert scenario._num_tasks == expected_num_tasks
 

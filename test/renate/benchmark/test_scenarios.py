@@ -11,11 +11,11 @@ from dummy_datasets import DummyTorchVisionDataModule
 from renate.benchmark.datasets.vision_datasets import TorchVisionDataModule
 from renate.benchmark.scenarios import (
     ClassIncrementalScenario,
+    DataIncrementalScenario,
     FeatureSortingScenario,
     IIDScenario,
     ImageRotationScenario,
     PermutationScenario,
-    TimeIncrementalScenario,
 )
 from renate.utils.pytorch import randomly_split_data
 
@@ -79,12 +79,12 @@ def test_class_incremental_scenario_class_grouping_error():
         scenario.setup()
 
 
-def test_time_incremental_scenario_init_error():
-    """Check that TimeIncrementalScenario raises Exception for unsupported DataModule."""
+def test_data_incremental_scenario_init_error():
+    """Check that DataIncrementalScenario raises Exception for unsupported DataModule."""
     with pytest.raises(ValueError, match=r"This scenario is only compatible with*"):
-        TimeIncrementalScenario(
+        DataIncrementalScenario(
             data_module=DummyTorchVisionDataModule(),
-            num_tasks=2,
+            data_ids=[0, 1],
             chunk_id=0,
         )
 
