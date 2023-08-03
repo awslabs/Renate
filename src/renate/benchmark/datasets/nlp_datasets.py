@@ -260,16 +260,13 @@ class MultiTextDataModule(DataIncrementalDataModule):
 
         def get_split(split_name):
             dataset = load_dataset(self.data_id, split=split_name, cache_dir=self._data_path)
-            new_features = dataset.features.copy()
             # the following is hack needed because the output space of the new dataset is
             # the union of the output spaces of the single datasets
-            new_features[self._multi_dataset_info[self.data_id][1]] = datasets.ClassLabel(
+            dataset.features[self._multi_dataset_info[self.data_id][1]] = datasets.ClassLabel(
                 num_classes=33
             )
 
-            dataset = dataset.cast(new_features)
-
-            if "train" in split_name:
+            if "train" == split_name:
                 set_size = self._train_size
             else:
                 set_size = self._test_size
