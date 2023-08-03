@@ -241,7 +241,6 @@ class MultiTextDataModule(DataIncrementalDataModule):
             )
 
         self.data_id = data_id
-        self._rnd_gen = torch.Generator().manual_seed(self._seed)
 
     def prepare_data(self) -> None:
         """Download dataset."""
@@ -251,6 +250,8 @@ class MultiTextDataModule(DataIncrementalDataModule):
 
     def setup(self) -> None:
         """Set up train, test and val datasets."""
+
+        rnd_gen = torch.Generator().manual_seed(self._seed)
 
         def preprocess(example, text_field_name, label_field_name):
             return {
@@ -262,9 +263,14 @@ class MultiTextDataModule(DataIncrementalDataModule):
             dataset = load_dataset(self.data_id, split=split_name, cache_dir=self._data_path)
             # the following is hack needed because the output space of the new dataset is
             # the union of the output spaces of the single datasets
-            dataset.features[self._multi_dataset_info[self.data_id][1]] = datasets.ClassLabel(
+            # HF datasets check for the max label id and we need to make sure we update that
+            # without this change the setup will fail with a value error (label id > max labels)
+            new_features = dataset.features.copy()
+            new_features[self._multi_dataset_info[self.data_id][1]] = datasets.ClassLabel(
                 num_classes=33
             )
+
+            dataset = dataset.cast(new_features)
 
             if "train" == split_name:
                 set_size = self._train_size
@@ -272,7 +278,10 @@ class MultiTextDataModule(DataIncrementalDataModule):
                 set_size = self._test_size
 
             rnd_idx = torch.randint(
-                low=0, high=len(dataset), size=(set_size,), generator=self._rnd_gen
+                low=0,
+                high=len(dataset),
+                size=(set_size,),
+                generator=rnd_gen,
             ).tolist()
             dataset = dataset.select(indices=rnd_idx)
 
