@@ -3,7 +3,7 @@
 import pytest
 from torch.nn import Linear
 from torch.optim import SGD
-from torch.optim.lr_scheduler import StepLR
+from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
 from torchmetrics.classification import MulticlassAccuracy
 from torchvision.transforms import Compose, Normalize
 
@@ -279,6 +279,7 @@ def test_data_module_fn(
         ("CIFAR10", True, False),
         ("CIFAR100", True, False),
         ("CLEAR10", True, True),
+        ("DomainNet", True, True),
         ("hfd-rotten_tomatoes", False, False),
     ),
 )
@@ -305,10 +306,17 @@ def test_transforms_fails_for_unknown_dataset():
 
 @pytest.mark.parametrize(
     "learning_rate_scheduler,expected_lr_class,expected_interval",
-    (("StepLR", StepLR, "epoch"), (None, None, "epoch")),
+    (
+        ("StepLR", StepLR, "epoch"),
+        ("CosineAnnealingLR", CosineAnnealingLR, "step"),
+        (None, None, "epoch"),
+    ),
 )
 def test_lr_scheduler_fn(learning_rate_scheduler, expected_lr_class, expected_interval):
-    scheduler, interval = lr_scheduler_fn(learning_rate_scheduler)
+    scheduler, interval = lr_scheduler_fn(
+        learning_rate_scheduler=learning_rate_scheduler,
+        learning_rate_scheduler_interval=expected_interval,
+    )
     assert interval == expected_interval
     if learning_rate_scheduler is None:
         assert scheduler is None

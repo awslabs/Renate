@@ -1,6 +1,6 @@
 {
   "val_size": 0.1,
-  "scenario_name": "TimeIncrementalScenario",
+  "scenario_name": "DataIncrementalScenario",
   "num_tasks": 10,
   "max_epochs": 100,
   "optimizer": "SGD",
