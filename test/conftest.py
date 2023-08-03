@@ -71,7 +71,7 @@ def pytest_collection_modifyitems(config, items):
 LEARNER_KWARGS = {
     ExperienceReplayLearner: {
         "memory_size": 30,
-        "memory_batch_size": 20,
+        "batch_memory_frac": 0.4,
         "batch_size": 50,
         "seed": 1,
     },
@@ -81,7 +81,7 @@ LEARNER_KWARGS = {
     RepeatedDistillationLearner: {"batch_size": 10, "seed": 42, "memory_size": 30},
     OfflineExperienceReplayLearner: {
         "memory_size": 30,
-        "memory_batch_size": 20,
+        "batch_memory_frac": 0.4,
         "loss_weight_new_data": 0.5,
         "batch_size": 50,
         "seed": 1,
@@ -90,7 +90,7 @@ LEARNER_KWARGS = {
 AVALANCHE_LEARNER_KWARGS = {
     AvalancheReplayLearner: {
         "memory_size": 30,
-        "memory_batch_size": 20,
+        "batch_memory_frac": 0.4,
         "batch_size": 50,
         "seed": 1,
     },

@@ -28,18 +28,11 @@ class OfflineExperienceReplayLearner(ReplayLearner):
     terminated.
 
     Args:
-        memory_size: The maximum size of the memory.
-        memory_batch_size: Size of batches sampled from the memory. The memory batch will be
-            appended to the batch sampled from the current dataset, leading to an effective batch
-            size of `memory_batch_size + batch_size`.
         loss_weight_new_data: The training loss will be a convex combination of the loss on the new
             data and the loss on the memory data. If a float (needs to be in [0, 1]) is given here,
             it will be used as the weight for the new data. If `None`, the weight will be set
             dynamically to `N_t / sum([N_1, ..., N_t])`, where `N_i` denotes the size of task/chunk
             `i` and the current task is `t`.
-        buffer_transform: The transformation to be applied to the memory buffer data samples.
-        buffer_target_transform: The target transformation to be applied to the memory buffer target
-            samples.
     """
 
     def __init__(self, loss_weight_new_data: Optional[float] = None, **kwargs) -> None:
