@@ -239,7 +239,7 @@ class ModelUpdater(abc.ABC):
             `here <https://pytorch-lightning.readthedocs.io/en/stable/common\
             /trainer.html#reproducibility>`_.
         gradient_clip_val: Gradient clipping value used in PyTorch Lightning. Defaults to not
-            clipping by using a value of None. 
+            clipping by using a value of None.
         gradient_clip_algorithm: Method to clip gradients (norm or value) used in PyTorch Lightning.
     """
 
