@@ -274,7 +274,7 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
-        gradient_clip_val: Union[int, float, None] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
         gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     ):
         learner_kwargs = {
@@ -342,7 +342,7 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
-        gradient_clip_val: Union[int, float, None] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
         gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     ):
         learner_kwargs = {
@@ -410,7 +410,7 @@ class LearningWithoutForgettingModelUpdater(AvalancheModelUpdater):
         strategy: Optional[str] = defaults.DISTRIBUTED_STRATEGY,
         precision: str = defaults.PRECISION,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
-        gradient_clip_val: Union[int, float, None] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
         gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     ):
         learner_kwargs = {
@@ -478,7 +478,7 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
-        gradient_clip_val: Union[int, float, None] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
         gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     ):
         learner_kwargs = {
