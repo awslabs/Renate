@@ -312,13 +312,13 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
             "true_type": bool,
         },
         "gradient_clip_val": {
-            "type": lambda x: None if x in ["None", None] else x,
+            "type": lambda x: None if x == "None" else x,
             "default": defaults.GRADIENT_CLIP_VAL,
             "help": "The value at which to clip gradients. None disables clipping.",
             "argument_group": OPTIONAL_ARGS_GROUP,
         },
         "gradient_clip_algorithm": {
-            "type": lambda x: None if x in ["None", None] else x,
+            "type": lambda x: None if x == "None" else x,
             "default": defaults.GRADIENT_CLIP_ALGORITHM,
             "help": "Gradient clipping algorithm to use.",
             "choices": ["norm", "value", None],
