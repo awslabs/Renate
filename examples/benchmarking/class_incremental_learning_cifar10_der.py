@@ -22,6 +22,7 @@ config_space = {
     "dataset_name": "CIFAR10",
     "val_size": 0,
     "class_groupings": ((0, 1), (2, 3), (4, 5), (6, 7), (8, 9)),
+    "num_outputs": 10,
 }
 
 for seed in range(10):

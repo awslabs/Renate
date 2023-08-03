@@ -274,6 +274,8 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     ):
         learner_kwargs = {
             "batch_size": batch_size,
@@ -306,6 +308,8 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
             devices=devices,
             strategy=strategy,
             precision=precision,
+            gradient_clip_val=gradient_clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
         )
 
 
@@ -338,6 +342,8 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     ):
         learner_kwargs = {
             "batch_size": batch_size,
@@ -369,6 +375,8 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
             devices=devices,
             strategy=strategy,
             precision=precision,
+            gradient_clip_val=gradient_clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
         )
 
 
@@ -402,6 +410,8 @@ class LearningWithoutForgettingModelUpdater(AvalancheModelUpdater):
         strategy: Optional[str] = defaults.DISTRIBUTED_STRATEGY,
         precision: str = defaults.PRECISION,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     ):
         learner_kwargs = {
             "batch_size": batch_size,
@@ -434,6 +444,8 @@ class LearningWithoutForgettingModelUpdater(AvalancheModelUpdater):
             devices=devices,
             strategy=strategy,
             precision=precision,
+            gradient_clip_val=gradient_clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
         )
 
 
@@ -444,7 +456,6 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
         loss_fn: torch.nn.Module,
         optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
         learning_rate_scheduler: Optional[Callable[[Optimizer], _LRScheduler]] = None,
         learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
@@ -467,10 +478,11 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
-            "memory_batch_size": memory_batch_size,
             "batch_size": batch_size,
             "seed": seed,
         }
@@ -499,4 +511,6 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
             devices=devices,
             strategy=strategy,
             precision=precision,
+            gradient_clip_val=gradient_clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
         )

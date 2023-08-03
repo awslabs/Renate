@@ -133,6 +133,18 @@ The following table contains the list of supported datasets.
       - Image Classification
       - 50k train, 10k test, 100 classes, image shape 32x32x3
       - Alex Krizhevsky: Learning Multiple Layers of Features from Tiny Images. 2009.
+    * - CLEAR10
+      - Image Classification
+      - 10 different datasets, one for each year. Each with 3,300 train, 550 test, 11 classes
+      - Zhiqiu Lin et al.: The CLEAR Benchmark: Continual LEArning on Real-World Imagery. NeurIPS Datasets and Benchmarks 2021.
+    * - CLEAR100
+      - Image Classification
+      - 11 different datasets, one for each year. Each with roughly 10k train, 5k test, 100 classes
+      - Zhiqiu Lin et al.: The CLEAR Benchmark: Continual LEArning on Real-World Imagery. NeurIPS Datasets and Benchmarks 2021.
+    * - DomainNet
+      - Image Classification
+      - 6 datasets from different domains. 345 classes, number of train and test image varies
+      - Xingchao Peng et al.: Moment Matching for Multi-Source Domain Adaptation. ICCV 2019.
     * - FashionMNIST
       - Image Classification
       - 60k train, 10k test, 10 classes, image shape 28x28x1
@@ -184,14 +196,13 @@ The first part contains all instances with classes 1 and 2, the second with clas
     * - Scenario Name
       - Description
       - Settings
-    * - :py:class:`~renate.benchmark.scenarios.BenchmarkScenario`
-      - Used in combination only with CLEAR-10 or CLEAR-100.
-      - * :code:`num_tasks`: Number of data partitions.
-    * - :py:class:`~renate.benchmark.scenarios.WildTimeScenario`
-      - Used in combination only with Wild-Time datasets. This is not the scenario used in the paper.
-        Data is presented time step by time step and the model is evaluated on test data up to the
-        current time step.
-      - * :code:`num_tasks`: Number of data partitions.
+    * - :py:class:`~renate.benchmark.scenarios.DataIncrementalScenario`
+      - Used in combination only with :py:class:`~renate.benchmark.datasets.base.DataIncrementalDataModule`,
+        e.g., Wild-Time datasets, CLEAR, or DomainNet.
+        Data is presented data by data, where the data could represent a domain or a time slice.
+      - * :code:`num_tasks`: You can provide this argument if the different datasets are identified by
+          ids 0 to `num_tasks`. This is the case for time-incremental datasets such as CLEAR or Wild-Time.
+        * :code:`data_ids`: List of data identifiers. Used for DomainNet to select order or subset of domains.
     * - :py:class:`~renate.benchmark.scenarios.ClassIncrementalScenario`
       - Creates data partitions by splitting the data according to class labels.
       - * :code:`class_groupings`: Tuple of tuples containing the class labels, e.g., ``((1, ), (2, 3, 4))``.

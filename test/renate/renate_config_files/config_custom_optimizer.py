@@ -45,4 +45,4 @@ def lr_scheduler_fn() -> Tuple[Callable[[Optimizer], _LRScheduler], str]:
 
 
 def metrics_fn() -> Dict:
-    return {"accuracy": Accuracy()}
+    return {"accuracy": Accuracy(task="multiclass", num_classes=10)}

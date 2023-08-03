@@ -9,7 +9,7 @@ from torch.utils.data import Dataset, Subset
 from torchvision.transforms import Lambda, RandomRotation, ToPILImage
 
 from renate import defaults
-from renate.benchmark.datasets.wild_time_data import WildTimeDataModule
+from renate.benchmark.datasets.base import DataIncrementalDataModule
 from renate.data.data_module import RenateDataModule
 from renate.data.datasets import _TransformedDataset
 from renate.utils.pytorch import get_generator, randomly_split_data
@@ -100,18 +100,6 @@ class Scenario(abc.ABC):
         if self._data_module.val_data():
             val_data = self._data_module.val_data()
             self._val_data = randomly_split_data(val_data, proportions, self._seed)[self._chunk_id]
-
-
-class BenchmarkScenario(Scenario):
-    """This is a scenario to concatenate test data of a data module, which by definition has
-    different chunks.
-    """
-
-    def setup(self) -> None:
-        super().setup()
-        self._train_data = self._data_module.train_data()
-        self._val_data = self._data_module.val_data()
-        self._test_data = self._data_module._test_data
 
 
 class ClassIncrementalScenario(Scenario):
@@ -284,7 +272,7 @@ class _SortingScenario(Scenario):
     Randomness in the sorted order is induced by swapping the position of random pairs.
 
     Args:
-        data_module: The source RenateDataModule for the the user data.
+        data_module: The source RenateDataModule for the user data.
         num_tasks: The total number of expected tasks for experimentation.
         randomness: A value between 0 and 1. For a dataset with ``N`` data points,
             ``0.5 * N * randomness`` random pairs are swapped.
@@ -399,15 +387,17 @@ class HueShiftScenario(_SortingScenario):
         return scores
 
 
-class WildTimeScenario(Scenario):
-    """Creating a time-incremental scenario for the Wild-Time datasets.
+class DataIncrementalScenario(Scenario):
+    """Creating a scenario which iterates over pre-defined datasets.
 
-    In contrast to the original work, data is presented time step by time step (no grouping) and
-    the test set is all data up to the current time step.
+    The scenario will iterate over a list of datasets that are provided by the given ``DataModule``.
+    The data is loaded by assigning ``data_ids[chunk_id]`` to the attribute of the ``DataModule``
+    with name ``domain`` and then calling its ``setup()`` function.
 
     Args:
-        data_module: The source RenateDataModule for the user data.
-        num_tasks: The total number of expected tasks for experimentation.
+        data_module: The source :py:class:`~renate.data.data_module.RenateDataModule` for the user
+            data.
+        data_ids: Unique identifier for each pre-defined dataset.
         chunk_id: The data chunk to load in for the training or validation data.
         seed: Seed used to fix random number generation.
     """
@@ -415,22 +405,34 @@ class WildTimeScenario(Scenario):
     def __init__(
         self,
         data_module: RenateDataModule,
-        num_tasks: int,
+        data_ids: List[Union[int, str]],
         chunk_id: int,
         seed: int = defaults.SEED,
     ) -> None:
-        super().__init__(data_module=data_module, num_tasks=num_tasks, chunk_id=chunk_id, seed=seed)
-        if not isinstance(data_module, WildTimeDataModule):
-            raise ValueError("This scenario is only compatible with `WildTimeDataModule`.")
+        super().__init__(
+            data_module=data_module, num_tasks=len(data_ids), chunk_id=chunk_id, seed=seed
+        )
+        if not isinstance(data_module, DataIncrementalDataModule):
+            raise ValueError(
+                "This scenario is only compatible with classes that extend "
+                "`DataIncrementalDataModule`."
+            )
+        self._data_ids = data_ids
+
+    def prepare_data(self) -> None:
+        """Downloads datasets."""
+        for data_id in self._data_ids:
+            self._data_module.data_id = data_id
+            self._data_module.prepare_data()
 
     def setup(self) -> None:
         """Sets up the scenario."""
-        self._data_module.time_step = self._chunk_id
+        self._data_module.data_id = self._data_ids[self._chunk_id]
         super().setup()
         self._train_data = self._data_module.train_data()
         self._val_data = self._data_module.val_data()
         self._test_data = []
-        for i in range(self._num_tasks):
-            self._data_module.time_step = i
+        for data_id in self._data_ids:
+            self._data_module.data_id = data_id
             self._data_module.setup()
             self._test_data.append(self._data_module.test_data())

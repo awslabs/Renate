@@ -17,7 +17,7 @@ from renate.models import RenateModule
 from renate.types import NestedTensors
 from renate.updaters.learner import ReplayLearner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
-from renate.utils.pytorch import move_tensors_to_device
+from renate.utils.pytorch import cat_nested_tensors, get_length_nested_tensors
 
 
 class OfflineExperienceReplayLearner(ReplayLearner):
@@ -87,6 +87,7 @@ class OfflineExperienceReplayLearner(ReplayLearner):
                 shuffle=True,
                 generator=self._rng,
                 pin_memory=True,
+                collate_fn=self._train_collate_fn,
             )
         return CombinedLoader(loaders, mode="max_size_cycle")
 
@@ -96,9 +97,7 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         self._num_points_previous_tasks += self._num_points_current_task
         self._num_points_current_task = -1
 
-    def training_step(
-        self, batch: Dict[str, Tuple[NestedTensors, torch.Tensor]], batch_idx: int
-    ) -> STEP_OUTPUT:
+    def training_step(self, batch: Dict[str, Tuple[NestedTensors]], batch_idx: int) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
         if self._loss_weight_new_data is None:
             alpha = self._num_points_current_task / (
@@ -106,31 +105,24 @@ class OfflineExperienceReplayLearner(ReplayLearner):
             )
         else:
             alpha = self._loss_weight_new_data
+        alpha = torch.tensor(alpha, device=next(self.parameters()).device)
         inputs, targets = batch["current_task"]
-        device = inputs.device
-        batch_size_current = inputs.shape[0]
-        batch_size_mem = 0
+        batch_size_current = get_length_nested_tensors(inputs)
         if "memory" in batch:
             (inputs_mem, targets_mem), _ = batch["memory"]
-            batch_size_mem = inputs_mem.shape[0]
-            inputs = torch.cat((inputs, inputs_mem), 0)
+            inputs = cat_nested_tensors((inputs, inputs_mem), 0)
             targets = torch.cat((targets, targets_mem), 0)
         outputs = self(inputs)
         loss = self._loss_fn(outputs, targets)
         if "memory" in batch:
-            weights = torch.Tensor(
-                [
-                    [alpha for _ in range(batch_size_current)]
-                    + [(1 - alpha) for _ in range(batch_size_mem)]
-                ]
-            )
-            self._loss_collections["train_losses"]["memory_loss"](loss[batch_size_current:].mean())
-            self._loss_collections["train_losses"]["base_loss"](loss[:batch_size_current].mean())
-            weights = move_tensors_to_device(weights, device=device)
-            loss = weights / weights.mean() * loss
+            loss_current = loss[:batch_size_current].mean()
+            loss_memory = loss[batch_size_current:].mean()
+            self._loss_collections["train_losses"]["base_loss"](loss_current)
+            self._loss_collections["train_losses"]["memory_loss"](loss_memory)
+            loss = alpha * loss_current + (1.0 - alpha) * loss_memory
         else:
-            self._loss_collections["train_losses"]["base_loss"](loss[:batch_size_current].mean())
-        loss = loss.mean()
+            loss = loss.mean()
+            self._loss_collections["train_losses"]["base_loss"](loss)
         self._update_metrics(outputs, targets, "train")
         return {"loss": loss}
 
@@ -175,6 +167,8 @@ class OfflineExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
@@ -210,4 +204,6 @@ class OfflineExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             strategy=strategy,
             precision=precision,
             deterministic_trainer=deterministic_trainer,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            gradient_clip_val=gradient_clip_val,
         )

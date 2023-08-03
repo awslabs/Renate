@@ -93,7 +93,7 @@ def buffer_transform() -> Callable:
 
 
 def metrics_fn() -> Dict:
-    return {"accuracy": Accuracy()}
+    return {"accuracy": Accuracy(task="multiclass", num_classes=10)}
 
 
 def loss_fn() -> torch.nn.Module:

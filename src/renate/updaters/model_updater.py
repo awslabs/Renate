@@ -213,7 +213,9 @@ class ModelUpdater(abc.ABC):
             state available) or replace current arguments of the learner.
         input_state_folder: Folder used by Renate to store files for current state.
         output_state_folder: Folder used by Renate to store files for next state.
-        max_epochs: The maximum number of epochs used to train the model.
+        max_epochs: The maximum number of epochs used to train the model. For comparability between
+            methods, epochs are interpreted as "finetuning-equivalent". That is, one epoch is
+            defined as `len(current_task_dataset) / batch_size` update steps.
         train_transform: The transformation applied during training.
         train_target_transform: The target transformation applied during testing.
         test_transform: The transformation at test time.
@@ -236,6 +238,9 @@ class ModelUpdater(abc.ABC):
             The value is passed to the trainer as described
             `here <https://pytorch-lightning.readthedocs.io/en/stable/common\
             /trainer.html#reproducibility>`_.
+        gradient_clip_val: Gradient clipping value used in PyTorch Lightning. Defaults to not
+            clipping by using a value of None.
+        gradient_clip_algorithm: Method to clip gradients (norm or value) used in PyTorch Lightning.
     """
 
     def __init__(
@@ -266,6 +271,8 @@ class ModelUpdater(abc.ABC):
         strategy: Optional[str] = defaults.DISTRIBUTED_STRATEGY,
         precision: str = defaults.PRECISION,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     ):
         self._learner_kwargs = learner_kwargs or {}
         self._learner_kwargs["loss_fn"] = loss_fn
@@ -334,6 +341,8 @@ class ModelUpdater(abc.ABC):
         self._logger = logger
         self._num_epochs_trained = 0
         self._deterministic_trainer = deterministic_trainer
+        self._gradient_clip_algorithm = gradient_clip_algorithm
+        self._gradient_clip_val = gradient_clip_val
 
     @abc.abstractmethod
     def update(
@@ -408,16 +417,22 @@ class ModelUpdater(abc.ABC):
                 )
 
         strategy = create_strategy(self._devices, self._strategy)
+        # Finetuning-equivalent epochs.
+        num_batches = len(learner._train_dataset) // learner._batch_size
+        num_batches += min(len(learner._train_dataset) % learner._batch_size, 1)
         trainer = Trainer(
             accelerator=self._accelerator,
             devices=self._devices,
             max_epochs=self._max_epochs,
+            limit_train_batches=num_batches,
             callbacks=callbacks,
             logger=self._logger,
             enable_progress_bar=False,
             deterministic=self._deterministic_trainer,
             strategy=strategy,
             precision=self._precision,
+            gradient_clip_val=self._gradient_clip_val,
+            gradient_clip_algorithm=self._gradient_clip_algorithm,
         )
         trainer.fit(learner)
         self._num_epochs_trained = trainer.current_epoch

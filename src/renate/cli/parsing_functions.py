@@ -234,7 +234,8 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
         "max_epochs": {
             "type": int,
             "default": defaults.MAX_EPOCHS,
-            "help": f"Number of epochs trained at most. Default: {defaults.MAX_EPOCHS}",
+            "help": "Maximum number of (finetuning-equivalent) epochs. "
+            f"Default: {defaults.MAX_EPOCHS}",
             "argument_group": OPTIONAL_ARGS_GROUP,
         },
         "task_id": {
@@ -313,6 +314,19 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
             f"{defaults.DETERMINISTIC_TRAINER}.",
             "argument_group": OPTIONAL_ARGS_GROUP,
             "true_type": bool,
+        },
+        "gradient_clip_val": {
+            "type": lambda x: None if x == "None" else x,
+            "default": defaults.GRADIENT_CLIP_VAL,
+            "help": "The value at which to clip gradients. None disables clipping.",
+            "argument_group": OPTIONAL_ARGS_GROUP,
+        },
+        "gradient_clip_algorithm": {
+            "type": lambda x: None if x == "None" else x,
+            "default": defaults.GRADIENT_CLIP_ALGORITHM,
+            "help": "Gradient clipping algorithm to use.",
+            "choices": ["norm", "value", None],
+            "argument_group": OPTIONAL_ARGS_GROUP,
         },
         "prepare_data": {
             "type": str,
@@ -710,6 +724,19 @@ def _add_avalanche_lwf_learner_arguments(arguments: Dict[str, Dict[str, Any]]) -
     )
 
 
+def _add_avalanche_icarl_learner_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+    """A helper function that adds iCarl arguments."""
+    arguments.update(
+        {
+            "memory_size": {
+                "type": int,
+                "default": defaults.MEMORY_SIZE,
+                "help": f"Number of exemplars being stored. Default: {defaults.MEMORY_SIZE}.",
+            }
+        },
+    )
+
+
 def get_function_kwargs(args: argparse.Namespace, function_args: Dict[str, Any]) -> Dict[str, Any]:
     """Returns the kwargs for a function with defined arguments based on provided values.
 
@@ -757,6 +784,15 @@ def get_transforms_kwargs(
                 )
             )
     return transforms
+
+
+def get_metrics_fn_kwargs(
+    config_module, config_space: Dict[str, Any], cast_arguments: Optional[bool] = False
+) -> Dict[str, Any]:
+    """Returns the kwargs for a ``metrics_fn`` with defined arguments based on config_space."""
+    return _get_function_kwargs_helper(
+        config_module, config_space, "metrics_fn", [], cast_arguments
+    )
 
 
 def _get_function_kwargs_helper(
@@ -918,5 +954,5 @@ parse_by_updater = {
     "Avalanche-ER": _add_experience_replay_arguments,
     "Avalanche-EWC": _add_avalanche_ewc_learner_arguments,
     "Avalanche-LwF": _add_avalanche_lwf_learner_arguments,
-    "Avalanche-iCaRL": _add_experience_replay_arguments,
+    "Avalanche-iCaRL": _add_avalanche_icarl_learner_arguments,
 }

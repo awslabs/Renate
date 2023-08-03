@@ -6,7 +6,7 @@ import torchvision
 from torch.utils.data import TensorDataset
 
 from renate.utils import pytorch
-from renate.utils.pytorch import randomly_split_data
+from renate.utils.pytorch import cat_nested_tensors, get_length_nested_tensors, randomly_split_data
 
 
 @pytest.mark.parametrize("model", [torchvision.models.resnet18(pretrained=True)])
@@ -61,3 +61,44 @@ def test_random_splitting_sample_split_with_same_random_seed():
     for i in range(5):
         assert torch.equal(d_1_split_1[i][0], d_2_split_1[i][0])
         assert torch.equal(d_1_split_2[i][0], d_2_split_2[i][0])
+
+
+def test_get_length_nested_tensors():
+    expected_batch_size = 10
+    t = torch.zeros(expected_batch_size)
+    assert get_length_nested_tensors(t) == expected_batch_size
+    tuple_tensor = (t, t)
+    assert get_length_nested_tensors(tuple_tensor) == expected_batch_size
+    dict_tensor = {"k1": t, "k2": t}
+    assert get_length_nested_tensors(dict_tensor) == expected_batch_size
+
+
+def test_cat_nested_tensors():
+    tensor_dim = 2
+    first_dim_ones = 8
+    zeros = torch.zeros((2, tensor_dim))
+    ones = torch.ones((first_dim_ones, tensor_dim))
+    result = cat_nested_tensors((zeros, ones))
+    assert get_length_nested_tensors(result) == 10
+    assert result.mean() == 0.8
+    tuple_tensor = (zeros, ones)
+    result = cat_nested_tensors((tuple_tensor, tuple_tensor))
+    assert get_length_nested_tensors(result) == 4
+    assert result[0].sum() == 0
+    assert result[1].sum() == 2 * first_dim_ones * tensor_dim
+    dict_tensor = {"zeros": zeros, "ones": ones}
+    result = cat_nested_tensors((dict_tensor, dict_tensor))
+    assert get_length_nested_tensors(result) == 4
+    assert result["zeros"].sum() == 0
+    assert result["ones"].sum() == 2 * first_dim_ones * tensor_dim
+
+
+def test_cat_nested_tensors_wrong_shape():
+    tensor1 = torch.zeros((2, 2))
+    tensor2 = torch.zeros((2, 3))
+    with pytest.raises(RuntimeError, match=r"Sizes of tensors must match except in dimension 0.*"):
+        cat_nested_tensors((tensor1, tensor2))
+    with pytest.raises(RuntimeError, match=r"Sizes of tensors must match except in dimension 0.*"):
+        cat_nested_tensors(((tensor1, tensor1), (tensor1, tensor2)))
+    with pytest.raises(RuntimeError, match=r"Sizes of tensors must match except in dimension 0.*"):
+        cat_nested_tensors(({"k1": tensor1, "k2": tensor1}, {"k1": tensor1, "k2": tensor2}))

@@ -3,7 +3,8 @@
 import pytest
 from torch.nn import Linear
 from torch.optim import SGD
-from torch.optim.lr_scheduler import StepLR
+from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
+from torchmetrics.classification import MulticlassAccuracy
 from torchvision.transforms import Compose, Normalize
 
 from renate.benchmark import experiment_config
@@ -21,14 +22,13 @@ from renate.benchmark.experiment_config import (
     train_transform,
 )
 from renate.benchmark.scenarios import (
-    BenchmarkScenario,
     ClassIncrementalScenario,
+    DataIncrementalScenario,
     FeatureSortingScenario,
     HueShiftScenario,
     IIDScenario,
     ImageRotationScenario,
     PermutationScenario,
-    WildTimeScenario,
 )
 from renate.models.prediction_strategies import ICaRLClassificationStrategy
 
@@ -42,7 +42,7 @@ def test_model_fn(model_name, expected_model_class):
         model_state_url=None,
         model_name=model_name,
         num_inputs=1 if model_name == "MultiLayerPerceptron" else None,
-        num_outputs=1 if model_name in ["MultiLayerPerceptron", "HuggingFaceTransformer"] else None,
+        num_outputs=2,
         num_hidden_layers=1 if model_name == "MultiLayerPerceptron" else None,
         hidden_size=1 if model_name == "MultiLayerPerceptron" else None,
         pretrained_model_name="distilbert-base-uncased"
@@ -66,6 +66,7 @@ def test_model_fn(model_name, expected_model_class):
 def test_model_fn_automatic_input_channel_detection_resnet(dataset_name, expected_in_channels):
     """Tests if ResNet architectures input channels are correctly adapted to the dataset."""
     model = model_fn(
+        num_outputs=10,
         model_state_url=None,
         model_name="ResNet18",
         dataset_name=dataset_name,
@@ -76,7 +77,7 @@ def test_model_fn_automatic_input_channel_detection_resnet(dataset_name, expecte
 def test_model_fn_fails_for_unknown_model():
     unknown_model_name = "UNKNOWN_MODEL_NAME"
     with pytest.raises(ValueError, match=f"Unknown model `{unknown_model_name}`"):
-        model_fn(model_name=unknown_model_name)
+        model_fn(num_outputs=10, model_name=unknown_model_name)
 
 
 @pytest.mark.parametrize(
@@ -174,7 +175,6 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             ImageRotationScenario,
             3,
         ),
-        ("BenchmarkScenario", "CLEAR10", {"num_tasks": 5}, BenchmarkScenario, 5),
         (
             "PermutationScenario",
             "MNIST",
@@ -200,31 +200,40 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             HueShiftScenario,
             3,
         ),
+        ("DataIncrementalScenario", "CLEAR10", {"num_tasks": 5}, DataIncrementalScenario, 5),
         (
-            "WildTimeScenario",
+            "DataIncrementalScenario",
             "arxiv",
             {"num_tasks": 3, "pretrained_model_name": "distilbert-base-uncased"},
-            WildTimeScenario,
+            DataIncrementalScenario,
             3,
         ),
         (
-            "WildTimeScenario",
+            "DataIncrementalScenario",
             "fmow",
             {},
-            WildTimeScenario,
+            DataIncrementalScenario,
             16,
+        ),
+        (
+            "DataIncrementalScenario",
+            "DomainNet",
+            {"data_ids": ["clipart", "infograph"]},
+            DataIncrementalScenario,
+            2,
         ),
     ),
     ids=[
         "class_incremental",
         "iid",
         "rotation",
-        "benchmark",
         "permutation",
         "feature_sorting",
         "hue_shift",
+        "time_with_clear",
         "wild_time_text_with_tokenizer",
         "wild_time_image_all_tasks",
+        "domainnet",
     ],
 )
 @pytest.mark.parametrize("val_size", (0, 0.5), ids=["no_val", "val"])
@@ -254,30 +263,35 @@ def test_data_module_fn(
         assert scenario._randomness == scenario_kwargs["randomness"]
     elif expected_scenario_class == HueShiftScenario:
         assert scenario._randomness == scenario_kwargs["randomness"]
-    elif expected_scenario_class == WildTimeScenario:
+    elif expected_scenario_class == DataIncrementalScenario:
         if "pretrained_model_name" in scenario_kwargs:
             assert scenario._data_module._tokenizer is not None
-        else:
+        elif dataset_name not in ["CLEAR10", "CLEAR100", "DomainNet"]:
             assert scenario._data_module._tokenizer is None
     assert scenario._num_tasks == expected_num_tasks
 
 
 @pytest.mark.parametrize(
-    "dataset_name,use_transforms",
+    "dataset_name,use_transforms,test_compose",
     (
-        ("MNIST", False),
-        ("FashionMNIST", False),
-        ("CIFAR10", True),
-        ("CIFAR100", True),
-        ("hfd-rotten_tomatoes", False),
+        ("MNIST", False, False),
+        ("FashionMNIST", False, False),
+        ("CIFAR10", True, False),
+        ("CIFAR100", True, False),
+        ("CLEAR10", True, True),
+        ("DomainNet", True, True),
+        ("hfd-rotten_tomatoes", False, False),
     ),
 )
-def test_transforms(dataset_name, use_transforms):
+def test_transforms(dataset_name, use_transforms, test_compose):
     train_preprocessing = train_transform(dataset_name)
     test_preprocessing = experiment_config.test_transform(dataset_name)
     if use_transforms:
         assert isinstance(train_preprocessing, Compose)
-        assert isinstance(test_preprocessing, Normalize)
+        if test_compose:
+            assert isinstance(test_preprocessing, Compose)
+        else:
+            assert isinstance(test_preprocessing, Normalize)
     else:
         assert train_preprocessing is None
         assert test_preprocessing is None
@@ -292,10 +306,17 @@ def test_transforms_fails_for_unknown_dataset():
 
 @pytest.mark.parametrize(
     "learning_rate_scheduler,expected_lr_class,expected_interval",
-    (("StepLR", StepLR, "epoch"), (None, None, "epoch")),
+    (
+        ("StepLR", StepLR, "epoch"),
+        ("CosineAnnealingLR", CosineAnnealingLR, "step"),
+        (None, None, "epoch"),
+    ),
 )
 def test_lr_scheduler_fn(learning_rate_scheduler, expected_lr_class, expected_interval):
-    scheduler, interval = lr_scheduler_fn(learning_rate_scheduler)
+    scheduler, interval = lr_scheduler_fn(
+        learning_rate_scheduler=learning_rate_scheduler,
+        learning_rate_scheduler_interval=expected_interval,
+    )
     assert interval == expected_interval
     if learning_rate_scheduler is None:
         assert scheduler is None
@@ -340,4 +361,5 @@ def test_loss_fn_returns_correct_reduction_type():
 
 
 def test_metrics_fn_contains_accuracy():
-    assert "accuracy" in metrics_fn()
+    assert isinstance(metrics_fn(num_outputs=2)["accuracy"], MulticlassAccuracy)
+    assert isinstance(metrics_fn(num_outputs=10)["accuracy"], MulticlassAccuracy)

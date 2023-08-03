@@ -1,18 +1,20 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+import json
 import os
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
+import pandas as pd
 import torch
 import torchvision
-from torch.utils.data import Dataset
 from torchvision import transforms
 
 from renate import defaults
+from renate.benchmark.datasets.base import DataIncrementalDataModule
 from renate.data import ImageDataset
 from renate.data.data_module import RenateDataModule
-from renate.utils.file import download_and_unzip_file, download_folder_from_s3
+from renate.utils.file import download_and_unzip_file, download_file, download_folder_from_s3
 
 
 class TinyImageNetDataModule(RenateDataModule):
@@ -127,8 +129,6 @@ class TorchVisionDataModule(RenateDataModule):
         },
         "FashionMNIST": {"mean": 0.2860405969887955, "std": 0.3530242445149223},
         "MNIST": {"mean": 0.1306604762738429, "std": 0.30810780385646264},
-        "CLEAR10": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
-        "CLEAR100": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
     }
 
     def __init__(
@@ -189,22 +189,26 @@ def to_long(x):
     return torch.tensor(x, dtype=torch.long)
 
 
-class CLEARDataModule(RenateDataModule):
+class CLEARDataModule(DataIncrementalDataModule):
     """Datamodule that process CLEAR datasets: CLEAR10 and CLEAR100.
 
     Source: https://clear-benchmark.github.io/.
 
     Args:
         data_path: the path to the folder containing the dataset files.
+        time_step: Loads CLEAR dataset for this time step. Options: CLEAR10: [0,9], CLEAR100: [0,10]
         src_bucket: the name of the s3 bucket. If not provided, downloads the data from original
             source.
         src_object_name: the folder path in the s3 bucket.
         dataset_name: CLEAR dataset name, options are clear10 and clear100.
-        chunk_id: Used to define the CLEAR dataset splits. There are 10 splits in total with ids
-            from 0 to 9.
         val_size: Fraction of the training data to be used for validation.
         seed: Seed used to fix random number generation.
     """
+
+    dataset_stats = {
+        "CLEAR10": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
+        "CLEAR100": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
+    }
 
     md5s = {
         "clear10-train-image-only.zip": "5171f720810d60b471c308dee595d430",
@@ -216,15 +220,16 @@ class CLEARDataModule(RenateDataModule):
     def __init__(
         self,
         data_path: Union[Path, str],
+        time_step: int = 0,
         src_bucket: Optional[str] = None,
         src_object_name: Optional[str] = None,
         dataset_name: str = "CLEAR10",
-        chunk_id: int = 0,
         val_size: float = defaults.VALIDATION_SIZE,
         seed: int = defaults.SEED,
     ):
         super(CLEARDataModule, self).__init__(
             data_path=data_path,
+            data_id=time_step,
             src_bucket=src_bucket,
             src_object_name=src_object_name,
             val_size=val_size,
@@ -232,12 +237,7 @@ class CLEARDataModule(RenateDataModule):
         )
         self._dataset_name = dataset_name.lower()
         assert self._dataset_name in ["clear10", "clear100"]
-        self._verify_chunk_id(chunk_id)
-        self._chunk_id = chunk_id
-
-    def _verify_chunk_id(self, chunk_id: int) -> None:
-        """Verify that the chunk_id is valid."""
-        assert 0 <= chunk_id <= 9
+        assert 0 <= self.data_id <= (9 if self._dataset_name == "clear10" else 10)
 
     def prepare_data(self) -> None:
         """Download CLEAR dataset with given dataset_name (clear10/clear100)."""
@@ -257,44 +257,147 @@ class CLEARDataModule(RenateDataModule):
 
     def setup(self) -> None:
         """Set up train, test and val datasets."""
-        X, y = self._get_filepaths_and_labels(train=True, chunk_id=self._chunk_id)
+        time_step = self.data_id + 1 if self._dataset_name == "clear10" else self.data_id
+        X, y = self._get_filepaths_and_labels(train=True, time_step=time_step)
         train_data = ImageDataset(X, y, transform=transforms.ToTensor())
         self._train_data, self._val_data = self._split_train_val_data(train_data)
-        self._test_data = []
-        for i in range(10):
-            X, y = self._get_filepaths_and_labels(train=False, chunk_id=i)
-            self._test_data.append(ImageDataset(X, y, transform=transforms.ToTensor()))
+        X, y = self._get_filepaths_and_labels(train=False, time_step=time_step)
+        self._test_data = ImageDataset(X, y, transform=transforms.ToTensor())
 
-    # TODO: This is a work-around to make CLEAR available as a data module (single test dataset)
-    # as well as a scenario (all test datasets) via BenchmarkScenario. Clean up!
-    def test_data(self) -> Dataset:
-        return self._test_data[self._chunk_id]
-
-    def _get_filepaths_and_labels(self, train: bool, chunk_id: int) -> Tuple[List[str], List[int]]:
+    def _get_filepaths_and_labels(self, train: bool, time_step: int) -> Tuple[List[str], List[int]]:
         """Extracts all the filepaths and labels for a given chunk id and split."""
-        data = []
-        labels = []
         path = os.path.join(self._data_path, self._dataset_name)
-        path = os.path.join(path, "train_image_only" if train else "test")
 
         # Load the class names and create a class mapping. The class names are in `class_names.txt`
-        label_encoding = {}
-        with open(os.path.join(path, "class_names.txt"), "r") as f:
-            class_names = [
-                line.strip() for line in f.readlines()
-            ]  # if line.strip() != "BACKGROUND"]
+        with open(os.path.join(path, "train_image_only", "class_names.txt"), "r") as f:
+            class_names = [line.strip() for line in f.readlines()]
             label_encoding = {name: cnt for cnt, name in enumerate(class_names)}
 
-        path = os.path.join(path, "labeled_images", str(chunk_id + 1))
+        path = os.path.join(path, "train_image_only" if train else "test")
+        with open(os.path.join(path, "labeled_metadata.json"), "r") as f:
+            metadata = json.load(f)
 
-        # Go through all the subfolders in the path folder and search for all .jpg images
-        for root, _, files in os.walk(path):
-            for file in files:
-                if file.endswith(".jpg"):
-                    folder = root.split("/")[-1]
-                    # if folder == "BACKGROUND":
-                    #     continues
-                    data.append(os.path.join(root, file))
-                    labels.append(label_encoding[folder])
+        image_paths = []
+        labels = []
+        for class_name, class_metadata_file in metadata[str(time_step)].items():
+            label = label_encoding[class_name]
+            with open(os.path.join(path, class_metadata_file), "r") as f:
+                class_metadata = json.load(f)
+            for image_metadata in class_metadata.values():
+                image_paths.append(os.path.join(path, image_metadata["IMG_PATH"]))
+                labels.append(label)
 
+        return image_paths, labels
+
+
+class DomainNetDataModule(DataIncrementalDataModule):
+    """Datamodule that provides access to DomainNet.
+
+    Args:
+        data_path: the path to the folder containing the dataset files.
+        src_bucket: the name of the s3 bucket. If not provided, downloads the data from original
+            source.
+        src_object_name: the folder path in the s3 bucket.
+        domain: DomainNet domain name, options are clipart, infograph, painting, quickdraw, real,
+            and sketch.
+        val_size: Fraction of the training data to be used for validation.
+        seed: Seed used to fix random number generation.
+    """
+
+    md5s = {
+        "clipart.zip": "cd0d8f2d77a4e181449b78ed62bccf1e",
+        "clipart_train.txt": "b4349693a7f9c05c53955725c47ed6cb",
+        "clipart_test.txt": "f5ddbcfd657a3acf9d0f7da10db22565",
+        "infograph.zip": "720380b86f9e6ab4805bb38b6bd135f8",
+        "infograph_train.txt": "379b50054f4ac2018dca4f89421b92d9",
+        "infograph_test.txt": "779626b50869edffe8ea6941c3755c71",
+        "painting.zip": "1ae32cdb4f98fe7ab5eb0a351768abfd",
+        "painting_train.txt": "b732ced3939ac8efdd8c0a889dca56cc",
+        "painting_test.txt": "c1a828fdfe216fb109f1c0083a252c6f",
+        "quickdraw.zip": "bdc1b6f09f277da1a263389efe0c7a66",
+        "quickdraw_train.txt": "b4349693a7f9c05c53955725c47ed6cb",
+        "quickdraw_test.txt": "f5ddbcfd657a3acf9d0f7da10db22565",
+        "real.zip": "dcc47055e8935767784b7162e7c7cca6",
+        "real_train.txt": "8ebf02c2075fadd564705f0dc7cd6291",
+        "real_test.txt": "6098816791c3ebed543c71ffa11b9054",
+        "sketch.zip": "658d8009644040ff7ce30bb2e820850f",
+        "sketch_train.txt": "1233bd18aa9a8a200bf4cecf1c34ef3e",
+        "sketch_test.txt": "d8a222e4672cfd585298aa14d02ea441",
+    }
+
+    domains = ["clipart", "infograph", "painting", "quickdraw", "real", "sketch"]
+    dataset_stats = {
+        "clipart": {"mean": [0.7395, 0.7195, 0.6865], "std": [0.3621, 0.3640, 0.3873]},
+        "infograph": {"mean": [0.6882, 0.6962, 0.6644], "std": [0.3328, 0.3095, 0.3277]},
+        "painting": {"mean": [0.5737, 0.5456, 0.5067], "std": [0.3079, 0.3003, 0.3161]},
+        "quickdraw": {"mean": [0.9525, 0.9525, 0.9525], "std": [0.2127, 0.2127, 0.2127]},
+        "real": {"mean": [0.6066, 0.5897, 0.5564], "std": [0.3335, 0.3270, 0.3485]},
+        "sketch": {"mean": [0.8325, 0.8269, 0.8180], "std": [0.2723, 0.2747, 0.2801]},
+        "all": {"mean": [0.7491, 0.7391, 0.7179], "std": [0.3318, 0.3314, 0.3512]},
+    }
+
+    def __init__(
+        self,
+        data_path: Union[Path, str],
+        src_bucket: Optional[str] = None,
+        src_object_name: Optional[str] = None,
+        domain: str = "clipart",
+        val_size: float = defaults.VALIDATION_SIZE,
+        seed: int = defaults.SEED,
+    ):
+        super().__init__(
+            data_path=data_path,
+            data_id=domain.lower(),
+            src_bucket=src_bucket,
+            src_object_name=src_object_name,
+            val_size=val_size,
+            seed=seed,
+        )
+        assert self.data_id in self.domains, f"Unknown domain {self.data_id}."
+
+    def prepare_data(self) -> None:
+        """Download DomainNet dataset for given domain."""
+        file_name = f"{self.data_id}.zip"
+        url = "http://csr.bu.edu/ftp/visda/2019/multi-source/"
+        if self.data_id in ["clipart", "painting"]:
+            url = os.path.join(url, "groundtruth")
+        if not self._verify_file(file_name):
+            download_and_unzip_file(
+                self.data_id,
+                self._data_path,
+                self._src_bucket,
+                self._src_object_name,
+                url,
+                file_name,
+            )
+        for file_name in [f"{self.data_id}_train.txt", f"{self.data_id}_test.txt"]:
+            if not self._verify_file(file_name):
+                download_file(
+                    self.data_id,
+                    self._data_path,
+                    self._src_bucket,
+                    self._src_object_name,
+                    "http://csr.bu.edu/ftp/visda/2019/multi-source/domainnet/txt/",
+                    file_name,
+                )
+
+    def setup(self) -> None:
+        """Set up train, test and val datasets."""
+        X, y = self._get_filepaths_and_labels("train")
+        train_data = ImageDataset(X, y, transform=transforms.ToTensor())
+        self._train_data, self._val_data = self._split_train_val_data(train_data)
+        X, y = self._get_filepaths_and_labels("test")
+        self._test_data = ImageDataset(X, y, transform=transforms.ToTensor())
+
+    def _get_filepaths_and_labels(self, split: str) -> Tuple[List[str], List[int]]:
+        """Extracts all the filepaths and labels for a given split."""
+        path = os.path.join(self._data_path, self.data_id)
+        df = pd.read_csv(
+            os.path.join(path, f"{self.data_id}_{split}.txt"),
+            sep=" ",
+            header=None,
+            names=["path", "label"],
+        )
+        data = list(df.path.apply(lambda x: os.path.join(path, x)))
+        labels = list(df.label)
         return data, labels
