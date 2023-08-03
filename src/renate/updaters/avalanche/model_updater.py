@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import logging
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 import torch
 import torchmetrics
@@ -274,6 +274,8 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Union[int, float, None] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     ):
         learner_kwargs = {
             "batch_size": batch_size,
@@ -306,6 +308,8 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
             devices=devices,
             strategy=strategy,
             precision=precision,
+            gradient_clip_val=gradient_clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
         )
 
 
@@ -338,6 +342,8 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Union[int, float, None] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     ):
         learner_kwargs = {
             "batch_size": batch_size,
@@ -369,6 +375,8 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
             devices=devices,
             strategy=strategy,
             precision=precision,
+            gradient_clip_val=gradient_clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
         )
 
 
@@ -402,6 +410,8 @@ class LearningWithoutForgettingModelUpdater(AvalancheModelUpdater):
         strategy: Optional[str] = defaults.DISTRIBUTED_STRATEGY,
         precision: str = defaults.PRECISION,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Union[int, float, None] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     ):
         learner_kwargs = {
             "batch_size": batch_size,
@@ -434,6 +444,8 @@ class LearningWithoutForgettingModelUpdater(AvalancheModelUpdater):
             devices=devices,
             strategy=strategy,
             precision=precision,
+            gradient_clip_val=gradient_clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
         )
 
 
@@ -466,6 +478,8 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Union[int, float, None] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
@@ -497,4 +511,6 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
             devices=devices,
             strategy=strategy,
             precision=precision,
+            gradient_clip_val=gradient_clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
         )
