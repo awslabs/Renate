@@ -225,7 +225,7 @@ class MultiTextDataModule(DataIncrementalDataModule):
         super().__init__(data_path=data_path, data_id=data_id, val_size=val_size, seed=seed)
 
         if train_size > 115000:
-            raise ValueError("The `train_size` must be smaller than 115000")
+            raise ValueError("The `train_size` must be smaller than or equal to 115000")
         self._train_size = train_size
 
         if test_size > 7600:
