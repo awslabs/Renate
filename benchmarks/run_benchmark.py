@@ -89,11 +89,7 @@ if __name__ == "__main__":
     for seed in range(args.num_repetitions):
         if args.backend == "local":
             experiment_outputs_url = (
-                Path("tmp")
-                / "renate-integration-tests"
-                / args.test_suite
-                / args.job_name
-                / str(seed)
+                Path("tmp") / "renate-integration-tests" / args.job_name / str(seed)
             )
             role = None
             working_directory = str(Path("tmp") / "renate_working_dir")
