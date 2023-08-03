@@ -259,7 +259,6 @@ class MultiTextDataModule(DataIncrementalDataModule):
 
         def get_split(split_name):
             dataset = load_dataset(self.data_id, split=split_name, cache_dir=self._data_path)
-
             new_features = dataset.features.copy()
             # the following is hack needed because the output space of the new dataset is
             # the union of the output spaces of the single datasets
