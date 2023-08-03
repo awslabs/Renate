@@ -4,7 +4,7 @@ import abc
 import logging
 import warnings
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 import torch
 import torchmetrics
@@ -238,6 +238,9 @@ class ModelUpdater(abc.ABC):
             The value is passed to the trainer as described
             `here <https://pytorch-lightning.readthedocs.io/en/stable/common\
             /trainer.html#reproducibility>`_.
+        gradient_clip_val: Gradient clipping value used in PyTorch Lightning. Defaults to not
+            clipping by using a value of None. 
+        gradient_clip_algorithm: Method to clip gradients (norm or value) used in PyTorch Lightning.
     """
 
     def __init__(
@@ -268,6 +271,8 @@ class ModelUpdater(abc.ABC):
         strategy: Optional[str] = defaults.DISTRIBUTED_STRATEGY,
         precision: str = defaults.PRECISION,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Union[int, float, None] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     ):
         self._learner_kwargs = learner_kwargs or {}
         self._learner_kwargs["loss_fn"] = loss_fn
@@ -336,6 +341,8 @@ class ModelUpdater(abc.ABC):
         self._logger = logger
         self._num_epochs_trained = 0
         self._deterministic_trainer = deterministic_trainer
+        self._gradient_clip_algorithm = gradient_clip_algorithm
+        self._gradient_clip_val = gradient_clip_val
 
     @abc.abstractmethod
     def update(
@@ -424,6 +431,8 @@ class ModelUpdater(abc.ABC):
             deterministic=self._deterministic_trainer,
             strategy=strategy,
             precision=self._precision,
+            gradient_clip_val=self._gradient_clip_val,
+            gradient_clip_algorithm=self._gradient_clip_algorithm,
         )
         trainer.fit(learner)
         self._num_epochs_trained = trainer.current_epoch

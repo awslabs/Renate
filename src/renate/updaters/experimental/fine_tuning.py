@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 from functools import partial
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Union
 
 import torch
 import torchmetrics
@@ -42,6 +42,8 @@ class FineTuningModelUpdater(SingleTrainingLoopUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Union[int, float, None] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     ):
         learner_kwargs = {
             "batch_size": batch_size,
@@ -73,4 +75,6 @@ class FineTuningModelUpdater(SingleTrainingLoopUpdater):
             deterministic_trainer=deterministic_trainer,
             strategy=strategy,
             precision=precision,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            gradient_clip_val=gradient_clip_val,
         )

@@ -169,6 +169,8 @@ class ModelUpdaterCLI:
             devices=args.devices,
             precision=args.precision,
             strategy=args.strategy,
+            gradient_clip_algorithm=args.gradient_clip_algorithm,
+            gradient_clip_val=args.gradient_clip_val,
             early_stopping_enabled=args.early_stopping,
             deterministic_trainer=args.deterministic_trainer,
             loss_fn=loss_fn,

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import abc
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 import torchmetrics
@@ -552,6 +552,8 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Union[int, float, None] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
@@ -590,6 +592,8 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             strategy=strategy,
             precision=precision,
             deterministic_trainer=deterministic_trainer,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            gradient_clip_val=gradient_clip_val,
         )
 
 
@@ -629,6 +633,8 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Union[int, float, None] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
@@ -668,6 +674,8 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             strategy=strategy,
             precision=precision,
             deterministic_trainer=deterministic_trainer,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            gradient_clip_val=gradient_clip_val,
         )
 
 
@@ -708,6 +716,8 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Union[int, float, None] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
@@ -748,6 +758,8 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
             strategy=strategy,
             precision=precision,
             deterministic_trainer=deterministic_trainer,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            gradient_clip_val=gradient_clip_val,
         )
 
 
@@ -791,6 +803,8 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Union[int, float, None] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
@@ -834,6 +848,8 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             strategy=strategy,
             precision=precision,
             deterministic_trainer=deterministic_trainer,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            gradient_clip_val=gradient_clip_val,
         )
 
 
@@ -883,6 +899,8 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Union[int, float, None] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
@@ -932,4 +950,6 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             strategy=strategy,
             precision=precision,
             deterministic_trainer=deterministic_trainer,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            gradient_clip_val=gradient_clip_val,
         )

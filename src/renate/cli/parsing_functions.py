@@ -311,6 +311,19 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
             "argument_group": OPTIONAL_ARGS_GROUP,
             "true_type": bool,
         },
+        "gradient_clip_val": {
+            "type": float,
+            "default": defaults.GRADIENT_CLIP_VAL,
+            "help": "The value at which to clip gradients. None disables clipping.",
+            "argument_group": OPTIONAL_ARGS_GROUP,
+        },
+        "gradient_clip_algorithm": {
+            "type": str,
+            "default": defaults.GRADIENT_CLIP_ALGORITHM,
+            "help": "Gradient clipping algorithm to use.",
+            "choices": ["norm", "value"],
+            "argument_group": OPTIONAL_ARGS_GROUP,
+        },
         "prepare_data": {
             "type": str,
             "default": "True",

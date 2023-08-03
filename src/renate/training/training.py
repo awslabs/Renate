@@ -93,6 +93,8 @@ def run_training_job(
     strategy: str = defaults.DISTRIBUTED_STRATEGY,
     precision: str = defaults.PRECISION,
     deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+    gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+    gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     job_name: str = defaults.JOB_NAME,
 ) -> Optional[Tuner]:
     """Starts updating the model including hyperparameter optimization.
@@ -179,6 +181,8 @@ def run_training_job(
             devices=devices,
             strategy=strategy,
             precision=precision,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            gradient_clip_val=gradient_clip_val,
             deterministic_trainer=deterministic_trainer,
         )
     submit_remote_job(
@@ -213,6 +217,8 @@ def run_training_job(
         strategy=strategy,
         precision=precision,
         deterministic_trainer=deterministic_trainer,
+        gradient_clip_algorithm=gradient_clip_algorithm,
+        gradient_clip_val=gradient_clip_val,
         job_name=job_name,
     )
 
@@ -527,6 +533,8 @@ def _execute_training_and_tuning_job_locally(
     deterministic_trainer: bool,
     strategy: str,
     precision: str,
+    gradient_clip_algorithm: Optional[str],
+    gradient_clip_val: Optional[float],
 ):
     """Executes the training job locally.
 
@@ -547,6 +555,8 @@ def _execute_training_and_tuning_job_locally(
     config_space["strategy"] = strategy
     config_space["precision"] = precision
     config_space["deterministic_trainer"] = deterministic_trainer
+    config_space["gradient_clip_val"] = gradient_clip_val
+    config_space["gradient_clip_algorithm"] = gradient_clip_algorithm
     if input_state_url is not None:
         config_space["input_state_url"] = input_state_url
 
