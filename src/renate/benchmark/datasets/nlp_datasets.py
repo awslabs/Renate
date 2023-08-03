@@ -241,6 +241,7 @@ class MultiTextDataModule(DataIncrementalDataModule):
             )
 
         self.data_id = data_id
+        self._rnd_gen = torch.Generator().manual_seed(self._seed)
 
     def prepare_data(self) -> None:
         """Download dataset."""
@@ -273,7 +274,9 @@ class MultiTextDataModule(DataIncrementalDataModule):
             else:
                 set_size = self._test_size
 
-            rnd_idx = torch.randint(low=0, high=len(dataset), size=(set_size,)).tolist()
+            rnd_idx = torch.randint(
+                low=0, high=len(dataset), size=(set_size,), generator=self._rnd_gen
+            ).tolist()
             dataset = dataset.select(indices=rnd_idx)
 
             dataset = dataset.map(
