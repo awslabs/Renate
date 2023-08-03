@@ -10,6 +10,7 @@ import transformers
 from datasets import load_dataset
 
 from renate import defaults
+from renate.benchmark.datasets.base import DataIncrementalDataModule
 from renate.data.data_module import RenateDataModule
 
 
@@ -138,7 +139,7 @@ class HuggingFaceTextDataModule(RenateDataModule):
             self._train_data, self._val_data = self._split_train_val_data(self._train_data)
 
 
-class MultiTextDataModule(RenateDataModule):
+class MultiTextDataModule(DataIncrementalDataModule):
     """
     Inspired by the dataset used in "Episodic Memory in Lifelong Language Learning"
     by d’Autume et al. this is a collection of five different datasets that we call domains:
@@ -159,29 +160,69 @@ class MultiTextDataModule(RenateDataModule):
            See https://huggingface.co/docs/tokenizers/
            for more information on tokenizers. If `None` is passed, this defaults to
            `{"padding": "max_length", max_length: 128, truncation: True}`.
-        domain: The dataset to be used
+        data_id: The dataset to be used
         train_size: The size of the data stored as training set, must be smaller than 115000.
         test_size: The size of the data stored as test set, must be smaller than 7600.
         val_size: Fraction of the training data to be used for validation.
         seed: Seed used to fix random number generation.
     """
 
+    _multi_dataset_info = {
+        "ag_news": ["text", "label"],
+        "yelp_review_full": ["text", "label"],
+        "dbpedia_14": ["content", "label"],
+        "yahoo_answers_topics": ["question_title", "topic"],
+    }
+    _labels_map = {
+        "ag_news0": 0,
+        "ag_news1": 1,
+        "ag_news2": 2,
+        "ag_news3": 3,
+        "yelp_review_full0": 4,
+        "yelp_review_full1": 5,
+        "yelp_review_full2": 6,
+        "yelp_review_full3": 7,
+        "yelp_review_full4": 8,
+        "dbpedia_140": 9,
+        "dbpedia_141": 10,
+        "dbpedia_142": 11,
+        "dbpedia_143": 12,
+        "dbpedia_144": 13,
+        "dbpedia_145": 14,
+        "dbpedia_146": 15,
+        "dbpedia_147": 16,
+        "dbpedia_148": 17,
+        "dbpedia_149": 18,
+        "dbpedia_1410": 19,
+        "dbpedia_1411": 20,
+        "dbpedia_1412": 21,
+        "dbpedia_1413": 22,
+        "yahoo_answers_topics0": 23,
+        "yahoo_answers_topics1": 24,
+        "yahoo_answers_topics2": 25,
+        "yahoo_answers_topics3": 26,
+        "yahoo_answers_topics4": 27,
+        "yahoo_answers_topics5": 28,
+        "yahoo_answers_topics6": 29,
+        "yahoo_answers_topics7": 30,
+        "yahoo_answers_topics8": 31,
+        "yahoo_answers_topics9": 32,
+    }
+
+    domains = _multi_dataset_info.keys()
+
     def __init__(
         self,
         data_path: str,
         tokenizer: transformers.PreTrainedTokenizer,
-        domain: str,
+        data_id: str,
         tokenizer_kwargs: Optional[Dict[str, Any]] = None,
-        train_size: int = defaults.TRAIN_SET_SIZE,
-        test_size: int = defaults.TEST_SET_SIZE,
+        train_size: int = defaults.SMALL_TRAIN_SET_SIZE,
+        test_size: int = defaults.SMALL_TEST_SET_SIZE,
         val_size: float = defaults.VALIDATION_SIZE,
         seed: int = defaults.SEED,
     ):
-        super().__init__(
-            data_path=data_path,
-            val_size=val_size,
-            seed=seed,
-        )
+        super().__init__(data_path=data_path, data_id=data_id, val_size=val_size, seed=seed)
 
         if train_size > 115000:
             raise ValueError("The `train_size` must be smaller than 115000")
@@ -193,62 +234,19 @@ class MultiTextDataModule(RenateDataModule):
 
         self._tokenizer = tokenizer
         self._tokenizer_kwargs = tokenizer_kwargs or defaults.TOKENIZER_KWARGS
-        self._multi_dataset_info = {
-            "ag_news": ["text", "label"],
-            "yelp_review_full": ["text", "label"],
-            "dbpedia_14": ["content", "label"],
-            "yahoo_answers_topics": ["question_title", "topic"],
-        }
-        self._labels_map = {
-            "ag_news0": 0,
-            "ag_news1": 1,
-            "ag_news2": 2,
-            "ag_news3": 3,
-            "yelp_review_full0": 4,
-            "yelp_review_full1": 5,
-            "yelp_review_full2": 6,
-            "yelp_review_full3": 7,
-            "yelp_review_full4": 8,
-            "dbpedia_140": 9,
-            "dbpedia_141": 10,
-            "dbpedia_142": 11,
-            "dbpedia_143": 12,
-            "dbpedia_144": 13,
-            "dbpedia_145": 14,
-            "dbpedia_146": 15,
-            "dbpedia_147": 16,
-            "dbpedia_148": 17,
-            "dbpedia_149": 18,
-            "dbpedia_1410": 19,
-            "dbpedia_1411": 20,
-            "dbpedia_1412": 21,
-            "dbpedia_1413": 22,
-            "yahoo_answers_topics0": 23,
-            "yahoo_answers_topics1": 24,
-            "yahoo_answers_topics2": 25,
-            "yahoo_answers_topics3": 26,
-            "yahoo_answers_topics4": 27,
-            "yahoo_answers_topics5": 28,
-            "yahoo_answers_topics6": 29,
-            "yahoo_answers_topics7": 30,
-            "yahoo_answers_topics8": 31,
-            "yahoo_answers_topics9": 32,
-        }
 
-        if domain not in self._multi_dataset_info.keys():
+        if data_id not in self.domains:
             raise ValueError(
-                f"The selected domain is not available. Select one among "
-                f"{self._multi_dataset_info.keys()}"
+                f"The selected domain is not available. Select one among " f"{self.domains}"
             )
 
-        self.domain = domain
-        self.available_domains = self._multi_dataset_info.keys()
+        self.data_id = data_id
 
     def prepare_data(self) -> None:
         """Download dataset."""
 
         for split in ["train", "test"] + (["validation"] if self._val_size > 0 else []):
-            load_dataset(self.domain, split=split, cache_dir=self._data_path)
+            load_dataset(self.data_id, split=split, cache_dir=self._data_path)
 
     def setup(self) -> None:
         """Set up train, test and val datasets."""
@@ -256,16 +254,16 @@ class MultiTextDataModule(RenateDataModule):
         def preprocess(example, text_field_name, label_field_name):
             return {
                 **self._tokenizer(example[text_field_name], **self._tokenizer_kwargs),
-                "label": self._labels_map[f"{self.domain}{example[label_field_name]}"],
+                "label": self._labels_map[f"{self.data_id}{example[label_field_name]}"],
             }
 
         def get_split(split_name):
-            dataset = load_dataset(self.domain, split=split_name, cache_dir=self._data_path)
+            dataset = load_dataset(self.data_id, split=split_name, cache_dir=self._data_path)
 
             new_features = dataset.features.copy()
             # the following is hack needed because the output space of the new dataset is
             # the union of the output spaces of the single datasets
-            new_features[self._multi_dataset_info[self.domain][1]] = datasets.ClassLabel(
+            new_features[self._multi_dataset_info[self.data_id][1]] = datasets.ClassLabel(
                 num_classes=33
             )
 
@@ -282,8 +280,8 @@ class MultiTextDataModule(RenateDataModule):
             dataset = dataset.map(
                 functools.partial(
                     preprocess,
-                    text_field_name=self._multi_dataset_info[self.domain][0],
-                    label_field_name=self._multi_dataset_info[self.domain][1],
+                    text_field_name=self._multi_dataset_info[self.data_id][0],
+                    label_field_name=self._multi_dataset_info[self.data_id][1],
                 ),
                 remove_columns=list(dataset.features),
                 num_proc=4,

@@ -104,8 +104,8 @@ MEMORY_SIZE = 32
 
 # Benchmark datasets/models
 TOKENIZER_KWARGS = {"padding": "max_length", "max_length": 128, "truncation": True}
-TRAIN_SET_SIZE = 1000
-TEST_SET_SIZE = 1000
+SMALL_TRAIN_SET_SIZE = 1000
+SMALL_TEST_SET_SIZE = 1000
 
 
 def scheduler(config_space: Dict[str, Any], mode: str, metric: str):
