@@ -408,7 +408,7 @@ def _add_replay_learner_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
             },
             "batch_memory_frac": {
                 "type": float,
-                "default": defaults.BATCH_SIZE,
+                "default": defaults.BATCH_MEMORY_FRAC,
                 "help": "Fraction of the batch populated with memory data. Default: "
                 f"{defaults.BATCH_MEMORY_FRAC}.",
             },
