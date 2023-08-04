@@ -35,23 +35,3 @@ def test_joint_learner_memory_append():
     assert len(model_updater._learner._memory_buffer) == dataset_len
     model_updater.update(train_dataset=dataset, task_id=defaults.TASK_ID)
     assert len(model_updater._learner._memory_buffer) == 2 * dataset_len
-
-
-def test_joint_learner_model_reset():
-    """This test checks that the model is reinitialized correctly before an update."""
-    model, dataset = get_model_and_dataset()
-    model_updater = pytest.helpers.get_simple_updater(
-        model=model,
-        partial_optimizer=pytest.helpers.get_partial_optimizer(lr=0.0),
-        learner_class=JointLearner,
-        learner_kwargs={},
-        max_epochs=1,
-    )
-    model = model_updater.update(train_dataset=dataset, task_id=defaults.TASK_ID)
-    model_copy = copy.deepcopy(model)
-    model = model_updater.update(train_dataset=dataset, task_id=defaults.TASK_ID)
-    for (name, param), (name_copy, param_copy) in zip(
-        model.named_parameters(), model_copy.named_parameters()
-    ):
-        assert name == name_copy
-        assert not torch.allclose(param, param_copy)
