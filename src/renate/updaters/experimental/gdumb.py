@@ -17,7 +17,6 @@ from renate.models import RenateModule
 from renate.types import NestedTensors
 from renate.updaters.learner import ReplayLearner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
-from renate.utils.pytorch import reinitialize_model_parameters
 
 
 class GDumbLearner(ReplayLearner):
@@ -79,7 +78,6 @@ class GDumbLearner(ReplayLearner):
             task_id=task_id,
         )
         self._memory_buffer.update(train_dataset)
-        reinitialize_model_parameters(self._model)
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(

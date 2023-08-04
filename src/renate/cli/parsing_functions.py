@@ -454,11 +454,22 @@ def _add_base_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) 
 def _add_gdumb_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds GDumb arguments."""
     _add_replay_learner_arguments(arguments)
+    _add_joint_arguments(arguments)
 
 
 def _add_joint_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds Joint Learner arguments."""
-    pass
+    arguments.update(
+        {
+            "reset": {
+                "type": str,
+                "default": "True",
+                "choices": ["True", "False"],
+                "help": "Resets the model before the update. Default: True",
+                "true_type": bool,
+            },
+        }
+    )
 
 
 def _add_finetuning_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
