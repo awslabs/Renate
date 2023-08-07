@@ -1,0 +1,6 @@
+{
+  "scenario": "arxiv-16updates.json",
+  "model": "bert.json",
+  "updater": "fine-tuning-arxiv.json",
+  "dataset": "arxiv.json"
+}
