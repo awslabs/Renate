@@ -50,7 +50,7 @@ class VisionTransformer(RenateBenchmarkingModule):
     arXiv preprint arXiv:2010.11929 (2020).
 
     Args:
-        pretrained_name: A string that denotes which pretrained model from the HF hub to use.
+        pretrained_model_name_or_path: A string that denotes which pretrained model from the HF hub to use.
             If provided, it overrides other arguments about architecture.
         image_size: Size of the input image.
         patch_size: Size of the patches.

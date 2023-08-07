@@ -10,6 +10,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR, _LRScheduler
 from torchmetrics.classification import MulticlassAccuracy
 from torchvision.transforms import transforms
 from transformers import AutoTokenizer
+from wild_time_data import default_transform
 from wild_time_data.datasets import FMoW
 
 from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
@@ -319,7 +320,7 @@ def _get_normalize_transform(dataset_name):
 def train_transform(dataset_name: str) -> Optional[Callable]:
     """Returns a transform function to be used in the training."""
     if dataset_name == "fmow":
-        return FMoW.default_transform
+        return default_transform(dataset_name)
     if dataset_name in [
         "MNIST",
         "FashionMNIST",
