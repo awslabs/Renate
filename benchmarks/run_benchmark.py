@@ -91,10 +91,10 @@ if __name__ == "__main__":
             experiment_outputs_url = (
                 Path("tmp") / "renate-integration-tests" / args.job_name / str(seed)
             )
-            role = None
             working_directory = str(Path("tmp") / "renate_working_dir")
         else:
             AWS_ACCOUNT_ID = boto3.client("sts").get_caller_identity().get("Account")
+
             experiment_outputs_url = (
                 f"s3://sagemaker-us-west-2-{AWS_ACCOUNT_ID}/renate-domain-incremental/"
                 f"{args.job_name}/{seed}"
