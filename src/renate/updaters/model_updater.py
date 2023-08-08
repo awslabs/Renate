@@ -273,10 +273,12 @@ class ModelUpdater(abc.ABC):
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
         gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
         gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ):
         self._learner_kwargs = learner_kwargs or {}
         self._learner_kwargs["loss_fn"] = loss_fn
         self._learner_kwargs["optimizer"] = optimizer
+        self._learner_kwargs["mask_unused_classes"] = mask_unused_classes
         if learning_rate_scheduler is not None:
             self._learner_kwargs["learning_rate_scheduler"] = learning_rate_scheduler
             self._learner_kwargs[

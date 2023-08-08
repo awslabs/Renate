@@ -123,6 +123,9 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
         seed: Optional[int] = None,
         early_stopping_enabled=False,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ):
         learner_kwargs = {"memory_size": memory_size, "batch_size": batch_size, "seed": seed}
         super().__init__(
@@ -152,6 +155,9 @@ class RepeatedDistillationModelUpdater(ModelUpdater):
             early_stopping_enabled=early_stopping_enabled,
             logged_metrics=logged_metrics,
             deterministic_trainer=deterministic_trainer,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            gradient_clip_val=gradient_clip_val,
+            mask_unused_classes=mask_unused_classes,
         )
 
     def update(

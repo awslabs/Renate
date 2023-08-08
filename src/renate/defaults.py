@@ -45,6 +45,7 @@ PYTHON_VERSION = "py39"
 FRAMEWORK_VERSION = "1.13.1"
 
 TASK_ID = "default_task"
+MASK_UNUSED_CLASSES = False
 WORKING_DIRECTORY = "renate_working_dir"
 LOGGER = TensorBoardLogger
 LOGGER_KWARGS = {

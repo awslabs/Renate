@@ -3,6 +3,7 @@
 import abc
 import os
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+import warnings
 
 import torch
 import torch.nn as nn
@@ -20,7 +21,7 @@ from renate.data.datasets import _TransformedDataset
 from renate.memory import DataBuffer, InfiniteBuffer, ReservoirBuffer
 from renate.models import RenateModule
 from renate.types import NestedTensors
-from renate.utils.pytorch import get_generator
+from renate.utils.pytorch import get_generator, complementary_indices, unique_classes
 
 
 class RenateLightningModule(LightningModule, abc.ABC):
@@ -56,6 +57,7 @@ class RenateLightningModule(LightningModule, abc.ABC):
         batch_size: int = defaults.BATCH_SIZE,
         logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None,
         seed: int = defaults.SEED,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ) -> None:
         super().__init__()
         self._model = model
@@ -65,6 +67,12 @@ class RenateLightningModule(LightningModule, abc.ABC):
         self._learning_rate_scheduler_interval = learning_rate_scheduler_interval
         self._batch_size = batch_size
         self._seed = seed
+        self._mask_unused_classes = mask_unused_classes
+        warnings.warn(f"Mask is {self._mask_unused_classes}")
+
+        self._class_mask = None
+        self._classes_in_current_task = None
+
         self._task_id: str = defaults.TASK_ID
         self._train_dataset: Optional[Dataset] = None
         self._val_dataset: Optional[Dataset] = None
@@ -75,6 +83,22 @@ class RenateLightningModule(LightningModule, abc.ABC):
         self._create_metrics_collections(logged_metrics)
         self._rng = get_generator(self._seed)
         self.save_hyperparameters(ignore=self._ignored_hyperparameters())
+
+    def _possibly_populate_class_mask(self):
+        # Compute which logits to mask, if the model has a _num_outputs attribute. This is possible
+        # when self._model is a RenateBenchmarkingModule. It its not, the first forward prop will
+        # populate the _class_mask.
+        import warnings, sys
+
+        self._classes_in_current_task = unique_classes(self._train_dataset)
+        warnings.warn(f"{self._classes_in_current_task}")
+        if hasattr(self._model, "_num_outputs"):
+            self._class_mask = torch.LongTensor(
+                complementary_indices(self._model._num_outputs, self._classes_in_current_task),
+                device=self._device,
+            )
+        warnings.warn(f"{self._class_mask}")
+        sys.exit(0)
 
     def _ignored_hyperparameters(self):
         """Hyperparameters to be ignored in the ``save_hyperparameters`` call."""
@@ -149,6 +173,8 @@ class RenateLightningModule(LightningModule, abc.ABC):
         self._val_collate_fn = val_dataset_collate_fn
         self._task_id = task_id
         self._model.add_task_params(task_id=self._task_id)
+        if self._mask_unused_classes:
+            self._possibly_populate_class_mask()
 
     def train_dataloader(self) -> DataLoader:
         """Returns the dataloader for training the model."""
@@ -192,6 +218,15 @@ class RenateLightningModule(LightningModule, abc.ABC):
         """PyTorch Lightning function to return the training loss."""
         inputs, targets = self.training_step_unpack_batch(batch)
         outputs = self(inputs)
+        if self._mask_unused_classes:
+            if self._class_mask is None:
+                # Now is the time to repopulate the class_mask
+                self._class_mask = torch.LongTensor(
+                    complementary_indices(outputs.size(1), self._classes_in_current_task),
+                    device=self._device,
+                )
+            # fill the logits with -inf
+            outputs.index_fill_(1, self._class_mask, -float("inf"))
         intermediate_representation = self._model.get_intermediate_representation()
         self._model.reset_intermediate_representation_cache()
         loss = self._loss_fn(outputs, targets).mean()
@@ -327,6 +362,7 @@ class Learner(RenateLightningModule, abc.ABC):
         test_target_transform: Optional[Callable] = None,
         logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None,
         seed: int = defaults.SEED,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ) -> None:
         super().__init__(
             model=model,
@@ -337,6 +373,7 @@ class Learner(RenateLightningModule, abc.ABC):
             batch_size=batch_size,
             logged_metrics=logged_metrics,
             seed=seed,
+            mask_unused_classes=mask_unused_classes,
         )
         self._train_transform = train_transform
         self._train_target_transform = train_target_transform
