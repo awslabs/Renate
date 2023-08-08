@@ -68,7 +68,6 @@ class RenateLightningModule(LightningModule, abc.ABC):
         self._batch_size = batch_size
         self._seed = seed
         self._mask_unused_classes = mask_unused_classes
-        warnings.warn(f"Mask is {self._mask_unused_classes}")
 
         self._class_mask = None
         self._classes_in_current_task = None
@@ -88,8 +87,6 @@ class RenateLightningModule(LightningModule, abc.ABC):
         # Compute which logits to mask, if the model has a _num_outputs attribute. This is possible
         # when self._model is a RenateBenchmarkingModule. It its not, the first forward prop will
         # populate the _class_mask.
-        import warnings, sys
-
         self._classes_in_current_task = unique_classes(self._train_dataset)
         warnings.warn(f"{self._classes_in_current_task}")
         if hasattr(self._model, "_num_outputs"):
@@ -97,8 +94,6 @@ class RenateLightningModule(LightningModule, abc.ABC):
                 complementary_indices(self._model._num_outputs, self._classes_in_current_task),
                 device=self._device,
             )
-        warnings.warn(f"{self._class_mask}")
-        sys.exit(0)
 
     def _ignored_hyperparameters(self):
         """Hyperparameters to be ignored in the ``save_hyperparameters`` call."""
