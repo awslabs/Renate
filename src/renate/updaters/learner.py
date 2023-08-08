@@ -218,10 +218,10 @@ class RenateLightningModule(LightningModule, abc.ABC):
                 # Now is the time to repopulate the class_mask
                 self._class_mask = torch.LongTensor(
                     complementary_indices(outputs.size(1), self._classes_in_current_task),
-                    device=self._device,
+                    device=outputs.device,
                 )
             # fill the logits with -inf
-            outputs.index_fill_(1, self._class_mask, -float("inf"))
+            outputs.index_fill_(1, self._class_mask.to(outputs.device), -float("inf"))
         intermediate_representation = self._model.get_intermediate_representation()
         self._model.reset_intermediate_representation_cache()
         loss = self._loss_fn(outputs, targets).mean()
