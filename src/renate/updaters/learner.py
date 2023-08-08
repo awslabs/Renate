@@ -370,6 +370,9 @@ class Learner(RenateLightningModule, abc.ABC):
         val_buffer_dir = os.path.join(output_state_dir, "val_memory_buffer")
         os.makedirs(val_buffer_dir, exist_ok=True)
         self._val_memory_buffer.save(val_buffer_dir)
+        learner_checkpoint = torch.load(defaults.learner_state_file(output_state_dir))
+        learner_checkpoint["state_dict"] = {}
+        torch.save(learner_checkpoint, defaults.learner_state_file(output_state_dir))
 
     def load(self, input_state_dir: str) -> None:
         self._val_memory_buffer.load(os.path.join(input_state_dir, "val_memory_buffer"))

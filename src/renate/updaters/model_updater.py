@@ -142,12 +142,12 @@ class RenateModelCheckpoint(ModelCheckpoint):
 
         # Finalize model update.
         pl_module.on_model_update_end()
+        # Overwrite checkpoint.
+        self._save_checkpoint(trainer, str(learner_state_path))
         # Save permanently.
         if trainer.is_global_zero:
-            # Save the buffer only on rank zero.
+            # Save Learner only on rank zero.
             pl_module.save(self._output_state_folder)
-        # Overwrite checkpoint.
-        self._save_checkpoint(trainer, learner_state_path)
 
     def teardown(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
         """
@@ -382,6 +382,7 @@ class ModelUpdater(abc.ABC):
             self._learner_state_file,
             model=self._model,
             logged_metrics=self._logged_metrics,
+            strict=False,
             **self._transforms_kwargs,
             **learner_kwargs,
         )
