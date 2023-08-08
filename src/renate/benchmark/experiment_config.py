@@ -5,11 +5,13 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 import wild_time_data
-from torch.optim import Optimizer
+from torch.optim import AdamW, Optimizer
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR, _LRScheduler
 from torchmetrics.classification import MulticlassAccuracy
 from torchvision.transforms import transforms
 from transformers import AutoTokenizer
+from wild_time_data import default_transform
+from wild_time_data.datasets import FMoW
 
 from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
 from renate.benchmark.datasets.vision_datasets import (
@@ -319,6 +321,8 @@ def _get_normalize_transform(dataset_name):
 
 def train_transform(dataset_name: str) -> Optional[Callable]:
     """Returns a transform function to be used in the training."""
+    if dataset_name == "fmow":
+        return default_transform(dataset_name)
     if dataset_name in [
         "MNIST",
         "FashionMNIST",
@@ -335,6 +339,7 @@ def train_transform(dataset_name: str) -> Optional[Callable]:
     if dataset_name in ["CLEAR10", "CLEAR100", "DomainNet"]:
         return transforms.Compose(
             [
+                transforms.ToTensor(),
                 transforms.Resize(
                     224, interpolation=transforms.InterpolationMode.BILINEAR, antialias=True
                 ),
@@ -347,6 +352,8 @@ def train_transform(dataset_name: str) -> Optional[Callable]:
 
 def test_transform(dataset_name: str) -> Optional[Callable]:
     """Returns a transform function to be used for validation or testing."""
+    if dataset_name == "fmow":
+        return FMoW.default_transform
     if dataset_name in [
         "MNIST",
         "FashionMNIST",
@@ -357,6 +364,7 @@ def test_transform(dataset_name: str) -> Optional[Callable]:
     if dataset_name in ["CLEAR10", "CLEAR100", "DomainNet"]:
         return transforms.Compose(
             [
+                transforms.ToTensor(),
                 transforms.Resize(
                     224, interpolation=transforms.InterpolationMode.BILINEAR, antialias=True
                 ),
@@ -400,3 +408,13 @@ def lr_scheduler_fn(
 
 def metrics_fn(num_outputs: int) -> Dict:
     return {"accuracy": MulticlassAccuracy(num_classes=num_outputs, average="micro")}
+
+
+def optimizer_fn(
+    optimizer: str,
+    learning_rate: float,
+    weight_decay: float,
+    momentum: float = 0.0,  # TODO: fix problem that occurs when removing this
+) -> Callable:
+    if optimizer == "AdamW":
+        return partial(AdamW, lr=learning_rate, weight_decay=weight_decay)

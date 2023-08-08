@@ -5,6 +5,6 @@
   "dataset": "fashionmnist.json",
   "backend": "local",
   "job_name": "class-incremental-mlp-gdumb",
-  "expected_accuracy_linux": [[0.8364999890327454, 0.8634999990463257]],
-  "expected_accuracy_darwin": [[0.8364999890327454, 0.8634999990463257]]
+  "expected_accuracy_linux": [[0.43050000071525574, 0.8069999814033508]],
+  "expected_accuracy_darwin": [[0.43050000071525574, 0.8069999814033508]]
 }

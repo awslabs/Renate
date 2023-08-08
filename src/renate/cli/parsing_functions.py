@@ -49,7 +49,7 @@ def get_updater_and_learner_kwargs(
     """Returns the model updater class and the keyword arguments for the learner."""
     if args.updater.startswith("Avalanche-") and find_spec("avalanche", None) is None:
         raise ImportError("Avalanche is not installed. Please run `pip install Renate[avalanche]`.")
-    learner_args = ["batch_size", "seed"]
+    learner_args = ["batch_size", "seed", "mask_unused_classes"]
     base_er_args = learner_args + [
         "loss_weight",
         "ema_memory_update_gamma",
@@ -341,6 +341,15 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
             "help": "Location for checkpoints.",
             "argument_group": DO_NOT_CHANGE_GROUP,
         },
+        "mask_unused_classes": {
+            "default": str(defaults.MASK_UNUSED_CLASSES),
+            "type": str,
+            "choices": ["True", "False"],
+            "help": "Whether to use a class mask to kill the unused logits for class incremental"
+            "learning methods. ",
+            "argument_group": OPTIONAL_ARGS_GROUP,
+            "true_type": bool,
+        },
     }
 
 
@@ -472,11 +481,22 @@ def _add_l2p_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
 def _add_gdumb_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds GDumb arguments."""
     _add_replay_learner_arguments(arguments)
+    _add_joint_arguments(arguments)
 
 
 def _add_joint_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds Joint Learner arguments."""
-    pass
+    arguments.update(
+        {
+            "reset": {
+                "type": str,
+                "default": "True",
+                "choices": ["True", "False"],
+                "help": "Resets the model before the update. Default: True",
+                "true_type": bool,
+            },
+        }
+    )
 
 
 def _add_finetuning_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:

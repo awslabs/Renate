@@ -152,6 +152,7 @@ def execute_experiment_job(
     strategy: str = defaults.DISTRIBUTED_STRATEGY,
     precision: str = defaults.PRECISION,
     save_state: bool = defaults.SAVE_BENCHMARK_STATE,
+    mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
 ) -> None:
     """Executes the experiment job.
 
@@ -220,6 +221,7 @@ def execute_experiment_job(
             save_state=save_state,
             gradient_clip_val=gradient_clip_val,
             gradient_clip_algorithm=gradient_clip_algorithm,
+            mask_unused_classes=mask_unused_classes,
         )
     _execute_experiment_job_remotely(
         job_name=job_name,
@@ -250,6 +252,7 @@ def execute_experiment_job(
         strategy=strategy,
         precision=precision,
         save_state=save_state,
+        mask_unused_classes=mask_unused_classes,
     )
 
 
@@ -275,6 +278,7 @@ def _execute_experiment_job_locally(
     save_state: bool,
     gradient_clip_val: Optional[float],
     gradient_clip_algorithm: Optional[str],
+    mask_unused_classes: bool,
 ) -> None:
     """Runs an experiment, combining hyperparameter tuning and model for multiple updates.
 
@@ -369,6 +373,7 @@ def _execute_experiment_job_locally(
             deterministic_trainer=deterministic_trainer,
             gradient_clip_algorithm=gradient_clip_algorithm,
             gradient_clip_val=gradient_clip_val,
+            mask_unused_classes=mask_unused_classes,
         )
         move_to_uri(output_state_url, input_state_url)
         if save_state:

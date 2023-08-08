@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import pytest
 from torch.nn import Linear
-from torch.optim import SGD
+from torch.optim import AdamW, SGD
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
 from torchmetrics.classification import MulticlassAccuracy
 from torchvision.transforms import Compose, Normalize
@@ -19,6 +19,7 @@ from renate.benchmark.experiment_config import (
     metrics_fn,
     model_fn,
     models,
+    optimizer_fn,
     train_transform,
 )
 from renate.benchmark.scenarios import (
@@ -281,6 +282,7 @@ def test_data_module_fn(
         ("CLEAR10", True, True),
         ("DomainNet", True, True),
         ("hfd-rotten_tomatoes", False, False),
+        ("fmow", True, True),
     ),
 )
 def test_transforms(dataset_name, use_transforms, test_compose):
@@ -363,3 +365,17 @@ def test_loss_fn_returns_correct_reduction_type():
 def test_metrics_fn_contains_accuracy():
     assert isinstance(metrics_fn(num_outputs=2)["accuracy"], MulticlassAccuracy)
     assert isinstance(metrics_fn(num_outputs=10)["accuracy"], MulticlassAccuracy)
+
+
+def test_optimizer_fn():
+    expected_learning_rate = 0.12
+    partial_optimizer = optimizer_fn(
+        optimizer="AdamW", learning_rate=expected_learning_rate, weight_decay=0.1
+    )
+    optimizer: AdamW = partial_optimizer(Linear(10, 10).parameters())
+    assert isinstance(optimizer, AdamW)
+    assert optimizer.defaults["lr"] == expected_learning_rate
+
+
+def test_optimizer_fn_unknown_optimizer():
+    assert optimizer_fn(optimizer="UNKNOWN_OPTIMIZER", learning_rate=0.1, weight_decay=1) is None

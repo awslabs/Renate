@@ -68,10 +68,10 @@ class TinyImageNetDataModule(RenateDataModule):
     def setup(self) -> None:
         """Set up train, test and val datasets."""
         X, y = self._preprocess_tiny_imagenet(train=True)
-        train_data = ImageDataset(X, y, transform=transforms.ToTensor())
+        train_data = ImageDataset(X, y)
         self._train_data, self._val_data = self._split_train_val_data(train_data)
         X, y = self._preprocess_tiny_imagenet(train=False)
-        self._test_data = ImageDataset(X, y, transform=transforms.ToTensor())
+        self._test_data = ImageDataset(X, y)
 
     def _preprocess_tiny_imagenet(self, train: bool) -> Tuple[List[str], List[int]]:
         """A helper function to preprocess the TinyImageNet dataset."""
@@ -259,10 +259,10 @@ class CLEARDataModule(DataIncrementalDataModule):
         """Set up train, test and val datasets."""
         time_step = self.data_id + 1 if self._dataset_name == "clear10" else self.data_id
         X, y = self._get_filepaths_and_labels(train=True, time_step=time_step)
-        train_data = ImageDataset(X, y, transform=transforms.ToTensor())
+        train_data = ImageDataset(X, y)
         self._train_data, self._val_data = self._split_train_val_data(train_data)
         X, y = self._get_filepaths_and_labels(train=False, time_step=time_step)
-        self._test_data = ImageDataset(X, y, transform=transforms.ToTensor())
+        self._test_data = ImageDataset(X, y)
 
     def _get_filepaths_and_labels(self, train: bool, time_step: int) -> Tuple[List[str], List[int]]:
         """Extracts all the filepaths and labels for a given chunk id and split."""
@@ -384,10 +384,10 @@ class DomainNetDataModule(DataIncrementalDataModule):
     def setup(self) -> None:
         """Set up train, test and val datasets."""
         X, y = self._get_filepaths_and_labels("train")
-        train_data = ImageDataset(X, y, transform=transforms.ToTensor())
+        train_data = ImageDataset(X, y)
         self._train_data, self._val_data = self._split_train_val_data(train_data)
         X, y = self._get_filepaths_and_labels("test")
-        self._test_data = ImageDataset(X, y, transform=transforms.ToTensor())
+        self._test_data = ImageDataset(X, y)
 
     def _get_filepaths_and_labels(self, split: str) -> Tuple[List[str], List[int]]:
         """Extracts all the filepaths and labels for a given split."""

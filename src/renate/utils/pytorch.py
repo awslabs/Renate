@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import logging
 import math
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Set, Tuple, Union
 
 import torch
 from torch.utils.data import Dataset, random_split
@@ -125,3 +125,28 @@ def cat_nested_tensors(
             key: cat_nested_tensors([nested_tensor[key] for nested_tensor in nested_tensors], axis)
             for key in nested_tensors[0]
         }
+
+
+def unique_classes(dataset: torch.utils.data.Dataset) -> Set[int]:
+    """Compute the unique class ids in a dataset.
+
+    Args:
+        dataset: Instance of Torch dataset.
+    """
+
+    unique_values = set()
+    for ind in range(len(dataset)):
+        label = dataset[ind][-1]
+        unique_values.add(label.item())
+
+    return unique_values
+
+
+def complementary_indices(num_outputs: int, valid_classes: Set[int]) -> List[int]:
+    """Compute the asymmetric difference between the two arguments
+
+    Args:
+        num_outputs: An integer of total number of classes the model can output.
+        valid_classes: A set of integers of valid classes.
+    """
+    return list(set(range(num_outputs)) - valid_classes)

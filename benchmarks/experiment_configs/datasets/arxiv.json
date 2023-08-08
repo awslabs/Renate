@@ -1,0 +1,6 @@
+{
+  "dataset_name": "arxiv",
+  "src_bucket": "my_bucket",
+  "src_object_name": "dataset/wildtime/arxiv.hdf5",
+  "num_outputs": 172
+}

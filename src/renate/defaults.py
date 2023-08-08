@@ -45,6 +45,7 @@ PYTHON_VERSION = "py39"
 FRAMEWORK_VERSION = "1.13.1"
 
 TASK_ID = "default_task"
+MASK_UNUSED_CLASSES = False
 WORKING_DIRECTORY = "renate_working_dir"
 LOGGER = TensorBoardLogger
 LOGGER_KWARGS = {
@@ -106,6 +107,8 @@ MEMORY_SIZE = 32
 
 # Benchmark datasets/models
 TOKENIZER_KWARGS = {"padding": "max_length", "max_length": 128, "truncation": True}
+SMALL_TRAIN_SET_SIZE = 1000
+SMALL_TEST_SET_SIZE = 1000
 
 # L2p
 PROMPT_SIM_LOSS_WEIGHT = 0.5

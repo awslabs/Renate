@@ -91,7 +91,6 @@ if __name__ == "__main__":
             experiment_outputs_url = (
                 Path("tmp") / "renate-integration-tests" / args.job_name / str(seed)
             )
-            role = None
             working_directory = str(Path("tmp") / "renate_working_dir")
         else:
             AWS_ACCOUNT_ID = boto3.client("sts").get_caller_identity().get("Account")
