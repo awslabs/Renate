@@ -8,7 +8,7 @@ from torchmetrics.classification import MulticlassAccuracy
 from torchvision.transforms import Compose, Normalize
 
 from renate.benchmark import experiment_config
-from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
+from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule, MultiTextDataModule
 from renate.benchmark.datasets.vision_datasets import CLEARDataModule, TorchVisionDataModule
 from renate.benchmark.experiment_config import (
     data_module_fn,
@@ -93,6 +93,7 @@ def test_model_fn_fails_for_unknown_model():
             "text",
             "label",
         ),
+        ("MultiText", MultiTextDataModule, "distilbert-base-uncased", None, None),
     ),
 )
 def test_get_data_module(
