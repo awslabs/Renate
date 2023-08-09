@@ -21,6 +21,7 @@ from renate.utils.pytorch import (
     cat_nested_tensors,
     complementary_indices,
     get_length_nested_tensors,
+    unique_classes,
 )
 
 
@@ -55,6 +56,8 @@ class OfflineExperienceReplayLearner(ReplayLearner):
             )
         self._loss_weight_new_data = loss_weight_new_data
         self._num_points_previous_tasks: int = 0
+        self._classes_in_memory_buffer = None
+        self._class_mask_memory_buffer = None
 
     def _create_metrics_collections(
         self, logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None
@@ -79,6 +82,8 @@ class OfflineExperienceReplayLearner(ReplayLearner):
             task_id=task_id,
         )
         self._num_points_current_task = len(train_dataset)
+        if self._mask_unused_classes:
+            self._classes_in_memory_buffer = unique_classes(self._memory_buffer)
 
     def train_dataloader(self) -> DataLoader:
         train_loader = super().train_dataloader()
@@ -120,13 +125,23 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         if self._mask_unused_classes:
             if self._class_mask is None:
                 # Now is the time to repopulate the class_mask
-                self._class_mask = torch.LongTensor(
+                self._class_mask = torch.tensor(
                     complementary_indices(outputs.size(1), self._classes_in_current_task),
                     device=outputs.device,
+                    dtype=torch.long,
+                )
+            if self._class_mask_memory_buffer is None:
+                self._class_mask_memory_buffer = torch.tensor(
+                    complementary_indices(outputs.size(1), self._classes_in_memory_buffer),
+                    device=outputs.device,
+                    dtype=torch.long,
                 )
             # fill the current task logits with -inf. Leave the memory outputs unchanged.
             outputs[:batch_size_current, ...].index_fill_(
                 1, self._class_mask.to(outputs.device), -float("inf")
+            )
+            outputs[batch_size_current:, ...].index_fill_(
+                1, self._class_mask_memory_buffer.to(outputs.device), -float("inf")
             )
         loss = self._loss_fn(outputs, targets)
         if "memory" in batch:
