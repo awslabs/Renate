@@ -627,7 +627,7 @@ def _execute_training_and_tuning_job_locally(
             + "\n\nLogs (stdout):\n\n{}".format("".join(backend.stdout(0)))
             + "\n\nLogs (stderr):\n\n{}".format("".join(backend.stderr(0)))
         )
-    print("".join(backend.stdout(0)))
+
     logger.info("All training is completed. Saving state...")
 
     _teardown_tuning_job(

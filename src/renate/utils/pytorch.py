@@ -133,10 +133,16 @@ def unique_classes(dataset: torch.utils.data.Dataset) -> Set[int]:
     Args:
         dataset: Instance of Torch dataset.
     """
+    from renate.memory.buffer import DataBuffer  # to avoid circular import
+
+    if isinstance(dataset, DataBuffer):
+        label_element = lambda elem: elem[0][1]
+    else:
+        label_element = lambda elem: elem[1]
 
     unique_values = set()
     for ind in range(len(dataset)):
-        label = dataset[ind][-1]
+        label = label_element(dataset[ind])
         unique_values.add(label.item())
 
     return unique_values
