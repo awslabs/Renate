@@ -144,7 +144,7 @@ class RenateModelCheckpoint(ModelCheckpoint):
         pl_module.on_model_update_end()
         # Save permanently.
         if trainer.is_global_zero:
-            # Save Learner only on rank zero.
+            # Save the buffer only on rank zero.
             pl_module.save(self._output_state_folder)
         # Overwrite checkpoint.
         self._save_checkpoint(trainer, str(learner_state_path))
