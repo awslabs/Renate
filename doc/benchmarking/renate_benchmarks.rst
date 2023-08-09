@@ -161,6 +161,10 @@ The following table contains the list of supported datasets.
       - Image Classification
       - 60k train, 10k test, 10 classes, image shape 28x28x1
       - Li Deng: The MNIST Database of Handwritten Digit Images for Machine Learning Research. IEEE Signal Processing Magazine. 2012.
+    * - MultiText
+      - Text Classification
+      - 115k train, 7.6k test, access to one of four datasets: ag_news, yelp_review_full, dbpedia_14, yahoo_answers_topics
+      - Please refer to `the official documentation <https://huggingface.co/datasets>`__.
     * - yearbook
       - Image Classification: gender identification in yearbook photos.
       - ~33k train, ~4k test, 2 classes, years 1930-2013, image shape 32x32x1
@@ -198,7 +202,7 @@ The first part contains all instances with classes 1 and 2, the second with clas
       - Settings
     * - :py:class:`~renate.benchmark.scenarios.DataIncrementalScenario`
       - Used in combination only with :py:class:`~renate.benchmark.datasets.base.DataIncrementalDataModule`,
-        e.g., Wild-Time datasets, CLEAR, or DomainNet.
+        e.g., Wild-Time datasets, CLEAR, MultiText, or DomainNet.
         Data is presented data by data, where the data could represent a domain or a time slice.
       - * :code:`num_tasks`: You can provide this argument if the different datasets are identified by
           ids 0 to `num_tasks`. This is the case for time-incremental datasets such as CLEAR or Wild-Time.

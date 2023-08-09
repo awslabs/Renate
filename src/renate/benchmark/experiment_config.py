@@ -13,7 +13,7 @@ from transformers import AutoTokenizer
 from wild_time_data import default_transform
 from wild_time_data.datasets import FMoW
 
-from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
+from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule, MultiTextDataModule
 from renate.benchmark.datasets.vision_datasets import (
     CLEARDataModule,
     DomainNetDataModule,
@@ -119,6 +119,9 @@ def get_data_module(
     input_column: Optional[str],
     target_column: Optional[str],
 ) -> RenateDataModule:
+    tokenizer = None
+    if pretrained_model_name is not None:
+        tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name)
     if dataset_name in TorchVisionDataModule.dataset_dict:
         return TorchVisionDataModule(
             data_path, dataset_name=dataset_name, val_size=val_size, seed=seed
@@ -135,7 +138,7 @@ def get_data_module(
             "seed": seed,
         }
         if pretrained_model_name is not None:
-            data_module_kwargs["tokenizer"] = AutoTokenizer.from_pretrained(pretrained_model_name)
+            data_module_kwargs["tokenizer"] = tokenizer
         return WildTimeDataModule(**data_module_kwargs)
     if dataset_name == "DomainNet":
         return DomainNetDataModule(
@@ -145,8 +148,15 @@ def get_data_module(
             val_size=val_size,
             seed=seed,
         )
+    if dataset_name == "MultiText":
+        return MultiTextDataModule(
+            data_path=data_path,
+            tokenizer=tokenizer,
+            data_id="ag_news",
+            val_size=val_size,
+            seed=seed,
+        )
     if dataset_name.startswith("hfd-"):
-        tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name)
         return HuggingFaceTextDataModule(
             data_path=data_path,
             dataset_name=dataset_name[4:],
@@ -324,6 +334,7 @@ def train_transform(dataset_name: str) -> Optional[Callable]:
     if dataset_name in [
         "MNIST",
         "FashionMNIST",
+        "MultiText",
     ] + wild_time_data.list_datasets() or dataset_name.startswith("hfd-"):
         return None
     if dataset_name in ["CIFAR10", "CIFAR100"]:
@@ -355,6 +366,7 @@ def test_transform(dataset_name: str) -> Optional[Callable]:
     if dataset_name in [
         "MNIST",
         "FashionMNIST",
+        "MultiText",
     ] + wild_time_data.list_datasets() or dataset_name.startswith("hfd-"):
         return None
     if dataset_name in ["CIFAR10", "CIFAR100"]:
