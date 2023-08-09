@@ -95,7 +95,6 @@ def run_training_job(
     deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
     gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
     gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
-    mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     job_name: str = defaults.JOB_NAME,
 ) -> Optional[Tuner]:
     """Starts updating the model including hyperparameter optimization.
@@ -145,6 +144,10 @@ def run_training_job(
         precision: Type of bit precision to use.
             `More details <https://lightning.ai/docs/pytorch/stable/common/precision_basic.html>`__
         deterministic_trainer: When true the Trainer adopts a deterministic behaviour also on GPU.
+        gradient_clip_val: The value at which to clip gradients. Passing None disables it.
+            `More details <https://lightning.ai/docs/pytorch/stable/common/trainer.html#init>`__
+        gradient_clip_algorithm: The gradient clipping algorithm to use. Can be norm or value.
+            `More details <https://lightning.ai/docs/pytorch/stable/common/trainer.html#init>`__
         job_name: Prefix for the name of the SageMaker training job.
     """
     assert (
@@ -185,7 +188,6 @@ def run_training_job(
             gradient_clip_algorithm=gradient_clip_algorithm,
             gradient_clip_val=gradient_clip_val,
             deterministic_trainer=deterministic_trainer,
-            mask_unused_classes=mask_unused_classes,
         )
     submit_remote_job(
         input_state_url=input_state_url,
@@ -221,7 +223,6 @@ def run_training_job(
         deterministic_trainer=deterministic_trainer,
         gradient_clip_algorithm=gradient_clip_algorithm,
         gradient_clip_val=gradient_clip_val,
-        mask_unused_classes=mask_unused_classes,
         job_name=job_name,
     )
 
@@ -538,7 +539,6 @@ def _execute_training_and_tuning_job_locally(
     precision: str,
     gradient_clip_algorithm: Optional[str],
     gradient_clip_val: Optional[float],
-    mask_unused_classes: bool,
 ):
     """Executes the training job locally.
 
@@ -561,7 +561,6 @@ def _execute_training_and_tuning_job_locally(
     config_space["deterministic_trainer"] = deterministic_trainer
     config_space["gradient_clip_val"] = gradient_clip_val
     config_space["gradient_clip_algorithm"] = gradient_clip_algorithm
-    config_space["mask_unused_classes"] = mask_unused_classes
     if input_state_url is not None:
         config_space["input_state_url"] = input_state_url
 
@@ -628,7 +627,7 @@ def _execute_training_and_tuning_job_locally(
             + "\n\nLogs (stdout):\n\n{}".format("".join(backend.stdout(0)))
             + "\n\nLogs (stderr):\n\n{}".format("".join(backend.stderr(0)))
         )
-
+    print("".join(backend.stdout(0)))
     logger.info("All training is completed. Saving state...")
 
     _teardown_tuning_job(

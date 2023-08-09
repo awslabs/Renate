@@ -3,7 +3,6 @@
 import abc
 import os
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
-import warnings
 
 import torch
 import torch.nn as nn
@@ -45,6 +44,8 @@ class RenateLightningModule(LightningModule, abc.ABC):
         batch_size: Training batch size.
         logged_metrics: Metrics logged additional to the default ones.
         seed: See :func:`renate.models.utils.get_generator`.
+        mask_unused_classes: Flag to use if logits corresponding to unused classes are to be killed.
+            Possibly useful for class incremental learning.
     """
 
     def __init__(
@@ -83,17 +84,10 @@ class RenateLightningModule(LightningModule, abc.ABC):
         self._rng = get_generator(self._seed)
         self.save_hyperparameters(ignore=self._ignored_hyperparameters())
 
-    def _possibly_populate_class_mask(self):
-        # Compute which logits to mask, if the model has a _num_outputs attribute. This is possible
-        # when self._model is a RenateBenchmarkingModule. It its not, the first forward prop will
-        # populate the _class_mask.
+    def _find_unique_classes_in_task(self):
+        # Compute which logits to mask, if the model has a _num_outputs attribute.
+        # The first forward prop will populate the _class_mask.
         self._classes_in_current_task = unique_classes(self._train_dataset)
-        warnings.warn(f"{self._classes_in_current_task}")
-        if hasattr(self._model, "_num_outputs"):
-            self._class_mask = torch.LongTensor(
-                complementary_indices(self._model._num_outputs, self._classes_in_current_task),
-                device=self._device,
-            )
 
     def _ignored_hyperparameters(self):
         """Hyperparameters to be ignored in the ``save_hyperparameters`` call."""
@@ -169,7 +163,7 @@ class RenateLightningModule(LightningModule, abc.ABC):
         self._task_id = task_id
         self._model.add_task_params(task_id=self._task_id)
         if self._mask_unused_classes:
-            self._possibly_populate_class_mask()
+            self._find_unique_classes_in_task()
 
     def train_dataloader(self) -> DataLoader:
         """Returns the dataloader for training the model."""

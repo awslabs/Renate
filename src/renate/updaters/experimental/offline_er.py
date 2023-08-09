@@ -17,7 +17,11 @@ from renate.models import RenateModule
 from renate.types import NestedTensors
 from renate.updaters.learner import ReplayLearner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
-from renate.utils.pytorch import cat_nested_tensors, get_length_nested_tensors
+from renate.utils.pytorch import (
+    cat_nested_tensors,
+    complementary_indices,
+    get_length_nested_tensors,
+)
 
 
 class OfflineExperienceReplayLearner(ReplayLearner):
@@ -113,6 +117,17 @@ class OfflineExperienceReplayLearner(ReplayLearner):
             inputs = cat_nested_tensors((inputs, inputs_mem), 0)
             targets = torch.cat((targets, targets_mem), 0)
         outputs = self(inputs)
+        if self._mask_unused_classes:
+            if self._class_mask is None:
+                # Now is the time to repopulate the class_mask
+                self._class_mask = torch.LongTensor(
+                    complementary_indices(outputs.size(1), self._classes_in_current_task),
+                    device=outputs.device,
+                )
+            # fill the current task logits with -inf. Leave the memory outputs unchanged.
+            outputs[:batch_size_current, ...].index_fill_(
+                1, self._class_mask.to(outputs.device), -float("inf")
+            )
         loss = self._loss_fn(outputs, targets)
         if "memory" in batch:
             loss_current = loss[:batch_size_current].mean()

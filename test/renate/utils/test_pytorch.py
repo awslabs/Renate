@@ -127,14 +127,14 @@ def test_complementary_indices(num_outputs, indices, expected_output):
 
 def test_unique_classes(tmpdir):
     class_groupings = np.arange(0, 100).reshape(10, 10).tolist()
-    data_module = TorchVisionDataModule(tmpdir, dataset_name="CIFAR100", val_size=0.0)
+    data_module = TorchVisionDataModule(tmpdir, dataset_name="CIFAR100", val_size=0.2)
     data_module.prepare_data()
     for chunk_id in range(len(class_groupings)):
         scenario = ClassIncrementalScenario(
             data_module=data_module, class_groupings=class_groupings, chunk_id=chunk_id
         )
         scenario.setup()
-        train_ds = scenario.train_data()
-        predicted_unique = unique_classes(train_ds)
+        ds = scenario.val_data()
+        predicted_unique = unique_classes(ds)
 
         assert predicted_unique == set(class_groupings[chunk_id])

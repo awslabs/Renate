@@ -324,6 +324,15 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
             "choices": ["norm", "value", None],
             "argument_group": OPTIONAL_ARGS_GROUP,
         },
+        "mask_unused_classes": {
+            "default": str(defaults.MASK_UNUSED_CLASSES),
+            "type": str,
+            "choices": ["True", "False"],
+            "help": "Whether to use a class mask to kill the unused logits. Useful possibly for "
+            "class incremental learning methods. ",
+            "argument_group": OPTIONAL_ARGS_GROUP,
+            "true_type": bool,
+        },
         "prepare_data": {
             "type": str,
             "default": "True",
@@ -336,15 +345,6 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
             "type": str,
             "help": "Location for checkpoints.",
             "argument_group": DO_NOT_CHANGE_GROUP,
-        },
-        "mask_unused_classes": {
-            "default": str(defaults.MASK_UNUSED_CLASSES),
-            "type": str,
-            "choices": ["True", "False"],
-            "help": "Whether to use a class mask to kill the unused logits for class incremental"
-            "learning methods. ",
-            "argument_group": OPTIONAL_ARGS_GROUP,
-            "true_type": bool,
         },
     }
 

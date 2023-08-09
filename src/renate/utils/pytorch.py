@@ -149,4 +149,4 @@ def complementary_indices(num_outputs: int, valid_classes: Set[int]) -> List[int
         num_outputs: An integer of total number of classes the model can output.
         valid_classes: A set of integers of valid classes.
     """
-    return list(set(range(num_outputs)) - valid_classes)
+    return [class_idx for class_idx in range(num_outputs) if class_idx not in valid_classes]
