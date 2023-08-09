@@ -59,8 +59,8 @@ def test_model_passed_is_used_as_is(tmpdir):
 
 
 def test_deterministic_updater():
-    # The behavior is always deterministic on CPU but it can become non-deterministic on GPU
-    # When run on CPU this test never fails so it is only useful when tests are run on GPU
+    # The behavior is always deterministic on CPU, but it can become non-deterministic on GPU
+    # When run on CPU this test never fails, so it is only useful when tests are run on GPU
     model1, train_dataset, test_data = pytest.helpers.get_renate_module_mlp_and_data(
         num_inputs=10,
         num_outputs=10,
