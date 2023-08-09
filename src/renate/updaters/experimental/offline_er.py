@@ -120,9 +120,10 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         if self._mask_unused_classes:
             if self._class_mask is None:
                 # Now is the time to repopulate the class_mask
-                self._class_mask = torch.LongTensor(
+                self._class_mask = torch.tensor(
                     complementary_indices(outputs.size(1), self._classes_in_current_task),
                     device=outputs.device,
+                    dtype=torch.long,
                 )
             # fill the current task logits with -inf. Leave the memory outputs unchanged.
             outputs[:batch_size_current, ...].index_fill_(
