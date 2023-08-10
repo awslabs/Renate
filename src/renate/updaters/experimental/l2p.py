@@ -73,7 +73,7 @@ class LearningToPromptReplayLearner(OfflineExperienceReplayLearner):
     ) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
         # The reason for rewriting is to ensure two independent forward props of inputs and memory
-        # samples. PromptedVisionTransformer uses per_batch_prompt which uses a single prompt 
+        # samples. PromptedVisionTransformer uses per_batch_prompt which uses a single prompt
         # repeated across the batch. Hence, the separate processing of memory and input samples.
         if self._loss_weight_new_data is None:
             alpha = self._num_points_current_task / (
