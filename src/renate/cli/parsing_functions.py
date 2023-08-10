@@ -862,7 +862,7 @@ def get_argument_type(arg_spec: inspect.FullArgSpec, argument_name: str) -> Type
     return argument_type
 
 
-def to_dense_str(value: Union[bool, List, Tuple]) -> str:
+def to_dense_str(value: Union[bool, List, Tuple, None]) -> str:
     """Converts a variable to string without empty spaces."""
     return str(value).replace(" ", "")
 

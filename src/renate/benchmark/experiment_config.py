@@ -11,7 +11,6 @@ from torchmetrics.classification import MulticlassAccuracy
 from torchvision.transforms import transforms
 from transformers import AutoTokenizer
 from wild_time_data import default_transform
-from wild_time_data.datasets import FMoW
 
 from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
 from renate.benchmark.datasets.vision_datasets import (
@@ -165,12 +164,12 @@ def get_scenario(
     chunk_id: int,
     seed: int,
     num_tasks: Optional[int] = None,
-    class_groupings: Optional[Tuple[Tuple[int]]] = None,
+    groupings: Optional[Tuple[Tuple[int]]] = None,
     degrees: Optional[List[int]] = None,
     input_dim: Optional[Union[List[int], Tuple[int], int]] = None,
     feature_idx: Optional[int] = None,
     randomness: Optional[float] = None,
-    data_ids: Optional[List[Union[int, str]]] = None,
+    data_ids: Optional[Tuple[Union[int, str]]] = None,
 ) -> Scenario:
     """Function to create scenario based on name and arguments.
 
@@ -180,8 +179,8 @@ def get_scenario(
         chunk_id: The data chunk to load in for the training or validation data.
         seed: A random seed to fix the created scenario.
         num_tasks: The total number of expected tasks for experimentation.
-        class_groupings: Used for scenario `ClassIncrementalScenario`. Partitions classes into
-            different chunks.
+        groupings: Used for scenario `ClassIncrementalScenario` to partition datasets into chunks by
+            class. Used by `DataIncrementalScenario` to group domains to chunks..
         degrees: Used for scenario `ImageRotationScenario`. Rotations applied for each chunk.
         input_dim: Used for scenario `PermutationScenario`. Input dimensionality.
         feature_idx: Used for scenario `SoftSortingScenario`. Index of feature to sort by.
@@ -195,12 +194,10 @@ def get_scenario(
         ValueError: If scenario name is unknown.
     """
     if scenario_name == "ClassIncrementalScenario":
-        assert (
-            class_groupings is not None
-        ), "Provide `class_groupings` for the class-incremental scenario."
+        assert groupings is not None, "Provide `groupings` for the class-incremental scenario."
         return ClassIncrementalScenario(
             data_module=data_module,
-            class_groupings=class_groupings,
+            groupings=groupings,
             chunk_id=chunk_id,
         )
     if scenario_name == "IIDScenario":
@@ -237,10 +234,14 @@ def get_scenario(
             seed=seed,
         )
     if scenario_name == "DataIncrementalScenario":
-        if data_ids is None:
+        if data_ids is None and groupings is None:
             data_ids = [data_id for data_id in range(num_tasks)]
         return DataIncrementalScenario(
-            data_module=data_module, data_ids=data_ids, chunk_id=chunk_id, seed=seed
+            data_module=data_module,
+            chunk_id=chunk_id,
+            data_ids=data_ids,
+            groupings=groupings,
+            seed=seed,
         )
     raise ValueError(f"Unknown scenario `{scenario_name}`.")
 
@@ -259,7 +260,7 @@ def data_module_fn(
     dataset_name: str,
     val_size: float = 0.0,
     num_tasks: Optional[int] = None,
-    class_groupings: Optional[Tuple[Tuple[int]]] = None,
+    groupings: Optional[Tuple[Tuple[int]]] = None,
     degrees: Optional[Tuple[int]] = None,
     input_dim: Optional[Tuple[int]] = None,
     feature_idx: Optional[int] = None,
@@ -290,7 +291,7 @@ def data_module_fn(
         chunk_id=chunk_id,
         seed=seed,
         num_tasks=num_tasks,
-        class_groupings=class_groupings,
+        groupings=groupings,
         degrees=degrees,
         input_dim=input_dim,
         feature_idx=feature_idx,
@@ -317,10 +318,27 @@ def _get_normalize_transform(dataset_name):
         )
 
 
-def train_transform(dataset_name: str) -> Optional[Callable]:
+def train_transform(dataset_name: str, model_name: Optional[str] = None) -> Optional[Callable]:
     """Returns a transform function to be used in the training."""
     if dataset_name == "fmow":
         return default_transform(dataset_name)
+    if dataset_name == "yearbook":
+        if (
+            model_name is not None
+            and model_name.startswith("VisionTransformer")
+            and model_name != "VisionTransformerCIFAR"
+        ):
+            return transforms.Compose(
+                [
+                    transforms.ToPILImage(),
+                    transforms.Resize(224),
+                    transforms.RandomHorizontalFlip(),
+                    default_transform(dataset_name),
+                    transforms.Lambda(lambda x: x.repeat(3, 1, 1)),
+                ]
+            )
+        else:
+            return default_transform(dataset_name)
     if dataset_name in [
         "MNIST",
         "FashionMNIST",
@@ -337,21 +355,38 @@ def train_transform(dataset_name: str) -> Optional[Callable]:
     if dataset_name in ["CLEAR10", "CLEAR100", "DomainNet"]:
         return transforms.Compose(
             [
-                transforms.ToTensor(),
-                transforms.Resize(
-                    224, interpolation=transforms.InterpolationMode.BILINEAR, antialias=True
-                ),
+                transforms.Resize(224),
                 transforms.RandomCrop(224),
+                transforms.ToTensor(),
                 _get_normalize_transform(dataset_name),
             ]
         )
     raise ValueError(f"Unknown dataset `{dataset_name}`.")
 
 
-def test_transform(dataset_name: str) -> Optional[Callable]:
+def test_transform(
+    dataset_name: str,
+    model_name: Optional[str] = None,
+) -> Optional[Callable]:
     """Returns a transform function to be used for validation or testing."""
     if dataset_name == "fmow":
-        return FMoW.default_transform
+        return default_transform(dataset_name)
+    if dataset_name == "yearbook":
+        if (
+            model_name is not None
+            and model_name.startswith("VisionTransformer")
+            and model_name != "VisionTransformerCIFAR"
+        ):
+            return transforms.Compose(
+                [
+                    transforms.ToPILImage(),
+                    transforms.Resize(224),
+                    default_transform(dataset_name),
+                    transforms.Lambda(lambda x: x.repeat(3, 1, 1)),
+                ]
+            )
+        else:
+            return default_transform(dataset_name)
     if dataset_name in [
         "MNIST",
         "FashionMNIST",
@@ -362,11 +397,9 @@ def test_transform(dataset_name: str) -> Optional[Callable]:
     if dataset_name in ["CLEAR10", "CLEAR100", "DomainNet"]:
         return transforms.Compose(
             [
-                transforms.ToTensor(),
-                transforms.Resize(
-                    224, interpolation=transforms.InterpolationMode.BILINEAR, antialias=True
-                ),
+                transforms.Resize(224),
                 transforms.CenterCrop(224),
+                transforms.ToTensor(),
                 _get_normalize_transform(dataset_name),
             ]
         )

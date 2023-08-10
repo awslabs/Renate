@@ -157,7 +157,7 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
                 "pretrained_model_name": "distilbert-base-uncased",
                 "input_column": "text",
                 "target_column": "coarse_label",
-                "class_groupings": ((0, 1), (2, 3), (4, 5)),
+                "groupings": ((0, 1), (2, 3), (4, 5)),
             },
             ClassIncrementalScenario,
             3,
@@ -219,7 +219,14 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         (
             "DataIncrementalScenario",
             "DomainNet",
-            {"data_ids": ["clipart", "infograph"]},
+            {"data_ids": ("clipart", "infograph")},
+            DataIncrementalScenario,
+            2,
+        ),
+        (
+            "DataIncrementalScenario",
+            "DomainNet",
+            {"groupings": (("clipart", "infograph"), "painting")},
             DataIncrementalScenario,
             2,
         ),
@@ -231,10 +238,11 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         "permutation",
         "feature_sorting",
         "hue_shift",
-        "time_with_clear",
+        "data_incremental with CLEAR",
         "wild_time_text_with_tokenizer",
         "wild_time_image_all_tasks",
-        "domainnet",
+        "domainnet_by data_id",
+        "domainnet by groupings",
     ],
 )
 @pytest.mark.parametrize("val_size", (0, 0.5), ids=["no_val", "val"])
@@ -258,7 +266,7 @@ def test_data_module_fn(
     )
     assert isinstance(scenario, expected_scenario_class)
     if expected_scenario_class == ClassIncrementalScenario:
-        assert scenario._class_groupings == scenario_kwargs["class_groupings"]
+        assert scenario._class_groupings == scenario_kwargs["groupings"]
     elif expected_scenario_class == FeatureSortingScenario:
         assert scenario._feature_idx == scenario_kwargs["feature_idx"]
         assert scenario._randomness == scenario_kwargs["randomness"]
