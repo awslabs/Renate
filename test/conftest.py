@@ -7,7 +7,6 @@ from typing import Callable, Dict, Literal
 import pytest
 import torch
 from pytorch_lightning.loggers import TensorBoardLogger
-
 from renate import defaults
 from renate.benchmark.models import (
     MultiLayerPerceptron,
@@ -31,12 +30,11 @@ from renate.updaters.avalanche.learner import (
     AvalancheLwFLearner,
     AvalancheReplayLearner,
 )
-from renate.updaters.avalanche.model_updater import (
-    AvalancheModelUpdater,
-)
+from renate.updaters.avalanche.model_updater import AvalancheModelUpdater
 from renate.updaters.experimental.er import ExperienceReplayLearner
 from renate.updaters.experimental.gdumb import GDumbLearner
 from renate.updaters.experimental.joint import JointLearner
+from renate.updaters.experimental.l2p import LearningToPromptLearner, LearningToPromptReplayLearner
 from renate.updaters.experimental.offline_er import OfflineExperienceReplayLearner
 from renate.updaters.experimental.repeated_distill import RepeatedDistillationLearner
 from renate.updaters.learner import Learner, ReplayLearner
@@ -76,7 +74,20 @@ LEARNER_KWARGS = {
         "seed": 1,
     },
     Learner: {"batch_size": 10, "seed": 42},
-    GDumbLearner: {"batch_size": 10, "seed": 42, "memory_size": 30},
+    LearningToPromptLearner: {"batch_size": 10, "seed": 42, "prompt_sim_loss_weight": 1},
+    LearningToPromptReplayLearner: {
+        "batch_size": 10,
+        "seed": 42,
+        "prompt_sim_loss_weight": 1,
+        "loss_weight_new_data": 0.5,
+        "memory_size": 30,
+        "memory_batch_size": 20,
+    },
+    GDumbLearner: {
+        "batch_size": 10,
+        "seed": 42,
+        "memory_size": 30,
+    },
     JointLearner: {"batch_size": 10, "seed": 3},
     RepeatedDistillationLearner: {"batch_size": 10, "seed": 42, "memory_size": 30},
     OfflineExperienceReplayLearner: {
@@ -125,6 +136,8 @@ LEARNERS_USING_SIMPLE_UPDATER = [
     GDumbLearner,
     JointLearner,
     OfflineExperienceReplayLearner,
+    LearningToPromptLearner,
+    LearningToPromptReplayLearner,
 ]
 
 SAMPLE_CLASSIFICATION_RESULTS = {

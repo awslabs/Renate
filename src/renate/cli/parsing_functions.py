@@ -22,7 +22,10 @@ from renate.updaters.experimental.er import (
 from renate.updaters.experimental.fine_tuning import FineTuningModelUpdater
 from renate.updaters.experimental.gdumb import GDumbModelUpdater
 from renate.updaters.experimental.joint import JointModelUpdater
-from renate.updaters.experimental.l2p import LearningToPromptModelUpdater
+from renate.updaters.experimental.l2p import (
+    LearningToPromptModelUpdater,
+    LearningToPromptReplayModelUpdater,
+)
 from renate.updaters.experimental.offline_er import OfflineExperienceReplayModelUpdater
 from renate.updaters.experimental.repeated_distill import RepeatedDistillationModelUpdater
 from renate.updaters.model_updater import ModelUpdater
@@ -62,8 +65,11 @@ def get_updater_and_learner_kwargs(
         learner_args = base_er_args + ["alpha"]
         updater_class = ExperienceReplayModelUpdater
     elif args.updater == "LearningToPrompt":
-        learner_args = learner_args + ["memory_size", "memory_batch_size", "prompt_sim_loss_weight"]
+        learner_args = learner_args + ["prompt_sim_loss_weight"]
         updater_class = LearningToPromptModelUpdater
+    elif args.updater == "LearningToPromptReplay":
+        learner_args = learner_args + ["prompt_sim_loss_weight", "memory_size", "memory_batch_size"]
+        updater_class = LearningToPromptReplayModelUpdater
     elif args.updater == "DER":
         learner_args = base_er_args + ["alpha", "beta"]
         updater_class = DarkExperienceReplayModelUpdater
@@ -316,7 +322,7 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
             "true_type": bool,
         },
         "gradient_clip_val": {
-            "type": lambda x: None if x == "None" else x,
+            "type": lambda x: None if x == "None" else float(x),
             "default": defaults.GRADIENT_CLIP_VAL,
             "help": "The value at which to clip gradients. None disables clipping.",
             "argument_group": OPTIONAL_ARGS_GROUP,
@@ -475,7 +481,11 @@ def _add_l2p_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
             }
         }
     )
-    _add_replay_learner_arguments(arguments)
+
+
+def _add_l2preplay_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+    _add_l2p_arguments(arguments)
+    _add_offline_er_arguments(arguments)
 
 
 def _add_gdumb_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
@@ -962,6 +972,7 @@ def get_scheduler_kwargs(
 parse_by_updater = {
     "ER": _add_experience_replay_arguments,
     "LearningToPrompt": _add_l2p_arguments,
+    "LearningToPromptReplay": _add_l2preplay_arguments,
     "DER": _add_dark_experience_replay_arguments,
     "POD-ER": _add_pod_experience_replay_arguments,
     "CLS-ER": _add_cls_experience_replay_arguments,
