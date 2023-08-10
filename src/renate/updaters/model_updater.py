@@ -147,11 +147,10 @@ class RenateModelCheckpoint(ModelCheckpoint):
             # Save the buffer only on rank zero.
             pl_module.save(self._output_state_folder)
         # Overwrite checkpoint.
-        self._save_checkpoint(trainer, learner_state_path)
+        self._save_checkpoint(trainer, str(learner_state_path))
 
     def teardown(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
-        """
-        teardown implements the separation of learner and model at the end of training.
+        """Implements the separation of learner and model at the end of training.
 
         There are two cases two handle.
 
@@ -161,20 +160,20 @@ class RenateModelCheckpoint(ModelCheckpoint):
         deepspeed stage is used. There are three steps here
 
         a. combine all the shards into one big state dict.
-        b. The learner_state_path is a dir (learner.cpkt/). This needs to be deleted first.
-        c. Write the combined state_dict as the learner.cpkt file as a single file.
-        d. Extract the state_dict element from the learner and save that as the model.cpkt.
+        b. The learner_state_path is a dir (learner.ckpt/). This needs to be deleted first.
+        c. Write the combined state_dict as the learner.ckpt file as a single file.
+        d. Extract the state_dict element from the learner and save that as the model.ckpt.
 
         2. If not deepspeed (say DDP or single device):
         The steps are much simpler.
 
-        a. Load the learner.cpkt and extract the state_dict element.
+        a. Load the learner.ckpt and extract the state_dict element.
         b. | Sanitize the extracted state_dict. Learner has the model in a _model attribute.
            | So strip the first "_model." from the keys of the state_dict.
-        c. Save the sanitized model to model.cpkt.
+        c. Save the sanitized model to model.ckpt.
 
         Case 2 is needs to be done even for Case 1 (step d). So teardown is a recursive call in
-        Case 1 which automatically goes to Case 2 as learner.cpkt is file now.
+        Case 1 which automatically goes to Case 2 as learner.ckpt is file now.
         """
 
         if trainer.is_global_zero and (stage == "fit"):
@@ -187,10 +186,14 @@ class RenateModelCheckpoint(ModelCheckpoint):
                 self.teardown(trainer, pl_module, stage)
             elif learner_state_path.exists() and learner_state_path.is_file():
                 # This a normal file. We strip the model of any wrappers and save that.
-                state_dict = torch.load(learner_state_path)["state_dict"]
-                out_sd = {k.replace("_model.", "", 1): v for k, v in state_dict.items()}
-                # Replace only 1 instance because we have to load it into RenateModule.
+                learner_state = torch.load(learner_state_path)
+                out_sd = {
+                    k.replace("_model.", "", 1): v for k, v in learner_state["state_dict"].items()
+                }  # Replace only 1 instance because we have to load it into RenateModule.
                 torch.save(out_sd, defaults.model_file(self.dirpath))
+                # Remove model from learner checkpoint
+                learner_state["state_dict"] = {}
+                torch.save(learner_state, learner_state_path)
 
     def on_exception(
         self, trainer: Trainer, pl_module: LightningModule, exception: BaseException
@@ -382,6 +385,7 @@ class ModelUpdater(abc.ABC):
             self._learner_state_file,
             model=self._model,
             logged_metrics=self._logged_metrics,
+            strict=False,
             **self._transforms_kwargs,
             **learner_kwargs,
         )

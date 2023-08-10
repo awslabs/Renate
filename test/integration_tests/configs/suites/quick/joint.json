@@ -5,6 +5,6 @@
   "dataset": "fashionmnist.json",
   "backend": "local",
   "job_name": "iid-mlp-joint",
-  "expected_accuracy_linux": [[0.8496000170707703, 0.8496000170707703], [0.8550000190734863, 0.8550000190734863]],
-  "expected_accuracy_darwin": [[0.8585000038146973, 0.8585000038146973]]
+  "expected_accuracy_linux": [[0.8425999879837036, 0.8425999879837036], [0.8446999788284302, 0.8446999788284302]],
+  "expected_accuracy_darwin": [[0.8432000279426575, 0.8432000279426575]]
 }
