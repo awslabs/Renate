@@ -7,7 +7,7 @@ import pytest
 import torch
 from torchvision.transforms.functional import rotate
 
-from dummy_datasets import DummyTorchVisionDataModule
+from dummy_datasets import DummyDataIncrementalDataModule, DummyTorchVisionDataModule
 from renate.benchmark.datasets.vision_datasets import TorchVisionDataModule
 from renate.benchmark.scenarios import (
     ClassIncrementalScenario,
@@ -77,6 +77,49 @@ def test_class_incremental_scenario_groupings_error():
     scenario.prepare_data()
     with pytest.raises(ValueError, match=r"Chunk 1 does not contain classes \[200\]."):
         scenario.setup()
+
+
+def test_data_incremental_scenario_grouping():
+    """Test whether grouping in DataIncrementalScenario works"""
+    scenario = DataIncrementalScenario(
+        data_module=DummyDataIncrementalDataModule(0, (10, 1), val_size=0.2),
+        chunk_id=0,
+        groupings=((0, 1), (2,)),
+    )
+    scenario.prepare_data()
+    scenario.setup()
+    assert set(int(scenario.train_data()[i][1]) for i in range(80)) == {0}
+    assert set(int(scenario.train_data()[i][1]) for i in range(80, 160)) == {1}
+    assert set(int(scenario.val_data()[i][1]) for i in range(20)) == {0}
+    assert set(int(scenario.val_data()[i][1]) for i in range(20, 40)) == {1}
+    assert set(int(scenario.test_data()[0][i][1]) for i in range(100)) == {0}
+    assert set(int(scenario.test_data()[0][i][1]) for i in range(100, 200)) == {1}
+    assert set(int(scenario.test_data()[1][i][1]) for i in range(100)) == {2}
+    assert len(scenario.train_data()) == 160
+    assert len(scenario.val_data()) == 40
+    assert len(scenario.test_data()) == 2
+    assert len(scenario.test_data()[0]) == 200
+    assert len(scenario.test_data()[1]) == 100
+
+
+def test_data_incremental_scenario_data_ids():
+    """Test whether data_ids in DataIncrementalScenario works"""
+    scenario = DataIncrementalScenario(
+        data_module=DummyDataIncrementalDataModule(0, (10, 1), val_size=0.2),
+        chunk_id=1,
+        data_ids=(3, 4),
+    )
+    scenario.prepare_data()
+    scenario.setup()
+    assert set(int(scenario.train_data()[i][1]) for i in range(80)) == {4}
+    assert set(int(scenario.val_data()[i][1]) for i in range(20)) == {4}
+    assert set(int(scenario.test_data()[0][i][1]) for i in range(100)) == {3}
+    assert set(int(scenario.test_data()[1][i][1]) for i in range(100)) == {4}
+    assert len(scenario.train_data()) == 80
+    assert len(scenario.val_data()) == 20
+    assert len(scenario.test_data()) == 2
+    assert len(scenario.test_data()[0]) == 100
+    assert len(scenario.test_data()[1]) == 100
 
 
 def test_data_incremental_scenario_data_module_error():
