@@ -334,7 +334,6 @@ def train_transform(dataset_name: str, model_name: Optional[str] = None) -> Opti
                     transforms.Resize(224),
                     transforms.RandomHorizontalFlip(),
                     default_transform(dataset_name),
-                    transforms.Normalize(0.5055697, 0.27123657),
                     transforms.Lambda(lambda x: x.repeat(3, 1, 1)),
                 ]
             )
