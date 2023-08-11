@@ -26,9 +26,17 @@ logger = logging.getLogger(__name__)
 
 
 class LearningToPromptLearner(Learner):
+    """Learner for learning to prompt
+
+    This is identical to the base learner with an addition of loss term.
+    TODO: Make this loss a component.
+
+    Args:
+        prompt_sim_loss_weight: Loss weight for the prompt key - image representation similarity
+    """
+
     def __init__(
         self,
-        seed: int = defaults.SEED,
         prompt_sim_loss_weight: float = defaults.PROMPT_SIM_LOSS_WEIGHT,
         **kwargs,
     ) -> None:
@@ -37,7 +45,6 @@ class LearningToPromptLearner(Learner):
         ), f"{self.__class__.__name__} can only train a PromptedVisionTransformer model"
         f"but got {type(kwargs['model'])}"
         super().__init__(
-            seed=seed,
             **kwargs,
         )
         self.prompt_sim_loss_weight = prompt_sim_loss_weight
@@ -54,6 +61,16 @@ class LearningToPromptLearner(Learner):
 
 
 class LearningToPromptReplayLearner(OfflineExperienceReplayLearner):
+    """L2P with an off-line ER learner.
+
+    The model will be trained on weighted mixture of losses computed on the new data and a replay
+    buffer. In contrast to the online version, the buffer will only be updated after training has
+    terminated.
+
+    Args:
+        prompt_sim_loss_weight: Loss weight for the prompt key - image representation similarity
+    """
+
     def __init__(
         self,
         prompt_sim_loss_weight: float = defaults.PROMPT_SIM_LOSS_WEIGHT,
