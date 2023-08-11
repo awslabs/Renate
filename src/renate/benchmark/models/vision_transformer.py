@@ -129,7 +129,7 @@ class VisionTransformer(RenateBenchmarkingModule):
         )
         self._backbone = model
 
-    def get_logits(self, task_id=defaults.TASK_ID, *args, **kwargs):
+    def get_logits(self, *args, **kwargs):
         """Over riding for simplicity"""
         del kwargs["task_id"]
         return self._backbone(*args, **kwargs)
