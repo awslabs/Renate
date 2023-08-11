@@ -112,6 +112,7 @@ if __name__ == "__main__":
             instance_type="ml.g4dn.xlarge",
             n_workers=1,
             max_time=args.max_time,
+            instance_max_time=args.max_time,
             seed=seed,
             job_name=args.job_name[:36],
             devices=1,

@@ -147,7 +147,7 @@ def test_data_incremental_scenario_wrong_input(data_ids, groupings, expected_err
     """Scenario expect either data_ids or groupings."""
     with pytest.raises(ValueError, match=expected_error_message):
         DataIncrementalScenario(
-            data_module=DummyTorchVisionDataModule(),
+            data_module=DummyDataIncrementalDataModule(data_id=0, input_shape=(2, 2)),
             data_ids=data_ids,
             groupings=groupings,
             chunk_id=0,
