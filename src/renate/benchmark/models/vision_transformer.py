@@ -8,10 +8,11 @@ from transformers.modeling_outputs import BaseModelOutputWithPooling
 
 from renate.benchmark.models.base import RenateBenchmarkingModule
 from renate.models.prediction_strategies import PredictionStrategy
+from transformers.models.vit.configuration_vit import ViTConfig
 
 
 class FeatureExtractorViTModel(ViTModel):
-    """This class directly outputs [CLS] features directly"""
+    """This class directly outputs [CLS] features if cls_feat is True else returns per patch embeddings"""
 
     def forward(
         self,
@@ -21,6 +22,7 @@ class FeatureExtractorViTModel(ViTModel):
         output_hidden_states: Optional[bool] = None,
         interpolate_pos_encoding: Optional[bool] = None,
         return_dict: Optional[bool] = None,
+        cls_feat: bool = True,
     ) -> Union[Tuple, BaseModelOutputWithPooling]:
         """Output has patch embeddings and the pooled output. We extract pooled CLS out by
         taking the second element.
@@ -34,8 +36,8 @@ class FeatureExtractorViTModel(ViTModel):
             return_dict,
         )
         if isinstance(out_to_filter, BaseModelOutputWithPooling):
-            return out_to_filter.last_hidden_state  # [:, 0, :]
-        return out_to_filter[0]  # [:, 0, :]
+            return out_to_filter.pooler_output if cls_feat else out_to_filter.last_hidden_state
+        return out_to_filter[1] if cls_feat else out_to_filter[0]
 
 
 class VisionTransformer(RenateBenchmarkingModule):
