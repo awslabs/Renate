@@ -5,7 +5,7 @@ from torch.nn import Linear
 from torch.optim import AdamW, SGD
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
 from torchmetrics.classification import MulticlassAccuracy
-from torchvision.transforms import Compose, Normalize
+from torchvision.transforms import Compose, Normalize, ToTensor
 
 from renate.benchmark import experiment_config
 from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
@@ -281,30 +281,27 @@ def test_data_module_fn(
 
 
 @pytest.mark.parametrize(
-    "dataset_name,use_transforms,test_compose",
+    "dataset_name,expected_train_transform_class, expected_test_transform_class,model_name",
     (
-        ("MNIST", False, False),
-        ("FashionMNIST", False, False),
-        ("CIFAR10", True, False),
-        ("CIFAR100", True, False),
-        ("CLEAR10", True, True),
-        ("DomainNet", True, True),
-        ("hfd-rotten_tomatoes", False, False),
-        ("fmow", True, True),
+        ("MNIST", type(None), type(None), "ResNet18CIFAR"),
+        ("FashionMNIST", type(None), type(None), "ResNet18CIFAR"),
+        ("CIFAR10", Compose, Normalize, "ResNet18CIFAR"),
+        ("CIFAR100", Compose, Normalize, "ResNet18CIFAR"),
+        ("CLEAR10", Compose, Compose, "ResNet18"),
+        ("DomainNet", Compose, Compose, "VisionTransformerB16"),
+        ("hfd-rotten_tomatoes", type(None), type(None), "HuggingFaceTransformer"),
+        ("fmow", Compose, Compose, "ResNet18"),
+        ("yearbook", ToTensor, ToTensor, "ResNet18CIFAR"),
+        ("yearbook", Compose, Compose, "VisionTransformerB16"),
     ),
 )
-def test_transforms(dataset_name, use_transforms, test_compose):
-    train_preprocessing = train_transform(dataset_name)
-    test_preprocessing = experiment_config.test_transform(dataset_name)
-    if use_transforms:
-        assert isinstance(train_preprocessing, Compose)
-        if test_compose:
-            assert isinstance(test_preprocessing, Compose)
-        else:
-            assert isinstance(test_preprocessing, Normalize)
-    else:
-        assert train_preprocessing is None
-        assert test_preprocessing is None
+def test_transforms(
+    dataset_name, expected_train_transform_class, expected_test_transform_class, model_name
+):
+    train_preprocessing = train_transform(dataset_name, model_name)
+    test_preprocessing = experiment_config.test_transform(dataset_name, model_name)
+    assert isinstance(train_preprocessing, expected_train_transform_class)
+    assert isinstance(test_preprocessing, expected_test_transform_class)
 
 
 def test_transforms_fails_for_unknown_dataset():
