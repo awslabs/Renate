@@ -6,6 +6,7 @@ import torch
 from transformers import ViTConfig, ViTModel
 from transformers.modeling_outputs import BaseModelOutputWithPooling
 
+from renate import defaults
 from renate.benchmark.models.base import RenateBenchmarkingModule
 from renate.models.prediction_strategies import PredictionStrategy
 from transformers.models.vit.configuration_vit import ViTConfig
@@ -128,8 +129,9 @@ class VisionTransformer(RenateBenchmarkingModule):
         )
         self._backbone = model
 
-    def get_logits(self, *args, **kwargs):
+    def get_logits(self, task_id=defaults.TASK_ID, *args, **kwargs):
         """Over riding for simplicity"""
+        del kwargs["task_id"]
         return self._backbone(*args, **kwargs)
 
 

@@ -147,7 +147,7 @@ class PromptedVisionTransformer(RenateBenchmarkingModule):
 
     def __init__(
         self,
-        pretrained_model_name_or_path="google/vit-base-patch16-224-in21k",
+        pretrained_model_name_or_path="google/vit-base-patch16-224",
         image_size: int = 32,
         patch_size: int = 4,
         num_layers: int = 12,

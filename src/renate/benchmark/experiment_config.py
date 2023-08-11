@@ -88,6 +88,10 @@ def model_fn(
     model_kwargs = {"num_outputs": num_outputs}
     if updater == "Avalanche-iCaRL":
         model_kwargs["prediction_strategy"] = ICaRLClassificationStrategy()
+    if updater == "L2P":
+        if not model_name.startswith("VisionTransformer"):
+            raise ValueError("L2P only works with VisionTransformer models.")
+        model_name = "PromptedVisionTransformer"
     if model_name == "MultiLayerPerceptron":
         model_kwargs.update(
             {
