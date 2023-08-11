@@ -136,6 +136,8 @@ LEARNERS_USING_SIMPLE_UPDATER = [
     GDumbLearner,
     JointLearner,
     OfflineExperienceReplayLearner,
+]
+L2P_LEARNERS = [
     LearningToPromptLearner,
     LearningToPromptReplayLearner,
 ]

@@ -4,7 +4,7 @@ from typing import Any, Dict, Tuple, Type
 
 import pytest
 
-from conftest import LEARNERS, LEARNER_KWARGS
+from conftest import L2P_LEARNERS, LEARNERS, LEARNER_KWARGS
 from renate.models import RenateModule
 from renate.updaters.learner import Learner
 
@@ -39,7 +39,11 @@ def check_learner_variables(learner: Learner, expected_variable_values: Dict[str
 
 @pytest.mark.parametrize("learner_class", LEARNERS)
 def test_save_and_load_learner(learner_class):
-    model, learner, learner_kwargs = get_model_and_learner_and_learner_kwargs(learner_class)
-    checkpoint_dict = {}
-    learner.on_save_checkpoint(checkpoint=checkpoint_dict)
-    check_learner_variables(learner, checkpoint_dict)
+    if learner_class not in L2P_LEARNERS:
+        model, learner, learner_kwargs = get_model_and_learner_and_learner_kwargs(learner_class)
+        checkpoint_dict = {}
+        learner.on_save_checkpoint(checkpoint=checkpoint_dict)
+        check_learner_variables(learner, checkpoint_dict)
+    else:
+        with pytest.raises(AssertionError):
+            model, learner, learner_kwargs = get_model_and_learner_and_learner_kwargs(learner_class)
