@@ -187,7 +187,7 @@ The first part contains all instances with classes 1 and 2, the second with clas
 .. code-block:: python
 
     config_space["scenario_name"] = "ClassIncrementalScenario"
-    config_space["class_groupings"] = ((1, 2), (3, 4))
+    config_space["groupings"] = ((1, 2), (3, 4))
 
 .. list-table:: Renate Scenario Overview
     :widths: 15 35 35
@@ -202,10 +202,13 @@ The first part contains all instances with classes 1 and 2, the second with clas
         Data is presented data by data, where the data could represent a domain or a time slice.
       - * :code:`num_tasks`: You can provide this argument if the different datasets are identified by
           ids 0 to `num_tasks`. This is the case for time-incremental datasets such as CLEAR or Wild-Time.
-        * :code:`data_ids`: List of data identifiers. Used for DomainNet to select order or subset of domains.
+        * :code:`data_ids`: Tuple of data identifiers. Used for DomainNet to select order or subset of domains,
+          e.g., ``("clipart", "infograph", "painting")``.
+        * :code:`groupings`: An alternative to data identifiers that in addition to defining the sequence
+          allows to combine different domains to one chunk, e.g., ``(("clipart", ), ("infograph", "painting"))``.
     * - :py:class:`~renate.benchmark.scenarios.ClassIncrementalScenario`
       - Creates data partitions by splitting the data according to class labels.
-      - * :code:`class_groupings`: Tuple of tuples containing the class labels, e.g., ``((1, ), (2, 3, 4))``.
+      - * :code:`groupings`: Tuple of tuples containing the class labels, e.g., ``((1, ), (2, 3, 4))``.
     * - :py:class:`~renate.benchmark.scenarios.FeatureSortingScenario`
       - Splits data into different tasks after sorting the data according to a specific feature.
         Can be used for image data as well. In that case channels are selected and we select according to

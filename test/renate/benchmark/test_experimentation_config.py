@@ -5,7 +5,7 @@ from torch.nn import Linear
 from torch.optim import AdamW, SGD
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
 from torchmetrics.classification import MulticlassAccuracy
-from torchvision.transforms import Compose, Normalize
+from torchvision.transforms import Compose, Normalize, ToTensor
 
 from renate.benchmark import experiment_config
 from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
@@ -157,7 +157,7 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
                 "pretrained_model_name": "distilbert-base-uncased",
                 "input_column": "text",
                 "target_column": "coarse_label",
-                "class_groupings": ((0, 1), (2, 3), (4, 5)),
+                "groupings": ((0, 1), (2, 3), (4, 5)),
             },
             ClassIncrementalScenario,
             3,
@@ -219,7 +219,14 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         (
             "DataIncrementalScenario",
             "DomainNet",
-            {"data_ids": ["clipart", "infograph"]},
+            {"data_ids": ("clipart", "infograph")},
+            DataIncrementalScenario,
+            2,
+        ),
+        (
+            "DataIncrementalScenario",
+            "DomainNet",
+            {"groupings": (("clipart", "infograph"), "painting")},
             DataIncrementalScenario,
             2,
         ),
@@ -231,10 +238,11 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         "permutation",
         "feature_sorting",
         "hue_shift",
-        "time_with_clear",
+        "data_incremental with CLEAR",
         "wild_time_text_with_tokenizer",
         "wild_time_image_all_tasks",
-        "domainnet",
+        "domainnet_by data_id",
+        "domainnet by groupings",
     ],
 )
 @pytest.mark.parametrize("val_size", (0, 0.5), ids=["no_val", "val"])
@@ -258,7 +266,7 @@ def test_data_module_fn(
     )
     assert isinstance(scenario, expected_scenario_class)
     if expected_scenario_class == ClassIncrementalScenario:
-        assert scenario._class_groupings == scenario_kwargs["class_groupings"]
+        assert scenario._class_groupings == scenario_kwargs["groupings"]
     elif expected_scenario_class == FeatureSortingScenario:
         assert scenario._feature_idx == scenario_kwargs["feature_idx"]
         assert scenario._randomness == scenario_kwargs["randomness"]
@@ -273,30 +281,27 @@ def test_data_module_fn(
 
 
 @pytest.mark.parametrize(
-    "dataset_name,use_transforms,test_compose",
+    "dataset_name,expected_train_transform_class, expected_test_transform_class,model_name",
     (
-        ("MNIST", False, False),
-        ("FashionMNIST", False, False),
-        ("CIFAR10", True, False),
-        ("CIFAR100", True, False),
-        ("CLEAR10", True, True),
-        ("DomainNet", True, True),
-        ("hfd-rotten_tomatoes", False, False),
-        ("fmow", True, True),
+        ("MNIST", type(None), type(None), "ResNet18CIFAR"),
+        ("FashionMNIST", type(None), type(None), "ResNet18CIFAR"),
+        ("CIFAR10", Compose, Normalize, "ResNet18CIFAR"),
+        ("CIFAR100", Compose, Normalize, "ResNet18CIFAR"),
+        ("CLEAR10", Compose, Compose, "ResNet18"),
+        ("DomainNet", Compose, Compose, "VisionTransformerB16"),
+        ("hfd-rotten_tomatoes", type(None), type(None), "HuggingFaceTransformer"),
+        ("fmow", Compose, Compose, "ResNet18"),
+        ("yearbook", ToTensor, ToTensor, "ResNet18CIFAR"),
+        ("yearbook", Compose, Compose, "VisionTransformerB16"),
     ),
 )
-def test_transforms(dataset_name, use_transforms, test_compose):
-    train_preprocessing = train_transform(dataset_name)
-    test_preprocessing = experiment_config.test_transform(dataset_name)
-    if use_transforms:
-        assert isinstance(train_preprocessing, Compose)
-        if test_compose:
-            assert isinstance(test_preprocessing, Compose)
-        else:
-            assert isinstance(test_preprocessing, Normalize)
-    else:
-        assert train_preprocessing is None
-        assert test_preprocessing is None
+def test_transforms(
+    dataset_name, expected_train_transform_class, expected_test_transform_class, model_name
+):
+    train_preprocessing = train_transform(dataset_name, model_name)
+    test_preprocessing = experiment_config.test_transform(dataset_name, model_name)
+    assert isinstance(train_preprocessing, expected_train_transform_class)
+    assert isinstance(test_preprocessing, expected_test_transform_class)
 
 
 def test_transforms_fails_for_unknown_dataset():
