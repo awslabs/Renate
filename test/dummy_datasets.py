@@ -1,7 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from pathlib import Path
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, Optional, Tuple
 
 import torch
 from torch.utils.data import Dataset

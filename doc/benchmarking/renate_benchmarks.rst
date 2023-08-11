@@ -204,7 +204,7 @@ The first part contains all instances with classes 1 and 2, the second with clas
           ids 0 to `num_tasks`. This is the case for time-incremental datasets such as CLEAR or Wild-Time.
         * :code:`data_ids`: Tuple of data identifiers. Used for DomainNet to select order or subset of domains,
           e.g., ``("clipart", "infograph", "painting")``.
-        * :code`groupings`: An alternative to data identifiers that in addition to defining the sequence
+        * :code:`groupings`: An alternative to data identifiers that in addition to defining the sequence
           allows to combine different domains to one chunk, e.g., ``(("clipart", ), ("infograph", "painting"))``.
     * - :py:class:`~renate.benchmark.scenarios.ClassIncrementalScenario`
       - Creates data partitions by splitting the data according to class labels.
