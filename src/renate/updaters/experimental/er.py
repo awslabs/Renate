@@ -31,6 +31,8 @@ from renate.updaters.learner_components.reinitialization import (
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
 from renate.utils.pytorch import move_tensors_to_device
 
+from renate.utils.misc import possibly_populate_mask_and_kill_logits
+
 
 class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
     """A base implementation of experience replay.
@@ -140,6 +142,13 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
                     batch_memory = self._sample_from_buffer(device=step_output["loss"].device)
                     (inputs_memory, _), metadata_memory = batch_memory
                     outputs_memory = self(inputs_memory)
+
+                    outputs_memory, self._class_mask = possibly_populate_mask_and_kill_logits(
+                        self._mask_unused_classes,
+                        self._class_mask,
+                        self._classes_in_current_task,
+                        outputs_memory,
+                    )
                     intermediate_representation_memory = (
                         self._model.get_intermediate_representation()
                     )

@@ -47,6 +47,13 @@ metrics_mapper = {
 class AvalancheModelUpdater(SingleTrainingLoopUpdater):
     _report = Reporter()
 
+    def __init__(self, *args, **kwargs):
+        if kwargs["mask_unused_classes"] is True:
+            logger.warning(
+                "Avalanche model updaters do not support mask_unused_classes. Ignoring it."
+            )
+        super().__init__(*args, **kwargs)
+
     def _load_learner(
         self,
         learner_class: Type[Learner],

@@ -20,7 +20,8 @@ from renate.data.datasets import _TransformedDataset
 from renate.memory import DataBuffer, InfiniteBuffer, ReservoirBuffer
 from renate.models import RenateModule
 from renate.types import NestedTensors
-from renate.utils.pytorch import get_generator, complementary_indices, unique_classes
+from renate.utils.pytorch import get_generator, unique_classes
+from renate.utils.misc import possibly_populate_mask_and_kill_logits
 
 
 class RenateLightningModule(LightningModule, abc.ABC):
@@ -83,11 +84,6 @@ class RenateLightningModule(LightningModule, abc.ABC):
         self._create_metrics_collections(logged_metrics)
         self._rng = get_generator(self._seed)
         self.save_hyperparameters(ignore=self._ignored_hyperparameters())
-
-    def _find_unique_classes_in_task(self):
-        # Compute which logits to mask, if the model has a _num_outputs attribute.
-        # The first forward prop will populate the _class_mask.
-        self._classes_in_current_task = unique_classes(self._train_dataset)
 
     def _ignored_hyperparameters(self):
         """Hyperparameters to be ignored in the ``save_hyperparameters`` call."""
@@ -163,7 +159,9 @@ class RenateLightningModule(LightningModule, abc.ABC):
         self._task_id = task_id
         self._model.add_task_params(task_id=self._task_id)
         if self._mask_unused_classes:
-            self._find_unique_classes_in_task()
+            # The first forward prop will populate the _class_mask with the following
+            # unique classes
+            self._classes_in_current_task = unique_classes(self._train_dataset)
 
     def train_dataloader(self) -> DataLoader:
         """Returns the dataloader for training the model."""
@@ -207,16 +205,9 @@ class RenateLightningModule(LightningModule, abc.ABC):
         """PyTorch Lightning function to return the training loss."""
         inputs, targets = self.training_step_unpack_batch(batch)
         outputs = self(inputs)
-        if self._mask_unused_classes:
-            if self._class_mask is None:
-                # Now is the time to repopulate the class_mask
-                self._class_mask = torch.tensor(
-                    complementary_indices(outputs.size(1), self._classes_in_current_task),
-                    device=outputs.device,
-                    dtype=torch.long,
-                )
-            # fill the logits with -inf
-            outputs.index_fill_(1, self._class_mask.to(outputs.device), -float("inf"))
+        outputs, self._class_mask = possibly_populate_mask_and_kill_logits(
+            self._mask_unused_classes, self._class_mask, self._classes_in_current_task, outputs
+        )
         intermediate_representation = self._model.get_intermediate_representation()
         self._model.reset_intermediate_representation_cache()
         loss = self._loss_fn(outputs, targets).mean()
@@ -509,3 +500,19 @@ class ReplayLearner(Learner, abc.ABC):
     def load(self, input_state_dir: str) -> None:
         super().load(input_state_dir)
         self._memory_buffer.load(os.path.join(input_state_dir, "memory_buffer"))
+
+    def on_model_update_start(
+        self,
+        train_dataset: Dataset,
+        val_dataset: Dataset,
+        train_dataset_collate_fn: Optional[Callable] = None,
+        val_dataset_collate_fn: Optional[Callable] = None,
+        task_id: Optional[str] = None,
+    ) -> None:
+        super().on_model_update_start(
+            train_dataset, val_dataset, train_dataset_collate_fn, val_dataset_collate_fn, task_id
+        )
+        if self._mask_unused_classes:
+            self._classes_in_current_task = self._classes_in_current_task.union(
+                unique_classes(self._memory_buffer)
+            )
