@@ -76,19 +76,18 @@ class PromptPool(nn.Module):
     def forward(self, x: torch.Tensor, manual_prompt_indices: Optional[torch.LongTensor] = None):
         """
         Args:
-            x: Image features extracted. It can be [CLS] token or something else.
+            x: Image features extracted. It can be [CLS] token or something else of
+                dimension B x self.pd..
             manual_prompt_indices: Indices to manually select prompts from pool, instead of
                 selecting from
         """
-        # Here x refers to the features already extracted. These can be [CLS] token representation
-        # or something else altogether. But it has to be of dimension B x self.pd."
         if manual_prompt_indices is None:
             similarity_matrix = self.similarity_fn(x, self.prompt_keys)
             _, idx = torch.topk(similarity_matrix, k=self._N, dim=1)
             if self._per_batch_prompt:
                 prompt_id, id_counts = torch.unique(idx, return_counts=True, sorted=True)
                 if prompt_id.shape[0] < self._M:
-                    ## This piece of code is taken from the public l2p implementation.
+                    ## The logic for this is taken from the public l2p implementation.
                     temp_pid = torch.full((self._M,), idx.min(), device=prompt_id.device)
                     temp_pid[: prompt_id.shape[0]] = prompt_id
                     prompt_id = temp_pid
@@ -97,10 +96,8 @@ class PromptPool(nn.Module):
                     temp_idc[: id_counts.shape[0]] = id_counts
                     id_counts = temp_idc
 
-                    _, major_idx = torch.topk(id_counts, k=self._N)  # top_k
-                    major_prompt_id = prompt_id[major_idx]  # top_k
-                    # expand to batch
-                    idx = major_prompt_id.expand(x.shape[0], -1)  # B, top_k
+                    _, major_idx = torch.topk(id_counts, k=self._N)
+                    idx = prompt_id[major_idx].expand(x.shape[0], -1)  # B, top_k
             loss_value = similarity_matrix[:, idx].sum() / (x.shape[0] * x.shape[0])
         else:
             idx = manual_prompt_indices  # should be of size B, top_k
@@ -247,7 +244,7 @@ class PromptedVisionTransformer(RenateBenchmarkingModule):
 
     def forward(self, x: torch.Tensor, task_id: str = defaults.TASK_ID) -> torch.Tensor:
         with torch.no_grad():
-            prompt_pool_input = self._backbone["vit"].get_logits(x, cls_feat=False)
+            prompt_pool_input = self._backbone["vit"].get_logits(x, cls_feat=False, task_id=None)
         if self.prompt_embedding_features == "cls":
             # retrieve cls token features. This is used in L2P paper.
             prompt_pool_input = prompt_pool_input[:, 0, :]

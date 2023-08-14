@@ -6,13 +6,15 @@ import torch
 from transformers import ViTConfig, ViTModel
 from transformers.modeling_outputs import BaseModelOutputWithPooling
 
+from renate import defaults
 from renate.benchmark.models.base import RenateBenchmarkingModule
 from renate.models.prediction_strategies import PredictionStrategy
-from transformers.models.vit.configuration_vit import ViTConfig
 
 
 class FeatureExtractorViTModel(ViTModel):
-    """This class directly outputs [CLS] features if cls_feat is True else returns per patch embeddings"""
+    """This class directly outputs [CLS] features if cls_feat is True else returns per patch
+    embeddings
+    """
 
     def forward(
         self,
@@ -23,6 +25,7 @@ class FeatureExtractorViTModel(ViTModel):
         interpolate_pos_encoding: Optional[bool] = None,
         return_dict: Optional[bool] = None,
         cls_feat: bool = True,
+        task_id: str = defaults.TASK_ID,
     ) -> Union[Tuple, BaseModelOutputWithPooling]:
         """Output has patch embeddings and the pooled output. We extract pooled CLS out by
         taking the second element.
