@@ -48,7 +48,7 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
     _report = Reporter()
 
     def __init__(self, *args, **kwargs):
-        if kwargs["mask_unused_classes"] is True:
+        if kwargs.get("mask_unused_classes", False) is True:
             logger.warning(
                 "Avalanche model updaters do not support mask_unused_classes. Ignoring it."
             )
