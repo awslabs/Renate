@@ -148,7 +148,7 @@ class MultiTextDataModule(DataIncrementalDataModule):
     The output space if the union of the output space of all the domains.
     The dataset has 33 classes: 4 from AGNews, 5 from Yelp, 14 from DBPedia, and 10 from Yahoo.
 
-    The maximum allowed size for the training set is 115000 and for the test set is 7600.
+    The largest available size for the training set is 115000 and for the test set is 7600.
 
     Args:
         data_path: The path to the folder where the data files will be downloaded to.

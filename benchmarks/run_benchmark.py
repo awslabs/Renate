@@ -60,7 +60,9 @@ if __name__ == "__main__":
         help="Maximum execution time.",
     )
     parser.add_argument(
-        "--no-reset", action="store_true", help="Do not reset model weights (Joint and GDumb only)"
+        "--use-prior-task-weights",
+        action="store_true",
+        help="Do not reset model weights (Joint and GDumb only)",
     )
 
     args = parser.parse_args()
@@ -77,11 +79,11 @@ if __name__ == "__main__":
         os.path.join(configs_folder, "updaters", benchmark_config["updater"]),
         os.path.join(configs_folder, "datasets", benchmark_config["dataset"]),
     )
-    if args.no_reset:
+    if args.use_prior_task_weights:
         if config_space["updater"] in ["Joint", "GDumb"]:
             config_space["reset"] = False
         else:
-            raise ValueError("Please use no-reset only for Joint or GDumb.")
+            raise ValueError("Please use `use-prior-task-weights` only for Joint or GDumb.")
     config_space["max_epochs"] = int(args.budget_factor * config_space["max_epochs"])
     if "learning_rate_scheduler_step_size" in config_space:
         config_space["learning_rate_scheduler_step_size"] = int(
