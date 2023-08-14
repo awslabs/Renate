@@ -1,7 +1,7 @@
 {
   "val_size": 0.05,
   "scenario_name": "ClassIncrementalScenario",
-  "class_groupings": [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]],
+  "groupings": [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]],
   "num_tasks": 5,
   "max_epochs": 50
 }

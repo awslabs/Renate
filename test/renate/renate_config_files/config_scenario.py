@@ -23,13 +23,13 @@ def data_module_fn(
     chunk_id: Optional[int] = None,
     val_size: float = 0.0,
     seed: int = 0,
-    class_groupings: Tuple[Tuple[int, ...], ...] = ((0, 1), (2, 3, 4)),
+    groupings: Tuple[Tuple[int, ...], ...] = ((0, 1), (2, 3, 4)),
 ) -> Scenario:
     data_module = DummyTorchVisionDataModule(transform=None, val_size=val_size, seed=seed)
     return ClassIncrementalScenario(
         data_module=data_module,
         chunk_id=chunk_id,
-        class_groupings=class_groupings,
+        groupings=groupings,
     )
 
 

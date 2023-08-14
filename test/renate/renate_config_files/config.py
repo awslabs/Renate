@@ -22,7 +22,7 @@ def data_module_fn(
     data_path: str,
     val_size: float = 0.0,
     seed: int = 0,
-    class_groupings: Tuple[Tuple[int]] = ((0, 1), (2, 3, 4)),
+    groupings: Tuple[Tuple[int]] = ((0, 1), (2, 3, 4)),
     optional_tuple: Optional[Tuple[float]] = None,
     optional_float: Optional[float] = None,
     list_param: list = [1, 2],
