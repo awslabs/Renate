@@ -505,9 +505,9 @@ class ReplayLearner(Learner, abc.ABC):
         self,
         train_dataset: Dataset,
         val_dataset: Dataset,
-        train_dataset_collate_fn: Callable[..., Any] | None = None,
-        val_dataset_collate_fn: Callable[..., Any] | None = None,
-        task_id: str | None = None,
+        train_dataset_collate_fn: Optional[Callable] = None,
+        val_dataset_collate_fn: Optional[Callable] = None,
+        task_id: Optional[str] = None,
     ) -> None:
         super().on_model_update_start(
             train_dataset, val_dataset, train_dataset_collate_fn, val_dataset_collate_fn, task_id

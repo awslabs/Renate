@@ -17,11 +17,7 @@ from renate.models import RenateModule
 from renate.types import NestedTensors
 from renate.updaters.learner import ReplayLearner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
-from renate.utils.pytorch import (
-    cat_nested_tensors,
-    get_length_nested_tensors,
-    unique_classes,
-)
+from renate.utils.pytorch import cat_nested_tensors, get_length_nested_tensors
 
 from renate.utils.misc import possibly_populate_mask_and_kill_logits
 
