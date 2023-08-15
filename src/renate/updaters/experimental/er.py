@@ -29,9 +29,8 @@ from renate.updaters.learner_components.reinitialization import (
     ShrinkAndPerturbReinitializationComponent,
 )
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
+from renate.utils.misc import maybe_populate_mask_and_ignore_logits
 from renate.utils.pytorch import move_tensors_to_device
-
-from renate.utils.misc import possibly_populate_mask_and_kill_logits
 
 
 class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
@@ -143,7 +142,7 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
                     (inputs_memory, _), metadata_memory = batch_memory
                     outputs_memory = self(inputs_memory)
 
-                    outputs_memory, self._class_mask = possibly_populate_mask_and_kill_logits(
+                    outputs_memory, self._class_mask = maybe_populate_mask_and_ignore_logits(
                         self._mask_unused_classes,
                         self._class_mask,
                         self._classes_in_current_task,

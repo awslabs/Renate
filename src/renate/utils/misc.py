@@ -18,7 +18,7 @@ def int_or_str(x: str) -> Union[str, int]:
         return x
 
 
-def possibly_populate_mask_and_kill_logits(
+def maybe_populate_mask_and_ignore_logits(
     use_masking: bool,
     class_mask: Optional[torch.Tensor],
     classes_in_current_task: Optional[Set[int]],
