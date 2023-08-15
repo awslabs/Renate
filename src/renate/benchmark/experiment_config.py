@@ -9,6 +9,7 @@ from torch.optim import AdamW, Optimizer
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR, _LRScheduler
 from torchmetrics.classification import MulticlassAccuracy
 from torchvision.transforms import transforms
+from torchvision.transforms.functional import InterpolationMode
 from transformers import AutoTokenizer
 from wild_time_data import default_transform
 
@@ -364,13 +365,23 @@ def train_transform(dataset_name: str, model_name: Optional[str] = None) -> Opti
     ] + wild_time_data.list_datasets() or dataset_name.startswith("hfd-"):
         return None
     if dataset_name in ["CIFAR10", "CIFAR100"]:
-        return transforms.Compose(
-            [
-                transforms.RandomCrop(32, padding=4),
-                transforms.RandomHorizontalFlip(),
-                _get_normalize_transform(dataset_name),
-            ]
-        )
+        if (model_name is not None) and ("Prompted" in model_name):
+            return transforms.Compose(
+                [
+                    transforms.RandomResizedCrop(
+                        224, scale=(0.05, 1.0), ratio=(3.0 / 4.0, 4.0 / 3.0)
+                    ),
+                    transforms.RandomHorizontalFlip(p=0.5),
+                ]
+            )
+        else:
+            return transforms.Compose(
+                [
+                    transforms.RandomCrop(32, padding=4),
+                    transforms.RandomHorizontalFlip(),
+                    _get_normalize_transform(dataset_name),
+                ]
+            )
     if dataset_name in ["CLEAR10", "CLEAR100", "DomainNet"]:
         return transforms.Compose(
             [
@@ -413,7 +424,15 @@ def test_transform(
     ] + wild_time_data.list_datasets() or dataset_name.startswith("hfd-"):
         return None
     if dataset_name in ["CIFAR10", "CIFAR100"]:
-        return _get_normalize_transform(dataset_name)
+        if (model_name is not None) and ("Prompted" in model_name):
+            return transforms.Compose(
+                [
+                    transforms.Resize(256),
+                    transforms.CenterCrop(224),
+                ]
+            )
+        else:
+            return _get_normalize_transform(dataset_name)
     if dataset_name in ["CLEAR10", "CLEAR100", "DomainNet"]:
         return transforms.Compose(
             [
