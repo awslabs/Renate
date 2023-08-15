@@ -44,7 +44,7 @@ def test_renate_vision_transformer_fwd(sub_class, input_dim):
 @pytest.mark.parametrize(
     "sub_class, expected_num_params",
     [
-        ["visiontransformercifar", 56],
+        ["visiontransformercifar", 54],
         ["visiontransformerb16", 198],
         ["visiontransformerb32", 198],
         ["visiontransformerl16", 390],
