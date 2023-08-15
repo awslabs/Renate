@@ -20,7 +20,7 @@ from renate.types import NestedTensors
 from renate.updaters.experimental.offline_er import OfflineExperienceReplayLearner
 from renate.updaters.learner import Learner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
-from renate.utils.pytorch import complementary_indices
+from renate.utils.misc import maybe_populate_mask_and_ignore_logits
 
 logger = logging.getLogger(__name__)
 
@@ -102,31 +102,23 @@ class LearningToPromptReplayLearner(OfflineExperienceReplayLearner):
         inputs, targets = batch["current_task"]
         outputs = self(inputs)
 
+        outputs, self._class_mask = maybe_populate_mask_and_ignore_logits(
+            self._mask_unused_classes,
+            self._class_mask,
+            self._classes_in_current_task,
+            outputs,
+        )
+
         if "memory" in batch:
             (inputs_mem, targets_mem), _ = batch["memory"]
             outputs_mem = self(inputs_mem)
 
-        if self._mask_unused_classes:
-            if self._class_mask is None:
-                # Now is the time to repopulate the class_mask
-                self._class_mask = torch.tensor(
-                    complementary_indices(outputs.size(1), self._classes_in_current_task),
-                    device=outputs.device,
-                    dtype=torch.long,
-                )
-            if self._class_mask_memory_buffer is None:
-                self._class_mask_memory_buffer = torch.tensor(
-                    complementary_indices(outputs.size(1), self._classes_in_memory_buffer),
-                    device=outputs.device,
-                    dtype=torch.long,
-                )
-
-            # fill the current task logits with -inf. Leave the memory outputs unchanged.
-            outputs.index_fill_(1, self._class_mask.to(outputs.device), -float("inf"))
-            if "memory" in batch:
-                outputs_mem.index_fill_(
-                    1, self._class_mask_memory_buffer.to(outputs.device), -float("inf")
-                )
+            outputs_mem, self._class_mask = maybe_populate_mask_and_ignore_logits(
+                self._mask_unused_classes,
+                self._class_mask,
+                self._classes_in_current_task,
+                outputs_mem,
+            )
 
         loss_current = self._loss_fn(outputs, targets).mean()
         if "memory" in batch:
