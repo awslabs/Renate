@@ -17,9 +17,8 @@ from renate.models import RenateModule
 from renate.types import NestedTensors
 from renate.updaters.learner import ReplayLearner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
+from renate.utils.misc import maybe_populate_mask_and_ignore_logits
 from renate.utils.pytorch import cat_nested_tensors, get_length_nested_tensors
-
-from renate.utils.misc import possibly_populate_mask_and_kill_logits
 
 
 class OfflineExperienceReplayLearner(ReplayLearner):
@@ -116,7 +115,7 @@ class OfflineExperienceReplayLearner(ReplayLearner):
             targets = torch.cat((targets, targets_mem), 0)
         outputs = self(inputs)
 
-        outputs, self._class_mask = possibly_populate_mask_and_kill_logits(
+        outputs, self._class_mask = maybe_populate_mask_and_ignore_logits(
             self._mask_unused_classes, self._class_mask, self._classes_in_current_task, outputs
         )
         loss = self._loss_fn(outputs, targets)

@@ -134,7 +134,7 @@ def test_unique_classes(tmpdir, test_dataset):
         data_module.prepare_data()
         for chunk_id in range(len(class_groupings)):
             scenario = ClassIncrementalScenario(
-                data_module=data_module, class_groupings=class_groupings, chunk_id=chunk_id
+                data_module=data_module, groupings=class_groupings, chunk_id=chunk_id
             )
             scenario.setup()
             ds = scenario.val_data()

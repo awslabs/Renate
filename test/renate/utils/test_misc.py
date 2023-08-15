@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from renate.utils.misc import int_or_str, possibly_populate_mask_and_kill_logits
+from renate.utils.misc import int_or_str, maybe_populate_mask_and_ignore_logits
 
 
 @pytest.mark.parametrize(
@@ -46,10 +46,10 @@ def test_int_or_str(data_type, target):
         ],
     ],
 )
-def test_possibly_populate_mask_and_kill_logits(
+def test_possibly_populate_mask_and_ignore_logits(
     use_masking, class_mask, classes_in_task, logits, correct_output
 ):
-    out_logits, out_cm = possibly_populate_mask_and_kill_logits(
+    out_logits, out_cm = maybe_populate_mask_and_ignore_logits(
         use_masking=use_masking,
         class_mask=class_mask,
         classes_in_current_task=classes_in_task,

@@ -20,8 +20,8 @@ from renate.data.datasets import _TransformedDataset
 from renate.memory import DataBuffer, InfiniteBuffer, ReservoirBuffer
 from renate.models import RenateModule
 from renate.types import NestedTensors
+from renate.utils.misc import maybe_populate_mask_and_ignore_logits
 from renate.utils.pytorch import get_generator, unique_classes
-from renate.utils.misc import possibly_populate_mask_and_kill_logits
 
 
 class RenateLightningModule(LightningModule, abc.ABC):
@@ -45,8 +45,8 @@ class RenateLightningModule(LightningModule, abc.ABC):
         batch_size: Training batch size.
         logged_metrics: Metrics logged additional to the default ones.
         seed: See :func:`renate.models.utils.get_generator`.
-        mask_unused_classes: Flag to use if logits corresponding to unused classes are to be killed.
-            Possibly useful for class incremental learning.
+        mask_unused_classes: Flag to use if logits corresponding to unused classes are to be ignored
+            in the loss computation. Possibly useful for class incremental learning.
     """
 
     def __init__(
@@ -205,7 +205,7 @@ class RenateLightningModule(LightningModule, abc.ABC):
         """PyTorch Lightning function to return the training loss."""
         inputs, targets = self.training_step_unpack_batch(batch)
         outputs = self(inputs)
-        outputs, self._class_mask = possibly_populate_mask_and_kill_logits(
+        outputs, self._class_mask = maybe_populate_mask_and_ignore_logits(
             self._mask_unused_classes, self._class_mask, self._classes_in_current_task, outputs
         )
         intermediate_representation = self._model.get_intermediate_representation()

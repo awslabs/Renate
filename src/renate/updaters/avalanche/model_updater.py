@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import logging
+import warnings
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Type
 
@@ -49,7 +50,7 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
 
     def __init__(self, *args, **kwargs):
         if kwargs.get("mask_unused_classes", False) is True:
-            logger.warning(
+            warnings.warn(
                 "Avalanche model updaters do not support mask_unused_classes. Ignoring it."
             )
         super().__init__(*args, **kwargs)
