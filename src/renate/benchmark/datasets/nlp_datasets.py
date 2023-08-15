@@ -142,14 +142,13 @@ class HuggingFaceTextDataModule(RenateDataModule):
 class MultiTextDataModule(DataIncrementalDataModule):
     """
     Inspired by the dataset used in "Episodic Memory in Lifelong Language Learning"
-    by d’Autume et al. this is a collection of five different datasets that we call domains:
+    by d’Autume et al. this is a collection of four different datasets that we call domains:
     AGNews, Yelp, DBPedia and Yahoo Answers.
 
     The output space if the union of the output space of all the domains.
     The dataset has 33 classes: 4 from AGNews, 5 from Yelp, 14 from DBPedia, and 10 from Yahoo.
 
-    The maximum allowed size for the training set is 115000 and for the test set is 7600.
-    Each domain will have the same fixed size.
+    The largest available size for the training set is 115000 and for the test set is 7600.
 
     Args:
         data_path: The path to the folder where the data files will be downloaded to.
@@ -173,43 +172,14 @@ class MultiTextDataModule(DataIncrementalDataModule):
         "dbpedia_14": ["content", "label"],
         "yahoo_answers_topics": ["question_title", "topic"],
     }
-    _labels_map = {
-        "ag_news0": 0,
-        "ag_news1": 1,
-        "ag_news2": 2,
-        "ag_news3": 3,
-        "yelp_review_full0": 4,
-        "yelp_review_full1": 5,
-        "yelp_review_full2": 6,
-        "yelp_review_full3": 7,
-        "yelp_review_full4": 8,
-        "dbpedia_140": 9,
-        "dbpedia_141": 10,
-        "dbpedia_142": 11,
-        "dbpedia_143": 12,
-        "dbpedia_144": 13,
-        "dbpedia_145": 14,
-        "dbpedia_146": 15,
-        "dbpedia_147": 16,
-        "dbpedia_148": 17,
-        "dbpedia_149": 18,
-        "dbpedia_1410": 19,
-        "dbpedia_1411": 20,
-        "dbpedia_1412": 21,
-        "dbpedia_1413": 22,
-        "yahoo_answers_topics0": 23,
-        "yahoo_answers_topics1": 24,
-        "yahoo_answers_topics2": 25,
-        "yahoo_answers_topics3": 26,
-        "yahoo_answers_topics4": 27,
-        "yahoo_answers_topics5": 28,
-        "yahoo_answers_topics6": 29,
-        "yahoo_answers_topics7": 30,
-        "yahoo_answers_topics8": 31,
-        "yahoo_answers_topics9": 32,
+    _label_offset = {
+        "ag_news": 0,
+        "yelp_review_full": 4,
+        "dbpedia_14": 9,
+        "yahoo_answers_topics": 23,
     }
 
-    domains = _multi_dataset_info.keys()
+    domains = list(_multi_dataset_info)
 
     def __init__(
         self,
@@ -217,8 +187,8 @@ class MultiTextDataModule(DataIncrementalDataModule):
         tokenizer: transformers.PreTrainedTokenizer,
         data_id: str,
         tokenizer_kwargs: Optional[Dict[str, Any]] = None,
-        train_size: int = defaults.SMALL_TRAIN_SET_SIZE,
-        test_size: int = defaults.SMALL_TEST_SET_SIZE,
+        train_size: int = 115000,
+        test_size: int = 7600,
         val_size: float = defaults.VALIDATION_SIZE,
         seed: int = defaults.SEED,
     ):
@@ -229,7 +199,7 @@ class MultiTextDataModule(DataIncrementalDataModule):
         self._train_size = train_size
 
         if test_size > 7600:
-            raise ValueError("The `test_size` must be smaller than 7600")
+            raise ValueError("The `test_size` must be smaller than or equal to 7600")
         self._test_size = test_size
 
         self._tokenizer = tokenizer
@@ -244,26 +214,25 @@ class MultiTextDataModule(DataIncrementalDataModule):
 
     def prepare_data(self) -> None:
         """Download dataset."""
-
-        for split in ["train", "test"] + (["validation"] if self._val_size > 0 else []):
+        for split in ["train", "test"]:
             load_dataset(self.data_id, split=split, cache_dir=self._data_path)
 
     def setup(self) -> None:
         """Set up train, test and val datasets."""
-
         rnd_gen = torch.Generator().manual_seed(self._seed)
 
         def preprocess(example, text_field_name, label_field_name):
             return {
                 **self._tokenizer(example[text_field_name], **self._tokenizer_kwargs),
-                "label": self._labels_map[f"{self.data_id}{example[label_field_name]}"],
+                "label": example[label_field_name]
+                + MultiTextDataModule._label_offset[self.data_id],
             }
 
         def get_split(split_name):
             dataset = load_dataset(self.data_id, split=split_name, cache_dir=self._data_path)
             # the following is hack needed because the output space of the new dataset is
             # the union of the output spaces of the single datasets
-            # HF datasets check for the max label id and we need to make sure we update that
+            # HF datasets check for the max label id, and we need to make sure we update that
             # without this change the setup will fail with a value error (label id > max labels)
             new_features = dataset.features.copy()
             new_features[self._multi_dataset_info[self.data_id][1]] = datasets.ClassLabel(
@@ -278,7 +247,6 @@ class MultiTextDataModule(DataIncrementalDataModule):
                 set_size = self._test_size
 
             rnd_idx = torch.randint(
-                low=0,
                 high=len(dataset),
                 size=(set_size,),
                 generator=rnd_gen,
@@ -300,6 +268,5 @@ class MultiTextDataModule(DataIncrementalDataModule):
             return _InputTargetWrapper(dataset)
 
         self._train_data = get_split("train")
+        self._train_data, self._val_data = self._split_train_val_data(self._train_data)
         self._test_data = get_split("test")
-        if self._val_size > 0:
-            self._val_data = get_split("validation")

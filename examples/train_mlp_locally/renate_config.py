@@ -28,7 +28,7 @@ def data_module_fn(data_path: str, chunk_id: int, seed: int = defaults.SEED) -> 
 
     class_incremental_scenario = ClassIncrementalScenario(
         data_module=data_module,
-        class_groupings=((0, 1, 2, 3, 4), (5, 6, 7, 8, 9)),
+        groupings=((0, 1, 2, 3, 4), (5, 6, 7, 8, 9)),
         chunk_id=chunk_id,
     )
     return class_incremental_scenario
