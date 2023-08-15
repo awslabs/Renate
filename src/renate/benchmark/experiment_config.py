@@ -101,6 +101,12 @@ def model_fn(
         if updater == "Avalanche-iCaRL":
             raise ValueError("Transformers do not support iCaRL.")
         model_kwargs["pretrained_model_name"] = pretrained_model_name
+    elif "LearningToPrompt" in updater:
+        if not model_name.startswith("Prompted"):
+            raise ValueError(
+                "L2P model updaters are designed to work only with "
+                f"PromptedVisionTransformer, but model name specified is {model_name}."
+            )
     if model_state_url is None:
         model = model_class(**model_kwargs)
     else:
@@ -337,7 +343,7 @@ def train_transform(dataset_name: str, model_name: Optional[str] = None) -> Opti
     if dataset_name == "yearbook":
         if (
             model_name is not None
-            and model_name.startswith("VisionTransformer")
+            and "VisionTransformer" in model_name
             and model_name != "VisionTransformerCIFAR"
         ):
             return transforms.Compose(
@@ -387,7 +393,7 @@ def test_transform(
     if dataset_name == "yearbook":
         if (
             model_name is not None
-            and model_name.startswith("VisionTransformer")
+            and "VisionTransformer" in model_name
             and model_name != "VisionTransformerCIFAR"
         ):
             return transforms.Compose(
