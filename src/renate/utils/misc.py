@@ -24,7 +24,7 @@ def maybe_populate_mask_and_ignore_logits(
     classes_in_current_task: Optional[Set[int]],
     logits: torch.Tensor,
 ):
-    """Snippet to compute which logits to kill after computing the class mask if required."""
+    """Snippet to compute which logits to ignore after computing the class mask if required."""
     if use_masking:
         if class_mask is None:
             # Now is the time to repopulate the class_mask
