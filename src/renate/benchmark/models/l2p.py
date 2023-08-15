@@ -144,7 +144,7 @@ class PromptedVisionTransformer(RenateBenchmarkingModule):
 
     def __init__(
         self,
-        pretrained_model_name_or_path="google/vit-base-patch16-224-in21k",
+        pretrained_model_name_or_path="google/vit-base-patch16-224",
         image_size: int = 32,
         patch_size: int = 4,
         num_layers: int = 12,
@@ -244,7 +244,7 @@ class PromptedVisionTransformer(RenateBenchmarkingModule):
 
     def forward(self, x: torch.Tensor, task_id: str = defaults.TASK_ID) -> torch.Tensor:
         with torch.no_grad():
-            prompt_pool_input = self._backbone["vit"].get_logits(x, cls_feat=False, task_id=None)
+            prompt_pool_input = self._backbone["vit"].get_logits(x, cls_feat=False)
         if self.prompt_embedding_features == "cls":
             # retrieve cls token features. This is used in L2P paper.
             prompt_pool_input = prompt_pool_input[:, 0, :]
