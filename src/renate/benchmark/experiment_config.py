@@ -9,7 +9,6 @@ from torch.optim import AdamW, Optimizer
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR, _LRScheduler
 from torchmetrics.classification import MulticlassAccuracy
 from torchvision.transforms import transforms
-from torchvision.transforms.functional import InterpolationMode
 from transformers import AutoTokenizer
 from wild_time_data import default_transform
 
