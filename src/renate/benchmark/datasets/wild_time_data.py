@@ -90,7 +90,7 @@ class WildTimeDataModule(DataIncrementalDataModule):
             "time_step": available_time_steps(self._dataset_name)[self.data_id],
             "data_dir": self._data_path,
             "in_memory": self._dataset_name != "fmow",
-            "transform": None if self._dataset_name != "fmow" else lambda x: x,
+            "transform": None if self._dataset_name not in ["fmow", "yearbook"] else lambda x: x,
         }
         if self._tokenizer:
             kwargs["transform"] = lambda x: self._tokenizer(x, **(self._tokenizer_kwargs or {}))
