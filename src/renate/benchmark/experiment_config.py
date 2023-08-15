@@ -101,7 +101,7 @@ def model_fn(
         if updater == "Avalanche-iCaRL":
             raise ValueError("Transformers do not support iCaRL.")
         model_kwargs["pretrained_model_name"] = pretrained_model_name
-    elif "LearningToPrompt" in updater:
+    elif (updater is not None) and ("LearningToPrompt" in updater):
         if not model_name.startswith("Prompted"):
             raise ValueError(
                 "L2P model updaters are designed to work only with "
