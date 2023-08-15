@@ -107,10 +107,9 @@ class VisionTransformer(RenateBenchmarkingModule):
                 num_channels=3,
                 qkv_bias=True,
                 return_dict=False,
-                add_pooling_layer=False,
             )
 
-            model = FeatureExtractorViTModel(config=model_config)
+            model = FeatureExtractorViTModel(config=model_config, add_pooling_layer=False)
             constructor_args = {
                 "image_size": image_size,
                 "patch_size": patch_size,
