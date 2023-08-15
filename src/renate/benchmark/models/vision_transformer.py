@@ -40,7 +40,7 @@ class FeatureExtractorViTModel(ViTModel):
         )
         if isinstance(out_to_filter, BaseModelOutputWithPooling):
             return out_to_filter.pooler_output if cls_feat else out_to_filter.last_hidden_state
-        return out_to_filter[1] if cls_feat else out_to_filter[0]
+        return out_to_filter[0][:, 0] if cls_feat else out_to_filter[0]
 
 
 class VisionTransformer(RenateBenchmarkingModule):
@@ -91,7 +91,7 @@ class VisionTransformer(RenateBenchmarkingModule):
                 add_pooling_layer=False,
             )
 
-            constructor_args = dict(pretrained_model_name_or_path=pretrained_model_name_or_path)
+            constructor_args = dict()
         else:
             model_config = ViTConfig(
                 hidden_size=hidden_dim,
@@ -131,8 +131,9 @@ class VisionTransformer(RenateBenchmarkingModule):
         )
         self._backbone = model
 
-    def get_logits(self, *args, **kwargs):
-        """Over riding for simplicity"""
+    def get_features(self, *args, **kwargs):
+        # This is need as a shortcut to not call the base class's forward and directly call the
+        # backbone's forward. Used only in L2P.
         return self._backbone(*args, **kwargs)
 
 

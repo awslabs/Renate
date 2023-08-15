@@ -244,7 +244,7 @@ class PromptedVisionTransformer(RenateBenchmarkingModule):
 
     def forward(self, x: torch.Tensor, task_id: str = defaults.TASK_ID) -> torch.Tensor:
         with torch.no_grad():
-            prompt_pool_input = self._backbone["vit"].get_logits(x, cls_feat=False)
+            prompt_pool_input = self._backbone["vit"].get_features(x, cls_feat=False)
         if self.prompt_embedding_features == "cls":
             # retrieve cls token features. This is used in L2P paper.
             prompt_pool_input = prompt_pool_input[:, 0, :]
