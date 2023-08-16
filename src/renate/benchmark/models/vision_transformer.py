@@ -122,7 +122,7 @@ class VisionTransformer(RenateBenchmarkingModule):
             }
 
         super().__init__(
-            embedding_size=hidden_dim,
+            embedding_size=model.config.hidden_size,
             num_outputs=num_outputs,
             constructor_arguments=constructor_args,
             prediction_strategy=prediction_strategy,
