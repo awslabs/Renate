@@ -1,39 +1,58 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Dict, Optional
+from typing import Optional
 
-import torch
-from torch import Tensor
-from transformers import AutoModelForSequenceClassification
+from transformers import AutoModelForTextEncoding, PreTrainedModel
 
-from renate.models import RenateModule
+from renate.benchmark.models.base import RenateBenchmarkingModule
+from renate.models.prediction_strategies import PredictionStrategy
 
 
-class HuggingFaceSequenceClassificationTransformer(RenateModule):
-    """RenateModule which wraps around Hugging Face transformers.
+class FeatureExtractorTextTransformer(PreTrainedModel):
+    """This is a facade class to extract the correct output from the transformer model."""
+
+    def __init__(self, pretrained_model_name: str):
+        model = AutoModelForTextEncoding.from_pretrained(
+            pretrained_model_name_or_path=pretrained_model_name
+        )
+        super().__init__(model.config)
+        self._model = model
+
+    def forward(self, x):
+        out = self._model(**x, return_dict=True)
+        if hasattr(out, "pooler_output"):
+            return out.pooler_output
+        else:
+            return out.last_hidden_state[:, 0]  # 0th element is used for classification.
+
+
+class HuggingFaceSequenceClassificationTransformer(RenateBenchmarkingModule):
+    """RenateBenchmarkingModule which wraps around Hugging Face transformers.
 
     Args:
         pretrained_model_name: Hugging Face model id.
         num_outputs: Number of outputs.
+        prediction_strategy: Continual learning strategies may alter the prediction at train or test
+            time.
+        add_icarl_class_means: If ``True``, additional parameters used only by the
+            ``ICaRLModelUpdater`` are added. Only required when using that updater.
     """
 
     def __init__(
         self,
         pretrained_model_name: str,
-        num_outputs: int,
-    ) -> None:
+        num_outputs: int = 10,
+        prediction_strategy: Optional[PredictionStrategy] = None,
+        add_icarl_class_means: bool = True,
+    ):
+        model = FeatureExtractorTextTransformer(pretrained_model_name=pretrained_model_name)
+        constructor_args = dict(pretrained_model_name=pretrained_model_name)
         super().__init__(
-            constructor_arguments={
-                "pretrained_model_name": pretrained_model_name,
-                "num_outputs": num_outputs,
-            },
-        )
-        self._model = AutoModelForSequenceClassification.from_pretrained(
-            pretrained_model_name, num_labels=num_outputs, return_dict=False
+            embedding_size=model.config.hidden_size,
+            num_outputs=num_outputs,
+            constructor_arguments=constructor_args,
+            prediction_strategy=prediction_strategy,
+            add_icarl_class_means=add_icarl_class_means,
         )
 
-    def forward(self, x: Dict[str, Tensor], task_id: Optional[str] = None) -> torch.Tensor:
-        return self._model(**x)[0]
-
-    def _add_task_params(self, task_id: str) -> None:
-        assert not len(self._tasks_params_ids), "Transformer does not work for multiple tasks."
+        self._backbone = model
