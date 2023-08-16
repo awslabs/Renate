@@ -1,14 +1,29 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Dict, Optional
+from typing import Optional
 
-import torch
-from torch import Tensor
-from transformers import AutoModelForTextEncoding
+from transformers import AutoModelForTextEncoding, PreTrainedModel
 
 from renate.benchmark.models.base import RenateBenchmarkingModule
-from renate.models.prediction_strategies import ICaRLClassificationStrategy, PredictionStrategy
-from renate import defaults
+from renate.models.prediction_strategies import PredictionStrategy
+
+
+class FeatureExtractorTextTransformer(PreTrainedModel):
+    """This is a facade class to extract the correct output from the transformer model."""
+
+    def __init__(self, pretrained_model_name: str):
+        model = AutoModelForTextEncoding.from_pretrained(
+            pretrained_model_name_or_path=pretrained_model_name
+        )
+        super().__init__(model.config)
+        self._model = model
+
+    def forward(self, x):
+        out = self._model(**x, return_dict=True)
+        if hasattr(out, "pooler_output"):
+            return out.pooler_output
+        else:
+            return out.last_hidden_state[:, 0]  # 0th element is used for classification.
 
 
 class HuggingFaceSequenceClassificationTransformer(RenateBenchmarkingModule):
@@ -30,9 +45,7 @@ class HuggingFaceSequenceClassificationTransformer(RenateBenchmarkingModule):
         prediction_strategy: Optional[PredictionStrategy] = None,
         add_icarl_class_means: bool = True,
     ):
-        model = AutoModelForTextEncoding.from_pretrained(
-            pretrained_model_name_or_path=pretrained_model_name
-        )
+        model = FeatureExtractorTextTransformer(pretrained_model_name=pretrained_model_name)
         constructor_args = dict(pretrained_model_name=pretrained_model_name)
         super().__init__(
             embedding_size=model.config.hidden_size,
@@ -43,17 +56,3 @@ class HuggingFaceSequenceClassificationTransformer(RenateBenchmarkingModule):
         )
 
         self._backbone = model
-
-    def forward(self, x: Dict[str, Tensor], task_id: str = defaults.TASK_ID) -> torch.Tensor:
-        out = self.get_backbone(task_id=task_id)(**x, return_dict=True)
-        if hasattr(out, "pooler_output"):
-            x = out.pooler_output
-        else:
-            x = out.last_hidden_state[:, 0]  # 0th element is used for classification.
-        if isinstance(self._prediction_strategy, ICaRLClassificationStrategy):
-            return self._prediction_strategy(x, self.training, class_means=self.class_means)
-        else:
-            assert (
-                self._prediction_strategy is None
-            ), f"Unknown prediction strategy of type {type(self._prediction_strategy)}."
-        return self.get_predictor(task_id)(x)
