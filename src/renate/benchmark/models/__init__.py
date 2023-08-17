@@ -9,7 +9,7 @@ from renate.benchmark.models.resnet import (
     ResNet50,
     ResNet50CIFAR,
 )
-from renate.benchmark.models.l2p import PromptedVisionTransformer
+from renate.benchmark.models.l2p import LearningToPromptTransformer
 from renate.benchmark.models.vision_transformer import (
     VisionTransformerB16,
     VisionTransformerB32,
@@ -27,7 +27,7 @@ __all__ = [
     "ResNet34CIFAR",
     "ResNet50",
     "ResNet50CIFAR",
-    "PromptedVisionTransformer",
+    "LearningToPromptTransformer",
     "VisionTransformerB16",
     "VisionTransformerB32",
     "VisionTransformerCIFAR",

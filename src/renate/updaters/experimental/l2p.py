@@ -14,7 +14,7 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 
 from renate import defaults
-from renate.benchmark.models.l2p import PromptedVisionTransformer
+from renate.benchmark.models.l2p import LearningToPromptTransformer
 from renate.models import RenateModule
 from renate.types import NestedTensors
 from renate.updaters.experimental.offline_er import OfflineExperienceReplayLearner
@@ -41,8 +41,8 @@ class LearningToPromptLearner(Learner):
         **kwargs,
     ) -> None:
         assert isinstance(
-            kwargs["model"], PromptedVisionTransformer
-        ), f"{self.__class__.__name__} can only train a PromptedVisionTransformer model"
+            kwargs["model"], LearningToPromptTransformer
+        ), f"{self.__class__.__name__} can only train a LearningToPromptTransformer model"
         f"but got {type(kwargs['model'])}"
         super().__init__(
             **kwargs,
@@ -77,8 +77,8 @@ class LearningToPromptReplayLearner(OfflineExperienceReplayLearner):
         **kwargs,
     ) -> None:
         assert isinstance(
-            kwargs["model"], PromptedVisionTransformer
-        ), f"{self.__class__.__name__}  can only train a PromptedVisionTransformer model"
+            kwargs["model"], LearningToPromptTransformer
+        ), f"{self.__class__.__name__}  can only train a LearningToPromptTransformer model"
         f"but got {type(kwargs['model'])}"
 
         super().__init__(**kwargs)
@@ -90,7 +90,7 @@ class LearningToPromptReplayLearner(OfflineExperienceReplayLearner):
     ) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
         # The reason for rewriting is to ensure two independent forward props of inputs and memory
-        # samples. PromptedVisionTransformer uses per_batch_prompt which uses a single prompt
+        # samples. LearningToPromptTransformer uses per_batch_prompt which uses a single prompt
         # repeated across the batch. Hence, the separate processing of memory and input samples.
         if self._loss_weight_new_data is None:
             alpha = self._num_points_current_task / (

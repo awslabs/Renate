@@ -9,8 +9,9 @@ import torch.nn as nn
 
 from renate import defaults
 from renate.benchmark.models.base import RenateBenchmarkingModule
+from renate.benchmark.models.transformer import HuggingFaceSequenceClassificationTransformer
 from renate.benchmark.models.vision_transformer import VisionTransformer
-from renate.models.prediction_strategies import ICaRLClassificationStrategy, PredictionStrategy
+from renate.models.prediction_strategies import PredictionStrategy
 
 
 logger = logging.getLogger(__name__)
@@ -107,7 +108,7 @@ class PromptPool(nn.Module):
         return selected_prompts, loss_value
 
 
-class PromptedVisionTransformer(RenateBenchmarkingModule):
+class LearningToPromptTransformer(RenateBenchmarkingModule):
     """
     Implements the vision transformer with prompt pool described in
     Wang, Zifeng, et al. "Learning to prompt for continual learning." Proceedings of the
@@ -166,37 +167,8 @@ class PromptedVisionTransformer(RenateBenchmarkingModule):
         prompt_embedding_features: str = "cls",
         patch_pooler: str = "prompt_mean",
     ) -> None:
-        vit = VisionTransformer(
-            pretrained_model_name_or_path=pretrained_model_name_or_path,
-            image_size=image_size,
-            patch_size=patch_size,
-            num_layers=num_layers,
-            num_heads=num_heads,
-            hidden_dim=hidden_dim,
-            mlp_dim=mlp_dim,
-            dropout=dropout,
-            attention_dropout=attention_dropout,
-            prediction_strategy=prediction_strategy,
-            add_icarl_class_means=add_icarl_class_means,
-            num_outputs=num_outputs,
-        )
-        prompter = PromptPool(
-            embedding_dim=vit._embedding_size,
-            pool_size=pool_size,
-            pool_selection_size=pool_selection_size,
-            prompt_size=prompt_size,
-            prompt_key_dim=prompt_key_dim,
-            train_prompt_keys=train_prompt_keys,
-            similarity_fn=similarity_fn,
-            per_batch_prompt=per_batch_prompt,
-        )
-        super().__init__(
-            embedding_size=vit._embedding_size,
-            num_outputs=num_outputs,
-            constructor_arguments=dict(
-                num_outputs=num_outputs,
-                prompt_embedding_features=prompt_embedding_features,
-                patch_pooler=patch_pooler,
+        if "vit" in pretrained_model_name_or_path:
+            transformer = VisionTransformer(
                 pretrained_model_name_or_path=pretrained_model_name_or_path,
                 image_size=image_size,
                 patch_size=patch_size,
@@ -208,6 +180,35 @@ class PromptedVisionTransformer(RenateBenchmarkingModule):
                 attention_dropout=attention_dropout,
                 prediction_strategy=prediction_strategy,
                 add_icarl_class_means=add_icarl_class_means,
+                num_outputs=num_outputs,
+            )
+            self._is_text_transformer = False
+        else:
+            transformer = HuggingFaceSequenceClassificationTransformer(
+                pretrained_model_name_or_path=pretrained_model_name_or_path,
+                prediction_strategy=prediction_strategy,
+                add_icarl_class_means=add_icarl_class_means,
+                num_outputs=num_outputs,
+            )
+
+            self._is_text_transformer = True
+        transformer._tasks_params.clear()
+        prompter = PromptPool(
+            embedding_dim=transformer._embedding_size,
+            pool_size=pool_size,
+            pool_selection_size=pool_selection_size,
+            prompt_size=prompt_size,
+            prompt_key_dim=prompt_key_dim,
+            train_prompt_keys=train_prompt_keys,
+            similarity_fn=similarity_fn,
+            per_batch_prompt=per_batch_prompt,
+        )
+
+        super().__init__(
+            embedding_size=transformer._embedding_size,
+            num_outputs=num_outputs,
+            constructor_arguments=dict(
+                **transformer._constructor_arguments,
                 pool_size=pool_size,
                 pool_selection_size=pool_selection_size,
                 prompt_size=prompt_size,
@@ -220,7 +221,7 @@ class PromptedVisionTransformer(RenateBenchmarkingModule):
             add_icarl_class_means=add_icarl_class_means,
         )
 
-        self._backbone = nn.ModuleDict({"vit": vit, "prompter": prompter})
+        self._backbone = nn.ModuleDict({"transformer": transformer, "prompter": prompter})
         self.prompt_embedding_features = prompt_embedding_features
         self.patch_pooler = patch_pooler
         self.similarity_score: Optional[torch.Tensor] = None
@@ -236,53 +237,80 @@ class PromptedVisionTransformer(RenateBenchmarkingModule):
             "prompt_mean",
         ], f"Invalid method to extract prompt embedding features. Got {patch_pooler}"
 
-        for p in self._backbone["vit"].parameters():
-            p.requires_grad = False
-        self._backbone["vit"].eval()
+        for n, p in self._backbone["transformer"].named_parameters():
+            if "_tasks_params" not in n:
+                # this is because task params are present in text transformer, and not in the
+                # current LearningToPromptTransformer
+                p.requires_grad = False
+        self._backbone["transformer"].eval()
         for p in self._backbone["prompter"].parameters():
             p.requires_grad = True
 
-    def forward(self, x: torch.Tensor, task_id: str = defaults.TASK_ID) -> torch.Tensor:
-        with torch.no_grad():
-            prompt_pool_input = self._backbone["vit"].get_features(x, cls_feat=False)
-        if self.prompt_embedding_features == "cls":
-            # retrieve cls token features. This is used in L2P paper.
-            prompt_pool_input = prompt_pool_input[:, 0, :]
-        elif self.prompt_embedding_features == "mean":
-            # compute mean patch features.
-            prompt_pool_input = prompt_pool_input[:, 1:, :].mean(1)
+        if self._is_text_transformer:
+            ## This is to find the Embedding layer.
+            for named_param, value in self._backbone["transformer"].named_parameters():
+                if value.shape[0] == self._backbone["transformer"]._backbone.config.vocab_size:
+                    self.word_embeddings = self._backbone["transformer"].get_submodule(
+                        named_param.replace(".weight", "")
+                    )
+                    break
+        # The backbone's forward is monkey-patched to allow the parent class' forward to work
+        # without any manual management.
+        self._backbone.forward = self.forward_for_monkey_patching
 
-        # Compute the prompts to be stacked
-        prompts, prompt_similarity = self._backbone["prompter"](prompt_pool_input)
-        # compute patch embeddings
-        patch_embeddings = self._backbone["vit"].get_submodule("_backbone.embeddings")(x)
-        # concatenate both.
-        input_concat_prompt = torch.cat([patch_embeddings, prompts], dim=1)
-        ## rest of processing. this code is part of the ViTModel class in HF Transformers.
-        encoded_features = self._backbone["vit"].get_submodule("_backbone.encoder")(
-            input_concat_prompt, return_dict=False
-        )[0]
-        encoded_features = self._backbone["vit"].get_submodule("_backbone.layernorm")(
-            encoded_features
-        )
-
-        ## Save similarity
-        self.similarity_score = prompt_similarity
-
-        if self.patch_pooler == "cls":
-            seq_cls_token = encoded_features[:, 0, :]
-        elif self.patch_pooler == "mean":
-            seq_cls_token = encoded_features[:, 1:, :].mean(1)
-        elif self.patch_pooler == "prompt_mean":
-            num_prompts = prompts.size(1)
-            seq_cls_token = encoded_features[:, -num_prompts:, :].mean(1)
-
-        if isinstance(self._prediction_strategy, ICaRLClassificationStrategy):
-            return self._prediction_strategy(
-                seq_cls_token, self.training, class_means=self.class_means
+    def forward_for_monkey_patching(
+        self, x: torch.Tensor, task_id: str = defaults.TASK_ID
+    ) -> torch.Tensor:
+        if not self._is_text_transformer:
+            # The vision transformer code is manual strapping in.
+            with torch.no_grad():
+                prompt_pool_input = self._backbone["transformer"].get_features(x, cls_feat=False)
+            if self.prompt_embedding_features == "cls":
+                # retrieve cls token features. This is used in L2P paper.
+                prompt_pool_input = prompt_pool_input[:, 0, :]
+            elif self.prompt_embedding_features == "mean":
+                # compute mean patch features.
+                prompt_pool_input = prompt_pool_input[:, 1:, :].mean(1)
+            # Compute the prompts to be stacked
+            prompts, prompt_similarity = self._backbone["prompter"](prompt_pool_input)
+            # compute patch embeddings
+            patch_embeddings = self._backbone["transformer"].get_submodule("_backbone.embeddings")(
+                x
             )
+            # concatenate both.
+            input_concat_prompt = torch.cat([patch_embeddings, prompts], dim=1)
+            ## rest of processing. this code is part of the ViTModel class in HF Transformers.
+            encoded_features = self._backbone["transformer"].get_submodule("_backbone.encoder")(
+                input_concat_prompt, return_dict=False
+            )[0]
+            encoded_features = self._backbone["transformer"].get_submodule("_backbone.layernorm")(
+                encoded_features
+            )
+
+            ## Save similarity
+            self.similarity_score = prompt_similarity
+
+            if self.patch_pooler == "cls":
+                seq_cls_token = encoded_features[:, 0, :]
+            elif self.patch_pooler == "mean":
+                seq_cls_token = encoded_features[:, 1:, :].mean(1)
+            elif self.patch_pooler == "prompt_mean":
+                num_prompts = prompts.size(1)
+                seq_cls_token = encoded_features[:, -num_prompts:, :].mean(1)
+            return seq_cls_token
+
         else:
-            assert (
-                self._prediction_strategy is None
-            ), f"Unknown prediction strategy of type {type(self._prediction_strategy)}."
-        return self.get_predictor(task_id)(seq_cls_token)
+            ## The implicit assumption here is that x for text transformers is the input_ids.
+            # This simplified forward pass has 4 steps:
+            # 1. Get prompts
+            # 2. Get embeddings from inputs.
+            # 3. Concat prompt and inputs
+            # 4. Forward prop inputs_embeds to get the features. The forward of the RenateBM applies
+            #      the classifier and gets logits.
+            with torch.no_grad():
+                prompt_pool_input = self._backbone["transformer"].get_features(x)
+            prompts, prompt_similarity = self._backbone["prompter"](prompt_pool_input)  # 1
+            self.similarity_score = prompt_similarity
+            inputs_embeds = self.word_embeddings(x["input_ids"])  # 2
+            inputs_embeds = torch.cat((prompts, inputs_embeds), dim=1)  # 3
+            return self._backbone["transformer"].get_features({"inputs_embeds": inputs_embeds})  # 4
