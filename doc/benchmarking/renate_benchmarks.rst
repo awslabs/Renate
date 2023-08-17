@@ -95,7 +95,7 @@ The full list of models and model names including a short description is provide
       - * ``num_outputs``: Output dimensionality, for classification the number of classes.
     * - `~renate.benchmark.models.transformer.HuggingFaceSequenceClassificationTransformer`
       - Wrapper around Hugging Face transformers.
-      - * ``pretrained_model_name``: Hugging Face `transformer ID <https://huggingface.co/models>`__.
+      - * ``pretrained_model_name_or_path``: Hugging Face `transformer ID <https://huggingface.co/models>`__.
         * ``num_outputs``: The number of classes.
 
 

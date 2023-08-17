@@ -11,9 +11,9 @@ from renate.models.prediction_strategies import PredictionStrategy
 class FeatureExtractorTextTransformer(PreTrainedModel):
     """This is a facade class to extract the correct output from the transformer model."""
 
-    def __init__(self, pretrained_model_name: str):
+    def __init__(self, pretrained_model_name_or_path: str):
         model = AutoModelForTextEncoding.from_pretrained(
-            pretrained_model_name_or_path=pretrained_model_name
+            pretrained_model_name_or_path=pretrained_model_name_or_path
         )
         super().__init__(model.config)
         self._model = model
@@ -30,7 +30,7 @@ class HuggingFaceSequenceClassificationTransformer(RenateBenchmarkingModule):
     """RenateBenchmarkingModule which wraps around Hugging Face transformers.
 
     Args:
-        pretrained_model_name: Hugging Face model id.
+        pretrained_model_name_or_path: Hugging Face model id.
         num_outputs: Number of outputs.
         prediction_strategy: Continual learning strategies may alter the prediction at train or test
             time.
@@ -40,13 +40,15 @@ class HuggingFaceSequenceClassificationTransformer(RenateBenchmarkingModule):
 
     def __init__(
         self,
-        pretrained_model_name: str,
+        pretrained_model_name_or_path: str,
         num_outputs: int = 10,
         prediction_strategy: Optional[PredictionStrategy] = None,
         add_icarl_class_means: bool = True,
     ):
-        model = FeatureExtractorTextTransformer(pretrained_model_name=pretrained_model_name)
-        constructor_args = dict(pretrained_model_name=pretrained_model_name)
+        model = FeatureExtractorTextTransformer(
+            pretrained_model_name_or_path=pretrained_model_name_or_path
+        )
+        constructor_args = dict(pretrained_model_name_or_path=pretrained_model_name_or_path)
         super().__init__(
             embedding_size=model.config.hidden_size,
             num_outputs=num_outputs,
@@ -56,3 +58,6 @@ class HuggingFaceSequenceClassificationTransformer(RenateBenchmarkingModule):
         )
 
         self._backbone = model
+
+    def get_features(self, *args, **kwargs):
+        return self._backbone(*args, **kwargs)

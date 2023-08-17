@@ -46,7 +46,7 @@ def test_model_fn(model_name, expected_model_class):
         num_outputs=2,
         num_hidden_layers=1 if model_name == "MultiLayerPerceptron" else None,
         hidden_size=1 if model_name == "MultiLayerPerceptron" else None,
-        pretrained_model_name="distilbert-base-uncased"
+        pretrained_model_name_or_path="distilbert-base-uncased"
         if model_name == "HuggingFaceTransformer"
         else None,
     )
@@ -82,7 +82,7 @@ def test_model_fn_fails_for_unknown_model():
 
 
 @pytest.mark.parametrize(
-    "dataset_name,data_module_class,pretrained_model_name,input_column,target_column",
+    "dataset_name,data_module_class,pretrained_model_name_or_path,input_column,target_column",
     (
         ("CIFAR10", TorchVisionDataModule, None, None, None),
         ("CLEAR10", CLEARDataModule, None, None, None),
@@ -97,7 +97,12 @@ def test_model_fn_fails_for_unknown_model():
     ),
 )
 def test_get_data_module(
-    tmpdir, dataset_name, data_module_class, pretrained_model_name, input_column, target_column
+    tmpdir,
+    dataset_name,
+    data_module_class,
+    pretrained_model_name_or_path,
+    input_column,
+    target_column,
 ):
     data_module = get_data_module(
         data_path=tmpdir,
@@ -106,7 +111,7 @@ def test_get_data_module(
         seed=0,
         src_bucket=None,
         src_object_name=None,
-        pretrained_model_name=pretrained_model_name,
+        pretrained_model_name_or_path=pretrained_model_name_or_path,
         input_column=input_column,
         target_column=target_column,
     )
@@ -123,7 +128,7 @@ def test_get_data_module_fails_for_unknown_dataset(tmpdir):
             seed=0,
             src_bucket=None,
             src_object_name=None,
-            pretrained_model_name=None,
+            pretrained_model_name_or_path=None,
             input_column=None,
             target_column=None,
         )
@@ -137,7 +142,7 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         seed=0,
         src_bucket=None,
         src_object_name=None,
-        pretrained_model_name=None,
+        pretrained_model_name_or_path=None,
         input_column=None,
         target_column=None,
     )
@@ -155,7 +160,7 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             "ClassIncrementalScenario",
             "hfd-trec",
             {
-                "pretrained_model_name": "distilbert-base-uncased",
+                "pretrained_model_name_or_path": "distilbert-base-uncased",
                 "input_column": "text",
                 "target_column": "coarse_label",
                 "groupings": ((0, 1), (2, 3), (4, 5)),
@@ -206,7 +211,7 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         (
             "DataIncrementalScenario",
             "arxiv",
-            {"num_tasks": 3, "pretrained_model_name": "distilbert-base-uncased"},
+            {"num_tasks": 3, "pretrained_model_name_or_path": "distilbert-base-uncased"},
             DataIncrementalScenario,
             3,
         ),
@@ -274,7 +279,7 @@ def test_data_module_fn(
     elif expected_scenario_class == HueShiftScenario:
         assert scenario._randomness == scenario_kwargs["randomness"]
     elif expected_scenario_class == DataIncrementalScenario:
-        if "pretrained_model_name" in scenario_kwargs:
+        if "pretrained_model_name_or_path" in scenario_kwargs:
             assert scenario._data_module._tokenizer is not None
         elif dataset_name not in ["CLEAR10", "CLEAR100", "DomainNet"]:
             assert scenario._data_module._tokenizer is None
@@ -351,7 +356,7 @@ def test_prediction_strategy_is_correctly_set(model_name, updater):
     if model_name == "MultiLayerPerceptron":
         model_kwargs.update({"num_inputs": 10, "hidden_size": 10, "num_hidden_layers": 2})
     elif model_name == "HuggingFaceTransformer":
-        model_kwargs["pretrained_model_name"] = "distilbert-base-uncased"
+        model_kwargs["pretrained_model_name_or_path"] = "distilbert-base-uncased"
     if model_name == "HuggingFaceTransformer" and updater == "Avalanche-iCaRL":
         with pytest.raises(ValueError, match="Transformers do not support iCaRL."):
             model_fn(**model_kwargs)

@@ -21,7 +21,7 @@ from renate.benchmark.datasets.vision_datasets import (
 from renate.benchmark.datasets.wild_time_data import WildTimeDataModule
 from renate.benchmark.models import (
     MultiLayerPerceptron,
-    PromptedVisionTransformer,
+    LearningToPromptTransformer,
     ResNet18,
     ResNet18CIFAR,
     ResNet34,
@@ -65,7 +65,7 @@ models = {
     "VisionTransformerL32": VisionTransformerL32,
     "VisionTransformerH14": VisionTransformerH14,
     "HuggingFaceTransformer": HuggingFaceSequenceClassificationTransformer,
-    "PromptedVisionTransformer": PromptedVisionTransformer,
+    "LearningToPromptTransformer": LearningToPromptTransformer,
 }
 
 
@@ -78,7 +78,7 @@ def model_fn(
     num_hidden_layers: Optional[int] = None,
     hidden_size: Optional[Tuple[int]] = None,
     dataset_name: Optional[str] = None,
-    pretrained_model_name: Optional[str] = None,
+    pretrained_model_name_or_path: Optional[str] = None,
 ) -> RenateModule:
     """Returns a model instance."""
     if model_name not in models:
@@ -100,13 +100,14 @@ def model_fn(
     elif model_name == "HuggingFaceTransformer":
         if updater == "Avalanche-iCaRL":
             raise ValueError("Transformers do not support iCaRL.")
-        model_kwargs["pretrained_model_name"] = pretrained_model_name
+        model_kwargs["pretrained_model_name_or_path"] = pretrained_model_name_or_path
     elif (updater is not None) and ("LearningToPrompt" in updater):
-        if not model_name.startswith("Prompted"):
+        if not model_name.startswith("LearningToPrompt"):
             raise ValueError(
                 "L2P model updaters are designed to work only with "
-                f"PromptedVisionTransformer, but model name specified is {model_name}."
+                f"LearningToPromptTransformer, but model name specified is {model_name}."
             )
+        model_kwargs["pretrained_model_name_or_path"] = pretrained_model_name_or_path
     if model_state_url is None:
         model = model_class(**model_kwargs)
     else:
@@ -122,13 +123,13 @@ def get_data_module(
     dataset_name: str,
     val_size: float,
     seed: int,
-    pretrained_model_name: Optional[str],
+    pretrained_model_name_or_path: Optional[str],
     input_column: Optional[str],
     target_column: Optional[str],
 ) -> RenateDataModule:
     tokenizer = None
-    if pretrained_model_name is not None:
-        tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name)
+    if pretrained_model_name_or_path is not None and "vit" not in pretrained_model_name_or_path:
+        tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name_or_path)
     if dataset_name in TorchVisionDataModule.dataset_dict:
         return TorchVisionDataModule(
             data_path, dataset_name=dataset_name, val_size=val_size, seed=seed
@@ -144,7 +145,7 @@ def get_data_module(
             "val_size": val_size,
             "seed": seed,
         }
-        if pretrained_model_name is not None:
+        if pretrained_model_name_or_path is not None:
             data_module_kwargs["tokenizer"] = tokenizer
         return WildTimeDataModule(**data_module_kwargs)
     if dataset_name == "DomainNet":
@@ -285,7 +286,7 @@ def data_module_fn(
     randomness: Optional[float] = None,
     src_bucket: Optional[str] = None,
     src_object_name: Optional[str] = None,
-    pretrained_model_name: Optional[str] = None,
+    pretrained_model_name_or_path: Optional[str] = None,
     input_column: Optional[str] = None,
     target_column: Optional[str] = None,
     data_ids: Optional[List[Union[int, str]]] = None,
@@ -297,7 +298,7 @@ def data_module_fn(
         dataset_name=dataset_name,
         val_size=val_size,
         seed=seed,
-        pretrained_model_name=pretrained_model_name,
+        pretrained_model_name_or_path=pretrained_model_name_or_path,
         input_column=input_column,
         target_column=target_column,
     )
