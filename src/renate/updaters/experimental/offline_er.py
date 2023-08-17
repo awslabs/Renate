@@ -85,20 +85,10 @@ class OfflineExperienceReplayLearner(ReplayLearner):
                 collate_fn=self._train_collate_fn,
             )
         else:
-            # Manually create a dataloader for the current task with total batch size.
-            train_dataset = _TransformedDataset(
-                self._train_dataset,
-                transform=self._train_transform,
-                target_transform=self._train_target_transform,
-            )
-            loaders["current_task"] = DataLoader(
-                train_dataset,
-                batch_size=self._batch_size + self._memory_batch_size,
-                shuffle=True,
-                generator=self._rng,
-                pin_memory=True,
-                collate_fn=self._train_collate_fn,
-            )
+            batch_size = self._batch_size
+            self._batch_size += self._memory_batch_size
+            loaders["current_task"] = super().train_dataloader()
+            self._batch_size = batch_size
         return CombinedLoader(loaders, mode="max_size_cycle")
 
     def on_model_update_end(self) -> None:
