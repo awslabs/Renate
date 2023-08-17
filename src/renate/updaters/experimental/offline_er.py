@@ -13,7 +13,6 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset
 
 from renate import defaults
-from renate.data.datasets import _TransformedDataset
 from renate.models import RenateModule
 from renate.types import NestedTensors
 from renate.updaters.learner import ReplayLearner
