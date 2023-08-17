@@ -13,6 +13,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset
 
 from renate import defaults
+from renate.data.datasets import _TransformedDataset
 from renate.models import RenateModule
 from renate.types import NestedTensors
 from renate.updaters.learner import ReplayLearner
@@ -71,13 +72,28 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         self._num_points_current_task = len(train_dataset)
 
     def train_dataloader(self) -> DataLoader:
-        train_loader = super().train_dataloader()
-        loaders = {"current_task": train_loader}
+        loaders = {}
         if len(self._memory_buffer) > self._memory_batch_size:
+            loaders["current_task"] = super().train_dataloader()
             loaders["memory"] = DataLoader(
                 dataset=self._memory_buffer,
                 batch_size=self._memory_batch_size,
                 drop_last=True,
+                shuffle=True,
+                generator=self._rng,
+                pin_memory=True,
+                collate_fn=self._train_collate_fn,
+            )
+        else:
+            # Manually create a dataloader for the current task with total batch size.
+            train_dataset = _TransformedDataset(
+                self._train_dataset,
+                transform=self._train_transform,
+                target_transform=self._train_target_transform,
+            )
+            loaders["current_task"] = DataLoader(
+                train_dataset,
+                batch_size=self._batch_size + self._memory_batch_size,
                 shuffle=True,
                 generator=self._rng,
                 pin_memory=True,
