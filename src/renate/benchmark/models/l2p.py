@@ -135,7 +135,6 @@ class LearningToPromptTransformer(RenateBenchmarkingModule):
         prompt_size: Number of tokens each prompt is equivalent to.
         prompt_key_dim: Dimensions of the prompt key used to compute similarity. It has to be same
             to the dimensions of `x` in forward.
-        embedding_dim: Output dimension of the token/patch embedding layer
         train_prompt_keys: Whether to train the prompt keys. Currently unused.
         similarity_fn: Similarity function between input features and prompt keys.
         per_batch_prompt: Flag to use the same prompts for all elements in the batch.
@@ -238,10 +237,7 @@ class LearningToPromptTransformer(RenateBenchmarkingModule):
         ], f"Invalid method to extract prompt embedding features. Got {patch_pooler}"
 
         for n, p in self._backbone["transformer"].named_parameters():
-            if "_tasks_params" not in n:
-                # this is because task params are present in text transformer, and not in the
-                # current LearningToPromptTransformer
-                p.requires_grad = False
+            p.requires_grad = False
         self._backbone["transformer"].eval()
         for p in self._backbone["prompter"].parameters():
             p.requires_grad = True
