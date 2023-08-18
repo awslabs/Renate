@@ -29,18 +29,11 @@ class OfflineExperienceReplayLearner(ReplayLearner):
     terminated.
 
     Args:
-        memory_size: The maximum size of the memory.
-        memory_batch_size: Size of batches sampled from the memory. The memory batch will be
-            appended to the batch sampled from the current dataset, leading to an effective batch
-            size of `memory_batch_size + batch_size`.
         loss_weight_new_data: The training loss will be a convex combination of the loss on the new
             data and the loss on the memory data. If a float (needs to be in [0, 1]) is given here,
             it will be used as the weight for the new data. If `None`, the weight will be set
             dynamically to `N_t / sum([N_1, ..., N_t])`, where `N_i` denotes the size of task/chunk
             `i` and the current task is `t`.
-        buffer_transform: The transformation to be applied to the memory buffer data samples.
-        buffer_target_transform: The target transformation to be applied to the memory buffer target
-            samples.
     """
 
     def __init__(self, loss_weight_new_data: Optional[float] = None, **kwargs) -> None:
@@ -78,9 +71,9 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         self._num_points_current_task = len(train_dataset)
 
     def train_dataloader(self) -> DataLoader:
-        train_loader = super().train_dataloader()
-        loaders = {"current_task": train_loader}
+        loaders = {}
         if len(self._memory_buffer) > self._memory_batch_size:
+            loaders["current_task"] = super().train_dataloader()
             loaders["memory"] = DataLoader(
                 dataset=self._memory_buffer,
                 batch_size=self._memory_batch_size,
@@ -90,6 +83,11 @@ class OfflineExperienceReplayLearner(ReplayLearner):
                 pin_memory=True,
                 collate_fn=self._train_collate_fn,
             )
+        else:
+            batch_size = self._batch_size
+            self._batch_size += self._memory_batch_size
+            loaders["current_task"] = super().train_dataloader()
+            self._batch_size = batch_size
         return CombinedLoader(loaders, mode="max_size_cycle")
 
     def on_model_update_end(self) -> None:
@@ -147,7 +145,7 @@ class OfflineExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         loss_fn: torch.nn.Module,
         optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
+        batch_memory_frac: int = defaults.BATCH_MEMORY_FRAC,
         loss_weight_new_data: Optional[float] = None,
         learning_rate_scheduler: Optional[partial] = None,
         learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
@@ -178,7 +176,7 @@ class OfflineExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
     ):
         learner_kwargs = {
             "memory_size": memory_size,
-            "memory_batch_size": memory_batch_size,
+            "batch_memory_frac": batch_memory_frac,
             "loss_weight_new_data": loss_weight_new_data,
             "batch_size": batch_size,
             "seed": seed,

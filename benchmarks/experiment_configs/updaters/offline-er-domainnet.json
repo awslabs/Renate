@@ -1,6 +1,6 @@
 {
   "updater": "Offline-ER",
-  "batch_size": 32,
-  "memory_batch_size": 32,
+  "batch_size": 64,
+  "batch_memory_frac": 0.5,
   "memory_size": 3450
 }

@@ -15,13 +15,13 @@ _learner_config_space = {
     "momentum": choice([0.0, 0.9, 0.99]),
     "weight_decay": loguniform(1e-6, 1e-2),
     "learning_rate": loguniform(0.001, 0.5),
-    "batch_size": 32,
+    "batch_size": 64,
     "max_epochs": 50,
 }
 _replay_config_space = {
     **_learner_config_space,
     **{
-        "memory_batch_size": 32,
+        "batch_memory_frac": 0.5,
         "memory_size": 1000,
     },
 }
