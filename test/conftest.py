@@ -81,7 +81,7 @@ LEARNER_KWARGS = {
         "prompt_sim_loss_weight": 1,
         "loss_weight_new_data": 0.5,
         "memory_size": 30,
-        "memory_batch_size": 20,
+        "batch_memory_frac": 0.3,
     },
     GDumbLearner: {
         "batch_size": 10,
