@@ -365,7 +365,7 @@ def train_transform(dataset_name: str, model_name: Optional[str] = None) -> Opti
     ] + wild_time_data.list_datasets() or dataset_name.startswith("hfd-"):
         return None
     if dataset_name in ["CIFAR10", "CIFAR100"]:
-        if (model_name is not None) and ("Prompted" in model_name):
+        if (model_name is not None) and (("Prompted" in model_name) or ("Vision" in model_name)):
             return transforms.Compose(
                 [
                     transforms.RandomResizedCrop(
@@ -424,7 +424,7 @@ def test_transform(
     ] + wild_time_data.list_datasets() or dataset_name.startswith("hfd-"):
         return None
     if dataset_name in ["CIFAR10", "CIFAR100"]:
-        if (model_name is not None) and ("Prompted" in model_name):
+        if (model_name is not None) and (("Prompted" in model_name) or ("Vision" in model_name)):
             return transforms.Compose(
                 [
                     transforms.Resize(256),
