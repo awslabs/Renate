@@ -56,7 +56,7 @@ class LearningToPromptLearner(Learner):
         loss_dict = super().training_step(batch, batch_idx=batch_idx)
         key_similarity = -1 * self.prompt_sim_loss_weight * self._model.similarity_score
         loss_dict["loss"] += key_similarity
-        self._loss_collections["train_losses"]["key_sim_loss"](-key_similarity)
+        self._loss_collections["train_losses"]["key_sim"](-key_similarity)
         return loss_dict
 
 
@@ -133,7 +133,7 @@ class LearningToPromptReplayLearner(OfflineExperienceReplayLearner):
 
         key_similarity = -1 * self.prompt_sim_loss_weight * self._model.similarity_score
         loss += key_similarity
-        self._loss_collections["train_losses"]["key_sim_loss"](-key_similarity)
+        self._loss_collections["train_losses"]["key_sim"](-key_similarity)
         return {"loss": loss}
 
 
