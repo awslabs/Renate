@@ -50,6 +50,8 @@ from renate.data.data_module import RenateDataModule
 from renate.models import RenateModule
 from renate.models.prediction_strategies import ICaRLClassificationStrategy
 
+from renate.benchmark.models.spromptmodel import SPromptTransformer
+
 models = {
     "MultiLayerPerceptron": MultiLayerPerceptron,
     "ResNet18CIFAR": ResNet18CIFAR,
@@ -66,6 +68,7 @@ models = {
     "VisionTransformerH14": VisionTransformerH14,
     "HuggingFaceTransformer": HuggingFaceSequenceClassificationTransformer,
     "LearningToPromptTransformer": LearningToPromptTransformer,
+    "SPromptTransformer": SPromptTransformer,
 }
 
 
@@ -106,6 +109,13 @@ def model_fn(
             raise ValueError(
                 "L2P model updaters are designed to work only with "
                 f"LearningToPromptTransformer, but model name specified is {model_name}."
+            )
+        model_kwargs["pretrained_model_name_or_path"] = pretrained_model_name_or_path
+    elif (updater is not None) and ("SPrompt" in updater):
+        if not model_name.startswith("SPrompt"):
+            raise ValueError(
+                "SPrompt model updater is designed to work only with "
+                f"SPromptTransformer, but model name specified is {model_name}."
             )
         model_kwargs["pretrained_model_name_or_path"] = pretrained_model_name_or_path
     if model_state_url is None:

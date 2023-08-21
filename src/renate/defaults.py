@@ -112,6 +112,9 @@ TOKENIZER_KWARGS = {"padding": "max_length", "max_length": 128, "truncation": Tr
 # L2p
 PROMPT_SIM_LOSS_WEIGHT = 0.5
 
+# S-prompt
+CLUSTERS_PER_TASK = 5
+
 
 def scheduler(config_space: Dict[str, Any], mode: str, metric: str):
     return FIFOScheduler(
