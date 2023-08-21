@@ -342,10 +342,8 @@ def train_transform(dataset_name: str, model_name: Optional[str] = None) -> Opti
     if dataset_name == "fmow":
         return default_transform(dataset_name)
     if dataset_name == "yearbook":
-        if (
-            model_name is not None
-            and "VisionTransformer" in model_name
-            and model_name != "VisionTransformerCIFAR"
+        if (model_name is not None) and (
+            ("Transformer" in model_name) and (model_name != "VisionTransformerCIFAR")
         ):
             return transforms.Compose(
                 [
@@ -365,7 +363,9 @@ def train_transform(dataset_name: str, model_name: Optional[str] = None) -> Opti
     ] + wild_time_data.list_datasets() or dataset_name.startswith("hfd-"):
         return None
     if dataset_name in ["CIFAR10", "CIFAR100"]:
-        if (model_name is not None) and (("Prompted" in model_name) or ("Vision" in model_name)):
+        if (model_name is not None) and (
+            ("Transformer" in model_name) and (model_name != "VisionTransformerCIFAR")
+        ):
             return transforms.Compose(
                 [
                     transforms.RandomResizedCrop(
@@ -402,10 +402,8 @@ def test_transform(
     if dataset_name == "fmow":
         return default_transform(dataset_name)
     if dataset_name == "yearbook":
-        if (
-            model_name is not None
-            and "VisionTransformer" in model_name
-            and model_name != "VisionTransformerCIFAR"
+        if (model_name is not None) and (
+            ("Transformer" in model_name) and (model_name != "VisionTransformerCIFAR")
         ):
             return transforms.Compose(
                 [
@@ -424,7 +422,9 @@ def test_transform(
     ] + wild_time_data.list_datasets() or dataset_name.startswith("hfd-"):
         return None
     if dataset_name in ["CIFAR10", "CIFAR100"]:
-        if (model_name is not None) and (("Prompted" in model_name) or ("Vision" in model_name)):
+        if (model_name is not None) and (
+            ("Transformer" in model_name) and (model_name != "VisionTransformerCIFAR")
+        ):
             return transforms.Compose(
                 [
                     transforms.Resize(256),
