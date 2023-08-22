@@ -67,30 +67,20 @@ class SPromptLearner(Learner):
         device = next(self._model.parameters()).device
         with torch.inference_mode():
             for x, y in self.train_dataloader():
+                print(self._model._backbone["transformer"].get_features(x.to(device)).shape)
                 all_features.append(
-                    self._model._backbone["transformer"]
-                    .get_features(x.to(device))[:, 0, :]
-                    .detach()
-                    .cpu()
-                    .numpy()
+                    self._model._backbone["transformer"].get_features(x.to(device)).cpu().numpy()
                 )
+                break
 
         all_features = np.concatenate(all_features)
-        representative_centers, _ = kmeans(all_features, k_or_guess=10)
-        self._model.maybe_append_task_centroids(torch.from_numpy(representative_centers))
+        representative_centers, _ = kmeans(all_features, k_or_guess=self.clusters_per_task)
+        self._model.append_task_centroids(torch.from_numpy(representative_centers).to(device))
 
-    def on_model_update_start(
-        self,
-        train_dataset: Dataset,
-        val_dataset: Dataset,
-        train_dataset_collate_fn: Optional[Callable] = None,
-        val_dataset_collate_fn: Optional[Callable] = None,
-        task_id: Optional[str] = None,
-    ) -> None:
-        super().on_model_update_start(
-            train_dataset, val_dataset, train_dataset_collate_fn, val_dataset_collate_fn, task_id
-        )
-        self._model.add_s_prompts(task_id)
+    def setup(self, stage: str) -> None:
+        if stage == "fit":
+            # This needs to run before configure optimizers is called. The only hook is setup("fit")
+            self._model.add_s_prompts()
 
 
 class SPromptModelUpdater(SingleTrainingLoopUpdater):
