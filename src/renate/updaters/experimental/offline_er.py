@@ -87,6 +87,7 @@ class OfflineExperienceReplayLearner(ReplayLearner):
                 batch_sampler=ConcatRandomSampler(
                     [self._num_points_current_task, len(self._memory_buffer)],
                     [self._batch_size, self._memory_batch_size],
+                    0,
                     generator=self._rng,
                 ),
             )

@@ -158,19 +158,24 @@ def complementary_indices(num_outputs: int, valid_classes: Set[int]) -> List[int
     return [class_idx for class_idx in range(num_outputs) if class_idx not in valid_classes]
 
 
-class ConcatRandomSampler(Sampler[int]):
+class ConcatRandomSampler(BatchSampler):
     """Sampler for sampling batches from ConcatDatasets.
 
     Args:
         dataset_lengths: The length for the different datasets.
         batch_sizes: Batch sizes used for specific datasets.
+        complete_dataset_iteration: Provide an index to indicate over which dataset to fully iterate. By default, stops whenever iteration is complete for any dataset.
         generator (Generator): Generator used in sampling.
     """
 
-    def __init__(self, dataset_lengths, batch_sizes, generator=None) -> None:
+    def __init__(
+        self, dataset_lengths, batch_sizes, complete_dataset_iteration=None, generator=None
+    ) -> None:
         self.batch_sizes = batch_sizes
+        self.complete_dataset_iteration = complete_dataset_iteration
         self.subset_samplers = []
         start_idx = 0
+        num_batches = []
         for dataset_length, batch_size in zip(dataset_lengths, batch_sizes):
             end_idx = start_idx + dataset_length
             self.subset_samplers.append(
@@ -180,8 +185,32 @@ class ConcatRandomSampler(Sampler[int]):
                     True,
                 )
             )
+            num_batches.append(dataset_length // batch_size)
             start_idx = end_idx
+        self.length = (
+            min(num_batches)
+            if complete_dataset_iteration is None
+            else num_batches[self.complete_dataset_iteration]
+        )
 
     def __iter__(self) -> Iterator[List[int]]:
-        for samples in zip(*self.subset_samplers):
-            yield [j for i in samples for j in i]
+        if self.complete_dataset_iteration is None:
+            for samples in zip(*self.subset_samplers):
+                yield [j for i in samples for j in i]
+        else:
+            iterators = [iter(sampler) for sampler in self.subset_samplers]
+            for s in iterators[self.complete_dataset_iteration]:
+                samples = []
+                for i, iterator in enumerate(iterators):
+                    if i != self.complete_dataset_iteration:
+                        try:
+                            samples.append(next(iterator))
+                        except StopIteration:
+                            iterators[i] = iter(self.subset_samplers[i])
+                            samples.append(next(iterators[i]))
+                    else:
+                        samples.append(s)
+                yield [j for i in samples for j in i]
+
+    def __len__(self):
+        return self.length
