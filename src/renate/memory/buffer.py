@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import copy
 from collections import defaultdict
-from typing import Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import torch
 from torch.utils.data import Dataset
@@ -67,7 +67,7 @@ class DataBuffer(Dataset):
         """Returns the current length of the buffer."""
         return len(self._indices)
 
-    def __getitem__(self, idx: int) -> NestedTensors:
+    def __getitem__(self, idx: int) -> Tuple[NestedTensors, Dict[str, Any]]:
         """Reads the item at index `idx` of the buffer."""
         i, j = self._indices[idx]
         data = self._datasets[i][j]

@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 import logging
 import math
-from typing import List, Optional, Set, Tuple, Union
+from typing import Iterator, List, Optional, Set, Tuple, Union
 
 import torch
-from torch.utils.data import Dataset, random_split
+from torch.utils.data import BatchSampler, Dataset, Sampler, SubsetRandomSampler, random_split
 from transformers import BatchEncoding
 
 from renate import defaults
@@ -156,3 +156,32 @@ def complementary_indices(num_outputs: int, valid_classes: Set[int]) -> List[int
         valid_classes: A set of integers of valid classes.
     """
     return [class_idx for class_idx in range(num_outputs) if class_idx not in valid_classes]
+
+
+class ConcatRandomSampler(Sampler[int]):
+    """Sampler for sampling batches from ConcatDatasets.
+
+    Args:
+        dataset_lengths: The length for the different datasets.
+        batch_sizes: Batch sizes used for specific datasets.
+        generator (Generator): Generator used in sampling.
+    """
+
+    def __init__(self, dataset_lengths, batch_sizes, generator=None) -> None:
+        self.batch_sizes = batch_sizes
+        self.subset_samplers = []
+        start_idx = 0
+        for dataset_length, batch_size in zip(dataset_lengths, batch_sizes):
+            end_idx = start_idx + dataset_length
+            self.subset_samplers.append(
+                BatchSampler(
+                    SubsetRandomSampler(list(range(start_idx, end_idx)), generator),
+                    batch_size,
+                    True,
+                )
+            )
+            start_idx = end_idx
+
+    def __iter__(self) -> Iterator[List[int]]:
+        for samples in zip(*self.subset_samplers):
+            yield [j for i in samples for j in i]
