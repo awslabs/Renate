@@ -11,6 +11,7 @@ from renate.benchmark.scenarios import ClassIncrementalScenario
 from renate.memory.buffer import ReservoirBuffer
 from renate.utils import pytorch
 from renate.utils.pytorch import (
+    ConcatRandomSampler,
     cat_nested_tensors,
     complementary_indices,
     get_length_nested_tensors,
@@ -150,3 +151,22 @@ def test_unique_classes(tmpdir, test_dataset):
         buffer.update(ds, metadata)
         predicted_unique = unique_classes(buffer)
         assert predicted_unique == set(list(range(10)))
+
+
+@pytest.mark.parametrize(
+    "complete_dataset_iteration,expected_batches", [[None, 2], [0, 7], [1, 5], [2, 2]]
+)
+def test_concat_random_sampler(complete_dataset_iteration, expected_batches):
+    sampler = ConcatRandomSampler(
+        dataset_lengths=[15, 5, 20],
+        batch_sizes=[2, 1, 8],
+        complete_dataset_iteration=complete_dataset_iteration,
+    )
+    assert len(sampler) == expected_batches
+    num_batches = 0
+    for sample in sampler:
+        assert all([s < 15 for s in sample[:2]])
+        assert all([15 <= s < 20 for s in sample[2:3]])
+        assert all([20 <= s < 40 for s in sample[3:]])
+        num_batches += 1
+    assert num_batches == expected_batches
