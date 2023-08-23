@@ -20,7 +20,7 @@ def reinitialize_model_parameters(model: torch.nn.Module) -> None:
     implementations of exotic layers. A warning is logged for modules that do not implement
     `reset_parameters()`.
 
-    The actual logic of renitializing parameters depends on the type of layer. It may affect the
+    The actual logic of reintializing parameters depends on the type of layer. It may affect the
     module's buffers (non-trainable parameters, e.g., batch norm stats) as well.
 
     Args:
@@ -164,8 +164,8 @@ class ConcatRandomSampler(BatchSampler):
     Args:
         dataset_lengths: The length for the different datasets.
         batch_sizes: Batch sizes used for specific datasets.
-        complete_dataset_iteration: Provide an index to indicate over which dataset to fully iterate. By default, stops
-            whenever iteration is complete for any dataset.
+        complete_dataset_iteration: Provide an index to indicate over which dataset to fully
+            iterate. By default, stops whenever iteration is complete for any dataset.
         generator (Generator): Generator used in sampling.
     """
 
