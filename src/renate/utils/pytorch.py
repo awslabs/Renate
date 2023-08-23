@@ -5,7 +5,7 @@ import math
 from typing import Iterator, List, Optional, Set, Tuple, Union
 
 import torch
-from torch.utils.data import BatchSampler, Dataset, Sampler, SubsetRandomSampler, random_split
+from torch.utils.data import BatchSampler, Dataset, SubsetRandomSampler, random_split
 from transformers import BatchEncoding
 
 from renate import defaults
@@ -164,7 +164,8 @@ class ConcatRandomSampler(BatchSampler):
     Args:
         dataset_lengths: The length for the different datasets.
         batch_sizes: Batch sizes used for specific datasets.
-        complete_dataset_iteration: Provide an index to indicate over which dataset to fully iterate. By default, stops whenever iteration is complete for any dataset.
+        complete_dataset_iteration: Provide an index to indicate over which dataset to fully iterate. By default, stops
+            whenever iteration is complete for any dataset.
         generator (Generator): Generator used in sampling.
     """
 
