@@ -94,6 +94,8 @@ LEARNER_KWARGS = {
         "memory_size": 30,
         "batch_memory_frac": 0.4,
         "alpha": 0.5,
+        "alpha_schedule_init": 0.75,
+        "alpha_schedule_steps": 10,
         "batch_size": 50,
         "seed": 1,
     },
