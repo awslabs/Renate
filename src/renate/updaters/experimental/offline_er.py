@@ -29,21 +29,30 @@ class OfflineExperienceReplayLearner(ReplayLearner):
     terminated.
 
     Args:
-        loss_weight_new_data: The training loss will be a convex combination of the loss on the new
-            data and the loss on the memory data. If a float (needs to be in [0, 1]) is given here,
-            it will be used as the weight for the new data. If `None`, the weight will be set
-            dynamically to `N_t / sum([N_1, ..., N_t])`, where `N_i` denotes the size of task/chunk
-            `i` and the current task is `t`.
+        alpha: The training loss will be a convex combination of the loss on the new data and the
+            loss on the memory data. If a float (needs to be in [0, 1]) is given here, it will be
+            used as the weight for the new data. If `None`, the weight will be set dynamically to
+            `N_t / sum([N_1, ..., N_t])`, where `N_i` denotes the size of task/chunk `i` and the
+            current task is `t`.
+        alpha_schedule_init: If this is given, alpha (the weight for the new data) will be on a
+            schedule starting at `alpha_schedule_init` and linearly going towards `alpha` over
+            `alpha_schedule_steps` iterations.
+        alpha_schedule_steps: Number of steps over which `alpha` is adjusted.
     """
 
-    def __init__(self, loss_weight_new_data: Optional[float] = None, **kwargs) -> None:
+    def __init__(
+        self,
+        alpha: Optional[float] = None,
+        alpha_schedule_init: Optional[float] = None,
+        alpha_schedule_steps: Optional[int] = None,
+        **kwargs,
+    ) -> None:
         super().__init__(**kwargs)
-        if loss_weight_new_data is not None and not (0.0 <= loss_weight_new_data <= 1.0):
-            raise ValueError(
-                "Value of loss_weight_new_data needs to be between 0 and 1,"
-                f"got {loss_weight_new_data}."
-            )
-        self._loss_weight_new_data = loss_weight_new_data
+        if alpha is not None and not (0.0 <= alpha <= 1.0):
+            raise ValueError(f"Value of alpha needs to be in [0, 1], got {alpha}.")
+        self._alpha = alpha
+        self._alpha_schedule_init = alpha_schedule_init
+        self._alpha_schedule_steps = alpha_schedule_steps
         self._num_points_previous_tasks: int = 0
 
     def _create_metrics_collections(
@@ -96,15 +105,17 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         self._num_points_previous_tasks += self._num_points_current_task
         self._num_points_current_task = -1
 
+    def _compute_alpha(self) -> float:
+        alpha_target = self._alpha or self._num_points_current_task / (
+            self._num_points_current_task + self._num_points_previous_tasks
+        )
+        if self._alpha_schedule_init is None:
+            return alpha_target
+        interp = min(float(self.global_step) / self._alpha_schedule_steps, 1.0)
+        return interp * alpha_target + (1.0 - interp) * self._alpha_schedule_init
+
     def training_step(self, batch: Dict[str, Tuple[NestedTensors]], batch_idx: int) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
-        if self._loss_weight_new_data is None:
-            alpha = self._num_points_current_task / (
-                self._num_points_current_task + self._num_points_previous_tasks
-            )
-        else:
-            alpha = self._loss_weight_new_data
-        alpha = torch.tensor(alpha, device=next(self.parameters()).device)
         inputs, targets = batch["current_task"]
         batch_size_current = get_length_nested_tensors(inputs)
         if "memory" in batch:
@@ -122,6 +133,7 @@ class OfflineExperienceReplayLearner(ReplayLearner):
             loss_memory = loss[batch_size_current:].mean()
             self._loss_collections["train_losses"]["base_loss"](loss_current)
             self._loss_collections["train_losses"]["memory_loss"](loss_memory)
+            alpha = torch.tensor(self._compute_alpha(), device=next(self.parameters()).device)
             loss = alpha * loss_current + (1.0 - alpha) * loss_memory
         else:
             loss = loss.mean()
@@ -146,7 +158,9 @@ class OfflineExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
         batch_memory_frac: int = defaults.BATCH_MEMORY_FRAC,
-        loss_weight_new_data: Optional[float] = None,
+        alpha: Optional[float] = None,
+        alpha_schedule_init: Optional[float] = None,
+        alpha_schedule_steps: Optional[int] = None,
         learning_rate_scheduler: Optional[partial] = None,
         learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
@@ -177,7 +191,9 @@ class OfflineExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         learner_kwargs = {
             "memory_size": memory_size,
             "batch_memory_frac": batch_memory_frac,
-            "loss_weight_new_data": loss_weight_new_data,
+            "alpha": alpha,
+            "alpha_schedule_init": alpha_schedule_init,
+            "alpha_schedule_steps": alpha_schedule_steps,
             "batch_size": batch_size,
             "seed": seed,
         }

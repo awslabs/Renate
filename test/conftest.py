@@ -79,7 +79,7 @@ LEARNER_KWARGS = {
         "batch_size": 10,
         "seed": 42,
         "prompt_sim_loss_weight": 1,
-        "loss_weight_new_data": 0.5,
+        "alpha": 0.5,
         "memory_size": 30,
         "batch_memory_frac": 0.3,
     },
@@ -93,7 +93,7 @@ LEARNER_KWARGS = {
     OfflineExperienceReplayLearner: {
         "memory_size": 30,
         "batch_memory_frac": 0.4,
-        "loss_weight_new_data": 0.5,
+        "alpha": 0.5,
         "batch_size": 50,
         "seed": 1,
     },

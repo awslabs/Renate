@@ -92,13 +92,7 @@ class LearningToPromptReplayLearner(OfflineExperienceReplayLearner):
         # The reason for rewriting is to ensure two independent forward props of inputs and memory
         # samples. LearningToPromptTransformer uses per_batch_prompt which uses a single prompt
         # repeated across the batch. Hence, the separate processing of memory and input samples.
-        if self._loss_weight_new_data is None:
-            alpha = self._num_points_current_task / (
-                self._num_points_current_task + self._num_points_previous_tasks
-            )
-        else:
-            alpha = self._loss_weight_new_data
-        alpha = torch.tensor(alpha, device=batch["current_task"][0].device)
+        alpha = torch.tensor(self._compute_alpha(), device=batch["current_task"][0].device)
         inputs, targets = batch["current_task"]
         outputs = self(inputs)
 
@@ -219,7 +213,9 @@ class LearningToPromptReplayModelUpdater(SingleTrainingLoopUpdater):
         optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
         batch_memory_frac: float = defaults.BATCH_MEMORY_FRAC,
-        loss_weight_new_data: Optional[float] = None,
+        alpha: Optional[float] = None,
+        alpha_schedule_init: Optional[float] = None,
+        alpha_schedule_steps: Optional[int] = None,
         learning_rate_scheduler: Optional[partial] = None,
         learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         prompt_sim_loss_weight: float = defaults.PROMPT_SIM_LOSS_WEIGHT,
@@ -251,7 +247,9 @@ class LearningToPromptReplayModelUpdater(SingleTrainingLoopUpdater):
         learner_kwargs = {
             "memory_size": memory_size,
             "batch_memory_frac": batch_memory_frac,
-            "loss_weight_new_data": loss_weight_new_data,
+            "alpha": alpha,
+            "alpha_schedule_init": alpha_schedule_init,
+            "alpha_schedule_steps": alpha_schedule_steps,
             "batch_size": batch_size,
             "seed": seed,
             "prompt_sim_loss_weight": prompt_sim_loss_weight,

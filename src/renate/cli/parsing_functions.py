@@ -103,7 +103,13 @@ def get_updater_and_learner_kwargs(
         ]
         updater_class = SuperExperienceReplayModelUpdater
     elif args.updater == "Offline-ER":
-        learner_args = learner_args + ["loss_weight_new_data", "memory_size", "batch_memory_frac"]
+        learner_args = learner_args + [
+            "alpha",
+            "alpha_schedule_init",
+            "alpha_schedule_steps",
+            "memory_size",
+            "batch_memory_frac",
+        ]
         updater_class = OfflineExperienceReplayModelUpdater
     elif args.updater == "RD":
         learner_args = learner_args + ["memory_size"]
@@ -518,11 +524,21 @@ def _add_offline_er_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     _add_replay_learner_arguments(arguments)
     arguments.update(
         {
-            "loss_weight_new_data": {
+            "alpha": {
                 "type": float,
                 "default": None,
                 "help": "Weight assigned to loss on the new data.",
-            }
+            },
+            "alpha_schedule_init": {
+                "type": float,
+                "default": None,
+                "help": "Initial weight assigned to loss on the new data.",
+            },
+            "alpha_schedule_Steps": {
+                "type": int,
+                "default": None,
+                "help": "Number of steps over which to adjust alpha.",
+            },
         }
     )
 
