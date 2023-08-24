@@ -195,23 +195,26 @@ class ConcatRandomSampler(BatchSampler):
         )
 
     def __iter__(self) -> Iterator[List[int]]:
+        """Creates a batch with groups of indices where each group corresponds to one dataset."""
         if self.complete_dataset_iteration is None:
+            # Default case is iterating once over the shortest iterator. Works nicely with zip.
             for samples in zip(*self.subset_samplers):
                 yield [j for i in samples for j in i]
         else:
+            # Iterating over a specific iterator requires dealing with the length of other iterators.
             iterators = [iter(sampler) for sampler in self.subset_samplers]
             for s in iterators[self.complete_dataset_iteration]:
                 samples = []
                 for i, iterator in enumerate(iterators):
                     if i != self.complete_dataset_iteration:
                         try:
-                            samples.append(next(iterator))
+                            samples += next(iterator)
                         except StopIteration:
                             iterators[i] = iter(self.subset_samplers[i])
-                            samples.append(next(iterators[i]))
+                            samples += next(iterators[i])
                     else:
-                        samples.append(s)
-                yield [j for i in samples for j in i]
+                        samples += s
+                yield samples
 
     def __len__(self):
         return self.length
