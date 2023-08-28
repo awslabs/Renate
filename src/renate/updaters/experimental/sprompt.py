@@ -11,7 +11,6 @@ from scipy.cluster.vq import kmeans
 from torch.nn import Parameter
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
-from torch.utils.data import Dataset
 
 from renate import defaults
 from renate.benchmark.models.spromptmodel import SPromptTransformer
@@ -64,14 +63,13 @@ class SPromptLearner(Learner):
         super().on_model_update_end()
         ## k-means
         all_features = []
-        device = next(self._model.parameters()).device
+        device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cuda:0")
+        self._model.to(device)
         with torch.inference_mode():
             for x, y in self.train_dataloader():
-                print(self._model._backbone["transformer"].get_features(x.to(device)).shape)
                 all_features.append(
                     self._model._backbone["transformer"].get_features(x.to(device)).cpu().numpy()
                 )
-                break
 
         all_features = np.concatenate(all_features)
         representative_centers, _ = kmeans(all_features, k_or_guess=self.clusters_per_task)

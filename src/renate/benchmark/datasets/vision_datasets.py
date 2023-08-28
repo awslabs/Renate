@@ -359,6 +359,8 @@ class DomainNetDataModule(DataIncrementalDataModule):
     def prepare_data(self) -> None:
         """Download DomainNet dataset for given domain."""
         file_name = f"{self.data_id}.zip"
+        # update dataset name:
+        self._dataset_name = self.data_id
         url = "http://csr.bu.edu/ftp/visda/2019/multi-source/"
         if self.data_id in ["clipart", "painting"]:
             url = os.path.join(url, "groundtruth")

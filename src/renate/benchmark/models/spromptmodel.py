@@ -6,7 +6,6 @@ from typing import Any, Dict, Optional, Union
 import torch
 import torch.nn as nn
 
-from renate import defaults
 from renate.benchmark.models.base import RenateBenchmarkingModule
 from renate.benchmark.models.transformer import HuggingFaceSequenceClassificationTransformer
 from renate.benchmark.models.vision_transformer import VisionTransformer
@@ -67,7 +66,7 @@ class SPromptTransformer(RenateBenchmarkingModule):
             constructor_arguments=dict(
                 **transformer._constructor_arguments,
                 prompt_size=prompt_size,
-                task_id=task_id + 1,  # we store a +1 for the next update step.
+                task_id=task_id,  # we store a +1 for the next update step.
                 clusters_per_task=clusters_per_task,
             ),
             prediction_strategy=prediction_strategy,
@@ -77,7 +76,12 @@ class SPromptTransformer(RenateBenchmarkingModule):
         self._task_id = task_id
 
         self._backbone = nn.ModuleDict({"transformer": transformer})
-        self._s_prompts = torch.nn.ParameterDict()
+        self._s_prompts = torch.nn.ParameterDict(
+            {
+                f"{id}": nn.Parameter(torch.empty(self._M, self._embedding_size))
+                for id in range(task_id)
+            }
+        )
 
         self.register_buffer(
             "_training_feat_centroids",
@@ -116,7 +120,7 @@ class SPromptTransformer(RenateBenchmarkingModule):
     ) -> torch.Tensor:
         # Not that task_id is not yet set. So we access the last inserted prompt.
         if self.training:
-            prompt = self._s_prompts[list(self._s_prompts)[-1]]
+            prompt = self._s_prompts[f"{self._task_id}"]
         else:
             prompt = self._nearest_prompt(x)
         return (
@@ -175,3 +179,8 @@ class SPromptTransformer(RenateBenchmarkingModule):
                 ),
             ]
         )
+
+    def set_extra_state(self, state: Any, decode=True):
+        super().set_extra_state(state, decode)
+        # once this is set (after loading. increase that by one.)
+        self._constructor_arguments["task_id"] = self._task_id + 1
