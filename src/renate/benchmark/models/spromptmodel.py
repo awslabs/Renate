@@ -5,11 +5,12 @@ from typing import Any, Dict, Optional, Union
 
 import torch
 import torch.nn as nn
+from renate import defaults
 
 from renate.benchmark.models.base import RenateBenchmarkingModule
 from renate.benchmark.models.transformer import HuggingFaceSequenceClassificationTransformer
 from renate.benchmark.models.vision_transformer import VisionTransformer
-from renate.models.prediction_strategies import PredictionStrategy
+from renate.models.prediction_strategies import ICaRLClassificationStrategy, PredictionStrategy
 
 
 logger = logging.getLogger(__name__)
@@ -33,6 +34,7 @@ class SPromptTransformer(RenateBenchmarkingModule):
         prompt_size: int = 10,
         task_id: int = 0,
         clusters_per_task: int = 5,
+        per_task_classifier: bool = False,
     ):
         if "vit" in pretrained_model_name_or_path:
             transformer = VisionTransformer(
@@ -66,14 +68,17 @@ class SPromptTransformer(RenateBenchmarkingModule):
             constructor_arguments=dict(
                 **transformer._constructor_arguments,
                 prompt_size=prompt_size,
-                task_id=task_id,  # we store a +1 for the next update step.
+                task_id=task_id,
                 clusters_per_task=clusters_per_task,
+                per_task_classifier=per_task_classifier,
             ),
             prediction_strategy=prediction_strategy,
             add_icarl_class_means=add_icarl_class_means,
         )
         self._M = prompt_size
         self._task_id = task_id
+        self._per_task_classifier = per_task_classifier
+        logger.warning(f"Task id is {self._task_id}")
 
         self._backbone = nn.ModuleDict({"transformer": transformer})
         self._s_prompts = torch.nn.ParameterDict(
@@ -82,6 +87,19 @@ class SPromptTransformer(RenateBenchmarkingModule):
                 for id in range(task_id)
             }
         )
+        if self._per_task_classifier:
+            self._classifiers = nn.ModuleDict(
+                {
+                    f"{id}": nn.Linear(self._embedding_size, self._num_outputs)
+                    for id in range(task_id + 1)
+                }
+            )
+        else:
+            self._classifiers = nn.ModuleDict(
+                {"0": nn.Linear(self._embedding_size, self._num_outputs)}
+            )
+            for i in range(1, task_id + 1):
+                self._classifiers[f"{i}"] = self._classifiers["0"]
 
         self.register_buffer(
             "_training_feat_centroids",
@@ -114,19 +132,22 @@ class SPromptTransformer(RenateBenchmarkingModule):
             torch.empty((self._M, self._embedding_size)).uniform_(-1, 1)
         )
         self._s_prompts.requires_grad_(True)
+        if (key := f"{self._task_id}") not in self._classifiers:
+            self._classifiers[key] = nn.Linear(self._embedding_size, self._num_outputs)
 
     def forward_for_monkey_patching(
         self, x: Union[torch.Tensor, Dict[str, Any]], task_id: str = None
     ) -> torch.Tensor:
         # Not that task_id is not yet set. So we access the last inserted prompt.
         if self.training:
-            prompt = self._s_prompts[f"{self._task_id}"]
+            prompt, task_ids = self._s_prompts[f"{self._task_id}"], None
         else:
-            prompt = self._nearest_prompt(x)
+            prompt, task_ids = self._nearest_prompt(x)
         return (
             self._prompt_vit(x, prompt)
             if not self._is_text_transformer
-            else self._prompt_text_transformer(x, prompt)
+            else self._prompt_text_transformer(x, prompt),
+            task_ids,
         )
 
     def _prompt_text_transformer(self, x, prompt):
@@ -158,13 +179,24 @@ class SPromptTransformer(RenateBenchmarkingModule):
         return encoded_features[:, 0, :]
 
     def _nearest_prompt(self, x):
+        # logger.warning(f"Which phase in forward: {self.training}")
         if self._training_feat_centroids.numel() != 0:
+            # logger.warning("Centroids numel is not zero")
             feats = self._backbone["transformer"].get_features(x)  # BxD
-            nearest_p_inds = torch.cdist(feats, self._training_feat_centroids, p=1).argmin(1)
+            feats = torch.nn.functional.normalize(feats)
+            nearest_p_inds = (
+                torch.cdist(feats.unsqueeze(0), self._training_feat_centroids.unsqueeze(0), p=2)
+                .squeeze(0)
+                .argmin(1)
+            )
             train_feat_task_ids = self._training_feat_task_ids[nearest_p_inds]  # B x 1
-            return torch.cat([self._s_prompts[f"{i}"] for i in train_feat_task_ids])
+            return (
+                torch.cat([self._s_prompts[f"{i}"] for i in train_feat_task_ids]),
+                train_feat_task_ids,
+            )
         else:
-            return None
+            # logger.warning("Centroids numel is zero")
+            return None, None
 
     def append_task_centroids(self, centroids):
         self._training_feat_centroids = torch.cat([self._training_feat_centroids, centroids])
@@ -173,7 +205,7 @@ class SPromptTransformer(RenateBenchmarkingModule):
                 self._training_feat_task_ids,
                 torch.full(
                     (centroids.size(0),),
-                    self._task_id,
+                    fill_value=self._task_id,
                     dtype=torch.int8,
                     device=self._training_feat_task_ids.device,
                 ),
@@ -184,3 +216,24 @@ class SPromptTransformer(RenateBenchmarkingModule):
         super().set_extra_state(state, decode)
         # once this is set (after loading. increase that by one.)
         self._constructor_arguments["task_id"] = self._task_id + 1
+
+    def forward(self, x: torch.Tensor, task_id: str = defaults.TASK_ID) -> torch.Tensor:
+        x, local_task_id = self.forward_for_monkey_patching(x, task_id)
+        if local_task_id is None:
+            ## In  training mode, so use the task_id to extract the linear.
+            # print(f"In train mode: {self._task_id}")
+            out = self._classifiers[f"{self._task_id}"](x)
+        else:
+            print(f"In eval mode: {local_task_id}")
+            out = torch.cat([self._classifiers[f"{i}"](x[i].unsqueeze(0)) for i in local_task_id])
+            # print(out.shape)
+
+        return out
+
+        # if isinstance(self._prediction_strategy, ICaRLClassificationStrategy):
+        #     return self._prediction_strategy(x, self.training, class_means=self.class_means)
+    #     # else:
+    #     #     assert (
+    #     #         self._prediction_strategy is None
+    #     #     ), f"Unknown prediction strategy of type {type(self._prediction_strategy)}."
+    #     # return self.get_predictor(task_id)(x)

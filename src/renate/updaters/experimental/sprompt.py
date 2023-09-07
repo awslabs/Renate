@@ -68,7 +68,11 @@ class SPromptLearner(Learner):
         with torch.inference_mode():
             for x, y in self.train_dataloader():
                 all_features.append(
-                    self._model._backbone["transformer"].get_features(x.to(device)).cpu().numpy()
+                    torch.nn.functional.normalize(
+                        self._model._backbone["transformer"].get_features(x.to(device))
+                    )
+                    .cpu()
+                    .numpy()
                 )
 
         all_features = np.concatenate(all_features)
@@ -76,9 +80,18 @@ class SPromptLearner(Learner):
         self._model.append_task_centroids(torch.from_numpy(representative_centers).to(device))
 
     def setup(self, stage: str) -> None:
+        # We dont support distributed
+        assert (
+            self.trainer.world_size == 1
+        ), "SPrompt learner does not support Multi-GPU training yet."
         if stage == "fit":
             # This needs to run before configure optimizers is called. The only hook is setup("fit")
             self._model.add_s_prompts()
+
+    # def on_after_backward(self) -> None:
+    #     for key in self._model._classifiers:
+    #         print(key)
+    #         print(self._model._classifiers[key].weight.grad)
 
 
 class SPromptModelUpdater(SingleTrainingLoopUpdater):
