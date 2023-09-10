@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from renate.benchmark.models.l2p import LearningToPromptTransformer, PromptPool
+from renate.benchmark.models.l2p import LearningToPromptTransformer, PromptPool, PromptedTransformer
 
 
 def test_prompt_pool():
@@ -62,3 +62,27 @@ def test_prompt_vision_transformer_trainable_parameters(backbone, num_trainable_
     model = LearningToPromptTransformer(pretrained_model_name_or_path=backbone)
     n = sum(1 for x in model.parameters() if x.requires_grad)
     assert n == num_trainable_params
+
+
+@pytest.mark.parametrize("backbone", ["google/vit-base-patch16-224", "bert-base-uncased"])
+@pytest.mark.parametrize("prompt", [None, torch.rand(3, 10, 768)])
+@pytest.mark.parametrize("cls_feat", [True, False])
+def test_prompted_transformer(backbone, prompt, cls_feat):
+    model = PromptedTransformer(
+        pretrained_model_name_or_path=backbone,
+        num_outputs=10,
+        prediction_strategy=None,
+        add_icarl_class_means=False,
+    )
+
+    B, P_len, _ = prompt.shape if prompt is not None else (5, 0, 0)
+    if "vit" in backbone:
+        # we are doing ViT.
+        inputs = torch.rand(B, 3, 224, 224)
+        expected_output_size = (B, 197 + P_len, 768) if not cls_feat else (B, 768)
+    else:
+        inputs = {"input_ids": torch.randint(0, 10000, (B, 128))}
+        expected_output_size = (B, 768)
+
+    out = model(inputs, prompt, cls_feat=cls_feat)
+    assert out.shape == expected_output_size
