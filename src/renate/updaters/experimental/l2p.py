@@ -48,7 +48,7 @@ class LearningToPromptLearner(Learner):
             **kwargs,
         )
         self.prompt_sim_loss_weight = prompt_sim_loss_weight
-        self._loss_collections["train_losses"].update({"key_sim_loss": torchmetrics.MeanMetric()})
+        self._loss_collections["train_losses"].update({"key_sim": torchmetrics.MeanMetric()})
 
     def training_step(
         self, batch: Tuple[NestedTensors, torch.Tensor], batch_idx: int
