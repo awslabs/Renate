@@ -1,19 +1,158 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import logging
-from typing import Any, Dict, Optional, Union
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional, Union
 
+import numpy as np
+import numpy.typing as npt
 import torch
 import torch.nn as nn
+from sklearn.cluster import KMeans
+from torch.nn.parameter import Parameter
+
 from renate import defaults
+from renate.models.prediction_strategies import PredictionStrategy
+from renate.types import NestedTensors
 
-from renate.benchmark.models.base import RenateBenchmarkingModule
-from renate.benchmark.models.transformer import HuggingFaceSequenceClassificationTransformer
-from renate.benchmark.models.vision_transformer import VisionTransformer
-from renate.models.prediction_strategies import ICaRLClassificationStrategy, PredictionStrategy
-
+from . import PromptedTransformer
+from .base import RenateBenchmarkingModule
 
 logger = logging.getLogger(__name__)
+
+
+class SharedMultipleLinear(nn.ModuleDict):
+    def __init__(
+        self,
+        in_features: int,
+        out_features: int,
+        share_parameters: bool = True,
+        num_updates: int = 0,
+    ) -> None:
+        self._share_parameters = share_parameters
+        self.in_features = in_features
+        self.out_features = out_features
+
+        if share_parameters:
+            # we only have a single linear.
+            layer = nn.Linear(in_features=in_features, out_features=out_features)
+            all_layers = {f"{id}": layer for id in range(num_updates)}
+        else:
+            all_layers = {
+                f"{id}": nn.Linear(in_features=in_features, out_features=out_features)
+                for id in range(num_updates)
+            }
+        super().__init__(all_layers)
+
+    def increment_task(self) -> None:
+        currlen = len(self)
+        if self._share_parameters:
+            self[f"{currlen}"] = self[list(self.keys())[0]]
+        else:
+            self[f"{currlen}"] = nn.Linear(
+                in_features=self.in_features, out_features=self.out_features
+            )
+
+
+class PromptPool(nn.Module):
+    def __init__(
+        self, prompt_size: int = 10, embedding_size: int = 768, current_update_id: int = 0
+    ) -> None:
+        super().__init__()
+        self._M = prompt_size
+        self._embedding_size = embedding_size
+        self._curr_task = current_update_id
+
+        self._pool = nn.ParameterDict()
+        for id in range(self._curr_task):
+            self._pool[f"{id}"] = nn.Parameter(
+                torch.empty((self._M, self._embedding_size)).uniform_(-1, 1)
+            )
+
+        self._pool.requires_grad_(True)
+
+    def forward(self, id: int) -> torch.nn.Parameter:
+        return self._pool[f"{id}"]
+
+    def get_params(self, id: int) -> List[torch.nn.Parameter]:
+        return [self._pool[f"{id}"]]
+
+    def increment_task(self) -> None:
+        self._pool[f"{len(self._pool)}"] = nn.Parameter(
+            torch.empty((self._M, self._embedding_size)).uniform_(-1, 1)
+        )
+
+
+class TaskEstimator(nn.Module, ABC):
+    @abstractmethod
+    def update_task_prototypes(self):
+        return
+
+    @abstractmethod
+    def infer_task(self):
+        return
+
+
+class TaskPrototypes(TaskEstimator):
+    def __init__(self, task_id, clusters_per_task, embedding_size) -> None:
+        super().__init__()
+        self.register_buffer(
+            "_training_feat_centroids",
+            torch.empty(task_id * clusters_per_task, embedding_size),
+        )
+        self.register_buffer(
+            "_training_feat_task_ids",
+            torch.full(
+                (self._training_feat_centroids.size(0),), fill_value=task_id, dtype=torch.long
+            ),
+        )
+        self._clusters_per_task = clusters_per_task
+        self._task_id = task_id
+        self._embedding_size = embedding_size
+
+    @torch.no_grad()
+    def update_task_prototypes(
+        self,
+        features: Union[torch.Tensor, npt.ArrayLike],
+        labels: Union[torch.Tensor, npt.ArrayLike],
+    ):
+        if isinstance(features, torch.Tensor):
+            features = features.cpu().numpy()
+
+        # l2 normalize features:
+        features = features / np.linalg.norm(features, axis=1, keepdims=True)
+
+        centroids = torch.from_numpy(
+            KMeans(n_clusters=self._clusters_per_task, random_state=0)
+            .fit(features)
+            .cluster_centers_
+        ).to(self._training_feat_centroids.device)
+
+        self._training_feat_centroids = torch.cat(
+            [
+                self._training_feat_centroids,
+                centroids,
+            ]
+        )
+        self._training_feat_task_ids = torch.cat(
+            [
+                self._training_feat_task_ids,
+                torch.full(
+                    (centroids.size(0),),
+                    fill_value=self._task_id,
+                    dtype=torch.int8,
+                    device=self._training_feat_task_ids.device,
+                ),
+            ]
+        )
+
+    def infer_task(self, features: torch.Tensor) -> torch.Tensor:
+        if self._training_feat_centroids.numel() > 0:
+            features = torch.nn.functional.normalize(features)
+            nearest_p_inds = torch.cdist(features, self._training_feat_centroids, p=2).argmin(1)
+            return self._training_feat_task_ids[nearest_p_inds]
+        else:
+            return None
 
 
 class SPromptTransformer(RenateBenchmarkingModule):
@@ -36,37 +175,25 @@ class SPromptTransformer(RenateBenchmarkingModule):
         clusters_per_task: int = 5,
         per_task_classifier: bool = False,
     ):
-        if "vit" in pretrained_model_name_or_path:
-            transformer = VisionTransformer(
-                pretrained_model_name_or_path=pretrained_model_name_or_path,
-                image_size=image_size,
-                patch_size=patch_size,
-                num_layers=num_layers,
-                num_heads=num_heads,
-                hidden_dim=hidden_dim,
-                mlp_dim=mlp_dim,
-                dropout=dropout,
-                attention_dropout=attention_dropout,
-                prediction_strategy=prediction_strategy,
-                add_icarl_class_means=add_icarl_class_means,
-                num_outputs=num_outputs,
-            )
-            self._is_text_transformer = False
-        else:
-            transformer = HuggingFaceSequenceClassificationTransformer(
-                pretrained_model_name_or_path=pretrained_model_name_or_path,
-                prediction_strategy=prediction_strategy,
-                add_icarl_class_means=add_icarl_class_means,
-                num_outputs=num_outputs,
-            )
-
-            self._is_text_transformer = True
-
+        transformer = PromptedTransformer(
+            pretrained_model_name_or_path=pretrained_model_name_or_path,
+            image_size=image_size,
+            patch_size=patch_size,
+            num_layers=num_layers,
+            num_heads=num_heads,
+            hidden_dim=hidden_dim,
+            mlp_dim=mlp_dim,
+            dropout=dropout,
+            attention_dropout=attention_dropout,
+            num_outputs=num_outputs,
+            prediction_strategy=prediction_strategy,
+            add_icarl_class_means=add_icarl_class_means,
+        )
         super().__init__(
-            embedding_size=transformer._embedding_size,
+            embedding_size=transformer.transformer._embedding_size,
             num_outputs=num_outputs,
             constructor_arguments=dict(
-                **transformer._constructor_arguments,
+                **transformer.transformer._constructor_arguments,
                 prompt_size=prompt_size,
                 task_id=task_id,
                 clusters_per_task=clusters_per_task,
@@ -80,160 +207,90 @@ class SPromptTransformer(RenateBenchmarkingModule):
         self._per_task_classifier = per_task_classifier
         logger.warning(f"Task id is {self._task_id}")
 
-        self._backbone = nn.ModuleDict({"transformer": transformer})
-        self._s_prompts = torch.nn.ParameterDict(
-            {
-                f"{id}": nn.Parameter(torch.empty(self._M, self._embedding_size))
-                for id in range(task_id)
-            }
+        prompt_pool = PromptPool(
+            prompt_size=self._M,
+            embedding_size=self._embedding_size,
+            current_update_id=self._task_id,
         )
-        if self._per_task_classifier:
-            self._classifiers = nn.ModuleDict(
-                {
-                    f"{id}": nn.Linear(self._embedding_size, self._num_outputs)
-                    for id in range(task_id + 1)
-                }
-            )
-        else:
-            self._classifiers = nn.ModuleDict(
-                {"0": nn.Linear(self._embedding_size, self._num_outputs)}
-            )
-            for i in range(1, task_id + 1):
-                self._classifiers[f"{i}"] = self._classifiers["0"]
 
-        self.register_buffer(
-            "_training_feat_centroids",
-            torch.zeros(task_id * clusters_per_task, transformer._embedding_size),
+        self._backbone = nn.ModuleDict({"transformer": transformer, "prompt_pool": prompt_pool})
+        self._tasks_params = SharedMultipleLinear(
+            self._embedding_size, self._num_outputs, True, num_updates=self._task_id + 1
         )
-        self.register_buffer(
-            "_training_feat_task_ids",
-            torch.full((self._training_feat_centroids.size(0),), task_id, dtype=torch.int8),
+        self._task_id_method = TaskPrototypes(
+            task_id=task_id,
+            clusters_per_task=clusters_per_task,
+            embedding_size=self._embedding_size,
         )
-        for n, p in self._backbone.named_parameters():
-            p.requires_grad = False
-        self._s_prompts.requires_grad_(True)
+        self._backbone["transformer"].requires_grad_(False)
+        self._backbone["prompt_pool"].requires_grad_(True)
+        # self._backbone.forward = self.forward_for_monkey_patching
 
-        if self._is_text_transformer:
-            ## This is to find the Embedding layer.
-            for named_param, value in self._backbone["transformer"].named_parameters():
-                if value.shape[0] == self._backbone["transformer"]._backbone.config.vocab_size:
-                    self.word_embeddings = self._backbone["transformer"].get_submodule(
-                        named_param.replace(".weight", "")
-                    )
-                    break
-
-        self._backbone.forward = self.forward_for_monkey_patching
-
-    def add_s_prompts(self) -> None:
+    def increment_task(self) -> None:
         # This cannot be a part of add_task_params as the super.__init__ function calls
         # add_task_params and thus we would be trying parameters to the non-existent
         # self.s_prompts
-        self._s_prompts[f"{self._task_id}"] = nn.Parameter(
-            torch.empty((self._M, self._embedding_size)).uniform_(-1, 1)
-        )
-        self._s_prompts.requires_grad_(True)
-        if (key := f"{self._task_id}") not in self._classifiers:
-            self._classifiers[key] = nn.Linear(self._embedding_size, self._num_outputs)
+        key = f"{self._task_id}"
+        self._backbone["prompt_pool"].increment_task()
+        self._add_task_params(key)
+        self._tasks_params.increment_task()
 
-    def forward_for_monkey_patching(
-        self, x: Union[torch.Tensor, Dict[str, Any]], task_id: str = None
-    ) -> torch.Tensor:
-        # Not that task_id is not yet set. So we access the last inserted prompt.
-        if self.training:
-            prompt, task_ids = self._s_prompts[f"{self._task_id}"], None
-        else:
-            prompt, task_ids = self._nearest_prompt(x)
-        return (
-            self._prompt_vit(x, prompt)
-            if not self._is_text_transformer
-            else self._prompt_text_transformer(x, prompt),
-            task_ids,
-        )
+    # def forward_for_monkey_patching(
+    #     self, x: Union[torch.Tensor, Dict[str, Any]], task_id: str = None
+    # ) -> torch.Tensor:
+    #     prompt = None
+    #     if self.training:
+    #         prompt = self._backbone["prompt_pool"](self._task_id)
+    #     else:
+    #         task_ids = self._task_id_method.infer_task(self._backbone["transformer"](x))
+    #         if task_ids is not None:
+    #             prompt = torch.cat([self._backbone["prompt_pool"](i) for i in task_ids])
 
-    def _prompt_text_transformer(self, x, prompt):
-        inputs_embeds = self.word_embeddings(x["input_ids"])
-        if prompt is not None:
-            if prompt.size(0) != inputs_embeds.size(0):
-                prompt = prompt.unsqueeze(0).expand(
-                    inputs_embeds.size(0), -1, -1
-                )  # Expand one prompt to batch size
-            inputs_embeds = torch.cat((prompt, inputs_embeds), dim=1)
-        return self._backbone["transformer"].get_features({"inputs_embeds": inputs_embeds})[:, 0, :]
+    #     features = self._backbone["transformer"](x, prompt)
+    #     return features
 
-    def _prompt_vit(self, x, prompt):
-        patch_embeddings = self._backbone["transformer"].get_submodule("_backbone.embeddings")(x)
-        if prompt is not None:
-            if prompt.size(0) != x.size(0):
-                prompt = prompt.unsqueeze(0).expand(
-                    x.size(0), -1, -1
-                )  # Expand one prompt to batch size# Expand one prompt to batch size
-            input_concat_prompt = torch.cat([patch_embeddings, prompt], dim=1)
-        else:
-            input_concat_prompt = patch_embeddings
-        encoded_features = self._backbone["transformer"].get_submodule("_backbone.encoder")(
-            input_concat_prompt, return_dict=False
-        )[0]
-        encoded_features = self._backbone["transformer"].get_submodule("_backbone.layernorm")(
-            encoded_features
-        )
-        return encoded_features[:, 0, :]
-
-    def _nearest_prompt(self, x):
-        # logger.warning(f"Which phase in forward: {self.training}")
-        if self._training_feat_centroids.numel() != 0:
-            # logger.warning("Centroids numel is not zero")
-            feats = self._backbone["transformer"].get_features(x)  # BxD
-            feats = torch.nn.functional.normalize(feats)
-            nearest_p_inds = (
-                torch.cdist(feats.unsqueeze(0), self._training_feat_centroids.unsqueeze(0), p=2)
-                .squeeze(0)
-                .argmin(1)
-            )
-            train_feat_task_ids = self._training_feat_task_ids[nearest_p_inds]  # B x 1
-            return (
-                torch.cat([self._s_prompts[f"{i}"] for i in train_feat_task_ids]),
-                train_feat_task_ids,
-            )
-        else:
-            # logger.warning("Centroids numel is zero")
-            return None, None
-
-    def append_task_centroids(self, centroids):
-        self._training_feat_centroids = torch.cat([self._training_feat_centroids, centroids])
-        self._training_feat_task_ids = torch.cat(
-            [
-                self._training_feat_task_ids,
-                torch.full(
-                    (centroids.size(0),),
-                    fill_value=self._task_id,
-                    dtype=torch.int8,
-                    device=self._training_feat_task_ids.device,
-                ),
-            ]
-        )
+    def update_task_identifier(self, features: torch.Tensor, labels: torch.Tensor) -> None:
+        self._task_id_method.update_task_prototypes(features, labels)
 
     def set_extra_state(self, state: Any, decode=True):
         super().set_extra_state(state, decode)
         # once this is set (after loading. increase that by one.)
         self._constructor_arguments["task_id"] = self._task_id + 1
 
+    def get_params(self, task_id: str = defaults.TASK_ID) -> List[Parameter]:
+        import warnings
+
+        warnings.warn(f"Length of opreds: {len(self._tasks_params)}, {self._tasks_params.keys()}")
+        return self._backbone["prompt_pool"].get_params(self._task_id) + list(
+            self.get_predictor(str(self._task_id)).parameters()
+        )
+
+    def get_logits(self, x: NestedTensors, task_id: Optional[str] = None) -> torch.Tensor:
+        if task_id == "default_task":
+            task_id = "0"
+        return super().get_logits(x, task_id)
+
     def forward(self, x: torch.Tensor, task_id: str = defaults.TASK_ID) -> torch.Tensor:
-        x, local_task_id = self.forward_for_monkey_patching(x, task_id)
-        if local_task_id is None:
-            ## In  training mode, so use the task_id to extract the linear.
-            # print(f"In train mode: {self._task_id}")
-            out = self._classifiers[f"{self._task_id}"](x)
+        assert self._prediction_strategy is None, f"SPrompt supports no prediction strategy"
+
+        prompt = None
+        if self.training:
+            prompt = self._backbone["prompt_pool"](self._task_id)
         else:
-            print(f"In eval mode: {local_task_id}")
-            out = torch.cat([self._classifiers[f"{i}"](x[i].unsqueeze(0)) for i in local_task_id])
-            # print(out.shape)
+            task_ids = self._task_id_method.infer_task(self._backbone["transformer"](x))
+            if task_ids is not None:
+                prompt = torch.cat([self._backbone["prompt_pool"](i) for i in task_ids])
 
-        return out
-
-        # if isinstance(self._prediction_strategy, ICaRLClassificationStrategy):
-        #     return self._prediction_strategy(x, self.training, class_means=self.class_means)
-    #     # else:
-    #     #     assert (
-    #     #         self._prediction_strategy is None
-    #     #     ), f"Unknown prediction strategy of type {type(self._prediction_strategy)}."
-    #     # return self.get_predictor(task_id)(x)
+        features = self._backbone["transformer"](x, prompt)
+        if self.training:
+            return self.get_predictor(f"{self._task_id}")(features)
+        else:
+            if task_ids is not None:
+                return torch.cat(
+                    [
+                        self.get_predictor(f"{t}")(feat.unsqueeze(0))
+                        for t, feat in zip(task_ids, features)
+                    ]
+                )
+            else:
+                return self.get_predictor(f"{self._task_id}")(features)

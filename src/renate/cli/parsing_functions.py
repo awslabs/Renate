@@ -493,15 +493,16 @@ def _add_l2preplay_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
 
 
 def _add_sprompt_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
-    arguments.update(
-        {
-            "clusters_per_task": {
-                "type": int,
-                "default": defaults.CLUSTERS_PER_TASK,
-                "help": f"K in K-means for S-prompts. Default: {defaults.CLUSTERS_PER_TASK}",
-            },
-        }
-    )
+    pass
+    # arguments.update(
+    #     {
+    #         "clusters_per_task": {
+    #             "type": int,
+    #             "default": defaults.CLUSTERS_PER_TASK,
+    #             "help": f"K in K-means for S-prompts. Default: {defaults.CLUSTERS_PER_TASK}",
+    #         },
+    #     }
+    # )
 
 
 def _add_gdumb_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:

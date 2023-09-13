@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torchmetrics
 from pytorch_lightning.loggers.logger import Logger
-from scipy.cluster.vq import kmeans
+from sklearn.cluster import KMeans
 from torch.nn import Parameter
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
@@ -35,7 +35,6 @@ class SPromptLearner(Learner):
         logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None,
         seed: int = defaults.SEED,
         mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
-        clusters_per_task: int = defaults.CLUSTERS_PER_TASK,
     ) -> None:
         if not isinstance(model, SPromptTransformer):
             raise ValueError(
@@ -57,27 +56,20 @@ class SPromptLearner(Learner):
             seed,
             mask_unused_classes,
         )
-        self.clusters_per_task = clusters_per_task
 
     def on_model_update_end(self) -> None:
         super().on_model_update_end()
         ## k-means
-        all_features = []
-        device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cuda:0")
+        device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
         self._model.to(device)
+        features, labels = [], []
         with torch.inference_mode():
             for x, y in self.train_dataloader():
-                all_features.append(
-                    torch.nn.functional.normalize(
-                        self._model._backbone["transformer"].get_features(x.to(device))
-                    )
-                    .cpu()
-                    .numpy()
-                )
-
-        all_features = np.concatenate(all_features)
-        representative_centers, _ = kmeans(all_features, k_or_guess=self.clusters_per_task)
-        self._model.append_task_centroids(torch.from_numpy(representative_centers).to(device))
+                features.append(self._model._backbone["transformer"](x.to(device)).cpu().numpy())
+                labels.append(y.numpy())
+        features = np.concatenate(features)
+        labels = np.concatenate(labels)
+        self._model.update_task_identifier(features=features, labels=labels)
 
     def setup(self, stage: str) -> None:
         # We dont support distributed
@@ -86,12 +78,7 @@ class SPromptLearner(Learner):
         ), "SPrompt learner does not support Multi-GPU training yet."
         if stage == "fit":
             # This needs to run before configure optimizers is called. The only hook is setup("fit")
-            self._model.add_s_prompts()
-
-    # def on_after_backward(self) -> None:
-    #     for key in self._model._classifiers:
-    #         print(key)
-    #         print(self._model._classifiers[key].weight.grad)
+            self._model.increment_task()
 
 
 class SPromptModelUpdater(SingleTrainingLoopUpdater):
@@ -127,13 +114,13 @@ class SPromptModelUpdater(SingleTrainingLoopUpdater):
         gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
         gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
         mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
-        clusters_per_task: int = defaults.CLUSTERS_PER_TASK,
+        # clusters_per_task: int = defaults.CLUSTERS_PER_TASK,
     ):
         learner_kwargs = {
             "batch_size": batch_size,
             "seed": seed,
             "loss_fn": loss_fn,
-            "clusters_per_task": clusters_per_task,
+            # "clusters_per_task": clusters_per_task,
         }
         super().__init__(
             model=model,
