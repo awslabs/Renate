@@ -312,11 +312,11 @@ class DomainNetDataModule(DataIncrementalDataModule):
         "infograph_train.txt": "379b50054f4ac2018dca4f89421b92d9",
         "infograph_test.txt": "779626b50869edffe8ea6941c3755c71",
         "painting.zip": "1ae32cdb4f98fe7ab5eb0a351768abfd",
-        "painting_train.txt": "b732ced3939ac8efdd8c0a889dca56cc",
-        "painting_test.txt": "c1a828fdfe216fb109f1c0083a252c6f",
+        "painting_train.txt": "7db0e7ca73ad9982f6e1f7f3ef372c0a",
+        "painting_test.txt": "232b35dc53f26d414686ae579e38d9b5",
         "quickdraw.zip": "bdc1b6f09f277da1a263389efe0c7a66",
-        "quickdraw_train.txt": "b4349693a7f9c05c53955725c47ed6cb",
-        "quickdraw_test.txt": "f5ddbcfd657a3acf9d0f7da10db22565",
+        "quickdraw_train.txt": "b732ced3939ac8efdd8c0a889dca56cc",
+        "quickdraw_test.txt": "c1a828fdfe216fb109f1c0083a252c6f",
         "real.zip": "dcc47055e8935767784b7162e7c7cca6",
         "real_train.txt": "8ebf02c2075fadd564705f0dc7cd6291",
         "real_test.txt": "6098816791c3ebed543c71ffa11b9054",
@@ -354,6 +354,7 @@ class DomainNetDataModule(DataIncrementalDataModule):
             seed=seed,
         )
         assert self.data_id in self.domains, f"Unknown domain {self.data_id}."
+        self._dataset_name = domain.lower()
 
     def prepare_data(self) -> None:
         """Download DomainNet dataset for given domain."""
