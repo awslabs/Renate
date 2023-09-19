@@ -194,7 +194,7 @@ class ConcatRandomSampler(BatchSampler):
                 True,
             )
             self.subset_samplers.append(subset_sampler)
-            num_batches.append((end_idx - start_idx + 1) // batch_size)
+            num_batches.append((end_idx - start_idx) // batch_size)
             data_start_idx = data_end_idx
         self.length = (
             min(num_batches)
