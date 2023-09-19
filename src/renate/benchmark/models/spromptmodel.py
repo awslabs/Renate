@@ -120,7 +120,7 @@ class TaskPrototypes(TaskEstimator):
             features = features.cpu().numpy()
 
         # l2 normalize features:
-        features = features / np.linalg.norm(features, axis=1, keepdims=True)
+        features = features / np.power(np.einsum("ij, ij -> i", features, features), 0.5)[:, None]
 
         centroids = torch.from_numpy(
             KMeans(n_clusters=self._clusters_per_task, random_state=0)

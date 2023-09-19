@@ -65,7 +65,7 @@ class SPromptLearner(Learner):
         features, labels = [], []
         with torch.inference_mode():
             for x, y in self.train_dataloader():
-                features.append(self._model._backbone["transformer"](x.to(device)).cpu().numpy())
+                features.append(self._model._backbone(x.to(device)).cpu())
                 labels.append(y.numpy())
         features = np.concatenate(features)
         labels = np.concatenate(labels)
