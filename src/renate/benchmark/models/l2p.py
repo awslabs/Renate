@@ -193,36 +193,35 @@ class PromptedTransformer(nn.Module):
                 else self.transformer.get_features(x, cls_feat=cls_feat)
             )
             # text transformers dont support cls_feat.
+        elif self._is_text_transformer:
+            # The implicit assumption here is that x for text transformers is the input_ids.
+            # This simplified forward pass has 4 steps:
+            # 1. Get prompts
+            # 2. Get embeddings from inputs.
+            # 3. Concat prompt and inputs
+            # 4. Forward prop inputs_embeds to get the features.
+            inputs_embeds = self.word_embeddings(x["input_ids"])
+            if prompt.size(0) != inputs_embeds.size(0):
+                prompt = prompt.unsqueeze(0).expand(
+                    inputs_embeds.size(0), -1, -1
+                )  # Expand one prompt to batch size
+            inputs_embeds = torch.cat((prompt, inputs_embeds), dim=1)
+            return self.transformer.get_features({"inputs_embeds": inputs_embeds})
         else:
-            if self._is_text_transformer:
-                # The implicit assumption here is that x for text transformers is the input_ids.
-                # This simplified forward pass has 4 steps:
-                # 1. Get prompts
-                # 2. Get embeddings from inputs.
-                # 3. Concat prompt and inputs
-                # 4. Forward prop inputs_embeds to get the features.
-                inputs_embeds = self.word_embeddings(x["input_ids"])
-                if prompt.size(0) != inputs_embeds.size(0):
-                    prompt = prompt.unsqueeze(0).expand(
-                        inputs_embeds.size(0), -1, -1
-                    )  # Expand one prompt to batch size
-                inputs_embeds = torch.cat((prompt, inputs_embeds), dim=1)
-                return self.transformer.get_features({"inputs_embeds": inputs_embeds})
-            else:
-                patch_embeddings = self.transformer.get_submodule("_backbone.embeddings")(x)
-                if prompt.size(0) != x.size(0):
-                    prompt = prompt.unsqueeze(0).expand(
-                        x.size(0), -1, -1
-                    )  # Expand one prompt to batch size# Expand one prompt to batch size
-                input_concat_prompt = torch.cat([patch_embeddings, prompt], dim=1)
+            patch_embeddings = self.transformer.get_submodule("_backbone.embeddings")(x)
+            if prompt.size(0) != x.size(0):
+                prompt = prompt.unsqueeze(0).expand(
+                    x.size(0), -1, -1
+                )  # Expand one prompt to batch size# Expand one prompt to batch size
+            input_concat_prompt = torch.cat([patch_embeddings, prompt], dim=1)
 
-                encoded_features = self.transformer.get_submodule("_backbone.encoder")(
-                    input_concat_prompt, return_dict=False
-                )[0]
-                encoded_features = self.transformer.get_submodule("_backbone.layernorm")(
-                    encoded_features
-                )
-                return encoded_features[:, 0, :] if cls_feat else encoded_features
+            encoded_features = self.transformer.get_submodule("_backbone.encoder")(
+                input_concat_prompt, return_dict=False
+            )[0]
+            encoded_features = self.transformer.get_submodule("_backbone.layernorm")(
+                encoded_features
+            )
+            return encoded_features[:, 0, :] if cls_feat else encoded_features
 
 
 class LearningToPromptTransformer(RenateBenchmarkingModule):
