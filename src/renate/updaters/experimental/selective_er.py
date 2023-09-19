@@ -51,21 +51,13 @@ class SelectiveExperienceReplayLearner(OfflineExperienceReplayLearner):
         losses = self._loss_fn(outputs, targets)
         # Just for logging.
         self._update_metrics(outputs, targets, "train")
-        loss_current = loss[:batch_size_current].mean()
-        loss_memory = loss[batch_size_current:].mean() if "memory" in batch else 0.0
+        loss_current = losses[:batch_size_current].mean()
+        loss_memory = losses[batch_size_current:].mean() if "memory" in batch else 0.0
         self._loss_collections["train_losses"]["base_loss"](loss_current)
         self._loss_collections["train_losses"]["memory_loss"](loss_memory)
         # This is used for backprop.
-        loss = torch.topk(losses, self._effective_batch_size).values.mean()
+        loss = torch.topk(losses, min(len(losses), self._effective_batch_size)).values.mean()
         return {"loss": loss}
-
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        super().on_save_checkpoint(checkpoint)
-        checkpoint["num_points_previous_tasks"] = self._num_points_previous_tasks
-
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        super().on_load_checkpoint(checkpoint)
-        self._num_points_previous_tasks = checkpoint["num_points_previous_tasks"]
 
 
 class SelectiveExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
