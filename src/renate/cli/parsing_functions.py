@@ -107,7 +107,12 @@ def get_updater_and_learner_kwargs(
         learner_args = learner_args + ["loss_weight_new_data", "memory_size", "batch_memory_frac"]
         updater_class = OfflineExperienceReplayModelUpdater
     elif args.updater == "Selective-ER":
-        learner_args = learner_args + ["subsampling_ratio", "memory_size", "batch_memory_frac"]
+        learner_args = learner_args + [
+            "subsampling_ratio",
+            "subsampling_strategy",
+            "memory_size",
+            "batch_memory_frac",
+        ]
         updater_class = SelectiveExperienceReplayModelUpdater
     elif args.updater == "RD":
         learner_args = learner_args + ["memory_size"]
@@ -539,7 +544,12 @@ def _add_selective_er_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
                 "type": float,
                 "default": None,
                 "help": "TODO",
-            }
+            },
+            "subsampling_strategy": {
+                "type": str,
+                "default": None,
+                "help": "TODO",
+            },
         }
     )
 

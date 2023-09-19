@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 import torch
 import torchmetrics
@@ -26,8 +26,11 @@ class SelectiveExperienceReplayLearner(OfflineExperienceReplayLearner):
         TODO
     """
 
-    def __init__(self, subsampling_ratio: float = 0.5, **kwargs) -> None:
+    def __init__(
+        self, subsampling_ratio: float = 0.5, subsampling_strategy="loss_topk", **kwargs
+    ) -> None:
         super().__init__(**kwargs)
+        self._subsampling_strategy = subsampling_strategy
         self._effective_batch_size = round(subsampling_ratio * self._batch_size)
         if not self._effective_batch_size > 0:
             raise ValueError(
@@ -56,7 +59,10 @@ class SelectiveExperienceReplayLearner(OfflineExperienceReplayLearner):
         self._loss_collections["train_losses"]["base_loss"](loss_current)
         self._loss_collections["train_losses"]["memory_loss"](loss_memory)
         # This is used for backprop.
-        loss = torch.topk(losses, min(len(losses), self._effective_batch_size)).values.mean()
+        if self._subsampling_strategy == "loss_topk":
+            loss = torch.topk(losses, min(len(losses), self._effective_batch_size)).values.mean()
+        else:
+            raise ValueError(f"Unknown strategy: {self._strategy}.")
         return {"loss": loss}
 
 
@@ -69,6 +75,7 @@ class SelectiveExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         memory_size: int,
         batch_memory_frac: int = defaults.BATCH_MEMORY_FRAC,
         subsampling_ratio: float = 0.5,
+        subsampling_strategy: str = "loss_topk",
         learning_rate_scheduler: Optional[partial] = None,
         learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
@@ -100,6 +107,7 @@ class SelectiveExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             "memory_size": memory_size,
             "batch_memory_frac": batch_memory_frac,
             "subsampling_ratio": subsampling_ratio,
+            "subsampling_strategy": subsampling_strategy,
             "batch_size": batch_size,
             "seed": seed,
         }
