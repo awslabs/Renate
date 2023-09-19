@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 import logging
 import math
-from typing import Iterator, List, Optional, Set, Tuple, Union
+from typing import Any, Iterator, List, Optional, Set, Tuple, Union
 
 import torch
-from torch.utils.data import BatchSampler, Dataset, SubsetRandomSampler, random_split
+from torch.utils.data import BatchSampler, Dataset, Sampler, SubsetRandomSampler, random_split
 from transformers import BatchEncoding
 
 from renate import defaults
@@ -166,16 +166,18 @@ class ConcatRandomSampler(BatchSampler):
         batch_sizes: Batch sizes used for specific datasets.
         complete_dataset_iteration: Provide an index to indicate over which dataset to fully
             iterate. By default, stops whenever iteration is complete for any dataset.
-        generator (Generator): Generator used in sampling.
+        generator: Generator used in sampling.
+        sampler: Lightning automatically passes a DistributedSamplerWrapper. Only used as an
+            indicator that we are in the distributed case.
     """
 
     def __init__(
         self,
-        dataset_lengths,
-        batch_sizes,
-        complete_dataset_iteration=None,
-        generator=None,
-        sampler=None,
+        dataset_lengths: List[int],
+        batch_sizes: List[int],
+        complete_dataset_iteration: Optional[int] = None,
+        generator: Any = None,
+        sampler: Sampler = None,
     ) -> None:
         self.batch_sizes = batch_sizes
         self.complete_dataset_iteration = complete_dataset_iteration
