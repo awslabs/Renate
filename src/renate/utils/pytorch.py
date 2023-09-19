@@ -209,7 +209,8 @@ class ConcatRandomSampler(BatchSampler):
             for samples in zip(*self.subset_samplers):
                 yield [j for i in samples for j in i]
         else:
-            # Iterating over a specific iterator requires dealing with the length of other iterators.
+            # Iterating over a specific iterator requires dealing with the length of other
+            # iterators.
             iterators = [iter(sampler) for sampler in self.subset_samplers]
             for s in iterators[self.complete_dataset_iteration]:
                 samples = []
