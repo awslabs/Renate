@@ -20,11 +20,11 @@ def reinitialize_model_parameters(model: torch.nn.Module) -> None:
     implementations of exotic layers. A warning is logged for modules that do not implement
     `reset_parameters()`.
 
-    The actual logic of reintializing parameters depends on the type of layer. It may affect the
+    The actual logic of reinitializing parameters depends on the type of layer. It may affect the
     module's buffers (non-trainable parameters, e.g., batch norm stats) as well.
 
     Args:
-        model: The model to be re-initialized.
+        model: The model to be reinitialized.
     """
     for module in model.modules():
         # Skip modules without any parameters of their own.
@@ -170,24 +170,32 @@ class ConcatRandomSampler(BatchSampler):
     """
 
     def __init__(
-        self, dataset_lengths, batch_sizes, complete_dataset_iteration=None, generator=None
+        self,
+        dataset_lengths,
+        batch_sizes,
+        complete_dataset_iteration=None,
+        generator=None,
+        sampler=None,
     ) -> None:
         self.batch_sizes = batch_sizes
         self.complete_dataset_iteration = complete_dataset_iteration
         self.subset_samplers = []
-        start_idx = 0
+        data_start_idx = 0
         num_batches = []
+        rank = 0 if sampler is None else sampler.rank
+        num_replicas = 1 if sampler is None else sampler.num_replicas
         for dataset_length, batch_size in zip(dataset_lengths, batch_sizes):
-            end_idx = start_idx + dataset_length
-            self.subset_samplers.append(
-                BatchSampler(
-                    SubsetRandomSampler(list(range(start_idx, end_idx)), generator),
-                    batch_size,
-                    True,
-                )
+            data_end_idx = data_start_idx + dataset_length
+            start_idx = data_start_idx + round(dataset_length / num_replicas * rank)
+            end_idx = data_start_idx + round(dataset_length / num_replicas * (rank + 1))
+            subset_sampler = BatchSampler(
+                SubsetRandomSampler(list(range(start_idx, end_idx)), generator),
+                batch_size,
+                True,
             )
-            num_batches.append(dataset_length // batch_size)
-            start_idx = end_idx
+            self.subset_samplers.append(subset_sampler)
+            num_batches.append((end_idx - start_idx + 1) // batch_size)
+            data_start_idx = data_end_idx
         self.length = (
             min(num_batches)
             if complete_dataset_iteration is None
