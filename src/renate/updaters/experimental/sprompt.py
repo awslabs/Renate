@@ -7,7 +7,6 @@ import torch
 import torch.nn as nn
 import torchmetrics
 from pytorch_lightning.loggers.logger import Logger
-from sklearn.cluster import KMeans
 from torch.nn import Parameter
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
@@ -114,13 +113,11 @@ class SPromptModelUpdater(SingleTrainingLoopUpdater):
         gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
         gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
         mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
-        # clusters_per_task: int = defaults.CLUSTERS_PER_TASK,
     ):
         learner_kwargs = {
             "batch_size": batch_size,
             "seed": seed,
             "loss_fn": loss_fn,
-            # "clusters_per_task": clusters_per_task,
         }
         super().__init__(
             model=model,

@@ -72,7 +72,6 @@ def get_updater_and_learner_kwargs(
         learner_args = learner_args + ["prompt_sim_loss_weight", "memory_size", "memory_batch_size"]
         updater_class = LearningToPromptReplayModelUpdater
     elif args.updater == "SPrompt":
-        learner_args = learner_args + ["clusters_per_task"]
         updater_class = SPromptModelUpdater
     elif args.updater == "DER":
         learner_args = base_er_args + ["alpha", "beta"]

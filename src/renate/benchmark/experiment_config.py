@@ -82,6 +82,9 @@ def model_fn(
     hidden_size: Optional[Tuple[int]] = None,
     dataset_name: Optional[str] = None,
     pretrained_model_name_or_path: Optional[str] = None,
+    prompt_size: int = 10,
+    clusters_per_task: int = 5,
+    per_task_classifier: bool = False,
 ) -> RenateModule:
     """Returns a model instance."""
     if model_name not in models:
@@ -118,6 +121,9 @@ def model_fn(
                 f"SPromptTransformer, but model name specified is {model_name}."
             )
         model_kwargs["pretrained_model_name_or_path"] = pretrained_model_name_or_path
+        model_kwargs["prompt_size"] = prompt_size
+        model_kwargs["clusters_per_task"] = clusters_per_task
+        model_kwargs["per_task_classifier"] = per_task_classifier
     if model_state_url is None:
         model = model_class(**model_kwargs)
     else:
