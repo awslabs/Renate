@@ -65,9 +65,9 @@ class SPromptLearner(Learner):
         with torch.inference_mode():
             for x, y in self.train_dataloader():
                 features.append(self._model._backbone(x.to(device)).cpu())
-                labels.append(y.numpy())
-        features = np.concatenate(features)
-        labels = np.concatenate(labels)
+                labels.append(y)
+        features = torch.cat(features)
+        labels = torch.cat(labels)
         self._model.update_task_identifier(features=features, labels=labels)
 
     def setup(self, stage: str) -> None:
