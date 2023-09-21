@@ -251,7 +251,7 @@ class CLEARDataModule(DataIncrementalDataModule):
                     self._data_path,
                     self._src_bucket,
                     self._src_object_name,
-                    "https://huggingface.co/datasets/elvishelvis6/CLEAR-Continual_Learning_Benchmark/resolve/main/",
+                    "https://huggingface.co/datasets/elvishelvis6/CLEAR-Continual_Learning_Benchmark/resolve/main/",  # noqa: E501
                     file_name,
                 )
 
