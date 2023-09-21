@@ -1,0 +1,10 @@
+{
+  "val_size": 0.1,
+  "scenario_name": "DataIncrementalScenario",
+  "num_tasks": 4,
+  "max_epochs": 2,
+  "optimizer": "AdamW",
+  "learning_rate": 0.00002,
+  "weight_decay": 0.01,
+  "data_ids": ["ag_news", "yelp_review_full", "dbpedia_14", "yahoo_answers_topics"]
+}

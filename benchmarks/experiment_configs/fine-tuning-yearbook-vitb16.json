@@ -1,0 +1,6 @@
+{
+  "scenario": "yearbook-vit-b16-17updates.json",
+  "model": "vit-b16.json",
+  "updater": "fine-tuning-yearbook.json",
+  "dataset": "yearbook.json"
+}

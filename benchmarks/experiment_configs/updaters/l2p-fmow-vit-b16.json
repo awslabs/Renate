@@ -1,0 +1,5 @@
+{
+  "updater": "LearningToPrompt",
+  "batch_size": 64,
+  "prompt_sim_loss_weight": 0.1
+}

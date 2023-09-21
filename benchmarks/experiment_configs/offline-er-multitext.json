@@ -1,0 +1,6 @@
+{
+  "scenario": "multitext-4updates.json",
+  "model": "bert.json",
+  "updater": "offline-er-multitext.json",
+  "dataset": "multitext.json"
+}

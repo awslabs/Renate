@@ -1,0 +1,6 @@
+{
+  "scenario": "fmow-vit-b16-16updates.json",
+  "model": "vit-b16.json",
+  "updater": "fine-tuning-fmow.json",
+  "dataset": "fmow.json"
+}

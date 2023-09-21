@@ -1,0 +1,6 @@
+{
+  "scenario": "multitext-4updates.json",
+  "model": "bert.json",
+  "updater": "joint-multitext.json",
+  "dataset": "multitext.json"
+}
