@@ -158,8 +158,24 @@ def complementary_indices(num_outputs: int, valid_classes: Set[int]) -> List[int
     return [class_idx for class_idx in range(num_outputs) if class_idx not in valid_classes]
 
 
-class ConcatRandomSampler(BatchSampler):
+class ConcatRandomSampler(Sampler[List[int]]):
     """Sampler for sampling batches from ConcatDatasets.
+
+    Each sampled batch is composed of batches of different BatchSamplers with the specified
+    batch sizes and ranges.
+
+    To clarify the behavior, we provide a little example.
+    ``dataset_lengths = [5, 2]``
+    ``batch_sizes = [3, 1]``
+
+    With this setting, we have a set of indices A={0..4} and B={5,6} for the two datasets.
+    The total batch size will be exactly 4. The first three elements are in that batch are
+    elements of A, the last an element of B.
+    An example batch could be ``[3, 1, 0, 6]``.
+
+    Since we always provide a batch size of exactly ` sum(batch_sizes)``, we drop the last
+    batch.
+
 
     Args:
         dataset_lengths: The length for the different datasets.
@@ -200,7 +216,7 @@ class ConcatRandomSampler(BatchSampler):
             data_start_idx = data_end_idx
         self.length = (
             min(num_batches)
-            if complete_dataset_iteration is None
+            if self.complete_dataset_iteration is None
             else num_batches[self.complete_dataset_iteration]
         )
 
