@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 from typing import Any, Callable, Dict, List, Optional
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torchmetrics
