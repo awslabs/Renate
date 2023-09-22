@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import torch
 import torchvision
-from torch.utils.data import TensorDataset
+from torch.utils.data import Sampler, TensorDataset
 
 from renate.benchmark.datasets.vision_datasets import TorchVisionDataModule
 from renate.benchmark.scenarios import ClassIncrementalScenario
@@ -168,5 +168,23 @@ def test_concat_random_sampler(complete_dataset_iteration, expected_batches):
         assert all([s < 15 for s in sample[:2]])
         assert all([15 <= s < 20 for s in sample[2:3]])
         assert all([20 <= s < 40 for s in sample[3:]])
+        num_batches += 1
+    assert num_batches == expected_batches
+
+
+def test_concat_random_sampler_distributed():
+    """Tests behavior in case of distributed computing."""
+    mock_sampler = Sampler(None)
+    mock_sampler.rank = 1
+    mock_sampler.num_replicas = 2
+    expected_batches = 2
+    sampler = ConcatRandomSampler(
+        dataset_lengths=[16, 10], batch_sizes=[2, 2], sampler=mock_sampler
+    )
+    assert len(sampler) == expected_batches
+    num_batches = 0
+    for sample in sampler:
+        assert all([7 < s < 16 for s in sample[:2]])
+        assert all([21 <= s < 26 for s in sample[2:]])
         num_batches += 1
     assert num_batches == expected_batches
