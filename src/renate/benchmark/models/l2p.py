@@ -110,8 +110,9 @@ class PromptPool(nn.Module):
 
 class PromptedTransformer(nn.Module):
     """This generic module is the basic prompted transformer. It takes in a model string and creates
-    the appropriate transformer. If not prompted, it returns features, and if prompted, it returns
-    the full feature using those prompts and the input image/text.
+    the appropriate transformer (ViT or Text transformer). If no prompts are provided in the forward
+    call, image/text features are returned. If a prompt is provided, it is concatenated to the
+    embedding layer output and the resultant features are returned.
 
     Args:
         pretrained_model_name_or_path: A string that denotes which pretrained model from the HF hub
@@ -154,7 +155,7 @@ class PromptedTransformer(nn.Module):
                 prediction_strategy=prediction_strategy,
                 add_icarl_class_means=add_icarl_class_means,
             )
-            self._is_text_transformer = False
+            self.is_text_transformer = False
         else:
             self.transformer = HuggingFaceSequenceClassificationTransformer(
                 pretrained_model_name_or_path=pretrained_model_name_or_path,
@@ -169,7 +170,7 @@ class PromptedTransformer(nn.Module):
                     )
                     break
 
-            self._is_text_transformer = True
+            self.is_text_transformer = True
 
         self.transformer._tasks_params.clear()
         self.transformer.eval()
@@ -189,40 +190,39 @@ class PromptedTransformer(nn.Module):
         if prompt is None:
             return (
                 self.transformer.get_features(x)
-                if self._is_text_transformer
+                if self.is_text_transformer
                 else self.transformer.get_features(x, cls_feat=cls_feat)
             )
             # text transformers dont support cls_feat.
+        elif self.is_text_transformer:
+            # The implicit assumption here is that x for text transformers is the input_ids.
+            # This simplified forward pass has 4 steps:
+            # 1. Get prompts
+            # 2. Get embeddings from inputs.
+            # 3. Concat prompt and inputs
+            # 4. Forward prop inputs_embeds to get the features.
+            inputs_embeds = self.word_embeddings(x["input_ids"])
+            if prompt.size(0) != inputs_embeds.size(0):
+                prompt = prompt.unsqueeze(0).expand(
+                    inputs_embeds.size(0), -1, -1
+                )  # Expand one prompt to batch size
+            inputs_embeds = torch.cat((prompt, inputs_embeds), dim=1)
+            return self.transformer.get_features({"inputs_embeds": inputs_embeds})
         else:
-            if self._is_text_transformer:
-                # The implicit assumption here is that x for text transformers is the input_ids.
-                # This simplified forward pass has 4 steps:
-                # 1. Get prompts
-                # 2. Get embeddings from inputs.
-                # 3. Concat prompt and inputs
-                # 4. Forward prop inputs_embeds to get the features.
-                inputs_embeds = self.word_embeddings(x["input_ids"])
-                if prompt.size(0) != inputs_embeds.size(0):
-                    prompt = prompt.unsqueeze(0).expand(
-                        inputs_embeds.size(0), -1, -1
-                    )  # Expand one prompt to batch size
-                inputs_embeds = torch.cat((prompt, inputs_embeds), dim=1)
-                return self.transformer.get_features({"inputs_embeds": inputs_embeds})
-            else:
-                patch_embeddings = self.transformer.get_submodule("_backbone.embeddings")(x)
-                if prompt.size(0) != x.size(0):
-                    prompt = prompt.unsqueeze(0).expand(
-                        x.size(0), -1, -1
-                    )  # Expand one prompt to batch size# Expand one prompt to batch size
-                input_concat_prompt = torch.cat([patch_embeddings, prompt], dim=1)
+            patch_embeddings = self.transformer.get_submodule("_backbone.embeddings")(x)
+            if prompt.size(0) != x.size(0):
+                prompt = prompt.unsqueeze(0).expand(
+                    x.size(0), -1, -1
+                )  # Expand one prompt to batch size# Expand one prompt to batch size
+            input_concat_prompt = torch.cat([patch_embeddings, prompt], dim=1)
 
-                encoded_features = self.transformer.get_submodule("_backbone.encoder")(
-                    input_concat_prompt, return_dict=False
-                )[0]
-                encoded_features = self.transformer.get_submodule("_backbone.layernorm")(
-                    encoded_features
-                )
-                return encoded_features[:, 0, :] if cls_feat else encoded_features
+            encoded_features = self.transformer.get_submodule("_backbone.encoder")(
+                input_concat_prompt, return_dict=False
+            )[0]
+            encoded_features = self.transformer.get_submodule("_backbone.layernorm")(
+                encoded_features
+            )
+            return encoded_features[:, 0, :] if cls_feat else encoded_features
 
 
 class LearningToPromptTransformer(RenateBenchmarkingModule):
@@ -326,7 +326,7 @@ class LearningToPromptTransformer(RenateBenchmarkingModule):
         )
 
         self._backbone = nn.ModuleDict({"transformer": transformer, "prompter": prompter})
-        self._is_text_transformer = transformer._is_text_transformer
+        self._is_text_transformer = transformer.is_text_transformer
         self.prompt_embedding_features = prompt_embedding_features
         self.patch_pooler = patch_pooler
         self.similarity_score: Optional[torch.Tensor] = None
