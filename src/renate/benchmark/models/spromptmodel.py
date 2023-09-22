@@ -44,6 +44,7 @@ class PromptPool(nn.Module):
         self._pool[f"{len(self._pool)}"] = nn.Parameter(
             torch.empty((self._M, self._embedding_size)).uniform_(-1, 1)
         )
+        self._pool.requires_grad_(True)
 
 
 class SPromptTransformer(RenateBenchmarkingModule):
