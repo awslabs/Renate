@@ -2,11 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 from abc import ABC, abstractmethod
 from typing import Union
+
 import numpy as np
 import numpy.typing as npt
-from sklearn.cluster import KMeans
 import torch
 import torch.nn as nn
+from sklearn.cluster import KMeans
 
 
 class TaskEstimator(nn.Module, ABC):

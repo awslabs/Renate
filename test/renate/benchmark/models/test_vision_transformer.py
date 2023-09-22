@@ -41,6 +41,7 @@ def test_renate_vision_transformer_fwd(sub_class, input_dim):
 # for m in [VisionTransformerB16, VisionTransformerB32, VisionTransformerCIFAR,
 #           VisionTransformerH14, VisionTransformerL16, VisionTransformerL32]:
 #     print(len(list(m()._backbone.parameters())))
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "sub_class, expected_num_params",
     [
