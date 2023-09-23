@@ -1,13 +1,10 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-import numpy as np
 import pytest
 import torch
 import torchvision
 from torch.utils.data import Sampler, TensorDataset
 
-from renate.benchmark.datasets.vision_datasets import TorchVisionDataModule
-from renate.benchmark.scenarios import ClassIncrementalScenario
 from renate.memory.buffer import ReservoirBuffer
 from renate.utils import pytorch
 from renate.utils.pytorch import (
