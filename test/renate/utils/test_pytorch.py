@@ -19,6 +19,8 @@ from renate.utils.pytorch import (
     unique_classes,
 )
 
+from dummy_datasets import DummyDataIncrementalDataModule
+
 
 @pytest.mark.parametrize("model", [torchvision.models.resnet18(pretrained=True)])
 def test_reinitialize_model_parameters(model: torch.nn.Module):
@@ -130,18 +132,12 @@ def test_complementary_indices(num_outputs, indices, expected_output):
 @pytest.mark.parametrize("test_dataset", [True, False])
 def test_unique_classes(tmpdir, test_dataset):
     if test_dataset:
-        class_groupings = np.arange(0, 100).reshape(10, 10).tolist()
-        data_module = TorchVisionDataModule(tmpdir, dataset_name="CIFAR100", val_size=0.2)
-        data_module.prepare_data()
-        for chunk_id in range(len(class_groupings)):
-            scenario = ClassIncrementalScenario(
-                data_module=data_module, groupings=class_groupings, chunk_id=chunk_id
-            )
-            scenario.setup()
-            ds = scenario.val_data()
-            predicted_unique = unique_classes(ds)
-
-            assert predicted_unique == set(class_groupings[chunk_id])
+        for data_id in range(5):
+            module = DummyDataIncrementalDataModule(data_id, (10, 10), transform=None, val_size=0)
+            module.setup()
+            train_data = module.train_data()
+            predicted_unique = set(int(x) for x in unique_classes(train_data))
+            assert predicted_unique == {data_id}
     else:
         X = torch.randn(10, 3)
         y = torch.arange(0, 10)

@@ -134,6 +134,7 @@ def test_tiny_imagenet_data_module(tmpdir):
     assert train_data[0][0].size() == test_data[0][0].size() == (3, 64, 64)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "dataset_name,input_column,target_column",
     [

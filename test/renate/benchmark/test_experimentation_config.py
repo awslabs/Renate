@@ -34,6 +34,7 @@ from renate.benchmark.scenarios import (
 from renate.models.prediction_strategies import ICaRLClassificationStrategy
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "model_name,expected_model_class",
     [(model_name, model_class) for model_name, model_class in models.items()],
