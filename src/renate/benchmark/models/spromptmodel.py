@@ -8,8 +8,10 @@ import torch.nn as nn
 from torch.nn.parameter import Parameter
 
 from renate import defaults
+from renate.models.layers.shared_linear import SharedMultipleLinear
 from renate.models.prediction_strategies import PredictionStrategy
 from renate.models.task_identification_strategies import TaskPrototypes
+from renate.types import NestedTensors
 
 from . import PromptedTransformer
 from .base import RenateBenchmarkingModule
@@ -113,16 +115,27 @@ class SPromptTransformer(RenateBenchmarkingModule):
         )
         self._backbone["transformer"].requires_grad_(False)
         self._backbone["prompt_pool"].requires_grad_(True)
+
+        # self._backbone["transformer"].transformer._backbone.enable_gradient_checkpointing()
+        # with this, we make task_params as identities, and use only this.
+        self._backbone["classifier"] = SharedMultipleLinear(
+            self._embedding_size,
+            self._num_outputs,
+            share_parameters=self._per_task_classifier,
+            num_updates=self._task_id + 1,
+        )
+
+        self._tasks_params = nn.ModuleDict(
+            {k: nn.Identity() for k, _ in self._tasks_params.items()}
+        )
+
         self._backbone.forward = self.forward_for_monkey_patching
 
     def increment_task(self) -> None:
         # This cannot be a part of add_task_params as the super.__init__ function calls
         # add_task_params and thus we would be trying parameters to the non-existent
         # self.s_prompts
-        # key = f"{self._task_id}"
         self._backbone["prompt_pool"].increment_task()
-        # self._add_task_params(key)
-        # self._tasks_params.increment_task()
 
     def forward_for_monkey_patching(
         self, x: Union[torch.Tensor, Dict[str, Any]], task_id: str = None
@@ -136,7 +149,28 @@ class SPromptTransformer(RenateBenchmarkingModule):
                 prompt = torch.cat([self._backbone["prompt_pool"](i) for i in task_ids])
 
         features = self._backbone["transformer"](x, prompt)
-        return features
+
+        ## additional logic for separate classifiers
+        # a. This forward returns logits directly, and the RenateBenchmarkingModule's _task_params
+        #    now are identities. Thus the overall operation is still the network forward pass.
+        # b. Additional handling of params is not needed as backbone's params will return all the
+        #    necessary elements.
+
+        if self.training:
+            logits = self._backbone["classifier"][f"{self._task_id}"](features)
+        else:
+            task_ids = self._task_id_method.infer_task(self._backbone["transformer"](x))
+            if task_ids is not None:
+                logits = torch.cat(
+                    [
+                        self._backbone["classifier"][f"{t}"](feat.unsqueeze(0))
+                        for t, feat in zip(task_ids, features)
+                    ]
+                )
+            else:
+                logits = self._backbone["classifier"]["0"](features)
+
+        return logits
 
     def update_task_identifier(self, features: torch.Tensor, labels: torch.Tensor) -> None:
         self._task_id_method.update_task_prototypes(features, labels)
@@ -149,40 +183,5 @@ class SPromptTransformer(RenateBenchmarkingModule):
     def get_params(self, task_id: str = defaults.TASK_ID) -> List[Parameter]:
         return super().get_params(task_id)
 
-    # def get_params(self, task_id: str = defaults.TASK_ID) -> List[Parameter]:
-    #     import warnings
-
-    #     warnings.warn(f"Length of opreds: {len(self._tasks_params)}, {self._tasks_params.keys()}")
-    #     return self._backbone["prompt_pool"].get_params(self._task_id) + list(
-    #         self.get_predictor(str(self._task_id)).parameters()
-    #     )
-
-    # def get_logits(self, x: NestedTensors, task_id: Optional[str] = None) -> torch.Tensor:
-    #     if task_id == "default_task":
-    #         task_id = "0"
-    #     return super().get_logits(x, task_id)
-
-    # def forward(self, x: torch.Tensor, task_id: str = defaults.TASK_ID) -> torch.Tensor:
-    #     assert self._prediction_strategy is None, f"SPrompt supports no prediction strategy"
-
-    #     prompt = None
-    #     if self.training:
-    #         prompt = self._backbone["prompt_pool"](self._task_id)
-    #     else:
-    #         task_ids = self._task_id_method.infer_task(self._backbone["transformer"](x))
-    #         if task_ids is not None:
-    #             prompt = torch.cat([self._backbone["prompt_pool"](i) for i in task_ids])
-
-    #     features = self._backbone["transformer"](x, prompt)
-    #     if self.training:
-    #         return self.get_predictor(f"{self._task_id}")(features)
-    #     else:
-    #         if task_ids is not None:
-    #             return torch.cat(
-    #                 [
-    #                     self.get_predictor(f"{t}")(feat.unsqueeze(0))
-    #                     for t, feat in zip(task_ids, features)
-    #                 ]
-    #             )
-    #         else:
-    #             return self.get_predictor(f"{self._task_id}")(features)
+    def features(self, x: torch.Tensor) -> torch.Tensor:
+        return self._backbone["transformer"](x)
