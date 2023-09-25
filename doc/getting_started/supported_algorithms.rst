@@ -36,6 +36,12 @@ using Renate (e.g., using :py:func:`~renate.training.training.run_training_job`;
    * - ``"FineTuning"``
      - :py:class:`Learner <renate.updaters.learner.Learner>`
      - A simple method which trains the current model on only the new data without any sort of mitigation for forgetting. Used as "lower bound" baseline in experiments.
+   * - ``"LearningToPrompt"`` 
+     - :py:class:`LearningToPromptLearner <renate.updaters.experimental.l2p.LearningToPromptLearner>`
+     - A class that implements a Learning to Prompt method for ViTs. The methods trains only the input prompts that are sampled from a prompt pool in an input dependent fashion.
+   * - ``"LearningToPromptReplay"`` 
+     - :py:class:`LearningToPromptLearner <renate.updaters.experimental.l2p.LearningToPromptReplayLearner>`
+     - A class that extends the Learning to Prompt method to use a memory replay method like "Offline-ER"
    * - ``"Avalanche-ER"``
      - :py:class:`AvalancheReplayLearner <renate.updaters.avalanche.learner.AvalancheReplayLearner>`
      - A wrapper which gives access to Experience Replay as implemented in the Avalanche library. This method is the equivalent to our Offline-ER.

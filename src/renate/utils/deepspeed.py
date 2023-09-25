@@ -88,7 +88,7 @@ def convert_zero_checkpoint_to_fp32_state_dict(
     extra_key = search_key(client_state["module"], "extra_state")
     extra_state = client_state["module"][extra_key]
     state_dict[extra_key] = extra_state
-    ## End of modifications
+    # End of modifications
     client_state = {
         key: value for key, value in client_state.items() if key not in deepspeed_states
     }

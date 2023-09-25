@@ -10,16 +10,15 @@ from syne_tune.optimizer.schedulers import FIFOScheduler
 OPTIMIZER = "Adam"
 SUPPORTED_OPTIMIZERS = ["Adam", "SGD"]
 SUPPORTED_OPTIMIZERS_TYPE = Literal["Adam", "SGD"]
+LR_SCHEDULER_INTERVAL = "epoch"
+SUPPORTED_LR_SCHEDULER_INTERVAL = ["epoch", "step"]
+SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = Literal["epoch", "step"]
 LEARNING_RATE = 3e-4
-LEARNING_RATE_SCHEDULER = "ConstantLR"
-LEARNING_RATE_SCHEDULER_GAMMA = 1.0
-LEARNING_RATE_SCHEDULER_STEP_SIZE = 1
-SUPPORTED_LEARNING_RATE_SCHEDULERS = ["ConstantLR", "ExponentialLR", "StepLR"]
-SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = Literal["ConstantLR", "ExponentialLR", "StepLR"]
 MOMENTUM = 0.0
 WEIGHT_DECAY = 0.0
 MAX_EPOCHS = 50
 BATCH_SIZE = 32
+BATCH_MEMORY_FRAC = 0.5
 LOSS_WEIGHT = 1.0
 SEED = 0
 EMA_MEMORY_UPDATE_GAMMA = 1.0
@@ -35,17 +34,19 @@ DEVICES = 1
 VOLUME_SIZE = 60
 DISTRIBUTED_STRATEGY = "ddp"
 PRECISION = "32"
+GRADIENT_CLIP_VAL = None
+GRADIENT_CLIP_ALGORITHM = None
 
 LEARNER = "ER"
 INSTANCE_COUNT = 1
 INSTANCE_MAX_TIME = 3 * 24 * 3600
 N_WORKERS = 1
 INSTANCE_TYPE = "ml.c5.xlarge"
-PYTHON_VERSION = "py38"
-FRAMEWORK_VERSION = "1.12.0"
+PYTHON_VERSION = "py39"
+FRAMEWORK_VERSION = "1.13.1"
 
 TASK_ID = "default_task"
-SUPPORTED_TASKS_TYPE = Literal["classification", "regression"]
+MASK_UNUSED_CLASSES = False
 WORKING_DIRECTORY = "renate_working_dir"
 LOGGER = TensorBoardLogger
 LOGGER_KWARGS = {
@@ -57,6 +58,7 @@ JOB_KWARGS_FILE = "job_kwargs.json"
 JOB_NAME = "renate"
 SUPPORTED_TUNING_MODE = ["min", "max"]
 SUPPORTED_TUNING_MODE_TYPE = Literal["min", "max"]
+SAVE_BENCHMARK_STATE = True
 
 SUPPORTED_BACKEND = ["local", "sagemaker"]
 SUPPORTED_BACKEND_TYPE = Literal["local", "sagemaker"]
@@ -106,6 +108,9 @@ MEMORY_SIZE = 32
 
 # Benchmark datasets/models
 TOKENIZER_KWARGS = {"padding": "max_length", "max_length": 128, "truncation": True}
+
+# L2p
+PROMPT_SIM_LOSS_WEIGHT = 0.5
 
 
 def scheduler(config_space: Dict[str, Any], mode: str, metric: str):

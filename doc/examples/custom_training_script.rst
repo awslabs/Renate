@@ -1,4 +1,4 @@
-Using Renate in a Costum Training Script
+Using Renate in a Custom Training Script
 ****************************************
 
 Usually, we use Renate by writing a :code:`renate_config.py` and launching training jobs via the
@@ -13,7 +13,7 @@ functions should produce one loss value per input example (:code:`reduction="non
 built-in losses), as explained in :ref:`getting_started/how_to_renate_config:Loss Definition`.
 
 .. literalinclude:: ../../examples/custom_training_script/train.py
-    :lines: 12-16
+    :lines: 14-18
 
 Next, we prepare the dataset on which we want to fine-tune the model. Here, we use the
 :py:class:`~renate.benchmark.datasets.nlp_datasets.HuggingFaceTextDataModule` to load the
@@ -21,7 +21,7 @@ Next, we prepare the dataset on which we want to fine-tune the model. Here, we u
 if we pass it the corresponding tokenizer.
 
 .. literalinclude:: ../../examples/custom_training_script/train.py
-    :lines: 19-24
+    :lines: 21-26
 
 Now we can instantiate a :py:class:`~renate.updaters.model_updater.ModelUpdater` to perform the
 training. Since we just want to fine-tune the model on a single dataset here, we use the
@@ -34,11 +34,11 @@ Once the model updater is created, we initiate the training by calling its
 (optionally) validation datasets.
 
 .. literalinclude:: ../../examples/custom_training_script/train.py
-    :lines: 27-37
+    :lines: 29-39
 
 Once the training is terminated, your model is ready to deploy. Here, we just save its weights for
 later use using standard
 `PyTorch functionality <https://pytorch.org/tutorials/beginner/saving_loading_models.html>`_.
 
 .. literalinclude:: ../../examples/custom_training_script/train.py
-    :lines: 41-
+    :lines: 43

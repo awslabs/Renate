@@ -1,0 +1,6 @@
+{
+  "scenario": "fmow-16updates.json",
+  "model": "resnet18.json",
+  "updater": "offline-er-fmow.json",
+  "dataset": "fmow.json"
+}

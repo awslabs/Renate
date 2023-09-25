@@ -1,0 +1,6 @@
+{
+  "scenario": "clear10-10updates.json",
+  "model": "resnet18.json",
+  "updater": "fine-tuning-clear.json",
+  "dataset": "clear10.json"
+}

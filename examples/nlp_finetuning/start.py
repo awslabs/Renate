@@ -12,8 +12,8 @@ config_space = {
     "weight_decay": 0.0,
     "learning_rate": 0.001,
     "alpha": 0.5,
-    "batch_size": 32,
-    "memory_batch_size": 32,
+    "batch_size": 64,
+    "batch_memory_frac": 0.5,
     "memory_size": 300,
     "loss_normalization": 0,
     "loss_weight": 0.5,
@@ -25,8 +25,8 @@ if __name__ == "__main__":
 
     run_training_job(
         config_space=config_space,
-        mode="max",
-        metric="val_accuracy",
+        mode="min",
+        metric="val_loss",
         updater="ER",  # we train with Experience Replay
         max_epochs=5,
         config_file="renate_config.py",

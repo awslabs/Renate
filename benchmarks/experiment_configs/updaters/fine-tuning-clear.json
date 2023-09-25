@@ -1,0 +1,4 @@
+{
+  "updater": "FineTuning",
+  "batch_size": 256
+}

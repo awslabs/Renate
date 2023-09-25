@@ -1,0 +1,6 @@
+{
+  "dataset_name": "huffpost",
+  "src_bucket": "my_bucket",
+  "src_object_name": "dataset/wildtime/huffpost.hdf5",
+  "num_outputs": 11
+}

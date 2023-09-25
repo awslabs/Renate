@@ -3,9 +3,9 @@
 import pytest
 
 from renate.utils.distributed_strategies import (
-    create_strategy,
     _SUPPORTED_STRATEGIES,
     _UNSUPPORTED_STRATEGIES,
+    create_strategy,
 )
 
 

@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
           
       - name: Switch to Current Branch
         run: git checkout ${{ env.BRANCH }}
@@ -42,7 +42,7 @@ jobs:
       - name: Black
         uses: psf/black@stable
         with:
-          version: "~= 22.12.0"
+          options: "--check --verbose"
 
       - name: Run unit tests
         run: PYTHONPATH=test python -m pytest test/
@@ -60,7 +60,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/download-artifact@v3
         id: download

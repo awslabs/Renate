@@ -4,6 +4,7 @@
     "learning_rate": 0.01,
     "momentum": 0.0,
     "weight_decay": 0.0,
-    "batch_size": 256,
+    "batch_size": 288,
+    "batch_memory_frac": 0.112,
     "memory_size": 500
 }

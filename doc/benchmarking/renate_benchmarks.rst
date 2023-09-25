@@ -95,7 +95,7 @@ The full list of models and model names including a short description is provide
       - * ``num_outputs``: Output dimensionality, for classification the number of classes.
     * - `~renate.benchmark.models.transformer.HuggingFaceSequenceClassificationTransformer`
       - Wrapper around Hugging Face transformers.
-      - * ``pretrained_model_name``: Hugging Face `transformer ID <https://huggingface.co/models>`__.
+      - * ``pretrained_model_name_or_path``: Hugging Face `transformer ID <https://huggingface.co/models>`__.
         * ``num_outputs``: The number of classes.
 
 
@@ -133,6 +133,18 @@ The following table contains the list of supported datasets.
       - Image Classification
       - 50k train, 10k test, 100 classes, image shape 32x32x3
       - Alex Krizhevsky: Learning Multiple Layers of Features from Tiny Images. 2009.
+    * - CLEAR10
+      - Image Classification
+      - 10 different datasets, one for each year. Each with 3,300 train, 550 test, 11 classes
+      - Zhiqiu Lin et al.: The CLEAR Benchmark: Continual LEArning on Real-World Imagery. NeurIPS Datasets and Benchmarks 2021.
+    * - CLEAR100
+      - Image Classification
+      - 11 different datasets, one for each year. Each with roughly 10k train, 5k test, 100 classes
+      - Zhiqiu Lin et al.: The CLEAR Benchmark: Continual LEArning on Real-World Imagery. NeurIPS Datasets and Benchmarks 2021.
+    * - DomainNet
+      - Image Classification
+      - 6 datasets from different domains. 345 classes, number of train and test image varies
+      - Xingchao Peng et al.: Moment Matching for Multi-Source Domain Adaptation. ICCV 2019.
     * - FashionMNIST
       - Image Classification
       - 60k train, 10k test, 10 classes, image shape 28x28x1
@@ -149,6 +161,10 @@ The following table contains the list of supported datasets.
       - Image Classification
       - 60k train, 10k test, 10 classes, image shape 28x28x1
       - Li Deng: The MNIST Database of Handwritten Digit Images for Machine Learning Research. IEEE Signal Processing Magazine. 2012.
+    * - MultiText
+      - Text Classification
+      - 115k train, 7.6k test, access to one of four datasets: ag_news, yelp_review_full, dbpedia_14, yahoo_answers_topics
+      - Please refer to `the official documentation <https://huggingface.co/datasets>`__.
     * - yearbook
       - Image Classification: gender identification in yearbook photos.
       - ~33k train, ~4k test, 2 classes, years 1930-2013, image shape 32x32x1
@@ -175,7 +191,7 @@ The first part contains all instances with classes 1 and 2, the second with clas
 .. code-block:: python
 
     config_space["scenario_name"] = "ClassIncrementalScenario"
-    config_space["class_groupings"] = ((1, 2), (3, 4))
+    config_space["groupings"] = ((1, 2), (3, 4))
 
 .. list-table:: Renate Scenario Overview
     :widths: 15 35 35
@@ -184,17 +200,19 @@ The first part contains all instances with classes 1 and 2, the second with clas
     * - Scenario Name
       - Description
       - Settings
-    * - :py:class:`~renate.benchmark.scenarios.BenchmarkScenario`
-      - Used in combination only with CLEAR-10 or CLEAR-100.
-      - * :code:`num_tasks`: Number of data partitions.
-    * - :py:class:`~renate.benchmark.scenarios.WildTimeScenario`
-      - Used in combination only with Wild-Time datasets. This is not the scenario used in the paper.
-        Data is presented time step by time step and the model is evaluated on test data up to the
-        current time step.
-      - * :code:`num_tasks`: Number of data partitions.
+    * - :py:class:`~renate.benchmark.scenarios.DataIncrementalScenario`
+      - Used in combination only with :py:class:`~renate.benchmark.datasets.base.DataIncrementalDataModule`,
+        e.g., Wild-Time datasets, CLEAR, MultiText, or DomainNet.
+        Data is presented data by data, where the data could represent a domain or a time slice.
+      - * :code:`num_tasks`: You can provide this argument if the different datasets are identified by
+          ids 0 to `num_tasks`. This is the case for time-incremental datasets such as CLEAR or Wild-Time.
+        * :code:`data_ids`: Tuple of data identifiers. Used for DomainNet to select order or subset of domains,
+          e.g., ``("clipart", "infograph", "painting")``.
+        * :code:`groupings`: An alternative to data identifiers that in addition to defining the sequence
+          allows to combine different domains to one chunk, e.g., ``(("clipart", ), ("infograph", "painting"))``.
     * - :py:class:`~renate.benchmark.scenarios.ClassIncrementalScenario`
       - Creates data partitions by splitting the data according to class labels.
-      - * :code:`class_groupings`: Tuple of tuples containing the class labels, e.g., ``((1, ), (2, 3, 4))``.
+      - * :code:`groupings`: Tuple of tuples containing the class labels, e.g., ``((1, ), (2, 3, 4))``.
     * - :py:class:`~renate.benchmark.scenarios.FeatureSortingScenario`
       - Splits data into different tasks after sorting the data according to a specific feature.
         Can be used for image data as well. In that case channels are selected and we select according to

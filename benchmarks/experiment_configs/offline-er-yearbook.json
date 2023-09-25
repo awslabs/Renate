@@ -1,0 +1,6 @@
+{
+  "scenario": "yearbook-17updates.json",
+  "model": "resnet18-cifar.json",
+  "updater": "offline-er-yearbook.json",
+  "dataset": "yearbook.json"
+}

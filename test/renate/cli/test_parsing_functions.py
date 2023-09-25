@@ -13,6 +13,7 @@ from renate.cli.parsing_functions import (
     get_argument_type,
     get_data_module_fn_kwargs,
     get_function_args,
+    get_metrics_fn_kwargs,
     get_model_fn_kwargs,
     to_dense_str,
 )
@@ -89,7 +90,7 @@ def test_get_function_args(all_args, ignore_args):
         "data_path",
         "val_size",
         "seed",
-        "class_groupings",
+        "groupings",
         "optional_tuple",
         "optional_float",
         "list_param",
@@ -116,7 +117,7 @@ def test_get_function_args(all_args, ignore_args):
                 "default": 0,
                 "true_type": int,
             },
-            "class_groupings": {
+            "groupings": {
                 "type": str,
                 "argument_group": CUSTOM_ARGS_GROUP,
                 "default": "((0,1),(2,3,4))",
@@ -206,7 +207,7 @@ def test_get_fn_kwargs_helper_functions():
     and the Python function."""
     expected_data_module_kwargs = {
         "data_path": "home/data/path",
-        "class_groupings": ((1, 2), (3, 4)),
+        "groupings": ((1, 2), (3, 4)),
         "optional_float": None,
         "bool_param": False,
     }
@@ -214,9 +215,10 @@ def test_get_fn_kwargs_helper_functions():
         "data_path": expected_data_module_kwargs["data_path"],
         "model_state_url": "home/model/state",
         "unused_config": 1,
-        "class_groupings": to_dense_str(expected_data_module_kwargs["class_groupings"]),
+        "groupings": to_dense_str(expected_data_module_kwargs["groupings"]),
         "optional_float": to_dense_str(expected_data_module_kwargs["optional_float"]),
         "bool_param": to_dense_str(expected_data_module_kwargs["bool_param"]),
+        "num_outputs": 10,
     }
     data_module_kwargs = get_data_module_fn_kwargs(
         config_module=config_module, config_space=config_space, cast_arguments=True
@@ -226,3 +228,7 @@ def test_get_fn_kwargs_helper_functions():
         config_module=config_module, config_space=config_space, cast_arguments=True
     )
     assert model_kwargs == {"model_state_url": config_space["model_state_url"]}
+    metrics_kwargs = get_metrics_fn_kwargs(
+        config_module=config_module, config_space=config_space, cast_arguments=True
+    )
+    assert metrics_kwargs == {"num_outputs": config_space["num_outputs"]}

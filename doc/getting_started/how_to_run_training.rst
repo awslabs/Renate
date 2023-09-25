@@ -47,6 +47,11 @@ instantiating the method you selected. See :doc:`supported_algorithms` for more 
 
 
 
+..  note::
+    If you have defined the ``optimizer_fn`` function in your Renate config, do not pass values for the keys
+    ``optimizer``, ``momentum``, ``weight_decay``, or ``learning_rate``, unless you have specified them as
+    :ref:`custom arguments <getting_started/how_to_renate_config:custom function arguments>`.
+
 Once the configuration of the learning algorithm is specified, we need to set another couple of arguments
 in the :py:func:`~renate.training.training.run_training_job` function to make sure we obtain the desired behavior:
 
