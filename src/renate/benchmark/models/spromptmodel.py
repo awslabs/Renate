@@ -121,7 +121,7 @@ class SPromptTransformer(RenateBenchmarkingModule):
         self._backbone["classifier"] = SharedMultipleLinear(
             self._embedding_size,
             self._num_outputs,
-            share_parameters=self._per_task_classifier,
+            share_parameters=not self._per_task_classifier,
             num_updates=self._task_id + 1,
         )
 
