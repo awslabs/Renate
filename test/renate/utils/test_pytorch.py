@@ -130,9 +130,12 @@ def test_complementary_indices(num_outputs, indices, expected_output):
 def test_unique_classes(tmpdir, test_dataset):
     if test_dataset:
         for data_id in range(5):
-            module = DummyDataIncrementalDataModule(data_id, (10, 10), transform=None, val_size=0)
-            module.setup()
-            train_data = module.train_data()
+            data_module = DummyDataIncrementalDataModule(
+                data_id, (10, 10), transform=None, val_size=0
+            )
+            data_module.prepare_data()
+            data_module.setup()
+            train_data = data_module.train_data()
             predicted_unique = set(int(x) for x in unique_classes(train_data))
             assert predicted_unique == {data_id}
     else:
