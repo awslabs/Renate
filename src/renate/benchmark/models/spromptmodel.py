@@ -11,7 +11,6 @@ from renate import defaults
 from renate.models.layers.shared_linear import SharedMultipleLinear
 from renate.models.prediction_strategies import PredictionStrategy
 from renate.models.task_identification_strategies import TaskPrototypes
-from renate.types import NestedTensors
 
 from . import PromptedTransformer
 from .base import RenateBenchmarkingModule
