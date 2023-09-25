@@ -1,11 +1,12 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+import os
+import shutil
 from typing import Callable, Dict, Literal
 
 import pytest
 import torch
 from pytorch_lightning.loggers import TensorBoardLogger
-
 from renate import defaults
 from renate.benchmark.models import (
     MultiLayerPerceptron,
@@ -150,7 +151,7 @@ SAMPLE_CLASSIFICATION_RESULTS = {
     "accuracy_init": [[0.2, 0.1, 0.09]],
 }
 
-# TEST_WORKING_DIRECTORY = "./test_renate_working_dir/"
+TEST_WORKING_DIRECTORY = "./test_renate_working_dir/"
 TEST_LOGGER = TensorBoardLogger
 TEST_LOGGER_KWARGS = {"save_dir": TEST_WORKING_DIRECTORY, "version": 1, "name": "lightning_logs"}
 
@@ -395,12 +396,11 @@ def check_learner_transforms(learner: Learner, expected_transforms: Dict[str, Ca
         )
 
 
-"""
 def pytest_sessionstart(session):
     if not os.path.exists(TEST_WORKING_DIRECTORY):
         os.mkdir(TEST_WORKING_DIRECTORY)
 
 
 def pytest_sessionfinish(session, exitstatus):
-    shutil.rmtree(TEST_WORKING_DIRECTORY)
-"""
+    if os.path.exists(TEST_WORKING_DIRECTORY):
+        shutil.rmtree(TEST_WORKING_DIRECTORY)
