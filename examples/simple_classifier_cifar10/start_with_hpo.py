@@ -13,7 +13,7 @@ config_space = {
     "learning_rate": loguniform(1e-4, 1e-1),
     "alpha": uniform(0.0, 1.0),
     "batch_size": choice([32, 64, 128, 256]),
-    "memory_batch_size": 32,
+    "batch_memory_frac": 0.5,
     "memory_size": 1000,
     "loss_normalization": 0,
     "loss_weight": uniform(0.0, 1.0),

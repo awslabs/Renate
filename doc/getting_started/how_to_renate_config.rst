@@ -29,7 +29,7 @@ method, which automatically handles model hyperparameters.
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 14-40
+    :lines: 18-42
 
 If you are using a torch model with **no or fixed hyperparameters**, you can use
 :py:class:`~renate.models.renate_module.RenateWrapper`.
@@ -63,7 +63,7 @@ An example of this for the task of MNIST classification above as
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Loss function example
-    :lines: 95-96
+    :lines: 99-100
 
 Please note, loss functions should not be reduced.
 
@@ -85,7 +85,29 @@ such as data subsampling or splitting.
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 41-68
+    :lines: 45-72
+
+Optimizer
+=========
+
+Optimizers such as ``SGD`` or ``Adam`` can be selected by passing the corresponding arguments.
+If you want to use other optimizers, you can do so by returning a partial optimizer object as
+outlined in the example below.
+
+.. literalinclude:: ../../examples/getting_started/renate_config.py
+    :caption: Example
+    :lines: 103-104
+
+Learning Rate Schedulers
+========================
+
+A learning rate scheduler can be provided by creating a function as demonstrated below.
+This function will need to return a partial object of a learning rate scheduler as well as a string
+that indicates whether the scheduler is updated after each ``epoch`` or after each ``step``.
+
+.. literalinclude:: ../../examples/getting_started/renate_config.py
+    :caption: Example
+    :lines: 107-108
 
 Transforms
 ==========
@@ -130,7 +152,7 @@ These are optional as well but, if omitted, Renate will use :code:`train_transfo
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 71-78
+    :lines: 75-82
 
 Custom Metrics
 ==============
@@ -142,7 +164,7 @@ or created ad-hoc by implementing the same interface
 
 .. literalinclude:: ../../examples/getting_started/renate_config.py
     :caption: Example
-    :lines: 93-
+    :lines: 95-96
 
 To enable the usage of additional metrics in Renate it is sufficient to implement the
 :code:`metrics_fn` function, returning a dictionary where the key is a string containing the

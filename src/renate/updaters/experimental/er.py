@@ -1,13 +1,15 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import abc
+from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
-import torch.nn as nn
 import torchmetrics
 from pytorch_lightning.loggers.logger import Logger
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+from torch.nn import Parameter
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset, Subset
 
 from renate import defaults
@@ -16,6 +18,7 @@ from renate.memory.buffer import DataDict
 from renate.models import RenateModule
 from renate.types import NestedTensors
 from renate.updaters.learner import ReplayLearner
+from renate.updaters.learner_components.component import Component
 from renate.updaters.learner_components.losses import (
     WeightedCLSLossComponent,
     WeightedCustomLossComponent,
@@ -26,6 +29,7 @@ from renate.updaters.learner_components.reinitialization import (
     ShrinkAndPerturbReinitializationComponent,
 )
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
+from renate.utils.misc import maybe_populate_mask_and_ignore_logits
 from renate.utils.pytorch import move_tensors_to_device
 
 
@@ -49,7 +53,7 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
 
     def __init__(
         self,
-        components: nn.ModuleDict,
+        components: Dict[str, Component],
         loss_weight: float = defaults.LOSS_WEIGHT,
         ema_memory_update_gamma: float = defaults.EMA_MEMORY_UPDATE_GAMMA,
         loss_normalization: int = defaults.LOSS_NORMALIZATION,
@@ -76,10 +80,21 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
             self._loss_collections["train_losses"].update({name: torchmetrics.MeanMetric()})
 
     def on_model_update_start(
-        self, train_dataset: Dataset, val_dataset: Dataset, task_id: Optional[str] = None
+        self,
+        train_dataset: Dataset,
+        val_dataset: Dataset,
+        train_dataset_collate_fn: Optional[Callable] = None,
+        val_dataset_collate_fn: Optional[Callable] = None,
+        task_id: Optional[str] = None,
     ) -> None:
         """Called before a model update starts."""
-        super().on_model_update_start(train_dataset, val_dataset, task_id)
+        super().on_model_update_start(
+            train_dataset=train_dataset,
+            val_dataset=val_dataset,
+            train_dataset_collate_fn=train_dataset_collate_fn,
+            val_dataset_collate_fn=val_dataset_collate_fn,
+            task_id=task_id,
+        )
         self._set_memory_loader()
 
     def train_dataloader(self) -> DataLoader:
@@ -96,6 +111,7 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
             shuffle=True,
             generator=self._rng,
             pin_memory=True,
+            collate_fn=self._train_collate_fn,
         )
 
     def on_train_start(self) -> None:
@@ -125,6 +141,13 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
                     batch_memory = self._sample_from_buffer(device=step_output["loss"].device)
                     (inputs_memory, _), metadata_memory = batch_memory
                     outputs_memory = self(inputs_memory)
+
+                    outputs_memory, self._class_mask = maybe_populate_mask_and_ignore_logits(
+                        self._mask_unused_classes,
+                        self._class_mask,
+                        self._classes_in_current_task,
+                        outputs_memory,
+                    )
                     intermediate_representation_memory = (
                         self._model.get_intermediate_representation()
                     )
@@ -190,6 +213,7 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
                 shuffle=True,
                 generator=self._rng,
                 pin_memory=True,
+                collate_fn=self._train_collate_fn,
             )
 
     def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int) -> None:
@@ -199,11 +223,23 @@ class BaseExperienceReplayLearner(ReplayLearner, abc.ABC):
             component.on_train_batch_end(model=self._model)
 
     @abc.abstractmethod
-    def components(self, **kwargs) -> nn.ModuleDict:
+    def components(self, **kwargs) -> Dict[str, Component]:
         """Returns the components of the learner.
 
         This is a user-defined function that should return a dictionary of components.
         """
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """Load states of components."""
+        super().on_load_checkpoint(checkpoint)
+        for component in self._components.values():
+            component.on_load_checkpoint(checkpoint)
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """Save states of components."""
+        super().on_save_checkpoint(checkpoint)
+        for component in self._components.values():
+            component.on_save_checkpoint(checkpoint)
 
 
 class ExperienceReplayLearner(BaseExperienceReplayLearner):
@@ -222,14 +258,12 @@ class ExperienceReplayLearner(BaseExperienceReplayLearner):
 
     def components(
         self, loss_fn: Optional[torch.nn.Module] = None, alpha: float = defaults.ER_ALPHA
-    ) -> nn.ModuleDict:
-        return nn.ModuleDict(
-            {
-                "memory_loss": WeightedCustomLossComponent(
-                    loss_fn=loss_fn, weight=alpha, sample_new_memory_batch=True
-                )
-            }
-        )
+    ) -> Dict[str, Component]:
+        return {
+            "memory_loss": WeightedCustomLossComponent(
+                loss_fn=loss_fn, weight=alpha, sample_new_memory_batch=True
+            )
+        }
 
 
 class DarkExperienceReplayLearner(ExperienceReplayLearner):
@@ -256,7 +290,7 @@ class DarkExperienceReplayLearner(ExperienceReplayLearner):
         loss_fn: Optional[torch.nn.Module] = None,
         alpha: float = defaults.DER_ALPHA,
         beta: float = defaults.DER_BETA,
-    ) -> nn.ModuleDict:
+    ) -> Dict[str, Component]:
         components = super().components(loss_fn=loss_fn, alpha=beta)
         components.update(
             {
@@ -300,17 +334,15 @@ class PooledOutputDistillationExperienceReplayLearner(BaseExperienceReplayLearne
         alpha: float = defaults.POD_ALPHA,
         distillation_type: str = defaults.POD_DISTILLATION_TYPE,
         normalize: bool = defaults.POD_NORMALIZE,
-    ) -> nn.ModuleDict:
-        return nn.ModuleDict(
-            {
-                "pod_loss": WeightedPooledOutputDistillationLossComponent(
-                    weight=alpha,
-                    sample_new_memory_batch=True,
-                    distillation_type=distillation_type,
-                    normalize=normalize,
-                )
-            }
-        )
+    ) -> Dict[str, Component]:
+        return {
+            "pod_loss": WeightedPooledOutputDistillationLossComponent(
+                weight=alpha,
+                sample_new_memory_batch=True,
+                distillation_type=distillation_type,
+                normalize=normalize,
+            )
+        }
 
 
 class CLSExperienceReplayLearner(BaseExperienceReplayLearner):
@@ -365,23 +397,21 @@ class CLSExperienceReplayLearner(BaseExperienceReplayLearner):
         stable_model_update_weight: float = defaults.CLS_STABLE_MODEL_UPDATE_WEIGHT,
         plastic_model_update_probability: float = defaults.CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,
         stable_model_update_probability: float = defaults.CLS_STABLE_MODEL_UPDATE_PROBABILITY,
-    ) -> nn.ModuleDict:
-        return nn.ModuleDict(
-            {
-                "memory_loss": WeightedCustomLossComponent(
-                    loss_fn=loss_fn, weight=alpha, sample_new_memory_batch=True
-                ),
-                "cls_loss": WeightedCLSLossComponent(
-                    weight=beta,
-                    sample_new_memory_batch=False,
-                    model=model,
-                    plastic_model_update_weight=plastic_model_update_weight,
-                    stable_model_update_weight=stable_model_update_weight,
-                    plastic_model_update_probability=plastic_model_update_probability,
-                    stable_model_update_probability=stable_model_update_probability,
-                ),
-            }
-        )
+    ) -> Dict[str, Component]:
+        return {
+            "memory_loss": WeightedCustomLossComponent(
+                loss_fn=loss_fn, weight=alpha, sample_new_memory_batch=True
+            ),
+            "cls_loss": WeightedCLSLossComponent(
+                weight=beta,
+                sample_new_memory_batch=False,
+                model=model,
+                plastic_model_update_weight=plastic_model_update_weight,
+                stable_model_update_weight=stable_model_update_weight,
+                plastic_model_update_probability=plastic_model_update_probability,
+                stable_model_update_probability=stable_model_update_probability,
+            ),
+        }
 
 
 class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
@@ -466,35 +496,33 @@ class SuperExperienceReplayLearner(BaseExperienceReplayLearner):
         pod_alpha: float = defaults.SER_POD_ALPHA,
         pod_distillation_type: str = defaults.SER_POD_DISTILLATION_TYPE,
         pod_normalize: bool = defaults.SER_POD_NORMALIZE,
-    ) -> nn.ModuleDict:
-        return nn.ModuleDict(
-            {
-                "mse_loss": WeightedMeanSquaredErrorLossComponent(
-                    weight=der_alpha, sample_new_memory_batch=True
-                ),
-                "memory_loss": WeightedCustomLossComponent(
-                    loss_fn=loss_fn, weight=der_beta, sample_new_memory_batch=True
-                ),
-                "cls_loss": WeightedCLSLossComponent(
-                    weight=cls_alpha,
-                    sample_new_memory_batch=False,
-                    model=model,
-                    stable_model_update_weight=cls_stable_model_update_weight,
-                    plastic_model_update_weight=cls_plastic_model_update_weight,
-                    stable_model_update_probability=cls_stable_model_update_probability,
-                    plastic_model_update_probability=cls_plastic_model_update_probability,
-                ),
-                "shrink_perturb": ShrinkAndPerturbReinitializationComponent(
-                    shrink_factor=sp_shrink_factor, sigma=sp_sigma
-                ),
-                "pod_loss": WeightedPooledOutputDistillationLossComponent(
-                    weight=pod_alpha,
-                    sample_new_memory_batch=True,
-                    distillation_type=pod_distillation_type,
-                    normalize=pod_normalize,
-                ),
-            }
-        )
+    ) -> Dict[str, Component]:
+        return {
+            "mse_loss": WeightedMeanSquaredErrorLossComponent(
+                weight=der_alpha, sample_new_memory_batch=True
+            ),
+            "memory_loss": WeightedCustomLossComponent(
+                loss_fn=loss_fn, weight=der_beta, sample_new_memory_batch=True
+            ),
+            "cls_loss": WeightedCLSLossComponent(
+                weight=cls_alpha,
+                sample_new_memory_batch=False,
+                model=model,
+                stable_model_update_weight=cls_stable_model_update_weight,
+                plastic_model_update_weight=cls_plastic_model_update_weight,
+                stable_model_update_probability=cls_stable_model_update_probability,
+                plastic_model_update_probability=cls_plastic_model_update_probability,
+            ),
+            "shrink_perturb": ShrinkAndPerturbReinitializationComponent(
+                shrink_factor=sp_shrink_factor, sigma=sp_sigma
+            ),
+            "pod_loss": WeightedPooledOutputDistillationLossComponent(
+                weight=pod_alpha,
+                sample_new_memory_batch=True,
+                distillation_type=pod_distillation_type,
+                normalize=pod_normalize,
+            ),
+        }
 
 
 class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
@@ -502,19 +530,15 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
+        optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
+        batch_memory_frac: int = defaults.BATCH_MEMORY_FRAC,
         loss_weight: float = defaults.LOSS_WEIGHT,
         ema_memory_update_gamma: float = defaults.EMA_MEMORY_UPDATE_GAMMA,
         loss_normalization: int = defaults.LOSS_NORMALIZATION,
         alpha: float = defaults.ER_ALPHA,
-        optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
-        learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
-        learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-        learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-        momentum: float = defaults.MOMENTUM,
-        weight_decay: float = defaults.WEIGHT_DECAY,
+        learning_rate_scheduler: Optional[partial] = None,
+        learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
@@ -536,32 +560,31 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
-            "memory_batch_size": memory_batch_size,
+            "batch_memory_frac": batch_memory_frac,
             "loss_weight": loss_weight,
             "ema_memory_update_gamma": ema_memory_update_gamma,
             "loss_normalization": loss_normalization,
             "alpha": alpha,
-            "optimizer": optimizer,
-            "learning_rate": learning_rate,
-            "learning_rate_scheduler": learning_rate_scheduler,
-            "learning_rate_scheduler_gamma": learning_rate_scheduler_gamma,
-            "learning_rate_scheduler_step_size": learning_rate_scheduler_step_size,
-            "momentum": momentum,
-            "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
-            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
+            loss_fn=loss_fn,
+            optimizer=optimizer,
             learner_class=ExperienceReplayLearner,
             learner_kwargs=learner_kwargs,
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            learning_rate_scheduler=learning_rate_scheduler,
+            learning_rate_scheduler_interval=learning_rate_scheduler_interval,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,
@@ -578,6 +601,9 @@ class ExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             strategy=strategy,
             precision=precision,
             deterministic_trainer=deterministic_trainer,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            gradient_clip_val=gradient_clip_val,
+            mask_unused_classes=mask_unused_classes,
         )
 
 
@@ -586,20 +612,16 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
+        optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
+        batch_memory_frac: int = defaults.BATCH_MEMORY_FRAC,
         loss_weight: float = defaults.LOSS_WEIGHT,
         ema_memory_update_gamma: float = defaults.EMA_MEMORY_UPDATE_GAMMA,
         loss_normalization: int = defaults.LOSS_NORMALIZATION,
         alpha: float = defaults.DER_ALPHA,
         beta: float = defaults.DER_BETA,
-        optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
-        learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
-        learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-        learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-        momentum: float = defaults.MOMENTUM,
-        weight_decay: float = defaults.WEIGHT_DECAY,
+        learning_rate_scheduler: Optional[partial] = None,
+        learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
@@ -621,33 +643,32 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
-            "memory_batch_size": memory_batch_size,
+            "batch_memory_frac": batch_memory_frac,
             "loss_weight": loss_weight,
             "ema_memory_update_gamma": ema_memory_update_gamma,
             "loss_normalization": loss_normalization,
             "alpha": alpha,
             "beta": beta,
-            "optimizer": optimizer,
-            "learning_rate": learning_rate,
-            "learning_rate_scheduler": learning_rate_scheduler,
-            "learning_rate_scheduler_gamma": learning_rate_scheduler_gamma,
-            "learning_rate_scheduler_step_size": learning_rate_scheduler_step_size,
-            "momentum": momentum,
-            "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
-            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
+            loss_fn=loss_fn,
+            optimizer=optimizer,
             learner_class=DarkExperienceReplayLearner,
             learner_kwargs=learner_kwargs,
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            learning_rate_scheduler=learning_rate_scheduler,
+            learning_rate_scheduler_interval=learning_rate_scheduler_interval,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,
@@ -664,6 +685,9 @@ class DarkExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             strategy=strategy,
             precision=precision,
             deterministic_trainer=deterministic_trainer,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            gradient_clip_val=gradient_clip_val,
+            mask_unused_classes=mask_unused_classes,
         )
 
 
@@ -672,21 +696,17 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
+        optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
+        batch_memory_frac: int = defaults.BATCH_MEMORY_FRAC,
         loss_weight: float = defaults.LOSS_WEIGHT,
         ema_memory_update_gamma: float = defaults.EMA_MEMORY_UPDATE_GAMMA,
         loss_normalization: int = defaults.LOSS_NORMALIZATION,
         alpha: float = defaults.POD_ALPHA,
         distillation_type: str = defaults.POD_DISTILLATION_TYPE,
         normalize: bool = defaults.POD_NORMALIZE,
-        optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
-        learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
-        learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-        learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-        momentum: float = defaults.MOMENTUM,
-        weight_decay: float = defaults.WEIGHT_DECAY,
+        learning_rate_scheduler: Optional[partial] = None,
+        learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
@@ -708,34 +728,33 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
-            "memory_batch_size": memory_batch_size,
+            "batch_memory_frac": batch_memory_frac,
             "loss_weight": loss_weight,
             "ema_memory_update_gamma": ema_memory_update_gamma,
             "loss_normalization": loss_normalization,
             "alpha": alpha,
             "distillation_type": distillation_type,
             "normalize": normalize,
-            "optimizer": optimizer,
-            "learning_rate": learning_rate,
-            "learning_rate_scheduler": learning_rate_scheduler,
-            "learning_rate_scheduler_gamma": learning_rate_scheduler_gamma,
-            "learning_rate_scheduler_step_size": learning_rate_scheduler_step_size,
-            "momentum": momentum,
-            "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
-            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
+            loss_fn=loss_fn,
+            optimizer=optimizer,
             learner_class=PooledOutputDistillationExperienceReplayLearner,
             learner_kwargs=learner_kwargs,
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            learning_rate_scheduler=learning_rate_scheduler,
+            learning_rate_scheduler_interval=learning_rate_scheduler_interval,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,
@@ -752,6 +771,9 @@ class PooledOutputDistillationExperienceReplayModelUpdater(SingleTrainingLoopUpd
             strategy=strategy,
             precision=precision,
             deterministic_trainer=deterministic_trainer,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            gradient_clip_val=gradient_clip_val,
+            mask_unused_classes=mask_unused_classes,
         )
 
 
@@ -760,8 +782,9 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
+        optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
+        batch_memory_frac: int = defaults.BATCH_MEMORY_FRAC,
         loss_weight: float = defaults.LOSS_WEIGHT,
         ema_memory_update_gamma: float = defaults.EMA_MEMORY_UPDATE_GAMMA,
         loss_normalization: int = defaults.LOSS_NORMALIZATION,
@@ -771,13 +794,8 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         plastic_model_update_weight: float = defaults.CLS_PLASTIC_MODEL_UPDATE_WEIGHT,
         stable_model_update_probability: float = defaults.CLS_STABLE_MODEL_UPDATE_PROBABILITY,
         plastic_model_update_probability: float = defaults.CLS_PLASTIC_MODEL_UPDATE_PROBABILITY,
-        optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
-        learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
-        learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-        learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-        momentum: float = defaults.MOMENTUM,
-        weight_decay: float = defaults.WEIGHT_DECAY,
+        learning_rate_scheduler: Optional[partial] = None,
+        learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
@@ -799,10 +817,13 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
-            "memory_batch_size": memory_batch_size,
+            "batch_memory_frac": batch_memory_frac,
             "loss_weight": loss_weight,
             "ema_memory_update_gamma": ema_memory_update_gamma,
             "loss_normalization": loss_normalization,
@@ -812,24 +833,20 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             "plastic_model_update_weight": plastic_model_update_weight,
             "stable_model_update_probability": stable_model_update_probability,
             "plastic_model_update_probability": plastic_model_update_probability,
-            "optimizer": optimizer,
-            "learning_rate": learning_rate,
-            "learning_rate_scheduler": learning_rate_scheduler,
-            "learning_rate_scheduler_gamma": learning_rate_scheduler_gamma,
-            "learning_rate_scheduler_step_size": learning_rate_scheduler_step_size,
-            "momentum": momentum,
-            "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
-            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
+            loss_fn=loss_fn,
+            optimizer=optimizer,
             learner_class=CLSExperienceReplayLearner,
             learner_kwargs=learner_kwargs,
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            learning_rate_scheduler=learning_rate_scheduler,
+            learning_rate_scheduler_interval=learning_rate_scheduler_interval,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,
@@ -846,6 +863,9 @@ class CLSExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             strategy=strategy,
             precision=precision,
             deterministic_trainer=deterministic_trainer,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            gradient_clip_val=gradient_clip_val,
+            mask_unused_classes=mask_unused_classes,
         )
 
 
@@ -854,8 +874,9 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
+        optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
+        batch_memory_frac: int = defaults.BATCH_MEMORY_FRAC,
         loss_weight: float = defaults.LOSS_WEIGHT,
         ema_memory_update_gamma: float = defaults.EMA_MEMORY_UPDATE_GAMMA,
         loss_normalization: int = defaults.LOSS_NORMALIZATION,
@@ -871,13 +892,8 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         pod_alpha: float = defaults.SER_POD_ALPHA,
         pod_distillation_type: str = defaults.SER_POD_DISTILLATION_TYPE,
         pod_normalize: bool = defaults.SER_POD_NORMALIZE,
-        optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
-        learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
-        learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-        learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-        momentum: float = defaults.MOMENTUM,
-        weight_decay: float = defaults.WEIGHT_DECAY,
+        learning_rate_scheduler: Optional[partial] = None,
+        learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
@@ -899,10 +915,13 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
-            "memory_batch_size": memory_batch_size,
+            "batch_memory_frac": batch_memory_frac,
             "loss_weight": loss_weight,
             "ema_memory_update_gamma": ema_memory_update_gamma,
             "loss_normalization": loss_normalization,
@@ -918,24 +937,20 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             "pod_alpha": pod_alpha,
             "pod_distillation_type": pod_distillation_type,
             "pod_normalize": pod_normalize,
-            "optimizer": optimizer,
-            "learning_rate": learning_rate,
-            "learning_rate_scheduler": learning_rate_scheduler,
-            "learning_rate_scheduler_gamma": learning_rate_scheduler_gamma,
-            "learning_rate_scheduler_step_size": learning_rate_scheduler_step_size,
-            "momentum": momentum,
-            "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
-            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
+            loss_fn=loss_fn,
+            optimizer=optimizer,
             learner_class=SuperExperienceReplayLearner,
             learner_kwargs=learner_kwargs,
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            learning_rate_scheduler=learning_rate_scheduler,
+            learning_rate_scheduler_interval=learning_rate_scheduler_interval,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,
@@ -952,4 +967,7 @@ class SuperExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             strategy=strategy,
             precision=precision,
             deterministic_trainer=deterministic_trainer,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            gradient_clip_val=gradient_clip_val,
+            mask_unused_classes=mask_unused_classes,
         )

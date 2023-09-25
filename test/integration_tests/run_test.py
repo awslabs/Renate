@@ -20,6 +20,12 @@ if __name__ == "__main__":
         required=True,
         help="Seed.",
     )
+    parser.add_argument(
+        f"--requirements-file",
+        type=str,
+        required=False,
+        help="Path to requirements file",
+    )
     args = parser.parse_args()
     test_suite = "main"
     current_folder = Path(os.path.dirname(__file__))
@@ -30,6 +36,9 @@ if __name__ == "__main__":
     with open(test_file) as f:
         test_config = json.load(f)
     job_name = f"{test_config['job_name']}"
+    requirements_file = args.requirements_file
+    if not requirements_file:
+        requirements_file = current_folder.parent.parent / "requirements.txt"
     process = subprocess.Popen(
         [
             "python",
@@ -50,6 +59,8 @@ if __name__ == "__main__":
             test_suite,
             "--seed",
             str(args.seed),
+            "--requirements-file",
+            requirements_file,
         ]
     )
     process.wait()

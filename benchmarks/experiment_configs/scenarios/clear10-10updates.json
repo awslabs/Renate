@@ -1,0 +1,14 @@
+{
+  "val_size": 0.1,
+  "scenario_name": "DataIncrementalScenario",
+  "num_tasks": 10,
+  "max_epochs": 100,
+  "optimizer": "SGD",
+  "learning_rate": 0.01,
+  "momentum": 0.9,
+  "weight_decay": 1e-5,
+  "learning_rate_scheduler": "StepLR",
+  "learning_rate_scheduler_step_size": 30,
+  "learning_rate_scheduler_gamma": 0.1,
+  "learning_rate_scheduler_interval": "epoch"
+}

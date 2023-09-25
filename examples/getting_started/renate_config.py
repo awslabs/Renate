@@ -1,9 +1,13 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Callable, Dict, Optional
+from functools import partial
+from typing import Callable, Dict, Generator, Optional, Tuple
 
 import torch
 import torchvision
+from torch.nn import Parameter
+from torch.optim import AdamW, Optimizer
+from torch.optim.lr_scheduler import StepLR, _LRScheduler
 from torchmetrics import Accuracy
 from torchvision.transforms import transforms
 
@@ -89,8 +93,16 @@ def buffer_transform() -> Callable:
 
 
 def metrics_fn() -> Dict:
-    return {"my_accuracy": Accuracy()}
+    return {"accuracy": Accuracy(task="multiclass", num_classes=10)}
 
 
 def loss_fn() -> torch.nn.Module:
     return torch.nn.CrossEntropyLoss(reduction="none")
+
+
+def optimizer_fn() -> Callable[[Generator[Parameter]], Optimizer]:
+    return partial(AdamW, lr=0.01, weight_decay=0.0)
+
+
+def lr_scheduler_fn() -> Tuple[Callable[[Optimizer], _LRScheduler], str]:
+    return partial(StepLR, step_size=10, gamma=0.1), "epoch"

@@ -38,7 +38,7 @@ class AvalancheLoaderMixin:
         avalanche_learner._criterion = self._loss_fn
         avalanche_learner.train_epochs = max_epochs
         avalanche_learner.train_mb_size = self._batch_size
-        avalanche_learner.eval_mb_size = self._batch_size
+        avalanche_learner.eval_mb_size = self._batch_size + getattr(self, "_memory_batch_size", 0)
         avalanche_learner.device = device
         avalanche_learner.eval_every = eval_every
 
@@ -57,7 +57,7 @@ class AvalancheLoaderMixin:
             optimizer=optimizer,
             criterion=self._loss_fn,
             train_mb_size=self._batch_size,
-            eval_mb_size=self._batch_size,
+            eval_mb_size=self._batch_size + getattr(self, "_memory_batch_size", 0),
             train_epochs=train_epochs,
             plugins=plugins,
             evaluator=default_evaluator(),
@@ -123,8 +123,12 @@ class AvalancheLwFLearner(Learner, AvalancheLoaderMixin):
         return self._create_avalanche_learner(plugins=plugins, **kwargs)
 
 
-class AvalancheICaRLLearner(ReplayLearner, AvalancheLoaderMixin):
+class AvalancheICaRLLearner(Learner, AvalancheLoaderMixin):
     """Renate wrapper around Avalanche ICaRL."""
+
+    def __init__(self, memory_size: int, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._memory_size = memory_size
 
     def create_avalanche_learner(
         self,
@@ -154,7 +158,7 @@ class AvalancheICaRLLearner(ReplayLearner, AvalancheLoaderMixin):
             feature_extractor=self._model.get_backbone(),
             classifier=self._model.get_predictor(),
             optimizer=optimizer,
-            memory_size=self._memory_buffer._max_size,
+            memory_size=self._memory_size,
             buffer_transform=None,  # TODO
             fixed_memory=True,
             train_mb_size=self._batch_size,

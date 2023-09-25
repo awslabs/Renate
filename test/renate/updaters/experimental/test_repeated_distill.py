@@ -28,9 +28,14 @@ def test_dmc_runs_end_to_end():
         data.append(ds)
 
     val = ConcatDataset(data)
-    loss_fn = pytest.helpers.get_loss_fn()
     updater = RepeatedDistillationModelUpdater(
-        model=mlp, memory_size=300, batch_size=20, max_epochs=5, loss_fn=loss_fn, accelerator="cpu"
+        loss_fn=pytest.helpers.get_loss_fn(),
+        optimizer=pytest.helpers.get_partial_optimizer(),
+        model=mlp,
+        memory_size=300,
+        batch_size=20,
+        max_epochs=5,
+        accelerator="cpu",
     )
 
     for i in range(len(data)):
@@ -43,9 +48,13 @@ def test_dmc_memory_size_after_update(memory_size, dataset_size):
     model = pytest.helpers.get_renate_module_mlp(
         num_inputs=10, num_outputs=3, hidden_size=20, num_hidden_layers=1
     )
-    loss_fn = pytest.helpers.get_loss_fn()
     model_updater = RepeatedDistillationModelUpdater(
-        model=model, memory_size=memory_size, max_epochs=1, loss_fn=loss_fn, accelerator="cpu"
+        loss_fn=pytest.helpers.get_loss_fn(),
+        optimizer=pytest.helpers.get_partial_optimizer(),
+        model=model,
+        memory_size=memory_size,
+        max_epochs=1,
+        accelerator="cpu",
     )
     datasets = [
         TensorDataset(
@@ -63,7 +72,7 @@ def test_dmc_memory_size_after_update(memory_size, dataset_size):
 
 @pytest.mark.parametrize("provide_folder", [True, False])
 def test_dmc_model_updater(tmpdir, provide_folder):
-    model, train_dataset, test_data, loss_fn = pytest.helpers.get_renate_module_mlp_data_and_loss(
+    model, train_dataset, test_data = pytest.helpers.get_renate_module_mlp_and_data(
         num_inputs=10,
         num_outputs=10,
         hidden_size=32,
@@ -73,7 +82,8 @@ def test_dmc_model_updater(tmpdir, provide_folder):
     )
     model_updater = RepeatedDistillationModelUpdater(
         model,
-        loss_fn=loss_fn,
+        loss_fn=pytest.helpers.get_loss_fn(),
+        optimizer=pytest.helpers.get_partial_optimizer(),
         memory_size=50,
         max_epochs=1,
         output_state_folder=defaults.output_state_folder(tmpdir) if provide_folder else None,
@@ -87,7 +97,7 @@ def test_dmc_model_updater(tmpdir, provide_folder):
 
 
 def test_continuation_of_training_with_dmc_model_updater(tmpdir):
-    model, train_dataset, _, loss_fn = pytest.helpers.get_renate_module_mlp_data_and_loss(
+    model, train_dataset, _ = pytest.helpers.get_renate_module_mlp_and_data(
         num_inputs=10,
         num_outputs=10,
         hidden_size=32,
@@ -98,19 +108,21 @@ def test_continuation_of_training_with_dmc_model_updater(tmpdir):
     state_url = defaults.input_state_folder(tmpdir)
     model_updater = RepeatedDistillationModelUpdater(
         model,
+        loss_fn=pytest.helpers.get_loss_fn(),
+        optimizer=pytest.helpers.get_partial_optimizer(),
         memory_size=50,
         max_epochs=1,
         output_state_folder=state_url,
-        loss_fn=loss_fn,
         accelerator="cpu",
     )
     model = model_updater.update(train_dataset, task_id=defaults.TASK_ID)
     model_updater = RepeatedDistillationModelUpdater(
         model,
+        loss_fn=pytest.helpers.get_loss_fn(),
+        optimizer=pytest.helpers.get_partial_optimizer(),
         memory_size=50,
         max_epochs=1,
         input_state_folder=state_url,
-        loss_fn=loss_fn,
         accelerator="cpu",
     )
     model_updater.update(train_dataset, task_id=defaults.TASK_ID)

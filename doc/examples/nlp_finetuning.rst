@@ -1,5 +1,5 @@
-Working with NLP
-****************
+Working with NLP and Large Language Models
+******************************************
 
 This example demonstrates how to use Renate to train NLP models. We will train a sequence classifier
 to distinguish between positive and negative movie reviews. Using Renate, we will sequentially

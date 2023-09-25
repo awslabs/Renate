@@ -1,0 +1,7 @@
+{
+  "dataset_name": "fmow",
+  "src_bucket": "my_bucket",
+  "src_object_name": "dataset/wildtime/fmow.hdf5",
+  "num_inputs": 150528,
+  "num_outputs": 62
+}

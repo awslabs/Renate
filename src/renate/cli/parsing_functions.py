@@ -4,11 +4,11 @@ import argparse
 import ast
 import inspect
 import sys
-import pytorch_lightning as pl
 from importlib.util import find_spec
 from types import ModuleType
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
+import pytorch_lightning as pl
 from syne_tune.optimizer.scheduler import TrialScheduler
 
 from renate import defaults
@@ -22,6 +22,10 @@ from renate.updaters.experimental.er import (
 from renate.updaters.experimental.fine_tuning import FineTuningModelUpdater
 from renate.updaters.experimental.gdumb import GDumbModelUpdater
 from renate.updaters.experimental.joint import JointModelUpdater
+from renate.updaters.experimental.l2p import (
+    LearningToPromptModelUpdater,
+    LearningToPromptReplayModelUpdater,
+)
 from renate.updaters.experimental.offline_er import OfflineExperienceReplayModelUpdater
 from renate.updaters.experimental.repeated_distill import RepeatedDistillationModelUpdater
 from renate.updaters.model_updater import ModelUpdater
@@ -48,28 +52,24 @@ def get_updater_and_learner_kwargs(
     """Returns the model updater class and the keyword arguments for the learner."""
     if args.updater.startswith("Avalanche-") and find_spec("avalanche", None) is None:
         raise ImportError("Avalanche is not installed. Please run `pip install Renate[avalanche]`.")
-    learner_args = [
-        "optimizer",
-        "learning_rate",
-        "learning_rate_scheduler",
-        "learning_rate_scheduler_step_size",
-        "learning_rate_scheduler_gamma",
-        "momentum",
-        "weight_decay",
-        "batch_size",
-        "seed",
-    ]
+    learner_args = ["batch_size", "seed", "mask_unused_classes"]
     base_er_args = learner_args + [
         "loss_weight",
         "ema_memory_update_gamma",
         "memory_size",
-        "memory_batch_size",
+        "batch_memory_frac",
         "loss_normalization",
     ]
     updater_class = None
     if args.updater == "ER":
         learner_args = base_er_args + ["alpha"]
         updater_class = ExperienceReplayModelUpdater
+    elif args.updater == "LearningToPrompt":
+        learner_args = learner_args + ["prompt_sim_loss_weight"]
+        updater_class = LearningToPromptModelUpdater
+    elif args.updater == "LearningToPromptReplay":
+        learner_args = learner_args + ["prompt_sim_loss_weight", "memory_size", "memory_batch_size"]
+        updater_class = LearningToPromptReplayModelUpdater
     elif args.updater == "DER":
         learner_args = base_er_args + ["alpha", "beta"]
         updater_class = DarkExperienceReplayModelUpdater
@@ -103,7 +103,7 @@ def get_updater_and_learner_kwargs(
         ]
         updater_class = SuperExperienceReplayModelUpdater
     elif args.updater == "Offline-ER":
-        learner_args = learner_args + ["loss_weight_new_data", "memory_size", "memory_batch_size"]
+        learner_args = learner_args + ["loss_weight_new_data", "memory_size", "batch_memory_frac"]
         updater_class = OfflineExperienceReplayModelUpdater
     elif args.updater == "RD":
         learner_args = learner_args + ["memory_size"]
@@ -118,7 +118,7 @@ def get_updater_and_learner_kwargs(
         learner_args = learner_args
         updater_class = FineTuningModelUpdater
     elif args.updater == "Avalanche-ER":
-        learner_args = learner_args + ["memory_size", "memory_batch_size"]
+        learner_args = learner_args + ["memory_size", "batch_memory_frac"]
         from renate.updaters.avalanche.model_updater import ExperienceReplayAvalancheModelUpdater
 
         updater_class = ExperienceReplayAvalancheModelUpdater
@@ -133,7 +133,7 @@ def get_updater_and_learner_kwargs(
 
         updater_class = LearningWithoutForgettingModelUpdater
     elif args.updater == "Avalanche-iCaRL":
-        learner_args = learner_args + ["memory_size", "memory_batch_size"]
+        learner_args = learner_args + ["memory_size", "batch_memory_frac"]
         from renate.updaters.avalanche.model_updater import ICaRLModelUpdater
 
         updater_class = ICaRLModelUpdater
@@ -182,7 +182,7 @@ def parse_arguments(
         to all functions specified in ``function_names``.
     """
     arguments = _standard_arguments()
-    _add_hyperparameter_arguments(arguments)
+    _add_hyperparameter_arguments(arguments, "optimizer_fn" not in vars(config_module))
     function_args = {}
     for function_name in function_names:
         function_args[function_name] = get_function_args(
@@ -240,7 +240,8 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
         "max_epochs": {
             "type": int,
             "default": defaults.MAX_EPOCHS,
-            "help": f"Number of epochs trained at most. Default: {defaults.MAX_EPOCHS}",
+            "help": "Maximum number of (finetuning-equivalent) epochs. "
+            f"Default: {defaults.MAX_EPOCHS}",
             "argument_group": OPTIONAL_ARGS_GROUP,
         },
         "task_id": {
@@ -320,6 +321,28 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
             "argument_group": OPTIONAL_ARGS_GROUP,
             "true_type": bool,
         },
+        "gradient_clip_val": {
+            "type": lambda x: None if x == "None" else float(x),
+            "default": defaults.GRADIENT_CLIP_VAL,
+            "help": "The value at which to clip gradients. None disables clipping.",
+            "argument_group": OPTIONAL_ARGS_GROUP,
+        },
+        "gradient_clip_algorithm": {
+            "type": lambda x: None if x == "None" else x,
+            "default": defaults.GRADIENT_CLIP_ALGORITHM,
+            "help": "Gradient clipping algorithm to use.",
+            "choices": ["norm", "value", None],
+            "argument_group": OPTIONAL_ARGS_GROUP,
+        },
+        "mask_unused_classes": {
+            "default": str(defaults.MASK_UNUSED_CLASSES),
+            "type": str,
+            "choices": ["True", "False"],
+            "help": "Whether to use a class mask to kill the unused logits. Useful possibly for "
+            "class incremental learning methods. ",
+            "argument_group": OPTIONAL_ARGS_GROUP,
+            "true_type": bool,
+        },
         "prepare_data": {
             "type": str,
             "default": "True",
@@ -336,7 +359,9 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
     }
 
 
-def _add_hyperparameter_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+def _add_hyperparameter_arguments(
+    arguments: Dict[str, Dict[str, Any]], add_optimizer_args: bool
+) -> None:
     """Adds arguments for the specified updater."""
     updater: Optional[str] = None
     for i, arg in enumerate(sys.argv):
@@ -348,56 +373,46 @@ def _add_hyperparameter_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
 
     assert updater in parse_by_updater, f"Unknown updater {updater}."
     parse_by_updater[updater](arguments)
-    _add_optimizer_arguments(arguments)
+    _add_optimizer_arguments(arguments, add_optimizer_args)
     for value in arguments.values():
         if "argument_group" not in value:
             value["argument_group"] = HYPERPARAMETER_ARGS_GROUP
 
 
-def _add_optimizer_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+def _add_optimizer_arguments(
+    arguments: Dict[str, Dict[str, Any]], add_optimizer_args: bool
+) -> None:
     """A helper function that adds optimizer arguments."""
+    if add_optimizer_args:
+        arguments.update(
+            {
+                "optimizer": {
+                    "type": str,
+                    "default": defaults.OPTIMIZER,
+                    "help": "Optimizer used for training. Options: SGD or Adam. Default: "
+                    f"{defaults.OPTIMIZER}.",
+                },
+                "learning_rate": {
+                    "type": float,
+                    "default": defaults.LEARNING_RATE,
+                    "help": "Learning rate used during model update. Default: "
+                    f"{defaults.LEARNING_RATE}.",
+                },
+                "momentum": {
+                    "type": float,
+                    "default": defaults.MOMENTUM,
+                    "help": f"Momentum used during model update. Default: {defaults.MOMENTUM}.",
+                },
+                "weight_decay": {
+                    "type": float,
+                    "default": defaults.WEIGHT_DECAY,
+                    "help": "Weight decay used during model update. Default: "
+                    f"{defaults.WEIGHT_DECAY}.",
+                },
+            }
+        )
     arguments.update(
         {
-            "optimizer": {
-                "type": str,
-                "default": defaults.OPTIMIZER,
-                "help": "Optimizer used for training. Options: SGD or Adam. Default: "
-                f"{defaults.OPTIMIZER}.",
-            },
-            "learning_rate": {
-                "type": float,
-                "default": defaults.LEARNING_RATE,
-                "help": "Learning rate used during model update. Default: "
-                f"{defaults.LEARNING_RATE}.",
-            },
-            "learning_rate_scheduler": {
-                "type": str,
-                "default": defaults.LEARNING_RATE_SCHEDULER,
-                "help": "Learning rate scheduler used during model update. Default: "
-                f"{defaults.LEARNING_RATE_SCHEDULER}.",
-            },
-            "learning_rate_scheduler_step_size": {
-                "type": int,
-                "default": defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-                "help": "Step size for learning rate scheduler. Default: "
-                f"{defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE}.",
-            },
-            "learning_rate_scheduler_gamma": {
-                "type": float,
-                "default": defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-                "help": "Gamma for learning rate scheduler. Default: "
-                f"{defaults.LEARNING_RATE_SCHEDULER_GAMMA}.",
-            },
-            "momentum": {
-                "type": float,
-                "default": defaults.MOMENTUM,
-                "help": f"Momentum used during model update. Default: {defaults.MOMENTUM}.",
-            },
-            "weight_decay": {
-                "type": float,
-                "default": defaults.WEIGHT_DECAY,
-                "help": f"Weight decay used during model update. Default: {defaults.WEIGHT_DECAY}.",
-            },
             "batch_size": {
                 "type": int,
                 "default": defaults.BATCH_SIZE,
@@ -423,11 +438,11 @@ def _add_replay_learner_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
                 "help": "Memory size available for the memory buffer. Default: "
                 f"{defaults.MEMORY_SIZE}.",
             },
-            "memory_batch_size": {
-                "type": int,
-                "default": defaults.BATCH_SIZE,
-                "help": "Batch size used during model update for the memory buffer. Default: "
-                f"{defaults.BATCH_SIZE}.",
+            "batch_memory_frac": {
+                "type": float,
+                "default": defaults.BATCH_MEMORY_FRAC,
+                "help": "Fraction of the batch populated with memory data. Default: "
+                f"{defaults.BATCH_MEMORY_FRAC}.",
             },
         }
     )
@@ -455,14 +470,43 @@ def _add_base_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) 
     _add_replay_learner_arguments(arguments)
 
 
+def _add_l2p_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+    arguments.update(
+        {
+            "prompt_sim_loss_weight": {
+                "type": float,
+                "default": defaults.PROMPT_SIM_LOSS_WEIGHT,
+                "help": "Prompt key similarity regularization weight. "
+                f"Default: {defaults.PROMPT_SIM_LOSS_WEIGHT}",
+            }
+        }
+    )
+
+
+def _add_l2preplay_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+    _add_l2p_arguments(arguments)
+    _add_offline_er_arguments(arguments)
+
+
 def _add_gdumb_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds GDumb arguments."""
     _add_replay_learner_arguments(arguments)
+    _add_joint_arguments(arguments)
 
 
 def _add_joint_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds Joint Learner arguments."""
-    pass
+    arguments.update(
+        {
+            "reset": {
+                "type": str,
+                "default": "True",
+                "choices": ["True", "False"],
+                "help": "Resets the model before the update. Default: True",
+                "true_type": bool,
+            },
+        }
+    )
 
 
 def _add_finetuning_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
@@ -710,6 +754,19 @@ def _add_avalanche_lwf_learner_arguments(arguments: Dict[str, Dict[str, Any]]) -
     )
 
 
+def _add_avalanche_icarl_learner_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+    """A helper function that adds iCarl arguments."""
+    arguments.update(
+        {
+            "memory_size": {
+                "type": int,
+                "default": defaults.MEMORY_SIZE,
+                "help": f"Number of exemplars being stored. Default: {defaults.MEMORY_SIZE}.",
+            }
+        },
+    )
+
+
 def get_function_kwargs(args: argparse.Namespace, function_args: Dict[str, Any]) -> Dict[str, Any]:
     """Returns the kwargs for a function with defined arguments based on provided values.
 
@@ -757,6 +814,15 @@ def get_transforms_kwargs(
                 )
             )
     return transforms
+
+
+def get_metrics_fn_kwargs(
+    config_module, config_space: Dict[str, Any], cast_arguments: Optional[bool] = False
+) -> Dict[str, Any]:
+    """Returns the kwargs for a ``metrics_fn`` with defined arguments based on config_space."""
+    return _get_function_kwargs_helper(
+        config_module, config_space, "metrics_fn", [], cast_arguments
+    )
 
 
 def _get_function_kwargs_helper(
@@ -833,7 +899,7 @@ def get_argument_type(arg_spec: inspect.FullArgSpec, argument_name: str) -> Type
     return argument_type
 
 
-def to_dense_str(value: Union[bool, List, Tuple]) -> str:
+def to_dense_str(value: Union[bool, List, Tuple, None]) -> str:
     """Converts a variable to string without empty spaces."""
     return str(value).replace(" ", "")
 
@@ -905,6 +971,8 @@ def get_scheduler_kwargs(
 
 parse_by_updater = {
     "ER": _add_experience_replay_arguments,
+    "LearningToPrompt": _add_l2p_arguments,
+    "LearningToPromptReplay": _add_l2preplay_arguments,
     "DER": _add_dark_experience_replay_arguments,
     "POD-ER": _add_pod_experience_replay_arguments,
     "CLS-ER": _add_cls_experience_replay_arguments,
@@ -917,5 +985,5 @@ parse_by_updater = {
     "Avalanche-ER": _add_experience_replay_arguments,
     "Avalanche-EWC": _add_avalanche_ewc_learner_arguments,
     "Avalanche-LwF": _add_avalanche_lwf_learner_arguments,
-    "Avalanche-iCaRL": _add_experience_replay_arguments,
+    "Avalanche-iCaRL": _add_avalanche_icarl_learner_arguments,
 }

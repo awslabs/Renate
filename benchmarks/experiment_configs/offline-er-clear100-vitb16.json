@@ -1,0 +1,6 @@
+{
+  "scenario": "clear100-vit-b16-11updates.json",
+  "model": "vit-b16.json",
+  "updater": "offline-er-clear100-vit-b16.json",
+  "dataset": "clear100.json"
+}

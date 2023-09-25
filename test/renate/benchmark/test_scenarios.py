@@ -7,11 +7,11 @@ import pytest
 import torch
 from torchvision.transforms.functional import rotate
 
-from dummy_datasets import DummyTorchVisionDataModule, DummyTorchVisionDataModuleWithChunks
+from dummy_datasets import DummyDataIncrementalDataModule, DummyTorchVisionDataModule
 from renate.benchmark.datasets.vision_datasets import TorchVisionDataModule
 from renate.benchmark.scenarios import (
-    BenchmarkScenario,
     ClassIncrementalScenario,
+    DataIncrementalScenario,
     FeatureSortingScenario,
     IIDScenario,
     ImageRotationScenario,
@@ -32,7 +32,7 @@ from renate.utils.pytorch import randomly_split_data
             {
                 "num_tasks": 3,
                 "chunk_id": 4,  # Wrong chunk id
-                "class_groupings": [[0, 1, 2], [3, 5, 9], [4, 6, 7, 8]],
+                "groupings": ((0, 1, 2), (3, 5, 9), (4, 6, 7, 8)),
             },
         ],
         [PermutationScenario, {"num_tasks": 3, "chunk_id": 2}],  # Missing input dim
@@ -49,34 +49,109 @@ def test_failing_to_init(tmpdir, scenario_cls, kwargs):
 
 def test_class_incremental_scenario():
     data_module = DummyTorchVisionDataModule(val_size=0.3, seed=42)
-    class_groupings = [[0, 1, 3], [2], [3, 4]]
+    groupings = ((0, 1, 3), (2,), (3, 4))
     train_data_class_counts = Counter({3: 16, 4: 15, 0: 15, 2: 13, 1: 11})
     val_data_class_counts = Counter({1: 9, 2: 7, 4: 5, 0: 5, 3: 4})
     test_data_class_counts = Counter({0: 20, 1: 20, 2: 20, 3: 20, 4: 20})
-    for i in range(len(class_groupings)):
+    for i in range(len(groupings)):
         scenario = ClassIncrementalScenario(
-            data_module=data_module, class_groupings=class_groupings, chunk_id=i
+            data_module=data_module, groupings=groupings, chunk_id=i
         )
         scenario.prepare_data()
         scenario.setup()
         train_data = scenario.train_data()
         val_data = scenario.val_data()
-        assert len(train_data) == sum([train_data_class_counts[c] for c in class_groupings[i]])
-        assert len(val_data) == sum([val_data_class_counts[c] for c in class_groupings[i]])
+        assert len(train_data) == sum([train_data_class_counts[c] for c in groupings[i]])
+        assert len(val_data) == sum([val_data_class_counts[c] for c in groupings[i]])
         for j, test_data in enumerate(scenario.test_data()):
-            assert len(test_data) == sum([test_data_class_counts[c] for c in class_groupings[j]])
+            assert len(test_data) == sum([test_data_class_counts[c] for c in groupings[j]])
 
 
-def test_class_incremental_scenario_class_grouping_error():
+def test_class_incremental_scenario_groupings_error():
     """Classes selected do not exist in data."""
     scenario = ClassIncrementalScenario(
         data_module=DummyTorchVisionDataModule(val_size=0.3, seed=42),
-        class_groupings=[[0, 1, 3], [2, 200]],
+        groupings=((0, 1, 3), (2, 200)),
         chunk_id=0,
     )
     scenario.prepare_data()
     with pytest.raises(ValueError, match=r"Chunk 1 does not contain classes \[200\]."):
         scenario.setup()
+
+
+def test_data_incremental_scenario_grouping():
+    """Test whether grouping in DataIncrementalScenario works"""
+    scenario = DataIncrementalScenario(
+        data_module=DummyDataIncrementalDataModule(0, (10, 1), val_size=0.2),
+        chunk_id=0,
+        groupings=((0, 1), (2,)),
+    )
+    scenario.prepare_data()
+    scenario.setup()
+    assert set(int(scenario.train_data()[i][1]) for i in range(80)) == {0}
+    assert set(int(scenario.train_data()[i][1]) for i in range(80, 160)) == {1}
+    assert set(int(scenario.val_data()[i][1]) for i in range(20)) == {0}
+    assert set(int(scenario.val_data()[i][1]) for i in range(20, 40)) == {1}
+    assert set(int(scenario.test_data()[0][i][1]) for i in range(100)) == {0}
+    assert set(int(scenario.test_data()[0][i][1]) for i in range(100, 200)) == {1}
+    assert set(int(scenario.test_data()[1][i][1]) for i in range(100)) == {2}
+    assert len(scenario.train_data()) == 160
+    assert len(scenario.val_data()) == 40
+    assert len(scenario.test_data()) == 2
+    assert len(scenario.test_data()[0]) == 200
+    assert len(scenario.test_data()[1]) == 100
+
+
+def test_data_incremental_scenario_data_ids():
+    """Test whether data_ids in DataIncrementalScenario works"""
+    scenario = DataIncrementalScenario(
+        data_module=DummyDataIncrementalDataModule(0, (10, 1), val_size=0.2),
+        chunk_id=1,
+        data_ids=(3, 4),
+    )
+    scenario.prepare_data()
+    scenario.setup()
+    assert set(int(scenario.train_data()[i][1]) for i in range(80)) == {4}
+    assert set(int(scenario.val_data()[i][1]) for i in range(20)) == {4}
+    assert set(int(scenario.test_data()[0][i][1]) for i in range(100)) == {3}
+    assert set(int(scenario.test_data()[1][i][1]) for i in range(100)) == {4}
+    assert len(scenario.train_data()) == 80
+    assert len(scenario.val_data()) == 20
+    assert len(scenario.test_data()) == 2
+    assert len(scenario.test_data()[0]) == 100
+    assert len(scenario.test_data()[1]) == 100
+
+
+def test_data_incremental_scenario_data_module_error():
+    """Check that DataIncrementalScenario raises Exception for unsupported DataModule."""
+    with pytest.raises(ValueError, match=r"This scenario is only compatible with*"):
+        DataIncrementalScenario(
+            data_module=DummyTorchVisionDataModule(),
+            data_ids=(0, 1),
+            chunk_id=0,
+        )
+
+
+@pytest.mark.parametrize(
+    "data_ids,groupings,expected_error_message",
+    (
+        (
+            (0, 1),
+            ((0,), (1,)),
+            "Either `data_ids` or `groupings` must be provided. Both were provided.",
+        ),
+        (None, None, "Either `data_ids` or `groupings` must be provided. None was provided."),
+    ),
+)
+def test_data_incremental_scenario_wrong_input(data_ids, groupings, expected_error_message):
+    """Scenario expect either data_ids or groupings."""
+    with pytest.raises(ValueError, match=expected_error_message):
+        DataIncrementalScenario(
+            data_module=DummyDataIncrementalDataModule(data_id=0, input_shape=(2, 2)),
+            data_ids=data_ids,
+            groupings=groupings,
+            chunk_id=0,
+        )
 
 
 def test_image_rotation_scenario():
@@ -165,17 +240,6 @@ def test_transforms_in_transform_scenarios_are_distinct(scenario_class, scenario
                 continue
             assert transform != transform2
             assert not torch.all(torch.isclose(transform(x), transform2(x)))
-
-
-def test_benchmark_scenario():
-    data_module = DummyTorchVisionDataModuleWithChunks(num_chunks=3, val_size=0.2)
-    for chunk_id in range(3):
-        scenario = BenchmarkScenario(data_module=data_module, num_tasks=3, chunk_id=chunk_id)
-        scenario.prepare_data()
-        scenario.setup()
-        assert scenario.train_data() is not None
-        assert scenario.val_data() is not None
-        assert len(scenario.test_data()) == 3
 
 
 def test_iid_scenario():

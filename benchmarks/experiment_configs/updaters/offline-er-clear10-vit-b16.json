@@ -1,0 +1,6 @@
+{
+  "updater": "Offline-ER",
+  "batch_size": 64,
+  "batch_memory_frac": 0.5,
+  "memory_size": 10000
+}

@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 from collections import Counter
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 import torch
 from avalanche.benchmarks import dataset_benchmark
@@ -17,10 +17,14 @@ from renate.types import NestedTensors
 class AvalancheDataset(Dataset):
     """A Dataset consumable by Avalanche updaters."""
 
-    def __init__(self, inputs: NestedTensors, targets: List[int]):
+    def __init__(
+        self, inputs: NestedTensors, targets: List[int], collate_fn: Optional[Callable] = None
+    ):
         self._inputs = inputs
         self._targets = targets
         self.targets = torch.tensor(targets, dtype=torch.long)
+        if collate_fn is not None:
+            self.collate_fn = collate_fn
 
     def __len__(self) -> int:
         return len(self._targets)
@@ -29,7 +33,9 @@ class AvalancheDataset(Dataset):
         return self._inputs[idx], self._targets[idx]
 
 
-def to_avalanche_dataset(dataset: Union[Dataset, DataBuffer]) -> AvalancheDataset:
+def to_avalanche_dataset(
+    dataset: Union[Dataset, DataBuffer], collate_fn: Optional[Callable] = None
+) -> AvalancheDataset:
     """Converts a DataBuffer or Dataset into an Avalanche-compatible Dataset."""
     x_data, y_data = [], []
     for i in range(len(dataset)):
@@ -41,7 +47,7 @@ def to_avalanche_dataset(dataset: Union[Dataset, DataBuffer]) -> AvalancheDatase
         if not isinstance(y, int):
             y = y.item()
         y_data.append(y)
-    return AvalancheDataset(x_data, y_data)
+    return AvalancheDataset(x_data, y_data, collate_fn)
 
 
 class AvalancheBenchmarkWrapper:

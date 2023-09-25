@@ -1,0 +1,6 @@
+{
+  "scenario": "huffpost-7updates.json",
+  "model": "bert.json",
+  "updater": "offline-er-huffpost.json",
+  "dataset": "huffpost.json"
+}

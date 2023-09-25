@@ -2,13 +2,14 @@
 # SPDX-License-Identifier: Apache-2.0
 import copy
 from collections import defaultdict
-from typing import Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import torch
 from torch.utils.data import Dataset
 
 from renate import defaults
-from renate.memory.storage import MemoryMappedTensorStorage
+from renate.data.datasets import IndexedSubsetDataset
+from renate.memory.storage import FileTensorStorage
 from renate.types import NestedTensors
 from renate.utils.pytorch import get_generator
 
@@ -66,7 +67,7 @@ class DataBuffer(Dataset):
         """Returns the current length of the buffer."""
         return len(self._indices)
 
-    def __getitem__(self, idx: int) -> NestedTensors:
+    def __getitem__(self, idx: int) -> Tuple[NestedTensors, Dict[str, Any]]:
         """Reads the item at index `idx` of the buffer."""
         i, j = self._indices[idx]
         data = self._datasets[i][j]
@@ -157,13 +158,8 @@ class DataBuffer(Dataset):
 
         transforms = self._transform, self._target_transform
         self._transform, self._target_transform = None, None
-        storage = MemoryMappedTensorStorage(
-            target_dir,
-            data_point=self._data_point_prototype,
-            length=len(self),
-        )
-        for i in range(len(self)):
-            storage[i] = self[i][0]  # Drop metadata.
+        storage = FileTensorStorage(target_dir)
+        storage.dump_dataset(IndexedSubsetDataset(self, [0]))
         self._datasets = [storage]
         self._indices = {i: (0, i) for i in range(len(self))}
         self._transform, self._target_transform = transforms
@@ -172,11 +168,7 @@ class DataBuffer(Dataset):
         if not len(self):
             return
 
-        storage = MemoryMappedTensorStorage(
-            source_dir,
-            data_point=self._data_point_prototype,
-            length=len(self),
-        )
+        storage = FileTensorStorage(source_dir)
         self._datasets = [storage]
 
     def _add_metadata_like(self, metadata: DataDict):

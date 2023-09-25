@@ -1,8 +1,9 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import logging
+import warnings
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Type
 
 import torch
 import torchmetrics
@@ -11,7 +12,9 @@ from avalanche.training.plugins import LRSchedulerPlugin
 from avalanche.training.supervised.icarl import _ICaRLPlugin
 from avalanche.training.templates import BaseSGDTemplate
 from syne_tune import Reporter
+from torch.nn import Parameter
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import Dataset
 
 from renate import defaults
@@ -45,6 +48,13 @@ metrics_mapper = {
 class AvalancheModelUpdater(SingleTrainingLoopUpdater):
     _report = Reporter()
 
+    def __init__(self, *args, **kwargs):
+        if kwargs.get("mask_unused_classes", False) is True:
+            warnings.warn(
+                "Avalanche model updaters do not support mask_unused_classes. Ignoring it."
+            )
+        super().__init__(*args, **kwargs)
+
     def _load_learner(
         self,
         learner_class: Type[Learner],
@@ -61,10 +71,21 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
             logged_metrics=self._logged_metrics,
             **self._transforms_kwargs,
         )
-        optimizer, scheduler = self._dummy_learner.configure_optimizers()
-        optimizer, scheduler = optimizer[0], scheduler[0]
-        lr_scheduler_plugin = LRSchedulerPlugin(scheduler=scheduler)
-        plugins = [lr_scheduler_plugin]
+        plugins = []
+        lr_scheduler_plugin = None
+        optimizers_scheduler = self._dummy_learner.configure_optimizers()
+        if isinstance(optimizers_scheduler, tuple):
+            optimizer, scheduler_config = optimizers_scheduler
+            optimizer, scheduler_config = optimizer[0], scheduler_config[0]
+            lr_scheduler_plugin = LRSchedulerPlugin(
+                scheduler=scheduler_config["scheduler"],
+                step_granularity="iteration"
+                if scheduler_config["interval"] == "step"
+                else scheduler_config["interval"],
+            )
+            plugins.append(lr_scheduler_plugin)
+        else:
+            optimizer = optimizers_scheduler
         avalanche_learner = self._load_if_exists(self._input_state_folder)
 
         checkpoint_plugin = None
@@ -107,7 +128,7 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
     def _create_avalanche_learner(
         self,
         checkpoint_plugin: RenateCheckpointPlugin,
-        lr_scheduler_plugin: LRSchedulerPlugin,
+        lr_scheduler_plugin: Optional[LRSchedulerPlugin],
         optimizer: Optimizer,
     ) -> BaseSGDTemplate:
         """Returns an Avalanche learner based on the arguments passed to the ModelUpdater.
@@ -117,7 +138,9 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
             lr_scheduler_plugin: Plugin to adapt the learning rate.
             optimizer: PyTorch optimizer object used for training the Avalanche learner.
         """
-        plugins = [lr_scheduler_plugin]
+        plugins = []
+        if lr_scheduler_plugin is not None:
+            plugins.append(lr_scheduler_plugin)
         if checkpoint_plugin is not None:
             plugins.append(checkpoint_plugin)
         avalanche_learner = self._dummy_learner.create_avalanche_learner(
@@ -150,10 +173,14 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
         self,
         train_dataset: Dataset,
         val_dataset: Optional[Dataset] = None,
+        train_dataset_collate_fn: Optional[Callable] = None,
+        val_dataset_collate_fn: Optional[Callable] = None,
         task_id: Optional[str] = None,
     ) -> RenateModule:
         val_dataset_exists = val_dataset is not None
-        benchmark = self._load_benchmark_if_exists(train_dataset, val_dataset)
+        benchmark = self._load_benchmark_if_exists(
+            train_dataset, val_dataset, train_dataset_collate_fn, val_dataset_collate_fn
+        )
         train_exp = benchmark.train_stream[0]
         self._learner.train(train_exp, eval_streams=[benchmark.test_stream])
         results = self._learner.eval(benchmark.test_stream)
@@ -178,9 +205,13 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
         return self._model
 
     def _load_benchmark_if_exists(
-        self, train_dataset: Dataset, val_dataset: Optional[Dataset] = None
+        self,
+        train_dataset: Dataset,
+        val_dataset: Optional[Dataset] = None,
+        train_dataset_collate_fn: Optional[Callable] = None,
+        val_dataset_collate_fn: Optional[Callable] = None,
     ) -> AvalancheBenchmarkWrapper:
-        train_dataset = to_avalanche_dataset(train_dataset)
+        train_dataset = to_avalanche_dataset(train_dataset, train_dataset_collate_fn)
 
         avalanche_state = None
         if self._input_state_folder is not None:
@@ -194,9 +225,11 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
                     self._dummy_learner.load(self._input_state_folder)
         if val_dataset is not None:
             self._dummy_learner._val_memory_buffer.update(val_dataset)
-            val_memory_dataset = to_avalanche_dataset(self._dummy_learner._val_memory_buffer)
+            val_memory_dataset = to_avalanche_dataset(
+                self._dummy_learner._val_memory_buffer, val_dataset_collate_fn
+            )
         else:
-            val_memory_dataset = to_avalanche_dataset(train_dataset)
+            val_memory_dataset = to_avalanche_dataset(train_dataset, val_dataset_collate_fn)
 
         benchmark = AvalancheBenchmarkWrapper(
             train_dataset=train_dataset,
@@ -224,15 +257,11 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
+        optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
-        optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
-        learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
-        learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-        learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-        momentum: float = defaults.MOMENTUM,
-        weight_decay: float = defaults.WEIGHT_DECAY,
+        batch_memory_frac: int = defaults.BATCH_MEMORY_FRAC,
+        learning_rate_scheduler: Optional[Callable[[Optimizer], _LRScheduler]] = None,
+        learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
@@ -253,28 +282,27 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ):
         learner_kwargs = {
-            "memory_size": memory_size,
-            "memory_batch_size": memory_batch_size,
-            "optimizer": optimizer,
-            "learning_rate": learning_rate,
-            "learning_rate_scheduler": learning_rate_scheduler,
-            "learning_rate_scheduler_gamma": learning_rate_scheduler_gamma,
-            "learning_rate_scheduler_step_size": learning_rate_scheduler_step_size,
-            "momentum": momentum,
-            "weight_decay": weight_decay,
             "batch_size": batch_size,
+            "memory_size": memory_size,
+            "batch_memory_frac": batch_memory_frac,
             "seed": seed,
-            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
+            loss_fn=loss_fn,
+            optimizer=optimizer,
             learner_class=AvalancheReplayLearner,
             learner_kwargs=learner_kwargs,
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            learning_rate_scheduler=learning_rate_scheduler,
+            learning_rate_scheduler_interval=learning_rate_scheduler_interval,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,
@@ -289,6 +317,9 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
             devices=devices,
             strategy=strategy,
             precision=precision,
+            gradient_clip_val=gradient_clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            mask_unused_classes=mask_unused_classes,
         )
 
 
@@ -297,14 +328,10 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
+        optimizer: Callable[[List[Parameter]], Optimizer],
         ewc_lambda: float = defaults.EWC_LAMBDA,
-        optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
-        learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
-        learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-        learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-        momentum: float = defaults.MOMENTUM,
-        weight_decay: float = defaults.WEIGHT_DECAY,
+        learning_rate_scheduler: Optional[Callable[[Optimizer], _LRScheduler]] = None,
+        learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
@@ -325,27 +352,26 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ):
         learner_kwargs = {
-            "optimizer": optimizer,
-            "learning_rate": learning_rate,
-            "learning_rate_scheduler": learning_rate_scheduler,
-            "learning_rate_scheduler_gamma": learning_rate_scheduler_gamma,
-            "learning_rate_scheduler_step_size": learning_rate_scheduler_step_size,
-            "momentum": momentum,
-            "weight_decay": weight_decay,
             "batch_size": batch_size,
             "ewc_lambda": ewc_lambda,
             "seed": seed,
-            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
+            loss_fn=loss_fn,
+            optimizer=optimizer,
             learner_class=AvalancheEWCLearner,
             learner_kwargs=learner_kwargs,
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            learning_rate_scheduler=learning_rate_scheduler,
+            learning_rate_scheduler_interval=learning_rate_scheduler_interval,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,
@@ -360,6 +386,9 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
             devices=devices,
             strategy=strategy,
             precision=precision,
+            gradient_clip_val=gradient_clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            mask_unused_classes=mask_unused_classes,
         )
 
 
@@ -368,15 +397,11 @@ class LearningWithoutForgettingModelUpdater(AvalancheModelUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
+        optimizer: Callable[[List[Parameter]], Optimizer],
         alpha: float = defaults.LWF_ALPHA,
         temperature: float = defaults.LWF_TEMPERATURE,
-        optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
-        learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
-        learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-        learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-        momentum: float = defaults.MOMENTUM,
-        weight_decay: float = defaults.WEIGHT_DECAY,
+        learning_rate_scheduler: Optional[Callable[[Optimizer], _LRScheduler]] = None,
+        learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
@@ -397,28 +422,27 @@ class LearningWithoutForgettingModelUpdater(AvalancheModelUpdater):
         strategy: Optional[str] = defaults.DISTRIBUTED_STRATEGY,
         precision: str = defaults.PRECISION,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ):
         learner_kwargs = {
-            "optimizer": optimizer,
-            "learning_rate": learning_rate,
-            "learning_rate_scheduler": learning_rate_scheduler,
-            "learning_rate_scheduler_gamma": learning_rate_scheduler_gamma,
-            "learning_rate_scheduler_step_size": learning_rate_scheduler_step_size,
-            "momentum": momentum,
-            "weight_decay": weight_decay,
             "batch_size": batch_size,
             "alpha": alpha,
             "temperature": temperature,
             "seed": seed,
-            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
+            loss_fn=loss_fn,
+            optimizer=optimizer,
             learner_class=AvalancheLwFLearner,
             learner_kwargs=learner_kwargs,
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            learning_rate_scheduler=learning_rate_scheduler,
+            learning_rate_scheduler_interval=learning_rate_scheduler_interval,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,
@@ -433,6 +457,9 @@ class LearningWithoutForgettingModelUpdater(AvalancheModelUpdater):
             devices=devices,
             strategy=strategy,
             precision=precision,
+            gradient_clip_val=gradient_clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            mask_unused_classes=mask_unused_classes,
         )
 
 
@@ -441,15 +468,10 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
         self,
         model: RenateModule,
         loss_fn: torch.nn.Module,
+        optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
-        optimizer: defaults.SUPPORTED_OPTIMIZERS_TYPE = defaults.OPTIMIZER,
-        learning_rate: float = defaults.LEARNING_RATE,
-        learning_rate_scheduler: defaults.SUPPORTED_LEARNING_RATE_SCHEDULERS_TYPE = defaults.LEARNING_RATE_SCHEDULER,  # noqa: E501
-        learning_rate_scheduler_gamma: float = defaults.LEARNING_RATE_SCHEDULER_GAMMA,
-        learning_rate_scheduler_step_size: int = defaults.LEARNING_RATE_SCHEDULER_STEP_SIZE,
-        momentum: float = defaults.MOMENTUM,
-        weight_decay: float = defaults.WEIGHT_DECAY,
+        learning_rate_scheduler: Optional[Callable[[Optimizer], _LRScheduler]] = None,
+        learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
         input_state_folder: Optional[str] = None,
         output_state_folder: Optional[str] = None,
@@ -470,28 +492,26 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
-            "memory_batch_size": memory_batch_size,
-            "optimizer": optimizer,
-            "learning_rate": learning_rate,
-            "learning_rate_scheduler": learning_rate_scheduler,
-            "learning_rate_scheduler_gamma": learning_rate_scheduler_gamma,
-            "learning_rate_scheduler_step_size": learning_rate_scheduler_step_size,
-            "momentum": momentum,
-            "weight_decay": weight_decay,
             "batch_size": batch_size,
             "seed": seed,
-            "loss_fn": loss_fn,
         }
         super().__init__(
             model,
+            loss_fn=loss_fn,
+            optimizer=optimizer,
             learner_class=AvalancheICaRLLearner,
             learner_kwargs=learner_kwargs,
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
             max_epochs=max_epochs,
+            learning_rate_scheduler=learning_rate_scheduler,
+            learning_rate_scheduler_interval=learning_rate_scheduler_interval,
             train_transform=train_transform,
             train_target_transform=train_target_transform,
             test_transform=test_transform,
@@ -506,4 +526,7 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
             devices=devices,
             strategy=strategy,
             precision=precision,
+            gradient_clip_val=gradient_clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            mask_unused_classes=mask_unused_classes,
         )
