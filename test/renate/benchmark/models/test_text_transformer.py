@@ -6,6 +6,7 @@ import torch
 from renate.benchmark.models.transformer import HuggingFaceSequenceClassificationTransformer
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("model_name", ["distilbert-base-uncased", "bert-base-uncased"])
 def test_init(model_name):
     HuggingFaceSequenceClassificationTransformer(
@@ -13,6 +14,7 @@ def test_init(model_name):
     )
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "model_name,input_dim",
     [

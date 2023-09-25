@@ -22,18 +22,21 @@ def test_prompt_pool():
     assert out.shape == (B, Lp * N, feat_dim)
 
 
+@pytest.mark.slow
 def test_prompted_vision_transformer():
     combined = LearningToPromptTransformer()
     inp = torch.rand(1, 3, 224, 224)
     assert combined(inp).shape == torch.Size((1, 10))
 
 
+@pytest.mark.slow
 def test_prompted_text_transformer():
     model = LearningToPromptTransformer(pretrained_model_name_or_path="bert-base-uncased")
     inp = {"input_ids": torch.randint(0, 3000, (10, 128))}
     assert model(inp).shape == torch.Size((10, 10))
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "cls,arg,argval,error",
     [
@@ -47,6 +50,7 @@ def test_pool_vision_transformer_raises_errors(cls, arg, argval, error):
         cls(**{arg: argval})
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "backbone,num_trainable_params",
     [
@@ -64,6 +68,7 @@ def test_prompt_vision_transformer_trainable_parameters(backbone, num_trainable_
     assert n == num_trainable_params
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("backbone", ["google/vit-base-patch16-224", "bert-base-uncased"])
 @pytest.mark.parametrize("prompt", [None, torch.rand(3, 10, 768)])
 @pytest.mark.parametrize("cls_feat", [True, False])
