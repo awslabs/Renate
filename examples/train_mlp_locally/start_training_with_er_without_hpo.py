@@ -7,9 +7,9 @@ configuration = {
     "momentum": 0.0,
     "weight_decay": 1e-2,
     "learning_rate": 0.05,
-    "batch_size": 32,
+    "batch_size": 64,
+    "batch_memory_frac": 0.5,
     "max_epochs": 50,
-    "memory_batch_size": 32,
     "memory_size": 500,
 }
 

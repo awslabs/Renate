@@ -25,12 +25,12 @@ benchmark = [
     "wild-time-data==0.1.1",
 ]
 dev = [
-    "black==23.3.0",
+    "black==23.9.1",
     "avalanche_lib==0.3.1",
     "wild-time-data==0.1.1",
     "torch>=1.10.0, <1.12.2",
     # PyTest Dependencies
-    "pytest==7.3.1",
+    "pytest==7.4.2",
     "pytest-cov==4.1.0",
     "pytest-helpers-namespace==2021.12.29",
     "pytest-xdist==3.3.1"

@@ -1,0 +1,7 @@
+{
+  "dataset_name": "yearbook",
+  "src_bucket": "my_bucket",
+  "src_object_name": "dataset/wildtime/yearbook.hdf5",
+  "num_inputs": 1024,
+  "num_outputs": 2
+}

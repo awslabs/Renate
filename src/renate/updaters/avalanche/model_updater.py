@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import logging
+import warnings
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Type
 
@@ -46,6 +47,13 @@ metrics_mapper = {
 
 class AvalancheModelUpdater(SingleTrainingLoopUpdater):
     _report = Reporter()
+
+    def __init__(self, *args, **kwargs):
+        if kwargs.get("mask_unused_classes", False) is True:
+            warnings.warn(
+                "Avalanche model updaters do not support mask_unused_classes. Ignoring it."
+            )
+        super().__init__(*args, **kwargs)
 
     def _load_learner(
         self,
@@ -251,7 +259,7 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
         loss_fn: torch.nn.Module,
         optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
+        batch_memory_frac: int = defaults.BATCH_MEMORY_FRAC,
         learning_rate_scheduler: Optional[Callable[[Optimizer], _LRScheduler]] = None,
         learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
@@ -274,11 +282,14 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ):
         learner_kwargs = {
             "batch_size": batch_size,
             "memory_size": memory_size,
-            "memory_batch_size": memory_batch_size,
+            "batch_memory_frac": batch_memory_frac,
             "seed": seed,
         }
         super().__init__(
@@ -306,6 +317,9 @@ class ExperienceReplayAvalancheModelUpdater(AvalancheModelUpdater):
             devices=devices,
             strategy=strategy,
             precision=precision,
+            gradient_clip_val=gradient_clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            mask_unused_classes=mask_unused_classes,
         )
 
 
@@ -338,6 +352,9 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ):
         learner_kwargs = {
             "batch_size": batch_size,
@@ -369,6 +386,9 @@ class ElasticWeightConsolidationModelUpdater(AvalancheModelUpdater):
             devices=devices,
             strategy=strategy,
             precision=precision,
+            gradient_clip_val=gradient_clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            mask_unused_classes=mask_unused_classes,
         )
 
 
@@ -402,6 +422,9 @@ class LearningWithoutForgettingModelUpdater(AvalancheModelUpdater):
         strategy: Optional[str] = defaults.DISTRIBUTED_STRATEGY,
         precision: str = defaults.PRECISION,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ):
         learner_kwargs = {
             "batch_size": batch_size,
@@ -434,6 +457,9 @@ class LearningWithoutForgettingModelUpdater(AvalancheModelUpdater):
             devices=devices,
             strategy=strategy,
             precision=precision,
+            gradient_clip_val=gradient_clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            mask_unused_classes=mask_unused_classes,
         )
 
 
@@ -466,6 +492,9 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
@@ -497,4 +526,7 @@ class ICaRLModelUpdater(AvalancheModelUpdater):
             devices=devices,
             strategy=strategy,
             precision=precision,
+            gradient_clip_val=gradient_clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            mask_unused_classes=mask_unused_classes,
         )

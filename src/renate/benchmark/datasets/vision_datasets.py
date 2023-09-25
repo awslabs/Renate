@@ -5,14 +5,16 @@ import os
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
+import pandas as pd
 import torch
 import torchvision
 from torchvision import transforms
 
 from renate import defaults
+from renate.benchmark.datasets.base import DataIncrementalDataModule
 from renate.data import ImageDataset
 from renate.data.data_module import RenateDataModule
-from renate.utils.file import download_and_unzip_file, download_folder_from_s3
+from renate.utils.file import download_and_unzip_file, download_file, download_folder_from_s3
 
 
 class TinyImageNetDataModule(RenateDataModule):
@@ -66,10 +68,10 @@ class TinyImageNetDataModule(RenateDataModule):
     def setup(self) -> None:
         """Set up train, test and val datasets."""
         X, y = self._preprocess_tiny_imagenet(train=True)
-        train_data = ImageDataset(X, y, transform=transforms.ToTensor())
+        train_data = ImageDataset(X, y)
         self._train_data, self._val_data = self._split_train_val_data(train_data)
         X, y = self._preprocess_tiny_imagenet(train=False)
-        self._test_data = ImageDataset(X, y, transform=transforms.ToTensor())
+        self._test_data = ImageDataset(X, y)
 
     def _preprocess_tiny_imagenet(self, train: bool) -> Tuple[List[str], List[int]]:
         """A helper function to preprocess the TinyImageNet dataset."""
@@ -187,7 +189,7 @@ def to_long(x):
     return torch.tensor(x, dtype=torch.long)
 
 
-class CLEARDataModule(RenateDataModule):
+class CLEARDataModule(DataIncrementalDataModule):
     """Datamodule that process CLEAR datasets: CLEAR10 and CLEAR100.
 
     Source: https://clear-benchmark.github.io/.
@@ -227,6 +229,7 @@ class CLEARDataModule(RenateDataModule):
     ):
         super(CLEARDataModule, self).__init__(
             data_path=data_path,
+            data_id=time_step,
             src_bucket=src_bucket,
             src_object_name=src_object_name,
             val_size=val_size,
@@ -234,8 +237,7 @@ class CLEARDataModule(RenateDataModule):
         )
         self._dataset_name = dataset_name.lower()
         assert self._dataset_name in ["clear10", "clear100"]
-        assert 0 <= time_step <= (9 if self._dataset_name == "clear10" else 10)
-        self.time_step = time_step
+        assert 0 <= self.data_id <= (9 if self._dataset_name == "clear10" else 10)
 
     def prepare_data(self) -> None:
         """Download CLEAR dataset with given dataset_name (clear10/clear100)."""
@@ -249,18 +251,18 @@ class CLEARDataModule(RenateDataModule):
                     self._data_path,
                     self._src_bucket,
                     self._src_object_name,
-                    "https://clear-challenge.s3.us-east-2.amazonaws.com/",
+                    "https://huggingface.co/datasets/elvishelvis6/CLEAR-Continual_Learning_Benchmark/resolve/main/",  # noqa: E501
                     file_name,
                 )
 
     def setup(self) -> None:
         """Set up train, test and val datasets."""
-        time_step = self.time_step + 1 if self._dataset_name == "clear10" else self.time_step
+        time_step = self.data_id + 1 if self._dataset_name == "clear10" else self.data_id
         X, y = self._get_filepaths_and_labels(train=True, time_step=time_step)
-        train_data = ImageDataset(X, y, transform=transforms.ToTensor())
+        train_data = ImageDataset(X, y)
         self._train_data, self._val_data = self._split_train_val_data(train_data)
         X, y = self._get_filepaths_and_labels(train=False, time_step=time_step)
-        self._test_data = ImageDataset(X, y, transform=transforms.ToTensor())
+        self._test_data = ImageDataset(X, y)
 
     def _get_filepaths_and_labels(self, train: bool, time_step: int) -> Tuple[List[str], List[int]]:
         """Extracts all the filepaths and labels for a given chunk id and split."""
@@ -286,3 +288,117 @@ class CLEARDataModule(RenateDataModule):
                 labels.append(label)
 
         return image_paths, labels
+
+
+class DomainNetDataModule(DataIncrementalDataModule):
+    """Datamodule that provides access to DomainNet.
+
+    Args:
+        data_path: the path to the folder containing the dataset files.
+        src_bucket: the name of the s3 bucket. If not provided, downloads the data from original
+            source.
+        src_object_name: the folder path in the s3 bucket.
+        domain: DomainNet domain name, options are clipart, infograph, painting, quickdraw, real,
+            and sketch.
+        val_size: Fraction of the training data to be used for validation.
+        seed: Seed used to fix random number generation.
+    """
+
+    md5s = {
+        "clipart.zip": "cd0d8f2d77a4e181449b78ed62bccf1e",
+        "clipart_train.txt": "b4349693a7f9c05c53955725c47ed6cb",
+        "clipart_test.txt": "f5ddbcfd657a3acf9d0f7da10db22565",
+        "infograph.zip": "720380b86f9e6ab4805bb38b6bd135f8",
+        "infograph_train.txt": "379b50054f4ac2018dca4f89421b92d9",
+        "infograph_test.txt": "779626b50869edffe8ea6941c3755c71",
+        "painting.zip": "1ae32cdb4f98fe7ab5eb0a351768abfd",
+        "painting_train.txt": "7db0e7ca73ad9982f6e1f7f3ef372c0a",
+        "painting_test.txt": "232b35dc53f26d414686ae579e38d9b5",
+        "quickdraw.zip": "bdc1b6f09f277da1a263389efe0c7a66",
+        "quickdraw_train.txt": "b732ced3939ac8efdd8c0a889dca56cc",
+        "quickdraw_test.txt": "c1a828fdfe216fb109f1c0083a252c6f",
+        "real.zip": "dcc47055e8935767784b7162e7c7cca6",
+        "real_train.txt": "8ebf02c2075fadd564705f0dc7cd6291",
+        "real_test.txt": "6098816791c3ebed543c71ffa11b9054",
+        "sketch.zip": "658d8009644040ff7ce30bb2e820850f",
+        "sketch_train.txt": "1233bd18aa9a8a200bf4cecf1c34ef3e",
+        "sketch_test.txt": "d8a222e4672cfd585298aa14d02ea441",
+    }
+
+    domains = ["clipart", "infograph", "painting", "quickdraw", "real", "sketch"]
+    dataset_stats = {
+        "clipart": {"mean": [0.7395, 0.7195, 0.6865], "std": [0.3621, 0.3640, 0.3873]},
+        "infograph": {"mean": [0.6882, 0.6962, 0.6644], "std": [0.3328, 0.3095, 0.3277]},
+        "painting": {"mean": [0.5737, 0.5456, 0.5067], "std": [0.3079, 0.3003, 0.3161]},
+        "quickdraw": {"mean": [0.9525, 0.9525, 0.9525], "std": [0.2127, 0.2127, 0.2127]},
+        "real": {"mean": [0.6066, 0.5897, 0.5564], "std": [0.3335, 0.3270, 0.3485]},
+        "sketch": {"mean": [0.8325, 0.8269, 0.8180], "std": [0.2723, 0.2747, 0.2801]},
+        "all": {"mean": [0.7491, 0.7391, 0.7179], "std": [0.3318, 0.3314, 0.3512]},
+    }
+
+    def __init__(
+        self,
+        data_path: Union[Path, str],
+        src_bucket: Optional[str] = None,
+        src_object_name: Optional[str] = None,
+        domain: str = "clipart",
+        val_size: float = defaults.VALIDATION_SIZE,
+        seed: int = defaults.SEED,
+    ):
+        super().__init__(
+            data_path=data_path,
+            data_id=domain.lower(),
+            src_bucket=src_bucket,
+            src_object_name=src_object_name,
+            val_size=val_size,
+            seed=seed,
+        )
+        assert self.data_id in self.domains, f"Unknown domain {self.data_id}."
+        self._dataset_name = domain.lower()
+
+    def prepare_data(self) -> None:
+        """Download DomainNet dataset for given domain."""
+        file_name = f"{self.data_id}.zip"
+        url = "http://csr.bu.edu/ftp/visda/2019/multi-source/"
+        if self.data_id in ["clipart", "painting"]:
+            url = os.path.join(url, "groundtruth")
+        if not self._verify_file(file_name):
+            download_and_unzip_file(
+                self.data_id,
+                self._data_path,
+                self._src_bucket,
+                self._src_object_name,
+                url,
+                file_name,
+            )
+        for file_name in [f"{self.data_id}_train.txt", f"{self.data_id}_test.txt"]:
+            if not self._verify_file(file_name):
+                download_file(
+                    self.data_id,
+                    self._data_path,
+                    self._src_bucket,
+                    self._src_object_name,
+                    "http://csr.bu.edu/ftp/visda/2019/multi-source/domainnet/txt/",
+                    file_name,
+                )
+
+    def setup(self) -> None:
+        """Set up train, test and val datasets."""
+        X, y = self._get_filepaths_and_labels("train")
+        train_data = ImageDataset(X, y)
+        self._train_data, self._val_data = self._split_train_val_data(train_data)
+        X, y = self._get_filepaths_and_labels("test")
+        self._test_data = ImageDataset(X, y)
+
+    def _get_filepaths_and_labels(self, split: str) -> Tuple[List[str], List[int]]:
+        """Extracts all the filepaths and labels for a given split."""
+        path = os.path.join(self._data_path, self.data_id)
+        df = pd.read_csv(
+            os.path.join(path, f"{self.data_id}_{split}.txt"),
+            sep=" ",
+            header=None,
+            names=["path", "label"],
+        )
+        data = list(df.path.apply(lambda x: os.path.join(path, x)))
+        labels = list(df.label)
+        return data, labels

@@ -1,5 +1,5 @@
 {
-  "scenario": "wild-time.json",
+  "scenario": "huffpost-7updates.json",
   "model": "bert.json",
   "updater": "fine-tuning-huffpost.json",
   "dataset": "huffpost.json"

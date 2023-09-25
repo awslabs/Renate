@@ -6,39 +6,41 @@ import torch
 from transformers import ViTConfig, ViTModel
 from transformers.modeling_outputs import BaseModelOutputWithPooling
 
+from renate import defaults
 from renate.benchmark.models.base import RenateBenchmarkingModule
 from renate.models.prediction_strategies import PredictionStrategy
 
 
 class FeatureExtractorViTModel(ViTModel):
-    """This class directly outputs [CLS] features directly"""
+    """This class directly outputs [CLS] features if cls_feat is True else returns per patch
+    embeddings
+    """
 
     def forward(
         self,
         pixel_values: Optional[torch.Tensor] = None,
-        bool_masked_pos: Optional[torch.BoolTensor] = None,
         head_mask: Optional[torch.Tensor] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         interpolate_pos_encoding: Optional[bool] = None,
         return_dict: Optional[bool] = None,
+        cls_feat: bool = True,
+        task_id: str = defaults.TASK_ID,
     ) -> Union[Tuple, BaseModelOutputWithPooling]:
         """Output has patch embeddings and the pooled output. We extract pooled CLS out by
         taking the second element.
         """
         out_to_filter = super().forward(
             pixel_values,
-            bool_masked_pos,
             head_mask,
             output_attentions,
             output_hidden_states,
             interpolate_pos_encoding,
             return_dict,
         )
-
         if isinstance(out_to_filter, BaseModelOutputWithPooling):
-            return out_to_filter.pooler_output
-        return out_to_filter[1]
+            return out_to_filter.pooler_output if cls_feat else out_to_filter.last_hidden_state
+        return out_to_filter[0][:, 0] if cls_feat else out_to_filter[0]
 
 
 class VisionTransformer(RenateBenchmarkingModule):
@@ -50,8 +52,8 @@ class VisionTransformer(RenateBenchmarkingModule):
     arXiv preprint arXiv:2010.11929 (2020).
 
     Args:
-        pretrained_name: A string that denotes which pretrained model from the HF hub to use.
-            If provided, it overrides other arguments about architecture.
+        pretrained_model_name_or_path: A string that denotes which pretrained model from the HF hub
+            to use. If provided, it overrides other arguments about architecture.
         image_size: Size of the input image.
         patch_size: Size of the patches.
         num_layers: Number of Encoder layers.
@@ -84,8 +86,12 @@ class VisionTransformer(RenateBenchmarkingModule):
     ) -> None:
         if pretrained_model_name_or_path:
             model = FeatureExtractorViTModel.from_pretrained(
-                pretrained_model_name_or_path=pretrained_model_name_or_path, return_dict=False
+                pretrained_model_name_or_path=pretrained_model_name_or_path,
+                return_dict=False,
+                add_pooling_layer=False,
             )
+
+            constructor_args = dict()
         else:
             model_config = ViTConfig(
                 hidden_size=hidden_dim,
@@ -103,12 +109,8 @@ class VisionTransformer(RenateBenchmarkingModule):
                 return_dict=False,
             )
 
-            model = FeatureExtractorViTModel(config=model_config)
-
-        super().__init__(
-            embedding_size=hidden_dim,
-            num_outputs=num_outputs,
-            constructor_arguments={
+            model = FeatureExtractorViTModel(config=model_config, add_pooling_layer=False)
+            constructor_args = {
                 "image_size": image_size,
                 "patch_size": patch_size,
                 "num_layers": num_layers,
@@ -117,11 +119,21 @@ class VisionTransformer(RenateBenchmarkingModule):
                 "mlp_dim": mlp_dim,
                 "dropout": dropout,
                 "attention_dropout": attention_dropout,
-            },
+            }
+
+        super().__init__(
+            embedding_size=model.config.hidden_size,
+            num_outputs=num_outputs,
+            constructor_arguments=constructor_args,
             prediction_strategy=prediction_strategy,
             add_icarl_class_means=add_icarl_class_means,
         )
         self._backbone = model
+
+    def get_features(self, *args, **kwargs):
+        # This is need as a shortcut to not call the base class's forward and directly call the
+        # backbone's forward. Used only in L2P.
+        return self._backbone(*args, **kwargs)
 
 
 class VisionTransformerCIFAR(VisionTransformer):

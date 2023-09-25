@@ -18,6 +18,7 @@ MOMENTUM = 0.0
 WEIGHT_DECAY = 0.0
 MAX_EPOCHS = 50
 BATCH_SIZE = 32
+BATCH_MEMORY_FRAC = 0.5
 LOSS_WEIGHT = 1.0
 SEED = 0
 EMA_MEMORY_UPDATE_GAMMA = 1.0
@@ -33,6 +34,8 @@ DEVICES = 1
 VOLUME_SIZE = 60
 DISTRIBUTED_STRATEGY = "ddp"
 PRECISION = "32"
+GRADIENT_CLIP_VAL = None
+GRADIENT_CLIP_ALGORITHM = None
 
 LEARNER = "ER"
 INSTANCE_COUNT = 1
@@ -43,6 +46,7 @@ PYTHON_VERSION = "py39"
 FRAMEWORK_VERSION = "1.13.1"
 
 TASK_ID = "default_task"
+MASK_UNUSED_CLASSES = False
 WORKING_DIRECTORY = "renate_working_dir"
 LOGGER = TensorBoardLogger
 LOGGER_KWARGS = {
@@ -104,6 +108,9 @@ MEMORY_SIZE = 32
 
 # Benchmark datasets/models
 TOKENIZER_KWARGS = {"padding": "max_length", "max_length": 128, "truncation": True}
+
+# L2p
+PROMPT_SIM_LOSS_WEIGHT = 0.5
 
 
 def scheduler(config_space: Dict[str, Any], mode: str, metric: str):

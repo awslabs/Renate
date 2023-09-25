@@ -18,7 +18,6 @@ from renate.models import RenateModule
 from renate.types import NestedTensors
 from renate.updaters.learner import Learner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
-from renate.utils.pytorch import reinitialize_model_parameters
 
 
 class JointLearner(Learner):
@@ -72,7 +71,6 @@ class JointLearner(Learner):
             task_id=task_id,
         )
         self._memory_buffer.update(train_dataset)
-        reinitialize_model_parameters(self._model)
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(
@@ -121,6 +119,9 @@ class JointModelUpdater(SingleTrainingLoopUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ):
         learner_kwargs = {
             "batch_size": batch_size,
@@ -151,4 +152,7 @@ class JointModelUpdater(SingleTrainingLoopUpdater):
             strategy=strategy,
             precision=precision,
             deterministic_trainer=deterministic_trainer,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            gradient_clip_val=gradient_clip_val,
+            mask_unused_classes=mask_unused_classes,
         )

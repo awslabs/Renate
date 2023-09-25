@@ -38,7 +38,7 @@ class AvalancheLoaderMixin:
         avalanche_learner._criterion = self._loss_fn
         avalanche_learner.train_epochs = max_epochs
         avalanche_learner.train_mb_size = self._batch_size
-        avalanche_learner.eval_mb_size = self._batch_size
+        avalanche_learner.eval_mb_size = self._batch_size + getattr(self, "_memory_batch_size", 0)
         avalanche_learner.device = device
         avalanche_learner.eval_every = eval_every
 
@@ -57,7 +57,7 @@ class AvalancheLoaderMixin:
             optimizer=optimizer,
             criterion=self._loss_fn,
             train_mb_size=self._batch_size,
-            eval_mb_size=self._batch_size,
+            eval_mb_size=self._batch_size + getattr(self, "_memory_batch_size", 0),
             train_epochs=train_epochs,
             plugins=plugins,
             evaluator=default_evaluator(),

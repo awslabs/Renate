@@ -146,6 +146,8 @@ def execute_experiment_job(
     accelerator: defaults.SUPPORTED_ACCELERATORS_TYPE = defaults.ACCELERATOR,
     devices: int = defaults.DEVICES,
     deterministic_trainer: bool = True,
+    gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+    gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
     job_name: str = defaults.JOB_NAME,
     strategy: str = defaults.DISTRIBUTED_STRATEGY,
     precision: str = defaults.PRECISION,
@@ -181,6 +183,10 @@ def execute_experiment_job(
         devices: Number of devices to use.
         deterministic_trainer: When true the Trainer adopts a deterministic behaviour also on GPU.
             In this function this parameter is set to True by default.
+        gradient_clip_val: The value at which to clip gradients. Passing None disables it.
+            `More details <https://lightning.ai/docs/pytorch/stable/common/trainer.html#init>`__
+        gradient_clip_algorithm: The gradient clipping algorithm to use. Can be norm or value.
+            `More details <https://lightning.ai/docs/pytorch/stable/common/trainer.html#init>`__
         job_name: Name of the experiment job.
         strategy: Name of the distributed training strategy to use.
             `More details <https://lightning.ai/docs/pytorch/stable/extensions/strategy.html>`__
@@ -216,6 +222,8 @@ def execute_experiment_job(
             strategy=strategy,
             precision=precision,
             save_state=save_state,
+            gradient_clip_val=gradient_clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
         )
     _execute_experiment_job_remotely(
         job_name=job_name,
@@ -235,6 +243,8 @@ def execute_experiment_job(
         accelerator=accelerator,
         devices=devices,
         deterministic_trainer=deterministic_trainer,
+        gradient_clip_val=gradient_clip_val,
+        gradient_clip_algorithm=gradient_clip_algorithm,
         seed=seed,
         requirements_file=requirements_file,
         role=role,
@@ -267,6 +277,8 @@ def _execute_experiment_job_locally(
     strategy: str,
     precision: str,
     save_state: bool,
+    gradient_clip_val: Optional[float],
+    gradient_clip_algorithm: Optional[str],
 ) -> None:
     """Runs an experiment, combining hyperparameter tuning and model for multiple updates.
 
@@ -359,6 +371,8 @@ def _execute_experiment_job_locally(
             precision=precision,
             strategy=strategy,
             deterministic_trainer=deterministic_trainer,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            gradient_clip_val=gradient_clip_val,
         )
         move_to_uri(output_state_url, input_state_url)
         if save_state:

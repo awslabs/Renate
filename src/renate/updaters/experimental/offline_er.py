@@ -6,18 +6,19 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import torch
 import torchmetrics
 from pytorch_lightning.loggers.logger import Logger
-from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch.nn import Parameter
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import ConcatDataset, DataLoader, Dataset
 
 from renate import defaults
+from renate.memory import ReservoirBuffer
 from renate.models import RenateModule
 from renate.types import NestedTensors
 from renate.updaters.learner import ReplayLearner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
-from renate.utils.pytorch import cat_nested_tensors, get_length_nested_tensors
+from renate.utils.misc import maybe_populate_mask_and_ignore_logits
+from renate.utils.pytorch import ConcatRandomSampler
 
 
 class OfflineExperienceReplayLearner(ReplayLearner):
@@ -28,18 +29,11 @@ class OfflineExperienceReplayLearner(ReplayLearner):
     terminated.
 
     Args:
-        memory_size: The maximum size of the memory.
-        memory_batch_size: Size of batches sampled from the memory. The memory batch will be
-            appended to the batch sampled from the current dataset, leading to an effective batch
-            size of `memory_batch_size + batch_size`.
         loss_weight_new_data: The training loss will be a convex combination of the loss on the new
             data and the loss on the memory data. If a float (needs to be in [0, 1]) is given here,
             it will be used as the weight for the new data. If `None`, the weight will be set
             dynamically to `N_t / sum([N_1, ..., N_t])`, where `N_i` denotes the size of task/chunk
             `i` and the current task is `t`.
-        buffer_transform: The transformation to be applied to the memory buffer data samples.
-        buffer_target_transform: The target transformation to be applied to the memory buffer target
-            samples.
     """
 
     def __init__(self, loss_weight_new_data: Optional[float] = None, **kwargs) -> None:
@@ -77,19 +71,29 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         self._num_points_current_task = len(train_dataset)
 
     def train_dataloader(self) -> DataLoader:
-        train_loader = super().train_dataloader()
-        loaders = {"current_task": train_loader}
         if len(self._memory_buffer) > self._memory_batch_size:
-            loaders["memory"] = DataLoader(
-                dataset=self._memory_buffer,
-                batch_size=self._memory_batch_size,
-                drop_last=True,
-                shuffle=True,
+            train_buffer = ReservoirBuffer(
+                max_size=self._num_points_current_task,
+                seed=0,
+                transform=self._train_transform,
+                target_transform=self._train_target_transform,
+            )
+            train_buffer.update(self._train_dataset)
+            return DataLoader(
+                dataset=ConcatDataset([train_buffer, self._memory_buffer]),
                 generator=self._rng,
                 pin_memory=True,
                 collate_fn=self._train_collate_fn,
+                batch_sampler=ConcatRandomSampler(
+                    [self._num_points_current_task, len(self._memory_buffer)],
+                    [self._batch_size, self._memory_batch_size],
+                    0,
+                    generator=self._rng,
+                ),
             )
-        return CombinedLoader(loaders, mode="max_size_cycle")
+        self._batch_size += self._memory_batch_size
+        self._memory_batch_size = 0
+        return super().train_dataloader()
 
     def on_model_update_end(self) -> None:
         """Called right before a model update terminates."""
@@ -97,7 +101,9 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         self._num_points_previous_tasks += self._num_points_current_task
         self._num_points_current_task = -1
 
-    def training_step(self, batch: Dict[str, Tuple[NestedTensors]], batch_idx: int) -> STEP_OUTPUT:
+    def training_step(
+        self, batch: Tuple[NestedTensors, Dict[str, Any]], batch_idx: int
+    ) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
         if self._loss_weight_new_data is None:
             alpha = self._num_points_current_task / (
@@ -106,17 +112,19 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         else:
             alpha = self._loss_weight_new_data
         alpha = torch.tensor(alpha, device=next(self.parameters()).device)
-        inputs, targets = batch["current_task"]
-        batch_size_current = get_length_nested_tensors(inputs)
-        if "memory" in batch:
-            (inputs_mem, targets_mem), _ = batch["memory"]
-            inputs = cat_nested_tensors((inputs, inputs_mem), 0)
-            targets = torch.cat((targets, targets_mem), 0)
+        if self._memory_batch_size:
+            (inputs, targets), _ = batch
+        else:
+            inputs, targets = batch
         outputs = self(inputs)
+
+        outputs, self._class_mask = maybe_populate_mask_and_ignore_logits(
+            self._mask_unused_classes, self._class_mask, self._classes_in_current_task, outputs
+        )
         loss = self._loss_fn(outputs, targets)
-        if "memory" in batch:
-            loss_current = loss[:batch_size_current].mean()
-            loss_memory = loss[batch_size_current:].mean()
+        if self._memory_batch_size:
+            loss_current = loss[: self._batch_size].mean()
+            loss_memory = loss[self._batch_size :].mean()
             self._loss_collections["train_losses"]["base_loss"](loss_current)
             self._loss_collections["train_losses"]["memory_loss"](loss_memory)
             loss = alpha * loss_current + (1.0 - alpha) * loss_memory
@@ -142,7 +150,7 @@ class OfflineExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         loss_fn: torch.nn.Module,
         optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
+        batch_memory_frac: int = defaults.BATCH_MEMORY_FRAC,
         loss_weight_new_data: Optional[float] = None,
         learning_rate_scheduler: Optional[partial] = None,
         learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
@@ -167,10 +175,13 @@ class OfflineExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
-            "memory_batch_size": memory_batch_size,
+            "batch_memory_frac": batch_memory_frac,
             "loss_weight_new_data": loss_weight_new_data,
             "batch_size": batch_size,
             "seed": seed,
@@ -202,4 +213,7 @@ class OfflineExperienceReplayModelUpdater(SingleTrainingLoopUpdater):
             strategy=strategy,
             precision=precision,
             deterministic_trainer=deterministic_trainer,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            gradient_clip_val=gradient_clip_val,
+            mask_unused_classes=mask_unused_classes,
         )

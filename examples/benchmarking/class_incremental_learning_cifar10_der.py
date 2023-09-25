@@ -11,8 +11,8 @@ config_space = {
     "learning_rate": 0.03,
     "alpha": 0.2,
     "beta": 0.5,
-    "batch_size": 32,
-    "memory_batch_size": 32,
+    "batch_size": 64,
+    "batch_memory_frac": 0.5,
     "memory_size": 500,
     "max_epochs": 50,
     "loss_normalization": 0,
@@ -21,7 +21,8 @@ config_space = {
     "scenario_name": "ClassIncrementalScenario",
     "dataset_name": "CIFAR10",
     "val_size": 0,
-    "class_groupings": ((0, 1), (2, 3), (4, 5), (6, 7), (8, 9)),
+    "groupings": ((0, 1), (2, 3), (4, 5), (6, 7), (8, 9)),
+    "num_outputs": 10,
 }
 
 for seed in range(10):

@@ -20,7 +20,8 @@ from renate.data.datasets import _TransformedDataset
 from renate.memory import DataBuffer, InfiniteBuffer, ReservoirBuffer
 from renate.models import RenateModule
 from renate.types import NestedTensors
-from renate.utils.pytorch import get_generator
+from renate.utils.misc import maybe_populate_mask_and_ignore_logits
+from renate.utils.pytorch import get_generator, unique_classes
 
 
 class RenateLightningModule(LightningModule, abc.ABC):
@@ -44,6 +45,8 @@ class RenateLightningModule(LightningModule, abc.ABC):
         batch_size: Training batch size.
         logged_metrics: Metrics logged additional to the default ones.
         seed: See :func:`renate.models.utils.get_generator`.
+        mask_unused_classes: Flag to use if logits corresponding to unused classes are to be ignored
+            in the loss computation. Possibly useful for class incremental learning.
     """
 
     def __init__(
@@ -56,6 +59,7 @@ class RenateLightningModule(LightningModule, abc.ABC):
         batch_size: int = defaults.BATCH_SIZE,
         logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None,
         seed: int = defaults.SEED,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ) -> None:
         super().__init__()
         self._model = model
@@ -65,6 +69,11 @@ class RenateLightningModule(LightningModule, abc.ABC):
         self._learning_rate_scheduler_interval = learning_rate_scheduler_interval
         self._batch_size = batch_size
         self._seed = seed
+        self._mask_unused_classes = mask_unused_classes
+
+        self._class_mask = None
+        self._classes_in_current_task = None
+
         self._task_id: str = defaults.TASK_ID
         self._train_dataset: Optional[Dataset] = None
         self._val_dataset: Optional[Dataset] = None
@@ -144,11 +153,15 @@ class RenateLightningModule(LightningModule, abc.ABC):
     ) -> None:
         self._train_dataset = train_dataset
         self._val_dataset = val_dataset
-        self.val_enabled = val_dataset is not None and len(val_dataset)
+        self.val_enabled = val_dataset is not None and len(val_dataset) > 0
         self._train_collate_fn = train_dataset_collate_fn
         self._val_collate_fn = val_dataset_collate_fn
         self._task_id = task_id
         self._model.add_task_params(task_id=self._task_id)
+        if self._mask_unused_classes:
+            # The first forward prop will populate the _class_mask with the following
+            # unique classes
+            self._classes_in_current_task = unique_classes(self._train_dataset)
 
     def train_dataloader(self) -> DataLoader:
         """Returns the dataloader for training the model."""
@@ -192,6 +205,9 @@ class RenateLightningModule(LightningModule, abc.ABC):
         """PyTorch Lightning function to return the training loss."""
         inputs, targets = self.training_step_unpack_batch(batch)
         outputs = self(inputs)
+        outputs, self._class_mask = maybe_populate_mask_and_ignore_logits(
+            self._mask_unused_classes, self._class_mask, self._classes_in_current_task, outputs
+        )
         intermediate_representation = self._model.get_intermediate_representation()
         self._model.reset_intermediate_representation_cache()
         loss = self._loss_fn(outputs, targets).mean()
@@ -327,6 +343,7 @@ class Learner(RenateLightningModule, abc.ABC):
         test_target_transform: Optional[Callable] = None,
         logged_metrics: Optional[Dict[str, torchmetrics.Metric]] = None,
         seed: int = defaults.SEED,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ) -> None:
         super().__init__(
             model=model,
@@ -337,6 +354,7 @@ class Learner(RenateLightningModule, abc.ABC):
             batch_size=batch_size,
             logged_metrics=logged_metrics,
             seed=seed,
+            mask_unused_classes=mask_unused_classes,
         )
         self._train_transform = train_transform
         self._train_target_transform = train_target_transform
@@ -438,9 +456,7 @@ class ReplayLearner(Learner, abc.ABC):
 
     Args:
         memory_size: The maximum size of the memory.
-        memory_batch_size: Size of batches sampled from the memory. The memory batch will be
-            appended to the batch sampled from the current dataset, leading to an effective batch
-            size of `memory_batch_size + batch_size`.
+        batch_memory_frac: Fraction of the batch that is sampled from rehearsal memory.
         buffer_transform: The transformation to be applied to the memory buffer data samples.
         buffer_target_transform: The target transformation to be applied to the memory buffer target
             samples.
@@ -450,14 +466,21 @@ class ReplayLearner(Learner, abc.ABC):
     def __init__(
         self,
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
+        batch_size: int = defaults.BATCH_SIZE,
+        batch_memory_frac: float = defaults.BATCH_MEMORY_FRAC,
         buffer_transform: Optional[Callable] = None,
         buffer_target_transform: Optional[Callable] = None,
         seed: int = defaults.SEED,
         **kwargs,
     ) -> None:
-        super().__init__(seed=seed, **kwargs)
-        self._memory_batch_size = min(memory_size, memory_batch_size)
+        if not (0 <= batch_memory_frac <= 1):
+            raise ValueError(
+                f"Expecting batch_memory_frac to be in [0, 1], received {batch_memory_frac}."
+            )
+        memory_batch_size = min(memory_size, int(batch_memory_frac * batch_size))
+        batch_size = batch_size - memory_batch_size
+        super().__init__(batch_size=batch_size, seed=seed, **kwargs)
+        self._memory_batch_size = memory_batch_size
         self._memory_buffer = ReservoirBuffer(
             max_size=memory_size,
             seed=seed,
@@ -482,3 +505,19 @@ class ReplayLearner(Learner, abc.ABC):
     def load(self, input_state_dir: str) -> None:
         super().load(input_state_dir)
         self._memory_buffer.load(os.path.join(input_state_dir, "memory_buffer"))
+
+    def on_model_update_start(
+        self,
+        train_dataset: Dataset,
+        val_dataset: Dataset,
+        train_dataset_collate_fn: Optional[Callable] = None,
+        val_dataset_collate_fn: Optional[Callable] = None,
+        task_id: Optional[str] = None,
+    ) -> None:
+        super().on_model_update_start(
+            train_dataset, val_dataset, train_dataset_collate_fn, val_dataset_collate_fn, task_id
+        )
+        if self._mask_unused_classes:
+            self._classes_in_current_task = self._classes_in_current_task.union(
+                unique_classes(self._memory_buffer)
+            )

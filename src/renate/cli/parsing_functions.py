@@ -22,6 +22,10 @@ from renate.updaters.experimental.er import (
 from renate.updaters.experimental.fine_tuning import FineTuningModelUpdater
 from renate.updaters.experimental.gdumb import GDumbModelUpdater
 from renate.updaters.experimental.joint import JointModelUpdater
+from renate.updaters.experimental.l2p import (
+    LearningToPromptModelUpdater,
+    LearningToPromptReplayModelUpdater,
+)
 from renate.updaters.experimental.offline_er import OfflineExperienceReplayModelUpdater
 from renate.updaters.experimental.repeated_distill import RepeatedDistillationModelUpdater
 from renate.updaters.model_updater import ModelUpdater
@@ -48,18 +52,24 @@ def get_updater_and_learner_kwargs(
     """Returns the model updater class and the keyword arguments for the learner."""
     if args.updater.startswith("Avalanche-") and find_spec("avalanche", None) is None:
         raise ImportError("Avalanche is not installed. Please run `pip install Renate[avalanche]`.")
-    learner_args = ["batch_size", "seed"]
+    learner_args = ["batch_size", "seed", "mask_unused_classes"]
     base_er_args = learner_args + [
         "loss_weight",
         "ema_memory_update_gamma",
         "memory_size",
-        "memory_batch_size",
+        "batch_memory_frac",
         "loss_normalization",
     ]
     updater_class = None
     if args.updater == "ER":
         learner_args = base_er_args + ["alpha"]
         updater_class = ExperienceReplayModelUpdater
+    elif args.updater == "LearningToPrompt":
+        learner_args = learner_args + ["prompt_sim_loss_weight"]
+        updater_class = LearningToPromptModelUpdater
+    elif args.updater == "LearningToPromptReplay":
+        learner_args = learner_args + ["prompt_sim_loss_weight", "memory_size", "memory_batch_size"]
+        updater_class = LearningToPromptReplayModelUpdater
     elif args.updater == "DER":
         learner_args = base_er_args + ["alpha", "beta"]
         updater_class = DarkExperienceReplayModelUpdater
@@ -93,7 +103,7 @@ def get_updater_and_learner_kwargs(
         ]
         updater_class = SuperExperienceReplayModelUpdater
     elif args.updater == "Offline-ER":
-        learner_args = learner_args + ["loss_weight_new_data", "memory_size", "memory_batch_size"]
+        learner_args = learner_args + ["loss_weight_new_data", "memory_size", "batch_memory_frac"]
         updater_class = OfflineExperienceReplayModelUpdater
     elif args.updater == "RD":
         learner_args = learner_args + ["memory_size"]
@@ -108,7 +118,7 @@ def get_updater_and_learner_kwargs(
         learner_args = learner_args
         updater_class = FineTuningModelUpdater
     elif args.updater == "Avalanche-ER":
-        learner_args = learner_args + ["memory_size", "memory_batch_size"]
+        learner_args = learner_args + ["memory_size", "batch_memory_frac"]
         from renate.updaters.avalanche.model_updater import ExperienceReplayAvalancheModelUpdater
 
         updater_class = ExperienceReplayAvalancheModelUpdater
@@ -123,7 +133,7 @@ def get_updater_and_learner_kwargs(
 
         updater_class = LearningWithoutForgettingModelUpdater
     elif args.updater == "Avalanche-iCaRL":
-        learner_args = learner_args + ["memory_size", "memory_batch_size"]
+        learner_args = learner_args + ["memory_size", "batch_memory_frac"]
         from renate.updaters.avalanche.model_updater import ICaRLModelUpdater
 
         updater_class = ICaRLModelUpdater
@@ -311,6 +321,28 @@ def _standard_arguments() -> Dict[str, Dict[str, Any]]:
             "argument_group": OPTIONAL_ARGS_GROUP,
             "true_type": bool,
         },
+        "gradient_clip_val": {
+            "type": lambda x: None if x == "None" else float(x),
+            "default": defaults.GRADIENT_CLIP_VAL,
+            "help": "The value at which to clip gradients. None disables clipping.",
+            "argument_group": OPTIONAL_ARGS_GROUP,
+        },
+        "gradient_clip_algorithm": {
+            "type": lambda x: None if x == "None" else x,
+            "default": defaults.GRADIENT_CLIP_ALGORITHM,
+            "help": "Gradient clipping algorithm to use.",
+            "choices": ["norm", "value", None],
+            "argument_group": OPTIONAL_ARGS_GROUP,
+        },
+        "mask_unused_classes": {
+            "default": str(defaults.MASK_UNUSED_CLASSES),
+            "type": str,
+            "choices": ["True", "False"],
+            "help": "Whether to use a class mask to kill the unused logits. Useful possibly for "
+            "class incremental learning methods. ",
+            "argument_group": OPTIONAL_ARGS_GROUP,
+            "true_type": bool,
+        },
         "prepare_data": {
             "type": str,
             "default": "True",
@@ -406,11 +438,11 @@ def _add_replay_learner_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
                 "help": "Memory size available for the memory buffer. Default: "
                 f"{defaults.MEMORY_SIZE}.",
             },
-            "memory_batch_size": {
-                "type": int,
-                "default": defaults.BATCH_SIZE,
-                "help": "Batch size used during model update for the memory buffer. Default: "
-                f"{defaults.BATCH_SIZE}.",
+            "batch_memory_frac": {
+                "type": float,
+                "default": defaults.BATCH_MEMORY_FRAC,
+                "help": "Fraction of the batch populated with memory data. Default: "
+                f"{defaults.BATCH_MEMORY_FRAC}.",
             },
         }
     )
@@ -438,14 +470,43 @@ def _add_base_experience_replay_arguments(arguments: Dict[str, Dict[str, Any]]) 
     _add_replay_learner_arguments(arguments)
 
 
+def _add_l2p_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+    arguments.update(
+        {
+            "prompt_sim_loss_weight": {
+                "type": float,
+                "default": defaults.PROMPT_SIM_LOSS_WEIGHT,
+                "help": "Prompt key similarity regularization weight. "
+                f"Default: {defaults.PROMPT_SIM_LOSS_WEIGHT}",
+            }
+        }
+    )
+
+
+def _add_l2preplay_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+    _add_l2p_arguments(arguments)
+    _add_offline_er_arguments(arguments)
+
+
 def _add_gdumb_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds GDumb arguments."""
     _add_replay_learner_arguments(arguments)
+    _add_joint_arguments(arguments)
 
 
 def _add_joint_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     """A helper function that adds Joint Learner arguments."""
-    pass
+    arguments.update(
+        {
+            "reset": {
+                "type": str,
+                "default": "True",
+                "choices": ["True", "False"],
+                "help": "Resets the model before the update. Default: True",
+                "true_type": bool,
+            },
+        }
+    )
 
 
 def _add_finetuning_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
@@ -838,7 +899,7 @@ def get_argument_type(arg_spec: inspect.FullArgSpec, argument_name: str) -> Type
     return argument_type
 
 
-def to_dense_str(value: Union[bool, List, Tuple]) -> str:
+def to_dense_str(value: Union[bool, List, Tuple, None]) -> str:
     """Converts a variable to string without empty spaces."""
     return str(value).replace(" ", "")
 
@@ -910,6 +971,8 @@ def get_scheduler_kwargs(
 
 parse_by_updater = {
     "ER": _add_experience_replay_arguments,
+    "LearningToPrompt": _add_l2p_arguments,
+    "LearningToPromptReplay": _add_l2preplay_arguments,
     "DER": _add_dark_experience_replay_arguments,
     "POD-ER": _add_pod_experience_replay_arguments,
     "CLS-ER": _add_cls_experience_replay_arguments,

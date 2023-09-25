@@ -42,6 +42,9 @@ class FineTuningModelUpdater(SingleTrainingLoopUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ):
         learner_kwargs = {
             "batch_size": batch_size,
@@ -73,4 +76,7 @@ class FineTuningModelUpdater(SingleTrainingLoopUpdater):
             deterministic_trainer=deterministic_trainer,
             strategy=strategy,
             precision=precision,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            gradient_clip_val=gradient_clip_val,
+            mask_unused_classes=mask_unused_classes,
         )

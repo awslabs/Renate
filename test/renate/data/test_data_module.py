@@ -134,6 +134,7 @@ def test_tiny_imagenet_data_module(tmpdir):
     assert train_data[0][0].size() == test_data[0][0].size() == (3, 64, 64)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "dataset_name,input_column,target_column",
     [
@@ -179,6 +180,7 @@ def test_hugging_face_data_module(
         assert isinstance(inputs["attention_mask"], torch.Tensor)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("column", ("input", "target"), ids=("input", "target"))
 def test_hugging_face_exception_raised_with_wrong_column(tmpdir, column):
     input_column = "text"

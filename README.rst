@@ -2,7 +2,7 @@
     :target: #
     :alt: PyPI - Status
 .. image:: https://img.shields.io/github/v/release/awslabs/Renate
-    :target: https://github.com/awslabs/Renate/releases/tag/v0.3.1
+    :target: https://github.com/awslabs/Renate/releases/tag/v0.4.0
     :alt: Latest Release
 .. image:: https://img.shields.io/pypi/dm/Renate
     :target: https://pypistats.org/packages/renate
@@ -116,14 +116,14 @@ If you did not find what you were looking for, open an `issue <https://github.co
 we will do our best to improve the documentation.
 
 
-.. [#] To create this plot, we simulated class-incremental learning with CIFAR-10.
-    The training data was divided into 5 partitions, and we trained sequentially on them.
+.. [#] To create this plot, we simulated domain-incremental learning with `CLEAR-100 <https://clear-benchmark.github.io/>`_.
+    The training data was divided by year, and we trained sequentially on them.
     Fine-tuning refers to the strategy to learn on the first partition from scratch, and
     train on each of the subsequent partitions for few epochs only.
-    We compare to Experience Replay with a memory size of 500.
-    For both methods we use the same number of epochs and choose the best checkpoint
+    We compare to Experience Replay with an infinite memory size.
+    For both methods we use the same amount of training time and choose the best checkpoint
     using a validation set.
     Results reported are on the test set.
 
-.. [#] The setup is the same as in the last experiment. However, this time we compare
+.. [#] In this experiment, we consider class-incremental learning on CIFAR-10. We compare
     Experience Replay against a version in which its hyperparameters were tuned.

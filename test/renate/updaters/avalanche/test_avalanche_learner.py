@@ -30,6 +30,7 @@ def check_learner_settings(
     expected_max_epochs,
     expected_device,
     expected_eval_every,
+    expected_batch_size,
     expected_loss_fn=None,
 ):
     if isinstance(learner, AvalancheICaRLLearner):
@@ -47,7 +48,7 @@ def check_learner_settings(
             assert avalanche_learner._criterion == expected_loss_fn
     assert avalanche_learner.optimizer == expected_optimizer
     assert avalanche_learner.train_epochs == expected_max_epochs
-    assert avalanche_learner.train_mb_size == learner_kwargs["batch_size"]
+    assert avalanche_learner.train_mb_size == expected_batch_size
     assert avalanche_learner.eval_mb_size == learner_kwargs["batch_size"]
 
     assert avalanche_learner.device == expected_device
@@ -84,6 +85,11 @@ def test_update_settings(learner_class):
     expected_optimizer = SGD(expected_model.parameters(), lr=0.1)
     expected_device = torch.device("cpu")
     expected_eval_every = -1
+    expected_batch_size = learner_kwargs["batch_size"]
+    if "batch_memory_frac" in learner_kwargs:
+        expected_batch_size = expected_batch_size - int(
+            learner_kwargs["batch_memory_frac"] * expected_batch_size
+        )
     learner = learner_class(
         model=expected_model,
         optimizer=None,
@@ -107,6 +113,7 @@ def test_update_settings(learner_class):
         expected_max_epochs=expected_max_epochs,
         expected_device=expected_device,
         expected_eval_every=expected_eval_every,
+        expected_batch_size=expected_batch_size,
     )
 
     # Update
@@ -135,4 +142,5 @@ def test_update_settings(learner_class):
         expected_max_epochs=expected_max_epochs,
         expected_device=expected_device,
         expected_eval_every=expected_eval_every,
+        expected_batch_size=expected_batch_size,
     )

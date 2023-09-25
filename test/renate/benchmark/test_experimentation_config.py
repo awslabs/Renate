@@ -2,13 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 import pytest
 from torch.nn import Linear
-from torch.optim import SGD
-from torch.optim.lr_scheduler import StepLR
+from torch.optim import AdamW, SGD
+from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
 from torchmetrics.classification import MulticlassAccuracy
-from torchvision.transforms import Compose, Normalize
+from torchvision.transforms import Compose, Normalize, ToTensor
 
 from renate.benchmark import experiment_config
-from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule
+from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule, MultiTextDataModule
 from renate.benchmark.datasets.vision_datasets import CLEARDataModule, TorchVisionDataModule
 from renate.benchmark.experiment_config import (
     data_module_fn,
@@ -19,20 +19,22 @@ from renate.benchmark.experiment_config import (
     metrics_fn,
     model_fn,
     models,
+    optimizer_fn,
     train_transform,
 )
 from renate.benchmark.scenarios import (
     ClassIncrementalScenario,
+    DataIncrementalScenario,
     FeatureSortingScenario,
     HueShiftScenario,
     IIDScenario,
     ImageRotationScenario,
     PermutationScenario,
-    TimeIncrementalScenario,
 )
 from renate.models.prediction_strategies import ICaRLClassificationStrategy
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "model_name,expected_model_class",
     [(model_name, model_class) for model_name, model_class in models.items()],
@@ -45,7 +47,7 @@ def test_model_fn(model_name, expected_model_class):
         num_outputs=2,
         num_hidden_layers=1 if model_name == "MultiLayerPerceptron" else None,
         hidden_size=1 if model_name == "MultiLayerPerceptron" else None,
-        pretrained_model_name="distilbert-base-uncased"
+        pretrained_model_name_or_path="distilbert-base-uncased"
         if model_name == "HuggingFaceTransformer"
         else None,
     )
@@ -81,7 +83,7 @@ def test_model_fn_fails_for_unknown_model():
 
 
 @pytest.mark.parametrize(
-    "dataset_name,data_module_class,pretrained_model_name,input_column,target_column",
+    "dataset_name,data_module_class,pretrained_model_name_or_path,input_column,target_column",
     (
         ("CIFAR10", TorchVisionDataModule, None, None, None),
         ("CLEAR10", CLEARDataModule, None, None, None),
@@ -92,10 +94,16 @@ def test_model_fn_fails_for_unknown_model():
             "text",
             "label",
         ),
+        ("MultiText", MultiTextDataModule, "distilbert-base-uncased", None, None),
     ),
 )
 def test_get_data_module(
-    tmpdir, dataset_name, data_module_class, pretrained_model_name, input_column, target_column
+    tmpdir,
+    dataset_name,
+    data_module_class,
+    pretrained_model_name_or_path,
+    input_column,
+    target_column,
 ):
     data_module = get_data_module(
         data_path=tmpdir,
@@ -104,7 +112,7 @@ def test_get_data_module(
         seed=0,
         src_bucket=None,
         src_object_name=None,
-        pretrained_model_name=pretrained_model_name,
+        pretrained_model_name_or_path=pretrained_model_name_or_path,
         input_column=input_column,
         target_column=target_column,
     )
@@ -121,7 +129,7 @@ def test_get_data_module_fails_for_unknown_dataset(tmpdir):
             seed=0,
             src_bucket=None,
             src_object_name=None,
-            pretrained_model_name=None,
+            pretrained_model_name_or_path=None,
             input_column=None,
             target_column=None,
         )
@@ -135,7 +143,7 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         seed=0,
         src_bucket=None,
         src_object_name=None,
-        pretrained_model_name=None,
+        pretrained_model_name_or_path=None,
         input_column=None,
         target_column=None,
     )
@@ -153,10 +161,10 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             "ClassIncrementalScenario",
             "hfd-trec",
             {
-                "pretrained_model_name": "distilbert-base-uncased",
+                "pretrained_model_name_or_path": "distilbert-base-uncased",
                 "input_column": "text",
                 "target_column": "coarse_label",
-                "class_groupings": ((0, 1), (2, 3), (4, 5)),
+                "groupings": ((0, 1), (2, 3), (4, 5)),
             },
             ClassIncrementalScenario,
             3,
@@ -200,20 +208,34 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             HueShiftScenario,
             3,
         ),
-        ("TimeIncrementalScenario", "CLEAR10", {"num_tasks": 5}, TimeIncrementalScenario, 5),
+        ("DataIncrementalScenario", "CLEAR10", {"num_tasks": 5}, DataIncrementalScenario, 5),
         (
-            "TimeIncrementalScenario",
+            "DataIncrementalScenario",
             "arxiv",
-            {"num_tasks": 3, "pretrained_model_name": "distilbert-base-uncased"},
-            TimeIncrementalScenario,
+            {"num_tasks": 3, "pretrained_model_name_or_path": "distilbert-base-uncased"},
+            DataIncrementalScenario,
             3,
         ),
         (
-            "TimeIncrementalScenario",
+            "DataIncrementalScenario",
             "fmow",
             {},
-            TimeIncrementalScenario,
+            DataIncrementalScenario,
             16,
+        ),
+        (
+            "DataIncrementalScenario",
+            "DomainNet",
+            {"data_ids": ("clipart", "infograph")},
+            DataIncrementalScenario,
+            2,
+        ),
+        (
+            "DataIncrementalScenario",
+            "DomainNet",
+            {"groupings": (("clipart", "infograph"), "painting")},
+            DataIncrementalScenario,
+            2,
         ),
     ),
     ids=[
@@ -223,9 +245,11 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         "permutation",
         "feature_sorting",
         "hue_shift",
-        "time_with_clear",
+        "data_incremental with CLEAR",
         "wild_time_text_with_tokenizer",
         "wild_time_image_all_tasks",
+        "domainnet_by data_id",
+        "domainnet by groupings",
     ],
 )
 @pytest.mark.parametrize("val_size", (0, 0.5), ids=["no_val", "val"])
@@ -249,43 +273,42 @@ def test_data_module_fn(
     )
     assert isinstance(scenario, expected_scenario_class)
     if expected_scenario_class == ClassIncrementalScenario:
-        assert scenario._class_groupings == scenario_kwargs["class_groupings"]
+        assert scenario._class_groupings == scenario_kwargs["groupings"]
     elif expected_scenario_class == FeatureSortingScenario:
         assert scenario._feature_idx == scenario_kwargs["feature_idx"]
         assert scenario._randomness == scenario_kwargs["randomness"]
     elif expected_scenario_class == HueShiftScenario:
         assert scenario._randomness == scenario_kwargs["randomness"]
-    elif expected_scenario_class == TimeIncrementalScenario:
-        if "pretrained_model_name" in scenario_kwargs:
+    elif expected_scenario_class == DataIncrementalScenario:
+        if "pretrained_model_name_or_path" in scenario_kwargs:
             assert scenario._data_module._tokenizer is not None
-        elif dataset_name not in ["CLEAR10", "CLEAR100"]:
+        elif dataset_name not in ["CLEAR10", "CLEAR100", "DomainNet"]:
             assert scenario._data_module._tokenizer is None
     assert scenario._num_tasks == expected_num_tasks
 
 
 @pytest.mark.parametrize(
-    "dataset_name,use_transforms,test_compose",
+    "dataset_name,expected_train_transform_class, expected_test_transform_class,model_name",
     (
-        ("MNIST", False, False),
-        ("FashionMNIST", False, False),
-        ("CIFAR10", True, False),
-        ("CIFAR100", True, False),
-        ("CLEAR10", True, True),
-        ("hfd-rotten_tomatoes", False, False),
+        ("MNIST", type(None), type(None), "ResNet18CIFAR"),
+        ("FashionMNIST", type(None), type(None), "ResNet18CIFAR"),
+        ("CIFAR10", Compose, Normalize, "ResNet18CIFAR"),
+        ("CIFAR100", Compose, Normalize, "ResNet18CIFAR"),
+        ("CLEAR10", Compose, Compose, "ResNet18"),
+        ("DomainNet", Compose, Compose, "VisionTransformerB16"),
+        ("hfd-rotten_tomatoes", type(None), type(None), "HuggingFaceTransformer"),
+        ("fmow", Compose, Compose, "ResNet18"),
+        ("yearbook", ToTensor, ToTensor, "ResNet18CIFAR"),
+        ("yearbook", Compose, Compose, "VisionTransformerB16"),
     ),
 )
-def test_transforms(dataset_name, use_transforms, test_compose):
-    train_preprocessing = train_transform(dataset_name)
-    test_preprocessing = experiment_config.test_transform(dataset_name)
-    if use_transforms:
-        assert isinstance(train_preprocessing, Compose)
-        if test_compose:
-            assert isinstance(test_preprocessing, Compose)
-        else:
-            assert isinstance(test_preprocessing, Normalize)
-    else:
-        assert train_preprocessing is None
-        assert test_preprocessing is None
+def test_transforms(
+    dataset_name, expected_train_transform_class, expected_test_transform_class, model_name
+):
+    train_preprocessing = train_transform(dataset_name, model_name)
+    test_preprocessing = experiment_config.test_transform(dataset_name, model_name)
+    assert isinstance(train_preprocessing, expected_train_transform_class)
+    assert isinstance(test_preprocessing, expected_test_transform_class)
 
 
 def test_transforms_fails_for_unknown_dataset():
@@ -297,10 +320,17 @@ def test_transforms_fails_for_unknown_dataset():
 
 @pytest.mark.parametrize(
     "learning_rate_scheduler,expected_lr_class,expected_interval",
-    (("StepLR", StepLR, "epoch"), (None, None, "epoch")),
+    (
+        ("StepLR", StepLR, "epoch"),
+        ("CosineAnnealingLR", CosineAnnealingLR, "step"),
+        (None, None, "epoch"),
+    ),
 )
 def test_lr_scheduler_fn(learning_rate_scheduler, expected_lr_class, expected_interval):
-    scheduler, interval = lr_scheduler_fn(learning_rate_scheduler)
+    scheduler, interval = lr_scheduler_fn(
+        learning_rate_scheduler=learning_rate_scheduler,
+        learning_rate_scheduler_interval=expected_interval,
+    )
     assert interval == expected_interval
     if learning_rate_scheduler is None:
         assert scheduler is None
@@ -315,6 +345,7 @@ def test_lr_scheduler_fn_fails_for_unknown_scheduler():
         lr_scheduler_fn(unknown_lr_scheduler)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("model_name", [model_name for model_name in models])
 @pytest.mark.parametrize("updater", ("ER", "Avalanche-iCaRL"))
 def test_prediction_strategy_is_correctly_set(model_name, updater):
@@ -327,7 +358,7 @@ def test_prediction_strategy_is_correctly_set(model_name, updater):
     if model_name == "MultiLayerPerceptron":
         model_kwargs.update({"num_inputs": 10, "hidden_size": 10, "num_hidden_layers": 2})
     elif model_name == "HuggingFaceTransformer":
-        model_kwargs["pretrained_model_name"] = "distilbert-base-uncased"
+        model_kwargs["pretrained_model_name_or_path"] = "distilbert-base-uncased"
     if model_name == "HuggingFaceTransformer" and updater == "Avalanche-iCaRL":
         with pytest.raises(ValueError, match="Transformers do not support iCaRL."):
             model_fn(**model_kwargs)
@@ -347,3 +378,17 @@ def test_loss_fn_returns_correct_reduction_type():
 def test_metrics_fn_contains_accuracy():
     assert isinstance(metrics_fn(num_outputs=2)["accuracy"], MulticlassAccuracy)
     assert isinstance(metrics_fn(num_outputs=10)["accuracy"], MulticlassAccuracy)
+
+
+def test_optimizer_fn():
+    expected_learning_rate = 0.12
+    partial_optimizer = optimizer_fn(
+        optimizer="AdamW", learning_rate=expected_learning_rate, weight_decay=0.1
+    )
+    optimizer: AdamW = partial_optimizer(Linear(10, 10).parameters())
+    assert isinstance(optimizer, AdamW)
+    assert optimizer.defaults["lr"] == expected_learning_rate
+
+
+def test_optimizer_fn_unknown_optimizer():
+    assert optimizer_fn(optimizer="UNKNOWN_OPTIMIZER", learning_rate=0.1, weight_decay=1) is None

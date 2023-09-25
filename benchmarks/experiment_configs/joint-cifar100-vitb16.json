@@ -1,0 +1,6 @@
+{
+  "scenario": "cifar100-ci-10updates.json",
+  "model": "vit-b16.json",
+  "updater": "joint-cifar100.json",
+  "dataset": "cifar100.json"
+}

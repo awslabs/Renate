@@ -59,6 +59,12 @@ if __name__ == "__main__":
         default=5 * 24 * 3600,
         help="Maximum execution time.",
     )
+    parser.add_argument(
+        "--use-prior-task-weights",
+        action="store_true",
+        help="Do not reset model weights (Joint and GDumb only)",
+    )
+
     args = parser.parse_args()
     current_folder = Path(os.path.dirname(__file__))
     configs_folder = current_folder / "experiment_configs"
@@ -73,6 +79,11 @@ if __name__ == "__main__":
         os.path.join(configs_folder, "updaters", benchmark_config["updater"]),
         os.path.join(configs_folder, "datasets", benchmark_config["dataset"]),
     )
+    if args.use_prior_task_weights:
+        if config_space["updater"] in ["Joint", "GDumb"]:
+            config_space["reset"] = False
+        else:
+            raise ValueError("Please use `use-prior-task-weights` only for Joint or GDumb.")
     config_space["max_epochs"] = int(args.budget_factor * config_space["max_epochs"])
     if "learning_rate_scheduler_step_size" in config_space:
         config_space["learning_rate_scheduler_step_size"] = int(
@@ -89,13 +100,8 @@ if __name__ == "__main__":
     for seed in range(args.num_repetitions):
         if args.backend == "local":
             experiment_outputs_url = (
-                Path("tmp")
-                / "renate-integration-tests"
-                / args.test_suite
-                / args.job_name
-                / str(seed)
+                Path("tmp") / "renate-integration-tests" / args.job_name / str(seed)
             )
-            role = None
             working_directory = str(Path("tmp") / "renate_working_dir")
         else:
             AWS_ACCOUNT_ID = boto3.client("sts").get_caller_identity().get("Account")
@@ -117,6 +123,7 @@ if __name__ == "__main__":
             instance_type="ml.g4dn.xlarge",
             n_workers=1,
             max_time=args.max_time,
+            instance_max_time=args.max_time,
             seed=seed,
             job_name=args.job_name[:36],
             devices=1,

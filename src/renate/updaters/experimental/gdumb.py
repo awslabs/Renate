@@ -17,7 +17,6 @@ from renate.models import RenateModule
 from renate.types import NestedTensors
 from renate.updaters.learner import ReplayLearner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
-from renate.utils.pytorch import reinitialize_model_parameters
 
 
 class GDumbLearner(ReplayLearner):
@@ -79,7 +78,6 @@ class GDumbLearner(ReplayLearner):
             task_id=task_id,
         )
         self._memory_buffer.update(train_dataset)
-        reinitialize_model_parameters(self._model)
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(
@@ -108,7 +106,7 @@ class GDumbModelUpdater(SingleTrainingLoopUpdater):
         loss_fn: torch.nn.Module,
         optimizer: Callable[[List[Parameter]], Optimizer],
         memory_size: int,
-        memory_batch_size: int = defaults.BATCH_SIZE,
+        batch_memory_frac: int = defaults.BATCH_MEMORY_FRAC,
         learning_rate_scheduler: Optional[partial] = None,
         learning_rate_scheduler_interval: defaults.SUPPORTED_LR_SCHEDULER_INTERVAL_TYPE = defaults.LR_SCHEDULER_INTERVAL,  # noqa: E501
         batch_size: int = defaults.BATCH_SIZE,
@@ -132,10 +130,13 @@ class GDumbModelUpdater(SingleTrainingLoopUpdater):
         precision: str = defaults.PRECISION,
         seed: int = defaults.SEED,
         deterministic_trainer: bool = defaults.DETERMINISTIC_TRAINER,
+        gradient_clip_val: Optional[float] = defaults.GRADIENT_CLIP_VAL,
+        gradient_clip_algorithm: Optional[str] = defaults.GRADIENT_CLIP_ALGORITHM,
+        mask_unused_classes: bool = defaults.MASK_UNUSED_CLASSES,
     ):
         learner_kwargs = {
             "memory_size": memory_size,
-            "memory_batch_size": memory_batch_size,
+            "batch_memory_frac": batch_memory_frac,
             "batch_size": batch_size,
             "seed": seed,
         }
@@ -166,4 +167,7 @@ class GDumbModelUpdater(SingleTrainingLoopUpdater):
             strategy=strategy,
             precision=precision,
             deterministic_trainer=deterministic_trainer,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            gradient_clip_val=gradient_clip_val,
+            mask_unused_classes=mask_unused_classes,
         )

@@ -77,15 +77,17 @@ def test_continuation_of_training_with_avalanche_model_updater(tmpdir, learner_c
 
 
 @pytest.mark.parametrize(
-    "batch_size,memory_size,memory_batch_size",
-    [[10, 10, 10], [20, 10, 10], [10, 100, 10], [10, 30, 1], [100, 10, 3]],
+    "batch_size,memory_size,batch_memory_frac",
+    [[20, 10, 0.5], [30, 10, 0.34], [20, 100, 0.5], [10, 30, 0.1], [100, 10, 0.03]],
 )
-def test_experience_replay_buffer_size(tmpdir, batch_size, memory_size, memory_batch_size):
+def test_experience_replay_buffer_size(tmpdir, batch_size, memory_size, batch_memory_frac):
+    expected_memory_batch_size = int(batch_memory_frac * batch_size)
+    expected_batch_size = batch_size - expected_memory_batch_size
     dataset_size = 100
     model, dataset = get_model_and_dataset(dataset_size)
     learner_kwargs = {
         "memory_size": memory_size,
-        "memory_batch_size": memory_batch_size,
+        "batch_memory_frac": batch_memory_frac,
         "batch_size": batch_size,
     }
     model_updater = ExperienceReplayAvalancheModelUpdater(
@@ -99,9 +101,9 @@ def test_experience_replay_buffer_size(tmpdir, batch_size, memory_size, memory_b
     )
     model_updater.update(train_dataset=dataset)
     replay_plugin = plugin_by_class(ReplayPlugin, model_updater._learner.plugins)
-    assert replay_plugin.batch_size == batch_size
+    assert replay_plugin.batch_size == expected_batch_size
     assert replay_plugin.mem_size == memory_size
-    assert replay_plugin.batch_size_mem == memory_batch_size
+    assert replay_plugin.batch_size_mem == expected_memory_batch_size
     assert len(replay_plugin.storage_policy.buffer) == min(
         memory_size, dataset_size, len(replay_plugin.storage_policy.buffer)
     )
@@ -121,9 +123,9 @@ def test_experience_replay_buffer_size(tmpdir, batch_size, memory_size, memory_b
         )
         replay_plugin = plugin_by_class(ReplayPlugin, model_updater._learner.plugins)
 
-        assert replay_plugin.batch_size == batch_size
+        assert replay_plugin.batch_size == expected_batch_size
         assert replay_plugin.mem_size == memory_size
-        assert replay_plugin.batch_size_mem == memory_batch_size
+        assert replay_plugin.batch_size_mem == expected_memory_batch_size
         model_updater.update(train_dataset=dataset)
         assert len(model_updater._learner.dataloader.data) == dataset_size
         assert len(model_updater._learner.dataloader.memory) == min(
