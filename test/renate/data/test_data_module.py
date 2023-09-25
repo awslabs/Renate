@@ -138,7 +138,7 @@ def test_tiny_imagenet_data_module(tmpdir):
 @pytest.mark.parametrize(
     "dataset_name,input_column,target_column",
     [
-        ("rotten-tomatoes", "text", "label"),
+        ("rotten_tomatoes", "text", "label"),
     ],
 )
 @pytest.mark.parametrize(
