@@ -1,12 +1,11 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-import os
-import shutil
 from typing import Callable, Dict, Literal
 
 import pytest
 import torch
 from pytorch_lightning.loggers import TensorBoardLogger
+
 from renate import defaults
 from renate.benchmark.models import (
     MultiLayerPerceptron,
