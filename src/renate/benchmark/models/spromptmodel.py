@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import logging
+import math
 from typing import Any, Dict, List, Optional, Union
 
 import torch
@@ -30,7 +31,9 @@ class PromptPool(nn.Module):
         self._pool = nn.ParameterDict()
         for id in range(self._curr_task):
             self._pool[f"{id}"] = nn.Parameter(
-                torch.empty((self._M, self._embedding_size)).uniform_(-1, 1)
+                torch.nn.init.kaiming_uniform_(
+                    torch.empty((self._M, self._embedding_size)), a=math.sqrt(5)
+                )
             )
 
         self._pool.requires_grad_(True)
