@@ -45,7 +45,7 @@ jobs:
           options: "--check --verbose"
 
       - name: Run unit tests
-        run: PYTHONPATH=test pytest -n 2 test/
+        run: PYTHONPATH=test pytest -n auto test/
         env:
           COVERAGE_FILE: ".coverage.${{ matrix.python_version }}"
 
