@@ -99,7 +99,7 @@ def test_clear_data_module(tmpdir, dataset_name, chunk_id, num_tr, num_te):
     """Test loading of CLEAR data."""
     val_size = 0.2
     data_module = CLEARDataModule(
-        tmpdir, dataset_name=dataset_name, chunk_id=chunk_id, val_size=val_size
+        tmpdir, dataset_name=dataset_name, time_step=chunk_id, val_size=val_size
     )
     data_module.prepare_data()
     data_module.setup()
