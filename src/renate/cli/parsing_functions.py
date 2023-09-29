@@ -28,6 +28,7 @@ from renate.updaters.experimental.l2p import (
 )
 from renate.updaters.experimental.offline_er import OfflineExperienceReplayModelUpdater
 from renate.updaters.experimental.repeated_distill import RepeatedDistillationModelUpdater
+from renate.updaters.experimental.selective_er import SelectiveExperienceReplayModelUpdater
 from renate.updaters.model_updater import ModelUpdater
 
 REQUIRED_ARGS_GROUP = "Required Arguments"
@@ -105,6 +106,14 @@ def get_updater_and_learner_kwargs(
     elif args.updater == "Offline-ER":
         learner_args = learner_args + ["loss_weight_new_data", "memory_size", "batch_memory_frac"]
         updater_class = OfflineExperienceReplayModelUpdater
+    elif args.updater == "Selective-ER":
+        learner_args = learner_args + [
+            "subsampling_ratio",
+            "subsampling_strategy",
+            "memory_size",
+            "batch_memory_frac",
+        ]
+        updater_class = SelectiveExperienceReplayModelUpdater
     elif args.updater == "RD":
         learner_args = learner_args + ["memory_size"]
         updater_class = RepeatedDistillationModelUpdater
@@ -523,6 +532,24 @@ def _add_offline_er_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
                 "default": None,
                 "help": "Weight assigned to loss on the new data.",
             }
+        }
+    )
+
+
+def _add_selective_er_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+    _add_replay_learner_arguments(arguments)
+    arguments.update(
+        {
+            "subsampling_ratio": {
+                "type": float,
+                "default": None,
+                "help": "TODO",
+            },
+            "subsampling_strategy": {
+                "type": str,
+                "default": None,
+                "help": "TODO",
+            },
         }
     )
 
@@ -982,6 +1009,7 @@ parse_by_updater = {
     "FineTuning": _add_finetuning_arguments,
     "RD": _add_rd_learner_arguments,
     "Offline-ER": _add_offline_er_arguments,
+    "Selective-ER": _add_selective_er_arguments,
     "Avalanche-ER": _add_experience_replay_arguments,
     "Avalanche-EWC": _add_avalanche_ewc_learner_arguments,
     "Avalanche-LwF": _add_avalanche_lwf_learner_arguments,
