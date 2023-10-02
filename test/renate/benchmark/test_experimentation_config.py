@@ -9,7 +9,11 @@ from torchvision.transforms import Compose, Normalize, ToTensor
 
 from renate.benchmark import experiment_config
 from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule, MultiTextDataModule
-from renate.benchmark.datasets.vision_datasets import CLEARDataModule, TorchVisionDataModule
+from renate.benchmark.datasets.vision_datasets import (
+    CDDBDataModule,
+    CLEARDataModule,
+    TorchVisionDataModule,
+)
 from renate.benchmark.experiment_config import (
     data_module_fn,
     get_data_module,
@@ -95,6 +99,7 @@ def test_model_fn_fails_for_unknown_model():
             "label",
         ),
         ("MultiText", MultiTextDataModule, "distilbert-base-uncased", None, None),
+        ("CDDB", CDDBDataModule, None, None, None),
     ),
 )
 def test_get_data_module(
@@ -237,6 +242,13 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             DataIncrementalScenario,
             2,
         ),
+        (
+            "DataIncrementalScenario",
+            "CDDB",
+            {"data_ids": ("biggan", "wild")},
+            DataIncrementalScenario,
+            2,
+        ),
     ),
     ids=[
         "class_incremental",
@@ -250,6 +262,7 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         "wild_time_image_all_tasks",
         "domainnet_by data_id",
         "domainnet by groupings",
+        "cddb by dataid",
     ],
 )
 @pytest.mark.parametrize("val_size", (0, 0.5), ids=["no_val", "val"])
@@ -282,7 +295,7 @@ def test_data_module_fn(
     elif expected_scenario_class == DataIncrementalScenario:
         if "pretrained_model_name_or_path" in scenario_kwargs:
             assert scenario._data_module._tokenizer is not None
-        elif dataset_name not in ["CLEAR10", "CLEAR100", "DomainNet"]:
+        elif dataset_name not in ["CLEAR10", "CLEAR100", "DomainNet", "CDDB"]:
             assert scenario._data_module._tokenizer is None
     assert scenario._num_tasks == expected_num_tasks
 
@@ -296,6 +309,7 @@ def test_data_module_fn(
         ("CIFAR100", Compose, Normalize, "ResNet18CIFAR"),
         ("CLEAR10", Compose, Compose, "ResNet18"),
         ("DomainNet", Compose, Compose, "VisionTransformerB16"),
+        ("CDDB", Compose, Compose, None),
         ("hfd-rotten_tomatoes", type(None), type(None), "HuggingFaceTransformer"),
         ("fmow", Compose, Compose, "ResNet18"),
         ("yearbook", ToTensor, ToTensor, "ResNet18CIFAR"),
