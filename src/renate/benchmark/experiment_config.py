@@ -14,6 +14,7 @@ from wild_time_data import default_transform
 
 from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule, MultiTextDataModule
 from renate.benchmark.datasets.vision_datasets import (
+    CDDBDataModule,
     CLEARDataModule,
     DomainNetDataModule,
     TorchVisionDataModule,
@@ -171,6 +172,14 @@ def get_data_module(
             input_column=input_column,
             target_column=target_column,
             tokenizer=tokenizer,
+            val_size=val_size,
+            seed=seed,
+        )
+    if dataset_name == "CDDB":
+        return CDDBDataModule(
+            data_path=data_path,
+            src_bucket=src_bucket,
+            src_object_name=src_object_name,
             val_size=val_size,
             seed=seed,
         )
@@ -335,6 +344,11 @@ def _get_normalize_transform(dataset_name):
             DomainNetDataModule.dataset_stats["all"]["mean"],
             DomainNetDataModule.dataset_stats["all"]["std"],
         )
+    if dataset_name == "CDDB":
+        return transforms.Normalize(
+            CDDBDataModule.dataset_stats["CDDB"]["mean"],
+            CDDBDataModule.dataset_stats["CDDB"]["std"],
+        )
 
 
 def train_transform(dataset_name: str, model_name: Optional[str] = None) -> Optional[Callable]:
@@ -391,6 +405,17 @@ def train_transform(dataset_name: str, model_name: Optional[str] = None) -> Opti
                 _get_normalize_transform(dataset_name),
             ]
         )
+    if dataset_name == "CDDB":
+        return transforms.Compose(
+            [
+                transforms.RandomResizedCrop(224),
+                transforms.RandomHorizontalFlip(),
+                transforms.ColorJitter(brightness=63 / 255),
+                transforms.ToTensor(),
+                _get_normalize_transform(dataset_name),
+            ]
+        )
+
     raise ValueError(f"Unknown dataset `{dataset_name}`.")
 
 
@@ -442,6 +467,16 @@ def test_transform(
                 _get_normalize_transform(dataset_name),
             ]
         )
+    if dataset_name == "CDDB":
+        return transforms.Compose(
+            [
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                _get_normalize_transform(dataset_name),
+            ]
+        )
+
     raise ValueError(f"Unknown dataset `{dataset_name}`.")
 
 

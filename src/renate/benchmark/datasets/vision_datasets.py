@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
+import gdown
 import pandas as pd
 import torch
 import torchvision
@@ -14,7 +15,13 @@ from renate import defaults
 from renate.benchmark.datasets.base import DataIncrementalDataModule
 from renate.data import ImageDataset
 from renate.data.data_module import RenateDataModule
-from renate.utils.file import download_and_unzip_file, download_file, download_folder_from_s3
+from renate.utils.file import (
+    download_and_unzip_file,
+    download_file,
+    download_file_from_s3,
+    download_folder_from_s3,
+    extract_file,
+)
 
 
 class TinyImageNetDataModule(RenateDataModule):
@@ -402,3 +409,65 @@ class DomainNetDataModule(DataIncrementalDataModule):
         data = list(df.path.apply(lambda x: os.path.join(path, x)))
         labels = list(df.label)
         return data, labels
+
+
+class CDDBDataModule(DataIncrementalDataModule):
+    md5s = {
+        "CDDB.tar.zip": "823b6496270ba03019dbd6af60cbcb6b",
+    }
+
+    domains = ["gaugan", "biggan", "wild", "whichfaceisreal", "san"]
+    dataset_stats = {
+        "CDDB": dict(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    }
+    google_drive_id = "1NgB8ytBMFBFwyXJQvdVT_yek1EaaEHrg"
+
+    def __init__(
+        self,
+        data_path: Union[Path, str],
+        src_bucket: Optional[str] = None,
+        src_object_name: Optional[str] = None,
+        domain: str = "gaugan",
+        val_size: float = defaults.VALIDATION_SIZE,
+        seed: int = defaults.SEED,
+    ):
+        assert domain in self.domains
+        super().__init__(
+            data_path=data_path,
+            data_id=domain.lower(),
+            src_bucket=src_bucket,
+            src_object_name=src_object_name,
+            val_size=val_size,
+            seed=seed,
+        )
+
+    def prepare_data(self) -> None:
+        """Download DomainNet dataset for given domain."""
+        file_name = "CDDB.tar.zip"
+        self._dataset_name = ""
+        if not self._verify_file(file_name):
+            if self._src_bucket is None:
+                gdown.download(
+                    output=self._data_path,
+                    quiet=False,
+                    url=f"https://drive.google.com/u/0/uc?id={self.google_drive_id}&export=download&confirm=pbef",  # noqa: E501
+                )
+            else:
+                download_file_from_s3(
+                    dst=os.path.join(self._data_path, file_name),
+                    src_bucket=self._src_bucket,
+                    src_object_name=self._src_object_name,
+                )
+            extract_file(data_path=self._data_path, file_name="CDDB.tar.zip", dataset_name="")
+            extract_file(data_path=self._data_path, file_name="CDDB.tar", dataset_name="")
+
+    def setup(self) -> None:
+        self._dataset_name = "CDDB"  # we need this because zip+tar
+        train_path = self._get_filepaths_and_labels("train")
+        train_data = torchvision.datasets.ImageFolder(train_path)
+        self._train_data, self._val_data = self._split_train_val_data(train_data)
+        test_path = self._get_filepaths_and_labels("val")
+        self._test_data = torchvision.datasets.ImageFolder(test_path)
+
+    def _get_filepaths_and_labels(self, split: str) -> Tuple[List[str], List[int]]:
+        return os.path.join(self._data_path, self._dataset_name, self.data_id, split)
