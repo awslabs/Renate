@@ -491,17 +491,8 @@ def _add_l2preplay_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     _add_offline_er_arguments(arguments)
 
 
-def _add_sprompt_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
+def _add_speft_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
     pass
-    # arguments.update(
-    #     {
-    #         "clusters_per_task": {
-    #             "type": int,
-    #             "default": defaults.CLUSTERS_PER_TASK,
-    #             "help": f"K in K-means for S-prompts. Default: {defaults.CLUSTERS_PER_TASK}",
-    #         },
-    #     }
-    # )
 
 
 def _add_gdumb_arguments(arguments: Dict[str, Dict[str, Any]]) -> None:
@@ -989,7 +980,7 @@ parse_by_updater = {
     "ER": _add_experience_replay_arguments,
     "LearningToPrompt": _add_l2p_arguments,
     "LearningToPromptReplay": _add_l2preplay_arguments,
-    "SPrompt": _add_sprompt_arguments,
+    "SPeft": _add_speft_arguments,
     "DER": _add_dark_experience_replay_arguments,
     "POD-ER": _add_pod_experience_replay_arguments,
     "CLS-ER": _add_cls_experience_replay_arguments,
