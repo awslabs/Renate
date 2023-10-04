@@ -28,7 +28,7 @@ from renate.updaters.experimental.l2p import (
 )
 from renate.updaters.experimental.offline_er import OfflineExperienceReplayModelUpdater
 from renate.updaters.experimental.repeated_distill import RepeatedDistillationModelUpdater
-from renate.updaters.experimental.sprompt import SPromptModelUpdater
+from renate.updaters.experimental.speft import SPeftModelUpdater
 from renate.updaters.model_updater import ModelUpdater
 
 REQUIRED_ARGS_GROUP = "Required Arguments"
@@ -72,7 +72,7 @@ def get_updater_and_learner_kwargs(
         learner_args = learner_args + ["prompt_sim_loss_weight", "memory_size", "memory_batch_size"]
         updater_class = LearningToPromptReplayModelUpdater
     elif args.updater == "SPrompt":
-        updater_class = SPromptModelUpdater
+        updater_class = SPeftModelUpdater
     elif args.updater == "DER":
         learner_args = base_er_args + ["alpha", "beta"]
         updater_class = DarkExperienceReplayModelUpdater

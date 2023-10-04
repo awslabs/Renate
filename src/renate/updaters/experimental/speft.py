@@ -17,7 +17,7 @@ from renate.updaters.learner import Learner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
 
 
-class SPromptLearner(Learner):
+class SPeftLearner(Learner):
     def __init__(
         self,
         model: RenateModule,
@@ -55,8 +55,8 @@ class SPromptLearner(Learner):
             mask_unused_classes,
         )
 
-    def on_model_update_end(self) -> None:
-        super().on_model_update_end()
+    def on_model_update_start(self) -> None:
+        super().on_model_update_start()
         ## k-means
         device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
         self._model.to(device)
@@ -79,7 +79,7 @@ class SPromptLearner(Learner):
             self._model.increment_task()
 
 
-class SPromptModelUpdater(SingleTrainingLoopUpdater):
+class SPeftModelUpdater(SingleTrainingLoopUpdater):
     def __init__(
         self,
         model: RenateModule,
@@ -122,7 +122,7 @@ class SPromptModelUpdater(SingleTrainingLoopUpdater):
             model=model,
             loss_fn=loss_fn,
             optimizer=optimizer,
-            learner_class=SPromptLearner,
+            learner_class=SPeftLearner,
             learner_kwargs=learner_kwargs,
             input_state_folder=input_state_folder,
             output_state_folder=output_state_folder,
