@@ -6,19 +6,19 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import torch
 import torchmetrics
 from pytorch_lightning.loggers.logger import Logger
-from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch.nn import Parameter
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import ConcatDataset, DataLoader, Dataset
 
 from renate import defaults
+from renate.memory import ReservoirBuffer
 from renate.models import RenateModule
 from renate.types import NestedTensors
 from renate.updaters.learner import ReplayLearner
 from renate.updaters.model_updater import SingleTrainingLoopUpdater
 from renate.utils.misc import maybe_populate_mask_and_ignore_logits
-from renate.utils.pytorch import cat_nested_tensors, get_length_nested_tensors
+from renate.utils.pytorch import ConcatRandomSampler
 
 
 class OfflineExperienceReplayLearner(ReplayLearner):
@@ -71,24 +71,29 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         self._num_points_current_task = len(train_dataset)
 
     def train_dataloader(self) -> DataLoader:
-        loaders = {}
         if len(self._memory_buffer) > self._memory_batch_size:
-            loaders["current_task"] = super().train_dataloader()
-            loaders["memory"] = DataLoader(
-                dataset=self._memory_buffer,
-                batch_size=self._memory_batch_size,
-                drop_last=True,
-                shuffle=True,
+            train_buffer = ReservoirBuffer(
+                max_size=self._num_points_current_task,
+                seed=0,
+                transform=self._train_transform,
+                target_transform=self._train_target_transform,
+            )
+            train_buffer.update(self._train_dataset)
+            return DataLoader(
+                dataset=ConcatDataset([train_buffer, self._memory_buffer]),
                 generator=self._rng,
                 pin_memory=True,
                 collate_fn=self._train_collate_fn,
+                batch_sampler=ConcatRandomSampler(
+                    [self._num_points_current_task, len(self._memory_buffer)],
+                    [self._batch_size, self._memory_batch_size],
+                    0,
+                    generator=self._rng,
+                ),
             )
-        else:
-            batch_size = self._batch_size
-            self._batch_size += self._memory_batch_size
-            loaders["current_task"] = super().train_dataloader()
-            self._batch_size = batch_size
-        return CombinedLoader(loaders, mode="max_size_cycle")
+        self._batch_size += self._memory_batch_size
+        self._memory_batch_size = 0
+        return super().train_dataloader()
 
     def on_model_update_end(self) -> None:
         """Called right before a model update terminates."""
@@ -96,7 +101,9 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         self._num_points_previous_tasks += self._num_points_current_task
         self._num_points_current_task = -1
 
-    def training_step(self, batch: Dict[str, Tuple[NestedTensors]], batch_idx: int) -> STEP_OUTPUT:
+    def training_step(
+        self, batch: Tuple[NestedTensors, Dict[str, Any]], batch_idx: int
+    ) -> STEP_OUTPUT:
         """PyTorch Lightning function to return the training loss."""
         if self._loss_weight_new_data is None:
             alpha = self._num_points_current_task / (
@@ -105,21 +112,19 @@ class OfflineExperienceReplayLearner(ReplayLearner):
         else:
             alpha = self._loss_weight_new_data
         alpha = torch.tensor(alpha, device=next(self.parameters()).device)
-        inputs, targets = batch["current_task"]
-        batch_size_current = get_length_nested_tensors(inputs)
-        if "memory" in batch:
-            (inputs_mem, targets_mem), _ = batch["memory"]
-            inputs = cat_nested_tensors((inputs, inputs_mem), 0)
-            targets = torch.cat((targets, targets_mem), 0)
+        if self._memory_batch_size:
+            (inputs, targets), _ = batch
+        else:
+            inputs, targets = batch
         outputs = self(inputs)
 
         outputs, self._class_mask = maybe_populate_mask_and_ignore_logits(
             self._mask_unused_classes, self._class_mask, self._classes_in_current_task, outputs
         )
         loss = self._loss_fn(outputs, targets)
-        if "memory" in batch:
-            loss_current = loss[:batch_size_current].mean()
-            loss_memory = loss[batch_size_current:].mean()
+        if self._memory_batch_size:
+            loss_current = loss[: self._batch_size].mean()
+            loss_memory = loss[self._batch_size :].mean()
             self._loss_collections["train_losses"]["base_loss"](loss_current)
             self._loss_collections["train_losses"]["memory_loss"](loss_memory)
             loss = alpha * loss_current + (1.0 - alpha) * loss_memory

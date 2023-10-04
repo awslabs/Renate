@@ -153,7 +153,7 @@ class RenateLightningModule(LightningModule, abc.ABC):
     ) -> None:
         self._train_dataset = train_dataset
         self._val_dataset = val_dataset
-        self.val_enabled = val_dataset is not None and len(val_dataset)
+        self.val_enabled = val_dataset is not None and len(val_dataset) > 0
         self._train_collate_fn = train_dataset_collate_fn
         self._val_collate_fn = val_dataset_collate_fn
         self._task_id = task_id

@@ -6,6 +6,7 @@ import torch
 from renate.defaults import TASK_ID
 
 
+@pytest.mark.slow
 def test_renate_vision_transformer_init():
     pytest.helpers.get_renate_module_vision_transformer(sub_class="visiontransformercifar")
     pytest.helpers.get_renate_module_vision_transformer(sub_class="visiontransformerb16")

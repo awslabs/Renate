@@ -4,6 +4,7 @@ import logging
 import os
 import shutil
 from pathlib import Path
+from tarfile import TarFile
 from typing import List, Optional, Tuple, Union
 from urllib.parse import urlparse
 from zipfile import ZipFile
@@ -287,9 +288,15 @@ def delete_file_from_s3(bucket: str, object_name: str) -> None:
     s3_client.delete_object(Bucket=bucket, Key=str(object_name))
 
 
-def unzip_file(dataset_name: str, data_path: Union[str, Path], file_name: str) -> None:
-    """Extract .zip files into folder named with dataset name."""
-    with ZipFile(os.path.join(data_path, dataset_name, file_name)) as f:
+def extract_file(dataset_name: str, data_path: Union[str, Path], file_name: str) -> None:
+    """Extract .zip or .tar depending on the flag files into folder named with dataset name."""
+    if file_name.endswith(".zip"):
+        Extractor = ZipFile
+    elif file_name.endswith(".tar"):
+        Extractor = TarFile
+    else:
+        raise ValueError("Unknown compressed format extension. Only Zip/Tar supported.")
+    with Extractor(os.path.join(data_path, dataset_name, file_name)) as f:
         f.extractall(os.path.join(data_path, dataset_name))
 
 
@@ -328,7 +335,7 @@ def download_and_unzip_file(
 ) -> None:
     """A helper function to download data .zips and uncompress them."""
     download_file(dataset_name, data_path, src_bucket, src_object_name, url, file_name)
-    unzip_file(dataset_name, data_path, file_name)
+    extract_file(dataset_name, data_path, file_name)
 
 
 def save_pandas_df_to_csv(df: pd.DataFrame, file_path: Union[str, Path]) -> pd.DataFrame:
