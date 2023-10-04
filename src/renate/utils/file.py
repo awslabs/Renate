@@ -294,6 +294,8 @@ def extract_file(dataset_name: str, data_path: Union[str, Path], file_name: str)
         Extractor = ZipFile
     elif file_name.endswith(".tar"):
         Extractor = TarFile
+    else:
+        raise ValueError("Unknown compressed format extension. Only Zip/Tar supported.")
     with Extractor(os.path.join(data_path, dataset_name, file_name)) as f:
         f.extractall(os.path.join(data_path, dataset_name))
 
