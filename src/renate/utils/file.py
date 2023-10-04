@@ -290,7 +290,7 @@ def delete_file_from_s3(bucket: str, object_name: str) -> None:
 
 def extract_file(dataset_name: str, data_path: Union[str, Path], file_name: str) -> None:
     """Extract .zip or .tar depending on the flag files into folder named with dataset name."""
-    if file_name.endswith("zip"):
+    if file_name.endswith(".zip"):
         Extractor = ZipFile
     elif file_name.endswith(".tar"):
         Extractor = TarFile
