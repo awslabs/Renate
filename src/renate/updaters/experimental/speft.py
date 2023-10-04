@@ -9,6 +9,7 @@ from pytorch_lightning.loggers.logger import Logger
 from torch.nn import Parameter
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
+from torch.utils.data import Dataset
 
 from renate import defaults
 from renate.benchmark.models.spromptmodel import SPromptTransformer
@@ -55,8 +56,17 @@ class SPeftLearner(Learner):
             mask_unused_classes,
         )
 
-    def on_model_update_start(self) -> None:
-        super().on_model_update_start()
+    def on_model_update_start(
+        self,
+        train_dataset: Dataset,
+        val_dataset: Dataset,
+        train_dataset_collate_fn: Optional[Callable] = None,
+        val_dataset_collate_fn: Optional[Callable] = None,
+        task_id: Optional[str] = None,
+    ) -> None:
+        super().on_model_update_start(
+            train_dataset, val_dataset, train_dataset_collate_fn, val_dataset_collate_fn, task_id
+        )
         ## k-means
         device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
         self._model.to(device)
