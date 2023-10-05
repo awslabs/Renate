@@ -477,8 +477,8 @@ class CDDBDataModule(DataIncrementalDataModule):
 class CORE50DataModule(DataIncrementalDataModule):
     """Datamodule that process the CORe50 dataset.
 
-    It enables to download all the scenarios and with respect to all the runs,
-    set by `scenario` and `chunk_id` respectively.
+    It enables to download all the scenarios and with respect to 0th run (as per S-Prompts),
+    set by `scenario` and `data_id` respectively.
 
     Source: https://vlomonaco.github.io/core50/.
     Adapted from: https://github.com/vlomonaco/core50/blob/master/scripts/python/data_loader.py
@@ -488,23 +488,13 @@ class CORE50DataModule(DataIncrementalDataModule):
         src_bucket: The name of the s3 bucket. If not provided, downloads the data from
             original source.
         src_object_name: The folder path in the s3 bucket.
-        scenario: One of the six from ``ni``, ``nc``, ``nic``, ``nicv2_79``,
-                 ``nicv2_196`` and ``nicv2_391``.
-                 he respective scenarios stand for: ``ni``: new instances,
-                 ``nc``: new classes, `
-                 `nic``: new instances and classes in the first version of the dataset.
-                 Additionally, the ``nicv2_79``, ``nicv2_196`` and ``nicv2_391`` scenarios
-                 correspond to the NICv2 version of the dataset with 79, 196 and 391
-                 training batches.
-        chunk_id: One of the 10 runs, from 0 to 9, in which the
-                  training batch order is changed as in the official benchmark.
-        cropped: Whether the smaller size (128x128) or the larger size (350x350) of the dataset
-            should be used.
+        scenario: One of ``ni``, ``nc``, ``nic``, ``nicv2_79``, ``nicv2_196`` and ``nicv2_391``.
+            This is different from the usage of scenario elsewhere in Renate.
+        data_id: One of the several data batches dependent on scenario
     """
 
     md5s = {
         "core50_128x128.zip": "745f3373fed08d69343f1058ee559e13",
-        "core50_350x350.zip": "e304258739d6cd4b47e19adfa08e7571",
         "paths.pkl": "b568f86998849184df3ec3465290f1b0",
         "LUP.pkl": "33afc26faa460aca98739137fdfa606e",
         "labels.pkl": "281c95774306a2196f4505f22fd60ab1",
@@ -534,15 +524,6 @@ class CORE50DataModule(DataIncrementalDataModule):
         self._dataset_name = "core50"
         self._image_source = "core50_128x128"
         self._scenario = scenario
-        end_batch = {
-            "ni": 8,
-            "nc": 9,
-            "nic": 79,
-            "nicv2_79": 79,
-            "nicv2_196": 196,
-            "nicv2_391": 391,
-        }
-        self._end_batch = end_batch[self._scenario]
         self._complete_data_path = os.path.join(
             self._data_path, self._dataset_name, self._image_source
         )
@@ -588,16 +569,9 @@ class CORE50DataModule(DataIncrementalDataModule):
         self._test_data = ImageDataset(*self._parse_file_lists("test"))
 
     def _parse_file_lists(self, stage: str) -> Tuple[str, str]:
-        if stage == "train":
-            print(self.data_id)
-            idx_list = [self._LUP[self._scenario][self.data_id][i] for i in range(self._end_batch)][
-                0
-            ]
-            X = [os.path.join(self._complete_data_path, self._paths[idx]) for idx in idx_list]
-            y = [self._labels[self._scenario][self.data_id][i] for i in range(self._end_batch)][0]
-        elif stage == "test":
-            idx_list = self._LUP[self._scenario][self.data_id][-1]
-            X = [os.path.join(self._complete_data_path, self._paths[idx]) for idx in idx_list]
-            y = self._labels[self._scenario][self.data_id][-1]
+        data_id = self.data_id if stage == "train" else -1
+        idx_list = self._LUP[self._scenario][0][data_id]
+        X = [os.path.join(self._complete_data_path, self._paths[idx]) for idx in idx_list]
+        y = self._labels[self._scenario][0][data_id]
 
         return X, y
