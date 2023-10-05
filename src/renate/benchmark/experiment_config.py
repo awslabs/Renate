@@ -16,6 +16,7 @@ from renate.benchmark.datasets.nlp_datasets import HuggingFaceTextDataModule, Mu
 from renate.benchmark.datasets.vision_datasets import (
     CDDBDataModule,
     CLEARDataModule,
+    CORE50DataModule,
     DomainNetDataModule,
     TorchVisionDataModule,
 )
@@ -183,6 +184,15 @@ def get_data_module(
             val_size=val_size,
             seed=seed,
         )
+    if dataset_name == "Core50":
+        return CORE50DataModule(
+            data_path=data_path,
+            src_bucket=src_bucket,
+            src_object_name=src_object_name,
+            val_size=val_size,
+            seed=seed,
+        )
+
     raise ValueError(f"Unknown dataset `{dataset_name}`.")
 
 
@@ -349,6 +359,11 @@ def _get_normalize_transform(dataset_name):
             CDDBDataModule.dataset_stats["CDDB"]["mean"],
             CDDBDataModule.dataset_stats["CDDB"]["std"],
         )
+    if dataset_name == "Core50":
+        return transforms.Normalize(
+            CORE50DataModule.dataset_stats["Core50"]["mean"],
+            CORE50DataModule.dataset_stats["Core50"]["std"],
+        )
 
 
 def train_transform(dataset_name: str, model_name: Optional[str] = None) -> Optional[Callable]:
@@ -415,7 +430,15 @@ def train_transform(dataset_name: str, model_name: Optional[str] = None) -> Opti
                 _get_normalize_transform(dataset_name),
             ]
         )
-
+    if dataset_name == "Core50":
+        return transforms.Compose(
+            [
+                transforms.RandomResizedCrop(224),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                _get_normalize_transform(dataset_name),
+            ]
+        )
     raise ValueError(f"Unknown dataset `{dataset_name}`.")
 
 
@@ -476,7 +499,15 @@ def test_transform(
                 _get_normalize_transform(dataset_name),
             ]
         )
-
+    if dataset_name == "Core50":
+        return transforms.Compose(
+            [
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                _get_normalize_transform(dataset_name),
+            ]
+        )
     raise ValueError(f"Unknown dataset `{dataset_name}`.")
 
 
