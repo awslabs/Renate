@@ -303,7 +303,7 @@ def test_data_module_fn(
     elif expected_scenario_class == DataIncrementalScenario:
         if "pretrained_model_name_or_path" in scenario_kwargs:
             assert scenario._data_module._tokenizer is not None
-        elif dataset_name not in ["CLEAR10", "CLEAR100", "DomainNet", "CDDB"]:
+        elif dataset_name not in ["CLEAR10", "CLEAR100", "DomainNet", "CDDB", "Core50"]:
             assert scenario._data_module._tokenizer is None
     assert scenario._num_tasks == expected_num_tasks
 
