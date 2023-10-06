@@ -3,7 +3,11 @@
 import pytest
 import torch
 
-from renate.utils.misc import int_or_str, maybe_populate_mask_and_ignore_logits
+from renate.utils.misc import (
+    AdditionalTrainingMetrics,
+    int_or_str,
+    maybe_populate_mask_and_ignore_logits,
+)
 
 
 @pytest.mark.parametrize(
@@ -69,3 +73,23 @@ def test_possibly_populate_mask_and_ignore_logits(
     assert out_logits.data_ptr() == logits.data_ptr()
     if class_mask is not None:
         assert class_mask.data_ptr() == out_cm.data_ptr()
+
+
+@pytest.mark.parametrize(
+    "model,gnd",
+    [
+        (
+            torch.nn.Linear(2, 2),
+            {"peak_memory_usage": 0, "trainable_params": 6, "total_params": 6},
+        ),
+        (
+            torch.nn.Linear(2, 2).requires_grad_(False),
+            {"peak_memory_usage": 0, "trainable_params": 0, "total_params": 6},
+        ),
+    ],
+)
+def test_addition_metrics(model, gnd):
+    metrics = AdditionalTrainingMetrics()
+    out = metrics(model)
+    for k in gnd:
+        assert gnd[k] == out[k]

@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Optional, Set, Union
+import time
+from typing import Dict, Optional, Set, Tuple, Union
 
 import torch
 
@@ -37,3 +38,37 @@ def maybe_populate_mask_and_ignore_logits(
         logits.index_fill_(1, class_mask.to(logits.device), -float("inf"))
 
     return logits, class_mask
+
+
+class AdditionalTrainingMetrics:
+    def __init__(self) -> None:
+        """We gather memory stats, Time stats, number of trainable params, total params"""
+        self._train_start_time = time.time()
+
+    def __call__(self, model: torch.nn.Module) -> Dict[str, Union[float, int]]:
+        curr_running_time = time.time() - self._train_start_time
+        # maximum amount of memory used in training. This might
+        # not be the best
+        peak_memory_usage = (
+            torch.cuda.memory_stats()["allocated_bytes.all.peak"]
+            if torch.cuda.is_available()
+            else 0
+        )
+        trainable_params, total_params = self.parameters_count(model)
+
+        return dict(
+            curr_running_time=curr_running_time,
+            peak_memory_usage=peak_memory_usage,
+            trainable_params=trainable_params,
+            total_params=total_params,
+        )
+
+    def parameters_count(self, model: torch.nn.Module) -> Tuple[int, int]:
+        trainable_params, total_params = 0, 0
+        for param in model.parameters():
+            num_params = param.numel()
+            total_params += num_params
+            if param.requires_grad:
+                trainable_params += num_params
+
+        return trainable_params, total_params
