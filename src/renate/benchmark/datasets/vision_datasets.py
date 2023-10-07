@@ -553,6 +553,9 @@ class CORE50DataModule(DataIncrementalDataModule):
                     "https://vlomonaco.github.io/core50/data/",
                     file_name,
                 )
+
+    def setup(self) -> None:
+        """Make assignments: train/test splits (CORe50 dataset only has train and test splits)."""
         with open(os.path.join(self._data_path, self._dataset_name, "paths.pkl"), "rb") as f:
             self._paths = pickle.load(f)
 
@@ -562,13 +565,11 @@ class CORE50DataModule(DataIncrementalDataModule):
         with open(os.path.join(self._data_path, self._dataset_name, "labels.pkl"), "rb") as f:
             self._labels = pickle.load(f)
 
-    def setup(self) -> None:
-        """Make assignments: train/test splits (CORe50 dataset only has train and test splits)."""
         train_data = ImageDataset(*self._parse_file_lists("train"))
         self._train_data, self._val_data = self._split_train_val_data(train_data)
         self._test_data = ImageDataset(*self._parse_file_lists("test"))
 
-    def _parse_file_lists(self, stage: str) -> Tuple[str, str]:
+    def _parse_file_lists(self, stage: str) -> Tuple[str, int]:
         data_id = self.data_id if stage == "train" else -1
         idx_list = self._LUP[self._scenario][0][data_id]
         X = [os.path.join(self._complete_data_path, self._paths[idx]) for idx in idx_list]
