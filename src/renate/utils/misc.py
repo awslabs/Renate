@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import time
 from typing import Dict, Optional, Set, Tuple, Union
+from pytorch_lightning import Callback
 
 import torch
 
@@ -40,13 +41,21 @@ def maybe_populate_mask_and_ignore_logits(
     return logits, class_mask
 
 
-class AdditionalTrainingMetrics:
+class AdditionalTrainingMetrics(Callback):
     def __init__(self) -> None:
-        """We gather memory stats, Time stats, number of trainable params, total params"""
-        self._train_start_time = time.time()
+        self._training_times = []
+
+    def on_train_start(self) -> None:
+        self._training_times.append(time.time())
+
+    def on_train_epoch_end(self) -> None:
+        self._training_times.append(time.time())
 
     def __call__(self, model: torch.nn.Module) -> Dict[str, Union[float, int]]:
-        curr_running_time = time.time() - self._train_start_time
+        if self._training_times:
+            epoch_training_time = self._training_times[-1] - self._training_times[0]
+        else:
+            epoch_training_time = 0.0
         # maximum amount of memory used in training. This might
         # not be the best choice, but the most convenient.
         peak_memory_usage = (
@@ -57,7 +66,7 @@ class AdditionalTrainingMetrics:
         trainable_params, total_params = self.parameters_count(model)
 
         return dict(
-            curr_running_time=curr_running_time,
+            epoch_training_time=epoch_training_time,
             peak_memory_usage=peak_memory_usage,
             trainable_params=trainable_params,
             total_params=total_params,

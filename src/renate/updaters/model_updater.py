@@ -63,10 +63,14 @@ class SyneTuneCallback(Callback):
         )
 
     def on_train_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
+        self._additional_metrics.on_train_epoch_end()
         self._log(trainer=trainer, pl_module=pl_module)
 
     def on_validation_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         self._log(trainer=trainer, pl_module=pl_module)
+
+    def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
+        self._additional_metrics.on_train_start()
 
 
 class RenateModelCheckpoint(ModelCheckpoint):
