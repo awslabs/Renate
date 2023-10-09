@@ -181,12 +181,12 @@ The following table contains the list of supported datasets.
       - Any `Hugging Face dataset <https://huggingface.co/datasets>`__ can be used. Just prepend the prefix ``hfd-``, e.g., ``hfd-rotten_tomatoes``. Select input and target columns via ``config_space``, e.g., add ``"input_column": "text", "target_column": "label"`` for the `rotten_tomatoes <https://huggingface.co/datasets/rotten_tomatoes>`__ example.
       - Please refer to `the official documentation <https://huggingface.co/datasets>`__.
     * - CDDB
-      - Image Classification
-      - 2 classes from 5 domains of generated images using various techniques. Numbers vary across domains.
+      - Image Classification: deepfake detection
+      - 2 classes, 5 domains, each generated using image generation techniques: GauGAN, BigGAN, WildDeepfake, WhichFaceReal, SAN respectively from HARD evaluation scenario. Numbers vary across domains.
       - Li, Chuqiao, et al. A continual deepfake detection benchmark: Dataset, methods, and essentials. IEEE/CVF Winter Conference on Applications of Computer Vision. 2023.
-    * - CORe50
-      - Object Recognition - image classfication
-      - 10 classes of 7 training domains, 3 other domains used for evaluation
+    * - Core50
+      - Image Classfication
+      - 50 classes, 8 (0-7) domains for training, a single test set for evaluation.
       - Vincenzo Lomonaco and Davide Maltoni: CORe50: a new Dataset and Benchmark for continual Object Recognition. 1st Annual Conference on Robot Learning, PMLR 78:17-26, 2017.
 
 .. _benchmarking-renate-benchmarks-scenarios:
