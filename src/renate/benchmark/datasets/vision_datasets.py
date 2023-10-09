@@ -569,7 +569,7 @@ class CORE50DataModule(DataIncrementalDataModule):
         self._train_data, self._val_data = self._split_train_val_data(train_data)
         self._test_data = ImageDataset(*self._parse_file_lists("test"))
 
-    def _parse_file_lists(self, stage: str) -> Tuple[str, int]:
+    def _parse_file_lists(self, stage: str) -> Tuple[List[str], List[int]]:
         data_id = self.data_id if stage == "train" else -1
         idx_list = self._LUP[self._scenario][0][data_id]
         X = [os.path.join(self._complete_data_path, self._paths[idx]) for idx in idx_list]
