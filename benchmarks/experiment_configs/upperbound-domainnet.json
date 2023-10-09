@@ -1,0 +1,6 @@
+{
+  "scenario": "domainnet-1update.json",
+  "model": "resnet18.json",
+  "updater": "joint-domainnet.json",
+  "dataset": "domainnet.json"
+}

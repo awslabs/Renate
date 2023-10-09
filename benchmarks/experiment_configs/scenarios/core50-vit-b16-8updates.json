@@ -7,7 +7,7 @@
     "learning_rate": 0.01,
     "learning_rate_scheduler": "CosineAnnealingLR",
     "learning_rate_scheduler_t_max": 10,
-    "learning_rate_scheduler_eta_min": 0.000,
+    "learning_rate_scheduler_eta_min": 0,
     "learning_rate_scheduler_interval": "epoch",
     "momentum": 0.9,
     "weight_decay": 2e-4,

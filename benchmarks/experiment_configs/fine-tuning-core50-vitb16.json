@@ -1,0 +1,6 @@
+{
+  "scenario": "core50-vit-b16-8updates.json",
+  "model": "vit-b16.json",
+  "updater": "fine-tuning-core50.json",
+  "dataset": "core50.json"
+}

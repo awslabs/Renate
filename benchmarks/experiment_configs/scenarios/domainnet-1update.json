@@ -1,7 +1,8 @@
 {
   "val_size": 0.3,
   "scenario_name": "DataIncrementalScenario",
-  "num_tasks": 6,
+  "groupings": [["clipart", "infograph", "painting", "quickdraw", "real", "sketch"]],
+  "num_tasks": 1,
   "max_epochs": 50,
   "optimizer": "SGD",
   "learning_rate": 0.1,
@@ -10,6 +11,5 @@
   "learning_rate_scheduler_eta_min": 0,
   "learning_rate_scheduler_interval": "epoch",
   "momentum": 0.0,
-  "weight_decay": 0.0,
-  "data_ids": ["clipart", "infograph", "painting", "quickdraw", "real", "sketch"]
+  "weight_decay": 0.0
 }

@@ -1,0 +1,6 @@
+{
+  "scenario": "domainnet-vit-b16-1update.json",
+  "model": "vit-b16.json",
+  "updater": "joint-domainnet.json",
+  "dataset": "domainnet.json"
+}
