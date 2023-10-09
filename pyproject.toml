@@ -19,7 +19,7 @@ dynamic = ["version", "readme", "dependencies"]
 [project.optional-dependencies]
 avalanche = [
     "avalanche_lib==0.3.1",
-    "torch>=1.10.0, <1.12.2",
+    "torch>=1.10.0, <2.1.1",
 ]
 benchmark = [
     "wild-time-data==0.1.1",
@@ -28,7 +28,7 @@ dev = [
     "black==23.9.1",
     "avalanche_lib==0.3.1",
     "wild-time-data==0.1.1",
-    "torch>=1.10.0, <1.12.2",
+    "torch>=1.10.0, <2.1.1",
     # PyTest Dependencies
     "pytest==7.4.2",
     "pytest-cov==4.1.0",
