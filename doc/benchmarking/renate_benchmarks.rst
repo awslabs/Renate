@@ -185,7 +185,7 @@ The following table contains the list of supported datasets.
       - 2 classes from 5 domains of generated images using various techniques. Numbers vary across domains.
       - Li, Chuqiao, et al. A continual deepfake detection benchmark: Dataset, methods, and essentials. IEEE/CVF Winter Conference on Applications of Computer Vision. 2023.
     * - CORe50
-      - Object Recognition
+      - Object Recognition - image classfication
       - 10 classes of 7 training domains, 3 other domains used for evaluation
       - Vincenzo Lomonaco and Davide Maltoni: CORe50: a new Dataset and Benchmark for continual Object Recognition. 1st Annual Conference on Robot Learning, PMLR 78:17-26, 2017.
 
