@@ -48,7 +48,7 @@ class AdditionalTrainingMetrics:
     def __call__(self, model: torch.nn.Module) -> Dict[str, Union[float, int]]:
         curr_running_time = time.time() - self._train_start_time
         # maximum amount of memory used in training. This might
-        # not be the best
+        # not be the best choice, but the most convenient.
         peak_memory_usage = (
             torch.cuda.memory_stats()["allocated_bytes.all.peak"]
             if torch.cuda.is_available()

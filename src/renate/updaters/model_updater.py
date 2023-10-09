@@ -57,7 +57,7 @@ class SyneTuneCallback(Callback):
         to_report = {k: v.item() for k, v in trainer.logged_metrics.items()}
         to_report.update(self._additional_metrics(pl_module))
         self._report(
-            **{k: v.item() for k, v in trainer.logged_metrics.items()},
+            **to_report,
             step=trainer.current_epoch,
             epoch=trainer.current_epoch + 1,
         )
