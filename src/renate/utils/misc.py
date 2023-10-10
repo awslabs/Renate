@@ -52,10 +52,10 @@ class AdditionalTrainingMetrics(Callback):
         self._training_times.append(time.time())
 
     def __call__(self, model: torch.nn.Module) -> Dict[str, Union[float, int]]:
-        if self._training_times:
-            epoch_training_time = self._training_times[-1] - self._training_times[0]
+        if len(self._training_times) > 1:  # at least one time logged after start of training.
+            total_training_time = self._training_times[-1] - self._training_times[0]
         else:
-            epoch_training_time = 0.0
+            total_training_time = 0.0
         # maximum amount of memory used in training. This might
         # not be the best choice, but the most convenient.
         peak_memory_usage = (
@@ -66,7 +66,7 @@ class AdditionalTrainingMetrics(Callback):
         trainable_params, total_params = self.parameters_count(model)
 
         return dict(
-            epoch_training_time=epoch_training_time,
+            epoch_training_time=total_training_time,
             peak_memory_usage=peak_memory_usage,
             trainable_params=trainable_params,
             total_params=total_params,
