@@ -43,17 +43,18 @@ def maybe_populate_mask_and_ignore_logits(
 
 class AdditionalTrainingMetrics(Callback):
     def __init__(self) -> None:
-        self._training_times = []
+        self._training_start_time = None
+        self._curr_epoch_end_time = None
 
     def on_train_start(self) -> None:
-        self._training_times.append(time.time())
+        self._training_start_time = time.time()
 
     def on_train_epoch_end(self) -> None:
-        self._training_times.append(time.time())
+        self._curr_epoch_end_time = time.time()
 
     def __call__(self, model: torch.nn.Module) -> Dict[str, Union[float, int]]:
-        if len(self._training_times) > 1:  # at least one time logged after start of training.
-            total_training_time = self._training_times[-1] - self._training_times[0]
+        if all([self._training_start_time, self._curr_epoch_end_time]):
+            total_training_time = self._curr_epoch_end_time - self._training_start_time
         else:
             total_training_time = 0.0
         # maximum amount of memory used in training. This might
@@ -66,7 +67,7 @@ class AdditionalTrainingMetrics(Callback):
         trainable_params, total_params = self.parameters_count(model)
 
         return dict(
-            epoch_training_time=total_training_time,
+            total_training_time=total_training_time,
             peak_memory_usage=peak_memory_usage,
             trainable_params=trainable_params,
             total_params=total_params,
