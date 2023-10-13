@@ -64,6 +64,7 @@ class AvalancheBenchmarkWrapper:
         self._classes_order = None
         self._n_classes = 0
         self._train_dataset = train_dataset
+        self._test_transform = test_transform
         self._train_target_transform = train_target_transform
         self._benchmark = dataset_benchmark(
             [train_dataset],
@@ -78,7 +79,9 @@ class AvalancheBenchmarkWrapper:
 
     def update_benchmark_properties(self):
         dataset = _TransformedDataset(
-            dataset=self._train_dataset, target_transform=self._train_target_transform
+            dataset=self._train_dataset,
+            transform=self._test_transform,
+            target_transform=self._train_target_transform,
         )
         dataloader = DataLoader(dataset)
         unique_classes = set()
