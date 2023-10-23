@@ -38,6 +38,9 @@ class AvalancheDataset(Dataset):
             x, _ = self._dataset[idx]
         return x, self._targets[idx]
 
+    def __getstate__(self):
+        return {}
+
 
 def to_avalanche_dataset(
     dataset: Union[Dataset, DataBuffer], collate_fn: Optional[Callable] = None
