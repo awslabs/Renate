@@ -212,7 +212,7 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
         val_dataset_collate_fn: Optional[Callable] = None,
     ) -> AvalancheBenchmarkWrapper:
         avalanche_train_dataset = to_avalanche_dataset(
-            train_dataset, train_dataset_collate_fn, pickable=False
+            train_dataset, train_dataset_collate_fn, pickable=True
         )
 
         avalanche_state = None
