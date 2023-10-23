@@ -6,5 +6,5 @@
   "backend": "local",
   "job_name": "rotation-mlp-avalanche-ewc",
   "expected_accuracy_linux": [[0.7448999881744385, 0.9642000198364258]],
-  "expected_accuracy_darwin": [[0.7087000012397766, 0.9577000141143799]]
+  "expected_accuracy_darwin": [[0.7275999784469604, 0.9585000276565552]]
 }
