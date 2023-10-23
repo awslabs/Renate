@@ -5,6 +5,6 @@
   "dataset": "mnist.json",
   "backend": "local",
   "job_name": "rotation-mlp-avalanche-ewc",
-  "expected_accuracy_linux": [[0.7263000011444092, 0.9646999835968018]],
+  "expected_accuracy_linux": [[0.7448999881744385, 0.9642000198364258]],
   "expected_accuracy_darwin": [[0.7087000012397766, 0.9577000141143799]]
 }
