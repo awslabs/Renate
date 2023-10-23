@@ -1,5 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+import pickle
+
 import pytest
 import torch
 from avalanche.training.plugins import EWCPlugin, ReplayPlugin
@@ -16,13 +18,14 @@ from renate.utils.avalanche import (
 )
 
 
-def test_to_avalanche_dataset():
+@pytest.mark.parametrize("pickable", [True, False])
+def test_to_avalanche_dataset(pickable):
     expected_x = 6
     expected_y = 1
     tensor_dataset = TensorDataset(
         torch.tensor([5, expected_x, 7]), torch.tensor([0, expected_y, 2])
     )
-    dataset = to_avalanche_dataset(Subset(tensor_dataset, [1]))
+    dataset = to_avalanche_dataset(Subset(tensor_dataset, [1]), pickable=pickable)
     assert type(dataset._targets) == list
     assert len(dataset._targets) == 1
     assert dataset._targets[0] == expected_y
@@ -33,6 +36,8 @@ def test_to_avalanche_dataset():
     x, y = dataset[0]
     assert x == expected_x and y == expected_y
     assert len(dataset) == 1
+    if pickable:
+        pickle.dumps(dataset)
 
 
 def test_avalanche_benchmark_wrapper_correctly_tracks_and_saves_state():

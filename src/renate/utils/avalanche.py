@@ -11,10 +11,28 @@ from torch.utils.data import DataLoader, Dataset
 
 from renate.data.datasets import _TransformedDataset
 from renate.memory import DataBuffer
+from renate.types import NestedTensors
 
 
-class AvalancheDataset(Dataset):
-    """A Dataset consumable by Avalanche updaters."""
+class BaseAvalancheDataset(Dataset):
+    """Base class for all datasets consumable by Avalanche updaters."""
+
+    def __init__(
+        self,
+        targets: List[int],
+        collate_fn: Optional[Callable] = None,
+    ):
+        self._targets = targets
+        self.targets = torch.tensor(targets, dtype=torch.long)
+        if collate_fn is not None:
+            self.collate_fn = collate_fn
+
+    def __len__(self) -> int:
+        return len(self._targets)
+
+
+class AvalancheDataset(BaseAvalancheDataset):
+    """A Dataset consumable by Avalanche updaters which cannot be pickled."""
 
     def __init__(
         self,
@@ -22,14 +40,8 @@ class AvalancheDataset(Dataset):
         targets: List[int],
         collate_fn: Optional[Callable] = None,
     ):
+        super().__init__(targets, collate_fn)
         self._dataset = dataset
-        self._targets = targets
-        self.targets = torch.tensor(targets, dtype=torch.long)
-        if collate_fn is not None:
-            self.collate_fn = collate_fn
-
-    def __len__(self) -> int:
-        return len(self._dataset)
 
     def __getitem__(self, idx) -> Tuple[Tensor, int]:
         if isinstance(self._dataset, DataBuffer):
@@ -38,23 +50,39 @@ class AvalancheDataset(Dataset):
             x, _ = self._dataset[idx]
         return x, self._targets[idx]
 
-    def __getstate__(self):
-        return {}
+
+class AvalanchePickableDataset(BaseAvalancheDataset):
+    """A Dataset consumable by Avalanche updaters which can be pickled."""
+
+    def __init__(
+        self, inputs: NestedTensors, targets: List[int], collate_fn: Optional[Callable] = None
+    ):
+        super().__init__(targets, collate_fn)
+        self._inputs = inputs
+
+    def __getitem__(self, idx) -> Tuple[Tensor, int]:
+        return self._inputs[idx], self._targets[idx]
 
 
 def to_avalanche_dataset(
-    dataset: Union[Dataset, DataBuffer], collate_fn: Optional[Callable] = None
+    dataset: Union[Dataset, DataBuffer],
+    collate_fn: Optional[Callable] = None,
+    pickable: bool = False,
 ) -> AvalancheDataset:
     """Converts a DataBuffer or Dataset into an Avalanche-compatible Dataset."""
-    y_data = []
+    x_data, y_data = [], []
     for i in range(len(dataset)):
         if isinstance(dataset, DataBuffer):
-            (_, y), _ = dataset[i]
+            (x, y), _ = dataset[i]
         else:
-            _, y = dataset[i]
+            x, y = dataset[i]
+        if pickable:
+            x_data.append(x)
         if not isinstance(y, int):
             y = y.item()
         y_data.append(y)
+    if pickable:
+        return AvalanchePickableDataset(x_data, y_data, collate_fn)
     return AvalancheDataset(dataset, y_data, collate_fn)
 
 

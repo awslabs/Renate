@@ -211,7 +211,9 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
         train_dataset_collate_fn: Optional[Callable] = None,
         val_dataset_collate_fn: Optional[Callable] = None,
     ) -> AvalancheBenchmarkWrapper:
-        train_dataset = to_avalanche_dataset(train_dataset, train_dataset_collate_fn)
+        train_dataset = to_avalanche_dataset(
+            train_dataset, train_dataset_collate_fn, pickable=False
+        )
 
         avalanche_state = None
         if self._input_state_folder is not None:
@@ -226,10 +228,12 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
         if val_dataset is not None:
             self._dummy_learner._val_memory_buffer.update(val_dataset)
             val_memory_dataset = to_avalanche_dataset(
-                self._dummy_learner._val_memory_buffer, val_dataset_collate_fn
+                self._dummy_learner._val_memory_buffer, val_dataset_collate_fn, pickable=True
             )
         else:
-            val_memory_dataset = to_avalanche_dataset(train_dataset, val_dataset_collate_fn)
+            val_memory_dataset = to_avalanche_dataset(
+                train_dataset, val_dataset_collate_fn, pickable=True
+            )
 
         benchmark = AvalancheBenchmarkWrapper(
             train_dataset=train_dataset,
