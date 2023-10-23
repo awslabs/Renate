@@ -228,11 +228,11 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
         if val_dataset is not None:
             self._dummy_learner._val_memory_buffer.update(val_dataset)
             val_memory_dataset = to_avalanche_dataset(
-                self._dummy_learner._val_memory_buffer, val_dataset_collate_fn, pickable=True
+                self._dummy_learner._val_memory_buffer, val_dataset_collate_fn, pickleable=True
             )
         else:
             val_memory_dataset = to_avalanche_dataset(
-                train_dataset, val_dataset_collate_fn, pickable=False
+                train_dataset, val_dataset_collate_fn, pickleable=False
             )
 
         benchmark = AvalancheBenchmarkWrapper(
