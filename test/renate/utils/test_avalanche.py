@@ -23,7 +23,6 @@ def test_to_avalanche_dataset():
         torch.tensor([5, expected_x, 7]), torch.tensor([0, expected_y, 2])
     )
     dataset = to_avalanche_dataset(Subset(tensor_dataset, [1]))
-    assert dataset._inputs[0].item() == expected_x
     assert type(dataset._targets) == list
     assert len(dataset._targets) == 1
     assert dataset._targets[0] == expected_y
