@@ -68,7 +68,7 @@ def to_avalanche_dataset(
     dataset: Union[Dataset, DataBuffer],
     collate_fn: Optional[Callable] = None,
     pickable: bool = False,
-) -> AvalancheDataset:
+) -> BaseAvalancheDataset:
     """Converts a DataBuffer or Dataset into an Avalanche-compatible Dataset."""
     x_data, y_data = [], []
     for i in range(len(dataset)):
