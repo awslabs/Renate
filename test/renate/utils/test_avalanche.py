@@ -18,14 +18,14 @@ from renate.utils.avalanche import (
 )
 
 
-@pytest.mark.parametrize("pickable", [True, False])
-def test_to_avalanche_dataset(pickable):
+@pytest.mark.parametrize("pickleable", [True, False])
+def test_to_avalanche_dataset(pickleable):
     expected_x = 6
     expected_y = 1
     tensor_dataset = TensorDataset(
         torch.tensor([5, expected_x, 7]), torch.tensor([0, expected_y, 2])
     )
-    dataset = to_avalanche_dataset(Subset(tensor_dataset, [1]), pickable=pickable)
+    dataset = to_avalanche_dataset(Subset(tensor_dataset, [1]), pickleable=pickleable)
     assert type(dataset._targets) == list
     assert len(dataset._targets) == 1
     assert dataset._targets[0] == expected_y
@@ -36,7 +36,7 @@ def test_to_avalanche_dataset(pickable):
     x, y = dataset[0]
     assert x == expected_x and y == expected_y
     assert len(dataset) == 1
-    if pickable:
+    if pickleable:
         pickle.dumps(dataset)
 
 

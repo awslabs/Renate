@@ -51,7 +51,7 @@ class AvalancheDataset(BaseAvalancheDataset):
         return x, self._targets[idx]
 
 
-class AvalanchePickableDataset(BaseAvalancheDataset):
+class AvalanchePickleableDataset(BaseAvalancheDataset):
     """A Dataset consumable by Avalanche updaters which can be pickled."""
 
     def __init__(
@@ -67,7 +67,7 @@ class AvalanchePickableDataset(BaseAvalancheDataset):
 def to_avalanche_dataset(
     dataset: Union[Dataset, DataBuffer],
     collate_fn: Optional[Callable] = None,
-    pickable: bool = False,
+    pickleable: bool = False,
 ) -> BaseAvalancheDataset:
     """Converts a DataBuffer or Dataset into an Avalanche-compatible Dataset."""
     x_data, y_data = [], []
@@ -76,13 +76,13 @@ def to_avalanche_dataset(
             (x, y), _ = dataset[i]
         else:
             x, y = dataset[i]
-        if pickable:
+        if pickleable:
             x_data.append(x)
         if not isinstance(y, int):
             y = y.item()
         y_data.append(y)
-    if pickable:
-        return AvalanchePickableDataset(x_data, y_data, collate_fn)
+    if pickleable:
+        return AvalanchePickleableDataset(x_data, y_data, collate_fn)
     return AvalancheDataset(dataset, y_data, collate_fn)
 
 
