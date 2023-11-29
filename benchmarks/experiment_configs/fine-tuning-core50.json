@@ -1,0 +1,6 @@
+{
+  "scenario": "core50-8updates.json",
+  "model": "resnet18.json",
+  "updater": "fine-tuning-core50.json",
+  "dataset": "core50.json"
+}

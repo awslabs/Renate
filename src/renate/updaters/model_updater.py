@@ -22,9 +22,10 @@ from renate import defaults
 from renate.utils.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
 from renate.utils.distributed_strategies import create_strategy
 from renate.utils.file import unlink_file_or_folder
-from renate.utils.misc import int_or_str
+from renate.utils.misc import AdditionalTrainingMetrics, int_or_str
 from .learner import Learner, ReplayLearner
 from ..models import RenateModule
+
 
 logging_logger = logging.getLogger(__name__)
 
@@ -40,28 +41,36 @@ class SyneTuneCallback(Callback):
         super().__init__()
         self._report = Reporter()
         self._val_enabled = val_enabled
+        self._additional_metrics = AdditionalTrainingMetrics()
 
     @rank_zero_only
-    def _log(self, trainer: Trainer, training: bool) -> None:
+    def _log(self, trainer: Trainer, pl_module: LightningModule) -> None:
         """Report the current epoch's results to Syne Tune.
 
         If validation was run `_val_enabled` is True, the results are reported at the end of
         the validation epoch. Otherwise, they are reported at the end of the training epoch.
         """
 
+        training = pl_module.training
         if trainer.sanity_checking or (training and self._val_enabled):
             return
+        to_report = {k: v.item() for k, v in trainer.logged_metrics.items()}
+        to_report.update(self._additional_metrics(pl_module))
         self._report(
-            **{k: v.item() for k, v in trainer.logged_metrics.items()},
+            **to_report,
             step=trainer.current_epoch,
             epoch=trainer.current_epoch + 1,
         )
 
     def on_train_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
-        self._log(trainer=trainer, training=pl_module.training)
+        self._additional_metrics.on_train_epoch_end()
+        self._log(trainer=trainer, pl_module=pl_module)
 
     def on_validation_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
-        self._log(trainer=trainer, training=pl_module.training)
+        self._log(trainer=trainer, pl_module=pl_module)
+
+    def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
+        self._additional_metrics.on_train_start()
 
 
 class RenateModelCheckpoint(ModelCheckpoint):

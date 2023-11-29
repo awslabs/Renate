@@ -249,6 +249,13 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
             DataIncrementalScenario,
             2,
         ),
+        (
+            "DataIncrementalScenario",
+            "Core50",
+            {"data_ids": (2, 3)},
+            DataIncrementalScenario,
+            2,
+        ),
     ),
     ids=[
         "class_incremental",
@@ -263,6 +270,7 @@ def test_get_scenario_fails_for_unknown_scenario(tmpdir):
         "domainnet_by data_id",
         "domainnet by groupings",
         "cddb by dataid",
+        "core50 by dataid",
     ],
 )
 @pytest.mark.parametrize("val_size", (0, 0.5), ids=["no_val", "val"])
@@ -295,7 +303,7 @@ def test_data_module_fn(
     elif expected_scenario_class == DataIncrementalScenario:
         if "pretrained_model_name_or_path" in scenario_kwargs:
             assert scenario._data_module._tokenizer is not None
-        elif dataset_name not in ["CLEAR10", "CLEAR100", "DomainNet", "CDDB"]:
+        elif dataset_name not in ["CLEAR10", "CLEAR100", "DomainNet", "CDDB", "Core50"]:
             assert scenario._data_module._tokenizer is None
     assert scenario._num_tasks == expected_num_tasks
 
@@ -308,8 +316,9 @@ def test_data_module_fn(
         ("CIFAR10", Compose, Normalize, "ResNet18CIFAR"),
         ("CIFAR100", Compose, Normalize, "ResNet18CIFAR"),
         ("CLEAR10", Compose, Compose, "ResNet18"),
-        ("DomainNet", Compose, Compose, "VisionTransformerB16"),
         ("CDDB", Compose, Compose, None),
+        ("Core50", Compose, Compose, None),
+        ("DomainNet", Compose, Compose, "VisionTransformerB16"),
         ("hfd-rotten_tomatoes", type(None), type(None), "HuggingFaceTransformer"),
         ("fmow", Compose, Compose, "ResNet18"),
         ("yearbook", ToTensor, ToTensor, "ResNet18CIFAR"),

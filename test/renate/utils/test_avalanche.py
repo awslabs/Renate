@@ -1,11 +1,14 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+import pickle
+
 import pytest
 import torch
 from avalanche.training.plugins import EWCPlugin, ReplayPlugin
 from torch import Tensor
 from torch.utils.data import Subset, TensorDataset
 
+from renate.memory import ReservoirBuffer
 from renate.utils.avalanche import (
     AvalancheBenchmarkWrapper,
     _plugin_index,
@@ -16,24 +19,30 @@ from renate.utils.avalanche import (
 )
 
 
-def test_to_avalanche_dataset():
+@pytest.mark.parametrize("use_buffer", [True, False])
+def test_to_avalanche_dataset(use_buffer):
     expected_x = 6
     expected_y = 1
     tensor_dataset = TensorDataset(
         torch.tensor([5, expected_x, 7]), torch.tensor([0, expected_y, 2])
     )
-    dataset = to_avalanche_dataset(Subset(tensor_dataset, [1]))
-    assert dataset._inputs[0].item() == expected_x
+    if use_buffer:
+        buffer = ReservoirBuffer(10)
+        buffer.update(tensor_dataset)
+        dataset = to_avalanche_dataset(buffer)
+    else:
+        dataset = to_avalanche_dataset(Subset(tensor_dataset, [0, 1, 2]))
     assert type(dataset._targets) == list
-    assert len(dataset._targets) == 1
-    assert dataset._targets[0] == expected_y
+    assert len(dataset._targets) == 3
+    assert dataset._targets[1] == expected_y
     assert type(dataset._targets[0]) == int
-    assert dataset.targets.item() == dataset._targets[0]
-    assert dataset.targets == expected_y
+    assert dataset.targets[0].item() == dataset._targets[0]
+    assert dataset.targets[1] == expected_y
     assert type(dataset.targets) == Tensor
-    x, y = dataset[0]
+    x, y = dataset[1]
     assert x == expected_x and y == expected_y
-    assert len(dataset) == 1
+    assert len(dataset) == 3
+    pickle.dumps(dataset)
 
 
 def test_avalanche_benchmark_wrapper_correctly_tracks_and_saves_state():

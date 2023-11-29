@@ -1,0 +1,6 @@
+{
+  "scenario": "fmow-vit-b16-1update.json",
+  "model": "vit-b16.json",
+  "updater": "joint-fmow.json",
+  "dataset": "fmow.json"
+}

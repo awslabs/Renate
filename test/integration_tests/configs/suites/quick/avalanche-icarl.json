@@ -5,6 +5,6 @@
   "dataset": "mnist.json",
   "backend": "local",
   "job_name": "class-incremental-mlp-avalanche-icarl",
-  "expected_accuracy_linux": [[0.993380606174469, 0.8330068588256836], [0.9947990775108337, 0.8222330808639526]],
+  "expected_accuracy_linux": [[0.9938534498214722, 0.7737511992454529]],
   "expected_accuracy_darwin": [[0.9947990775108337, 0.7845249772071838]]
 }

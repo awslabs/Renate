@@ -11,16 +11,16 @@ from torch.utils.data import DataLoader, Dataset
 
 from renate.data.datasets import _TransformedDataset
 from renate.memory import DataBuffer
-from renate.types import NestedTensors
 
 
-class AvalancheDataset(Dataset):
-    """A Dataset consumable by Avalanche updaters."""
+class BaseAvalancheDataset(Dataset):
+    """Base class for all datasets consumable by Avalanche updaters."""
 
     def __init__(
-        self, inputs: NestedTensors, targets: List[int], collate_fn: Optional[Callable] = None
+        self,
+        targets: List[int],
+        collate_fn: Optional[Callable] = None,
     ):
-        self._inputs = inputs
         self._targets = targets
         self.targets = torch.tensor(targets, dtype=torch.long)
         if collate_fn is not None:
@@ -29,25 +29,55 @@ class AvalancheDataset(Dataset):
     def __len__(self) -> int:
         return len(self._targets)
 
-    def __getitem__(self, idx) -> Tuple[Tensor, Tensor]:
-        return self._inputs[idx], self._targets[idx]
+
+class AvalancheDataset(BaseAvalancheDataset):
+    """A wrapper around a Dataset consumable by Avalanche updaters."""
+
+    def __init__(
+        self,
+        dataset: Union[Dataset, DataBuffer],
+        targets: List[int],
+        collate_fn: Optional[Callable] = None,
+    ):
+        super().__init__(targets, collate_fn)
+        self._dataset = dataset
+
+    def __getitem__(self, idx) -> Tuple[Tensor, int]:
+        return self._dataset[idx][0], self._targets[idx]
+
+
+class AvalancheDatasetForBuffer(BaseAvalancheDataset):
+    """A wrapper around a DataBuffer consumable by Avalanche updaters."""
+
+    def __init__(
+        self, buffer: DataBuffer, targets: List[int], collate_fn: Optional[Callable] = None
+    ):
+        super().__init__(targets, collate_fn)
+        self._indices = buffer._indices
+        self._datasets = buffer._datasets
+
+    def __getitem__(self, idx) -> Tuple[Tensor, int]:
+        i, j = self._indices[idx]
+        return self._datasets[i][j][0], self._targets[idx]
 
 
 def to_avalanche_dataset(
     dataset: Union[Dataset, DataBuffer], collate_fn: Optional[Callable] = None
-) -> AvalancheDataset:
+) -> BaseAvalancheDataset:
     """Converts a DataBuffer or Dataset into an Avalanche-compatible Dataset."""
-    x_data, y_data = [], []
+    y_data = []
+    is_buffer = isinstance(dataset, DataBuffer)
     for i in range(len(dataset)):
-        if isinstance(dataset, DataBuffer):
-            (x, y), _ = dataset[i]
+        if is_buffer:
+            (_, y), _ = dataset[i]
         else:
-            x, y = dataset[i]
-        x_data.append(x)
+            _, y = dataset[i]
         if not isinstance(y, int):
             y = y.item()
         y_data.append(y)
-    return AvalancheDataset(x_data, y_data, collate_fn)
+    if is_buffer:
+        return AvalancheDatasetForBuffer(dataset, y_data, collate_fn)
+    return AvalancheDataset(dataset, y_data, collate_fn)
 
 
 class AvalancheBenchmarkWrapper:
@@ -64,6 +94,7 @@ class AvalancheBenchmarkWrapper:
         self._classes_order = None
         self._n_classes = 0
         self._train_dataset = train_dataset
+        self._test_transform = test_transform
         self._train_target_transform = train_target_transform
         self._benchmark = dataset_benchmark(
             [train_dataset],
@@ -78,7 +109,9 @@ class AvalancheBenchmarkWrapper:
 
     def update_benchmark_properties(self):
         dataset = _TransformedDataset(
-            dataset=self._train_dataset, target_transform=self._train_target_transform
+            dataset=self._train_dataset,
+            transform=self._test_transform,
+            target_transform=self._train_target_transform,
         )
         dataloader = DataLoader(dataset)
         unique_classes = set()

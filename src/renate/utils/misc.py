@@ -1,6 +1,8 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from typing import Optional, Set, Union
+import time
+from typing import Dict, Optional, Set, Tuple, Union
+from pytorch_lightning import Callback
 
 import torch
 
@@ -37,3 +39,46 @@ def maybe_populate_mask_and_ignore_logits(
         logits.index_fill_(1, class_mask.to(logits.device), -float("inf"))
 
     return logits, class_mask
+
+
+class AdditionalTrainingMetrics(Callback):
+    def __init__(self) -> None:
+        self._training_start_time = None
+        self._curr_epoch_end_time = None
+
+    def on_train_start(self) -> None:
+        self._training_start_time = time.time()
+
+    def on_train_epoch_end(self) -> None:
+        self._curr_epoch_end_time = time.time()
+
+    def __call__(self, model: torch.nn.Module) -> Dict[str, Union[float, int]]:
+        if all([self._training_start_time, self._curr_epoch_end_time]):
+            total_training_time = self._curr_epoch_end_time - self._training_start_time
+        else:
+            total_training_time = 0.0
+        # maximum amount of memory used in training. This might
+        # not be the best choice, but the most convenient.
+        peak_memory_usage = (
+            torch.cuda.memory_stats()["allocated_bytes.all.peak"]
+            if torch.cuda.is_available()
+            else 0
+        )
+        trainable_params, total_params = self.parameters_count(model)
+
+        return dict(
+            total_training_time=total_training_time,
+            peak_memory_usage=peak_memory_usage,
+            trainable_params=trainable_params,
+            total_params=total_params,
+        )
+
+    def parameters_count(self, model: torch.nn.Module) -> Tuple[int, int]:
+        trainable_params, total_params = 0, 0
+        for param in model.parameters():
+            num_params = param.numel()
+            total_params += num_params
+            if param.requires_grad:
+                trainable_params += num_params
+
+        return trainable_params, total_params
