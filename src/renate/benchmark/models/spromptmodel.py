@@ -13,7 +13,7 @@ from renate.models.layers.shared_linear import SharedMultipleLinear
 from renate.models.prediction_strategies import PredictionStrategy
 from renate.models.task_identification_strategies import TaskPrototypes
 
-from . import PromptedTransformer
+from .l2p import PromptedTransformer
 from .base import RenateBenchmarkingModule
 
 logger = logging.getLogger(__name__)
@@ -132,10 +132,11 @@ class SPromptTransformer(RenateBenchmarkingModule):
         )
 
         self._backbone.forward = self.forward_for_monkey_patching
+        self.task_ids = None
 
     def increment_task(self) -> None:
         # This cannot be a part of add_task_params as the super.__init__ function calls
-        # add_task_params and thus we would be trying parameters to the non-existent
+        # add_task_params, and thus we would be trying parameters to the non-existent
         # self.s_prompts
         self._backbone["prompt_pool"].increment_task()
 
@@ -143,34 +144,34 @@ class SPromptTransformer(RenateBenchmarkingModule):
         self, x: Union[torch.Tensor, Dict[str, Any]], task_id: str = None
     ) -> torch.Tensor:
         prompt = None
+        task_ids = None
+        if not self.training:
+            task_ids = self._task_id_method.infer_task(self._backbone["transformer"](x))
         if self.training:
             prompt = self._backbone["prompt_pool"](self._task_id)
-        else:
-            task_ids = self._task_id_method.infer_task(self._backbone["transformer"](x))
-            if task_ids is not None:
-                prompt = torch.cat([self._backbone["prompt_pool"](i) for i in task_ids])
+        elif task_ids is not None:
+            prompt = torch.stack([self._backbone["prompt_pool"](i) for i in task_ids])
+            self.task_ids = task_ids.detach().cpu().numpy()
 
         features = self._backbone["transformer"](x, prompt)
 
-        ## additional logic for separate classifiers
+        # additional logic for separate classifiers
         # a. This forward returns logits directly, and the RenateBenchmarkingModule's _task_params
-        #    now are identities. Thus the overall operation is still the network forward pass.
+        #    now are identities. Thus, the overall operation is still the network forward pass.
         # b. Additional handling of params is not needed as backbone's params will return all the
         #    necessary elements.
 
         if self.training:
             logits = self._backbone["classifier"][f"{self._task_id}"](features)
+        elif task_ids is not None:
+            logits = torch.cat(
+                [
+                    self._backbone["classifier"][f"{t}"](feat.unsqueeze(0))
+                    for t, feat in zip(task_ids, features)
+                ]
+            )
         else:
-            task_ids = self._task_id_method.infer_task(self._backbone["transformer"](x))
-            if task_ids is not None:
-                logits = torch.cat(
-                    [
-                        self._backbone["classifier"][f"{t}"](feat.unsqueeze(0))
-                        for t, feat in zip(task_ids, features)
-                    ]
-                )
-            else:
-                logits = self._backbone["classifier"]["0"](features)
+            logits = self._backbone["classifier"]["0"](features)
 
         return logits
 
