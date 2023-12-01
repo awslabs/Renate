@@ -88,6 +88,11 @@ class SPeftLearner(Learner):
             # This needs to run before configure optimizers is called. The only hook is setup("fit")
             self._model.increment_task()
 
+    def optimizer_zero_grad(
+        self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int
+    ) -> None:
+        optimizer.zero_grad(set_to_none=True)
+
 
 class SPeftModelUpdater(SingleTrainingLoopUpdater):
     def __init__(

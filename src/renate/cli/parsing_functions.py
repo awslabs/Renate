@@ -71,7 +71,7 @@ def get_updater_and_learner_kwargs(
     elif args.updater == "LearningToPromptReplay":
         learner_args = learner_args + ["prompt_sim_loss_weight", "memory_size", "memory_batch_size"]
         updater_class = LearningToPromptReplayModelUpdater
-    elif args.updater == "SPrompt":
+    elif args.updater == "SPeft":
         updater_class = SPeftModelUpdater
     elif args.updater == "DER":
         learner_args = base_er_args + ["alpha", "beta"]
