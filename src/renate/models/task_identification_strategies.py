@@ -11,6 +11,11 @@ from sklearn.cluster import KMeans
 
 
 class TaskEstimator(nn.Module, ABC):
+    """An ABC that all task estimator methods inherit.
+
+    They implement two methods `update_task_prototypes` and `infer_task`.
+    """
+
     @abstractmethod
     def update_task_prototypes(self):
         return
@@ -21,6 +26,14 @@ class TaskEstimator(nn.Module, ABC):
 
 
 class TaskPrototypes(TaskEstimator):
+    """Task identification method proposed in S-Prompts.
+
+    Args:
+        task_id: The current update id of the method. Required to deserialize.
+        clusters_per_task: Number of clusters to use in K-means.
+        embedding_size: Embedding size of the transformer features.
+    """
+
     def __init__(self, task_id, clusters_per_task, embedding_size) -> None:
         super().__init__()
         self.register_buffer(
@@ -43,6 +56,7 @@ class TaskPrototypes(TaskEstimator):
         features: Union[torch.Tensor, npt.ArrayLike],
         labels: Union[torch.Tensor, npt.ArrayLike],
     ) -> None:
+        # At training.
         if isinstance(features, torch.Tensor):
             features = features.cpu().numpy()
 
@@ -74,6 +88,7 @@ class TaskPrototypes(TaskEstimator):
         )
 
     def infer_task(self, features: torch.Tensor) -> torch.Tensor:
+        # At inference.
         if self._training_feat_centroids.numel() > 0:
             features = torch.nn.functional.normalize(features)
             nearest_p_inds = torch.cdist(features, self._training_feat_centroids, p=2).argmin(1)
