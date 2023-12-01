@@ -20,6 +20,14 @@ logger = logging.getLogger(__name__)
 
 
 class PromptPool(nn.Module):
+    """Implements a pool of prompts to be used in for S-Prompts.
+
+    Args:
+        prompt_size: Equivalent to number of input tokens used per update . Defaults to 10.
+        embedding_size: Hidden size of the transformer used.. Defaults to 768.
+        current_update_id: Current update it. Used to init number of prompts. Defaults to 0.
+    """
+
     def __init__(
         self, prompt_size: int = 10, embedding_size: int = 768, current_update_id: int = 0
     ) -> None:
@@ -30,6 +38,8 @@ class PromptPool(nn.Module):
 
         self._pool = nn.ParameterDict()
         for id in range(self._curr_task):
+            # This always needs to be intialized as the torch's state dict only restores for an
+            # existing Parameter.
             self._pool[f"{id}"] = nn.Parameter(
                 torch.nn.init.kaiming_uniform_(
                     torch.empty((self._M, self._embedding_size)), a=math.sqrt(5)
@@ -52,6 +62,30 @@ class PromptPool(nn.Module):
 
 
 class SPromptTransformer(RenateBenchmarkingModule):
+    """_summary_
+
+    Args:
+        pretrained_model_name_or_path: A string that denotes which pretrained model from the HF hub
+            to use.
+        image_size: Image size. Used if `pretrained_model_name_or_path` is not set .
+        patch_size: Patch size to be extracted. Used if `pretrained_model_name_or_path` is not set .
+        num_layers: Num of transformer layers. Used only if `pretrained_model_name_or_path` is not set .
+        num_heads: Num heads in MHSA. Used only if `pretrained_model_name_or_path` is not set .
+        hidden_dim: Hidden dimension of transformers. Used only if `pretrained_model_name_or_path` is not set .
+        mlp_dim: _description_. Used only if `pretrained_model_name_or_path` is not set .
+        dropout: _description_. Used only if `pretrained_model_name_or_path` is not set .
+        attention_dropout: _description_. Used only if `pretrained_model_name_or_path` is not set .
+        num_outputs: Number of output classes of the output. Defaults to 10.
+        prediction_strategy: Continual learning strategies may alter the prediction at train or test
+            time. Defaults to None.
+        add_icarl_class_means: If ``True``, additional parameters used only by the
+            ``ICaRLModelUpdater`` are added. Only required when using that updater.
+        prompt_size: Equivalent to number of input tokens used per update . Defaults to 10.
+        task_id: Internal variable used to increment update id. Shouldn't be set by user. Defaults to 0.
+        clusters_per_task: Number clusters in k-means used for task identification. Defaults to 5.
+        per_task_classifier: Flag to share or use a common classifier head for all tasks. Defaults to False.
+    """
+
     def __init__(
         self,
         pretrained_model_name_or_path="google/vit-base-patch16-224",

@@ -19,6 +19,31 @@ from renate.updaters.model_updater import SingleTrainingLoopUpdater
 
 
 class SPeftLearner(Learner):
+    """Learner to implement S-Prompts from
+        ```Wang, Yabin, et.al .
+        "S-prompts learning with pre-trained transformers: An occam’s razor for domain incremental learning."  # noqa: E501
+        Advances in Neural Information Processing Systems 35 (2022): 5682-5695.```
+
+
+    Args:
+        model: The SPromptTransformer model to be trained.
+        loss_fn: Loss function to be trained with.
+        optimizer: Partial optimizer used to create an optimizer by passing the model parameters.
+        learning_rate_scheduler: Partial object of learning rate scheduler that will be created by
+            passing the optimizer.
+        learning_rate_scheduler_interval: When to update the learning rate scheduler.
+            Options: `epoch` and `step`.
+        batch_size: Training batch size.
+        train_transform: The transformation applied during training.
+        train_target_transform: The target transformation applied during testing.
+        test_transform: The transformation at test time.
+        test_target_transform: The target transformation at test time.
+        logged_metrics: Metrics logged additional to the default ones.
+        seed: See :func:`renate.models.utils.get_generator`.
+        mask_unused_classes: Masking logits corresponding to unused classes. Useful only for class
+            incremental problems. Defaults to defaults.MASK_UNUSED_CLASSES.
+    """
+
     def __init__(
         self,
         model: RenateModule,
@@ -64,6 +89,12 @@ class SPeftLearner(Learner):
         val_dataset_collate_fn: Optional[Callable] = None,
         task_id: Optional[str] = None,
     ) -> None:
+        """A custom on_model_update_start hook for S-Peft methods.
+
+        Here, we iterate oer the train data set and extract features. These features used to compute
+        the task prototypes by the `update_task_identifier` call. Having this function in the model
+        update start instead of end results in val metrics being reflective of test accuracy.
+        """
         super().on_model_update_start(
             train_dataset, val_dataset, train_dataset_collate_fn, val_dataset_collate_fn, task_id
         )
@@ -91,6 +122,7 @@ class SPeftLearner(Learner):
     def optimizer_zero_grad(
         self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int
     ) -> None:
+        """Explicitly setting grads to None instead of zero."""
         optimizer.zero_grad(set_to_none=True)
 
 
