@@ -62,7 +62,9 @@ class PromptPool(nn.Module):
 
 
 class SPromptTransformer(RenateBenchmarkingModule):
-    """_summary_
+    """Implements Transformer Model for S-Prompts as described in  Wang, Yabin, et.al ."S-prompts
+       learning with pre-trained transformers: An occam’s razor for domain incremental learning."
+       Advances in Neural Information Processing Systems 35 (2022): 5682-5695.
 
     Args:
         pretrained_model_name_or_path: A string that denotes which pretrained model from the HF hub

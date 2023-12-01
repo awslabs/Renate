@@ -105,6 +105,13 @@ The full list of models and model names including a short description is provide
         * ``pool_selection_size``: Number of prompts to select for each input from the pool.
         * ``prompt_size``: Number of input tokens each prompt is equivalent to. 
         * ``prompt_key_dim``: Dimenensionality of the features used for prompt matching.
+    * - `~renate.benchmark.models.spromptmodel.SPromptTransformer`
+      - `S-Prompt Transformer <https://arxiv.org/abs/2207.12819>`_.
+      - * ``pretrained_model_name_or_path``: Hugging Face `transformer ID <https://huggingface.co/models>`__.
+        * ``num_outputs``: The number of classes.
+        * ``prompt_size``: Number of input tokens each prompt is equivalent to. 
+        * ``clusters_per_task``: Number of clusters for K-Means in task identification.
+        * ``per_task_classifier``: Flag to share or use individual classifier per task.
 
 .. _benchmarking-renate-benchmarks-datasets:
 
