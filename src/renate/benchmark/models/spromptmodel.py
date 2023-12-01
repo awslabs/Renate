@@ -71,9 +71,11 @@ class SPromptTransformer(RenateBenchmarkingModule):
             to use.
         image_size: Image size. Used if `pretrained_model_name_or_path` is not set .
         patch_size: Patch size to be extracted. Used if `pretrained_model_name_or_path` is not set .
-        num_layers: Num of transformer layers. Used only if `pretrained_model_name_or_path` is not set .
+        num_layers: Num of transformer layers. Used only if `pretrained_model_name_or_path` is not
+            set .
         num_heads: Num heads in MHSA. Used only if `pretrained_model_name_or_path` is not set .
-        hidden_dim: Hidden dimension of transformers. Used only if `pretrained_model_name_or_path` is not set .
+        hidden_dim: Hidden dimension of transformers. Used only if `pretrained_model_name_or_path`
+            is not set .
         mlp_dim: _description_. Used only if `pretrained_model_name_or_path` is not set .
         dropout: _description_. Used only if `pretrained_model_name_or_path` is not set .
         attention_dropout: _description_. Used only if `pretrained_model_name_or_path` is not set .
@@ -83,9 +85,11 @@ class SPromptTransformer(RenateBenchmarkingModule):
         add_icarl_class_means: If ``True``, additional parameters used only by the
             ``ICaRLModelUpdater`` are added. Only required when using that updater.
         prompt_size: Equivalent to number of input tokens used per update . Defaults to 10.
-        task_id: Internal variable used to increment update id. Shouldn't be set by user. Defaults to 0.
+        task_id: Internal variable used to increment update id. Shouldn't be set by user.
+            Defaults to 0.
         clusters_per_task: Number clusters in k-means used for task identification. Defaults to 5.
-        per_task_classifier: Flag to share or use a common classifier head for all tasks. Defaults to False.
+        per_task_classifier: Flag to share or use a common classifier head for all tasks.
+            Defaults to False.
     """
 
     def __init__(

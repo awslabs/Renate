@@ -86,7 +86,7 @@ def model_fn(
     pretrained_model_name_or_path: Optional[str] = None,
     prompt_size: int = 10,
     clusters_per_task: int = 5,
-    per_task_classifier: bool = False,
+    per_task_classifier: bool = True,
 ) -> RenateModule:
     """Returns a model instance."""
     if model_name not in models:
