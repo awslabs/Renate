@@ -223,8 +223,5 @@ class SPromptTransformer(RenateBenchmarkingModule):
         # once this is set (after loading. increase that by one.)
         self._constructor_arguments["task_id"] = self._task_id + 1
 
-    def get_params(self, task_id: str = defaults.TASK_ID) -> List[Parameter]:
-        return super().get_params(task_id)
-
     def features(self, x: torch.Tensor) -> torch.Tensor:
         return self._backbone["transformer"](x)
