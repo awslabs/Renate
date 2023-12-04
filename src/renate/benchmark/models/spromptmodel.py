@@ -6,9 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.nn as nn
-from torch.nn.parameter import Parameter
 
-from renate import defaults
 from renate.models.layers.shared_linear import SharedMultipleLinear
 from renate.models.prediction_strategies import PredictionStrategy
 from renate.models.task_identification_strategies import TaskPrototypes
