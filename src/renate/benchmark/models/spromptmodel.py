@@ -139,7 +139,6 @@ class SPromptTransformer(RenateBenchmarkingModule):
         self._M = prompt_size
         self._task_id = task_id
         self._per_task_classifier = per_task_classifier
-        logger.warning(f"Task id is {self._task_id}")
 
         prompt_pool = PromptPool(
             prompt_size=self._M,
@@ -156,8 +155,6 @@ class SPromptTransformer(RenateBenchmarkingModule):
         self._backbone["transformer"].requires_grad_(False)
         self._backbone["prompt_pool"].requires_grad_(True)
 
-        # self._backbone["transformer"].transformer._backbone.enable_gradient_checkpointing()
-        # with this, we make task_params as identities, and use only this.
         self._backbone["classifier"] = SharedMultipleLinear(
             self._embedding_size,
             self._num_outputs,
@@ -169,7 +166,7 @@ class SPromptTransformer(RenateBenchmarkingModule):
             {k: nn.Identity() for k, _ in self._tasks_params.items()}
         )
 
-        self._backbone.forward = self.forward_for_monkey_patching
+        self._backbone.forward = self._forward_for_monkey_patching
         self.task_ids = None
 
     def increment_task(self) -> None:
@@ -178,18 +175,18 @@ class SPromptTransformer(RenateBenchmarkingModule):
         # self.s_prompts
         self._backbone["prompt_pool"].increment_task()
 
-    def forward_for_monkey_patching(
+    def _forward_for_monkey_patching(
         self, x: Union[torch.Tensor, Dict[str, Any]], task_id: str = None
     ) -> torch.Tensor:
         prompt = None
         task_ids = None
-        if not self.training:
-            task_ids = self._task_id_method.infer_task(self._backbone["transformer"](x))
         if self.training:
             prompt = self._backbone["prompt_pool"](self._task_id)
-        elif task_ids is not None:
-            prompt = torch.stack([self._backbone["prompt_pool"](i) for i in task_ids])
-            self.task_ids = task_ids.detach().cpu().numpy()
+        else:
+            task_ids = self._task_id_method.infer_task(self._backbone["transformer"](x))
+            if task_ids is not None:
+                prompt = torch.stack([self._backbone["prompt_pool"](i) for i in task_ids])
+                self.task_ids = task_ids.detach().cpu().numpy()
 
         features = self._backbone["transformer"](x, prompt)
 

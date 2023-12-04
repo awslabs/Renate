@@ -42,9 +42,9 @@ using Renate (e.g., using :py:func:`~renate.training.training.run_training_job`;
    * - ``"LearningToPromptReplay"`` 
      - :py:class:`LearningToPromptLearner <renate.updaters.experimental.l2p.LearningToPromptReplayLearner>`
      - A class that extends the Learning to Prompt method to use a memory replay method like "Offline-ER".
-   * - ``"SPeft"``
-     - :py:class `SPeft <renate.updaters.experimental.speft.SPeftLearner>`
-     - A class that (currently) implements S-Prompts method for memory-free continual learning.
+   * - ``"S-Prompts"``
+     - :py:class:`SPeft <renate.updaters.experimental.speft.SPeftLearner>`
+     - A class that (currently) implements S-Prompts method for memory-free continual learning when used with `SPromptTransformer` model. The method trains a set of input prompts in an update dependent fashion. 
    * - ``"Avalanche-ER"``
      - :py:class:`AvalancheReplayLearner <renate.updaters.avalanche.learner.AvalancheReplayLearner>`
      - A wrapper which gives access to Experience Replay as implemented in the Avalanche library. This method is the equivalent to our Offline-ER.

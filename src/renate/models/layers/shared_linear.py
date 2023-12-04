@@ -14,7 +14,9 @@ class SharedMultipleLinear(nn.ModuleDict):
         out_features: size of each output sample
         bias: If set to ``False``, the layer will not learn an additive bias.
             Default: ``True``
-
+        share_parameters: Flag whether to share parameters or use individual linears per task.
+            The interface remains identical, and the underlying linear layer is shared (or not).
+        num_updates: Number of updates that have happened/is happening.
     """
 
     def __init__(
@@ -30,21 +32,18 @@ class SharedMultipleLinear(nn.ModuleDict):
         self.out_features = out_features
         self.bias = bias
 
-        if share_parameters:
-            # we only have a single linear.
-            layer = nn.Linear(in_features=in_features, out_features=out_features, bias=bias)
-            all_layers = {f"{id}": layer for id in range(num_updates)}
-        else:
-            all_layers = {
-                f"{id}": nn.Linear(in_features=in_features, out_features=out_features)
-                for id in range(num_updates)
-            }
-        super().__init__(all_layers)
+        super().__init__()
+        for _ in range(num_updates):
+            self.increment_task()
 
     def increment_task(self) -> None:
         currlen = len(self)
         if self._share_parameters:
-            self[f"{currlen}"] = self[list(self.keys())[0]]
+            self[f"{currlen}"] = (
+                self[list(self.keys())[0]]
+                if currlen > 0
+                else nn.Linear(in_features=self.in_features, out_features=self.out_features)
+            )
         else:
             self[f"{currlen}"] = nn.Linear(
                 in_features=self.in_features, out_features=self.out_features
