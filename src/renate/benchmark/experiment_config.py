@@ -116,7 +116,7 @@ def model_fn(
                 f"LearningToPromptTransformer, but model name specified is {model_name}."
             )
         model_kwargs["pretrained_model_name_or_path"] = pretrained_model_name_or_path
-    elif (updater is not None) and ("SPrompt" in updater):
+    elif (updater is not None) and ("SPeft" in updater):
         if not model_name.startswith("SPrompt"):
             raise ValueError(
                 "SPrompt model updater is designed to work only with "
