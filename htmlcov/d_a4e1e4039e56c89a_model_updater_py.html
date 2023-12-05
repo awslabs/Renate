@@ -64,8 +64,8 @@
             <a id="indexLink" class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a id="nextFileLink" class="nav" href="d_a4e1e4039e56c89a_plugins_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.3.1">coverage.py v7.3.1</a>,
-            created at 2023-09-25 12:44 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.3.2">coverage.py v7.3.2</a>,
+            created at 2023-12-05 11:26 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"/>
@@ -293,7 +293,7 @@
     <p class="pln"><span class="n"><a id="t211" href="#t211">211</a></span><span class="t">        <span class="nam">train_dataset_collate_fn</span><span class="op">:</span> <span class="nam">Optional</span><span class="op">[</span><span class="nam">Callable</span><span class="op">]</span> <span class="op">=</span> <span class="key">None</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t212" href="#t212">212</a></span><span class="t">        <span class="nam">val_dataset_collate_fn</span><span class="op">:</span> <span class="nam">Optional</span><span class="op">[</span><span class="nam">Callable</span><span class="op">]</span> <span class="op">=</span> <span class="key">None</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t213" href="#t213">213</a></span><span class="t">    <span class="op">)</span> <span class="op">-></span> <span class="nam">AvalancheBenchmarkWrapper</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t214" href="#t214">214</a></span><span class="t">        <span class="nam">train_dataset</span> <span class="op">=</span> <span class="nam">to_avalanche_dataset</span><span class="op">(</span><span class="nam">train_dataset</span><span class="op">,</span> <span class="nam">train_dataset_collate_fn</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t214" href="#t214">214</a></span><span class="t">        <span class="nam">avalanche_train_dataset</span> <span class="op">=</span> <span class="nam">to_avalanche_dataset</span><span class="op">(</span><span class="nam">train_dataset</span><span class="op">,</span> <span class="nam">train_dataset_collate_fn</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t215" href="#t215">215</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t216" href="#t216">216</a></span><span class="t">        <span class="nam">avalanche_state</span> <span class="op">=</span> <span class="key">None</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t217" href="#t217">217</a></span><span class="t">        <span class="key">if</span> <span class="nam">self</span><span class="op">.</span><span class="nam">_input_state_folder</span> <span class="key">is</span> <span class="key">not</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -314,7 +314,7 @@
     <p class="run"><span class="n"><a id="t232" href="#t232">232</a></span><span class="t">            <span class="nam">val_memory_dataset</span> <span class="op">=</span> <span class="nam">to_avalanche_dataset</span><span class="op">(</span><span class="nam">train_dataset</span><span class="op">,</span> <span class="nam">val_dataset_collate_fn</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t233" href="#t233">233</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t234" href="#t234">234</a></span><span class="t">        <span class="nam">benchmark</span> <span class="op">=</span> <span class="nam">AvalancheBenchmarkWrapper</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t235" href="#t235">235</a></span><span class="t">            <span class="nam">train_dataset</span><span class="op">=</span><span class="nam">train_dataset</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t235" href="#t235">235</a></span><span class="t">            <span class="nam">train_dataset</span><span class="op">=</span><span class="nam">avalanche_train_dataset</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t236" href="#t236">236</a></span><span class="t">            <span class="nam">val_dataset</span><span class="op">=</span><span class="nam">val_memory_dataset</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t237" href="#t237">237</a></span><span class="t">            <span class="nam">train_transform</span><span class="op">=</span><span class="nam">self</span><span class="op">.</span><span class="nam">_train_transform</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t238" href="#t238">238</a></span><span class="t">            <span class="nam">train_target_transform</span><span class="op">=</span><span class="nam">self</span><span class="op">.</span><span class="nam">_train_target_transform</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
@@ -620,8 +620,8 @@
             <a id="indexLink" class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a id="nextFileLink" class="nav" href="d_a4e1e4039e56c89a_plugins_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.3.1">coverage.py v7.3.1</a>,
-            created at 2023-09-25 12:44 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.3.2">coverage.py v7.3.2</a>,
+            created at 2023-12-05 11:26 +0000
         </p>
     </div>
 </footer>
