@@ -402,4 +402,5 @@ def pytest_sessionstart(session):
 
 
 def pytest_sessionfinish(session, exitstatus):
-    shutil.rmtree(TEST_WORKING_DIRECTORY)
+    if os.path.exists(TEST_WORKING_DIRECTORY):
+        shutil.rmtree(TEST_WORKING_DIRECTORY)
