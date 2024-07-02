@@ -293,9 +293,9 @@ class ModelUpdater(abc.ABC):
         self._learner_kwargs["mask_unused_classes"] = mask_unused_classes
         if learning_rate_scheduler is not None:
             self._learner_kwargs["learning_rate_scheduler"] = learning_rate_scheduler
-            self._learner_kwargs[
-                "learning_rate_scheduler_interval"
-            ] = learning_rate_scheduler_interval
+            self._learner_kwargs["learning_rate_scheduler_interval"] = (
+                learning_rate_scheduler_interval
+            )
         self._model = model
         self._learner_state_file: Optional[str] = None
         if input_state_folder is not None:

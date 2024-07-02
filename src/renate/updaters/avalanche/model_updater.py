@@ -79,9 +79,11 @@ class AvalancheModelUpdater(SingleTrainingLoopUpdater):
             optimizer, scheduler_config = optimizer[0], scheduler_config[0]
             lr_scheduler_plugin = LRSchedulerPlugin(
                 scheduler=scheduler_config["scheduler"],
-                step_granularity="iteration"
-                if scheduler_config["interval"] == "step"
-                else scheduler_config["interval"],
+                step_granularity=(
+                    "iteration"
+                    if scheduler_config["interval"] == "step"
+                    else scheduler_config["interval"]
+                ),
             )
             plugins.append(lr_scheduler_plugin)
         else:
