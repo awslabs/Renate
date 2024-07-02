@@ -51,9 +51,9 @@ def test_model_fn(model_name, expected_model_class):
         num_outputs=2,
         num_hidden_layers=1 if model_name == "MultiLayerPerceptron" else None,
         hidden_size=1 if model_name == "MultiLayerPerceptron" else None,
-        pretrained_model_name_or_path="distilbert-base-uncased"
-        if model_name == "HuggingFaceTransformer"
-        else None,
+        pretrained_model_name_or_path=(
+            "distilbert-base-uncased" if model_name == "HuggingFaceTransformer" else None
+        ),
     )
     assert isinstance(model, expected_model_class)
 
