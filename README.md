@@ -55,7 +55,7 @@
 | src/renate/updaters/\_\_init\_\_.py                               |        0 |        0 |    100% |           |
 | src/renate/updaters/avalanche/\_\_init\_\_.py                     |        0 |        0 |    100% |           |
 | src/renate/updaters/avalanche/learner.py                          |       76 |        2 |     97% |  142, 152 |
-| src/renate/updaters/avalanche/model\_updater.py                   |      134 |        8 |     94% |53, 64, 123, 125, 359-364, 429-435 |
+| src/renate/updaters/avalanche/model\_updater.py                   |      134 |        8 |     94% |53, 64, 125, 127, 361-366, 431-437 |
 | src/renate/updaters/avalanche/plugins.py                          |       25 |        1 |     96% |        43 |
 | src/renate/updaters/experimental/\_\_init\_\_.py                  |        0 |        0 |    100% |           |
 | src/renate/updaters/experimental/er.py                            |      165 |       13 |     92% |76, 166-167, 185, 197, 650-661, 735-747, 824-839, 922-943 |
