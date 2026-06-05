@@ -1,3 +1,10 @@
+.. warning::
+
+   **⚠️ This project has been archived and is no longer maintained.**
+   No further updates, bug fixes, or security patches will be provided.
+   Dependencies may be outdated and/or contain known vulnerabilities.
+   Use at your own risk.
+
 .. image:: https://img.shields.io/pypi/status/Renate
     :target: #
     :alt: PyPI - Status
