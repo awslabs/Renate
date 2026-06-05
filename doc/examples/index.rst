@@ -1,3 +1,7 @@
+.. warning::
+
+   This project has been archived and is no longer maintained. Dependencies may be outdated and/or contain vulnerabilities.
+
 ********
 Examples
 ********
