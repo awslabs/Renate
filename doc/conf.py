@@ -9,6 +9,28 @@ import sys
 
 sys.path.insert(0, os.path.abspath("../src/"))
 
+autodoc_mock_imports = [
+    "avalanche",
+    "boto3",
+    "botocore",
+    "datasets",
+    "deepspeed",
+    "gdown",
+    "lightning",
+    "numpy",
+    "pandas",
+    "PIL",
+    "pytorch_lightning",
+    "sagemaker",
+    "syne_tune",
+    "tabulate",
+    "torch",
+    "torchmetrics",
+    "torchvision",
+    "transformers",
+    "wild_time_data",
+]
+
 import renate  # noqa: E402
 
 
