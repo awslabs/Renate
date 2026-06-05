@@ -8,5 +8,5 @@ sphinx-autodoc-typehints==1.25.2
 sphinx-paramlinks==0.6.0
 
 # Temporarily added
-avalanche_lib==0.3.1
+avalanche_lib==0.6.0
 wild-time-data==0.1.1
